@@ -4,6 +4,7 @@ import Header from "../Header";
 export default function PatientDashboard() {
   return (
     <div className="min-h-screen w-screen bg-gray-100 overflow-x-hidden">
+      <Header />
       <main className="pt-24 px-8 pb-10">
         <h1 className="text-3xl font-bold text-blue-700 mb-8">Welcome, Patient</h1>
 
