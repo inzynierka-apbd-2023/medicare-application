@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import './styles/App.css'
+import './styles/styles.css'
 import Login from './pages/Login'
-import Header from './pages/Header'
 import PatientDashboard from './pages/Dashboard/PatientDashboard'
 
 function App() {
