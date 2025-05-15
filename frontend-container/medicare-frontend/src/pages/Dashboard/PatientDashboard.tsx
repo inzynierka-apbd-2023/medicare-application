@@ -144,19 +144,17 @@ export default function PatientDashboard() {
                 </div>
               </div>
 
-              {/* Available Services */}
-              <div className="bg-white rounded-2xl shadow-md p-6">
-                <h3 className="text-lg font-semibold text-blue-600 mb-2">Available Services</h3>
-                <ul className="list-disc list-inside text-left space-y-1 text-sm text-gray-700">
-                  {data.services.map(svc => (
-                    <li key={svc.id}>{svc.name}</li>
-                  ))}
-                </ul>
+
+              {/* Available Services (Buttons) */}
+              <div className="bg-white rounded-2xl shadow-md p-3">
+                <div className="flex justify-center space-x-4">
+                  <button className="px-4 py-1 bg-blue-500 hover:bg-blue-600 text-white rounded-1g">Make Appointment</button>
+                </div>
               </div>
 
-              {/* Specializations */}
+              {/* Upcoming appointments */}
               <div className="bg-white rounded-2xl shadow-md p-6">
-                <h3 className="text-lg font-semibold text-blue-600 mb-2">Specializations</h3>
+                <h3 className="text-lg font-semibold text-blue-600 mb-2">Upcoming appointments </h3>
                 <ul className="list-disc list-inside text-left space-y-1 text-sm text-gray-700">
                   {data.specializations.map(sp => (
                     <li key={sp.id}>{sp.name} - {sp.doctorIds.map(getDoctorName).join(", ")}</li>
