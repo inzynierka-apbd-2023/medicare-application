@@ -59,7 +59,7 @@ export default function ChoosePlan() {
   };
 
   return (
-    <div className="bg-gray-100 min-h-screen flex flex-col">
+    <div className="h-screen flex flex-col">
       <h1 className="text-4xl font-bold text-center py-8">Choose Your Plan</h1>
 
       {/* Plan slider */}
@@ -106,8 +106,8 @@ export default function ChoosePlan() {
       </div>
 
       {/* Corporate CTA */}
-      <div className="relative mt-auto">
-        <div className="relative h-[30vh] md:h-[40vh] bg-gray-300">
+      <div className="mt-8"> {/* push down from slider */}
+        <div className="relative h-[20vh] md:h-[20vh] bg-gray-300"> {/* smaller banner */}
           <img
             src="/assets/pexels-fauxels-3184465.jpg"
             alt="Corporate"

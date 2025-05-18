@@ -14,7 +14,7 @@ export default function Login() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4 sm:px-6 md:px-8">
+    <div className="h-screen flex items-center justify-center px-4 sm:px-6 md:px-8">
       <div className="bg-white shadow-xl rounded-2xl w-full max-w-md px-6 py-8 sm:px-8">
         <h1 className="text-xl sm:text-2xl font-bold text-center mb-2">Welcome to Medicare</h1>
         <p className="text-sm text-center text-gray-600 mb-4">
