@@ -50,29 +50,32 @@ export default function Login() {
           {/* Password with eye icon */}
           <div>
             <div className="flex justify-between text-sm mb-1">
-                <label className="font-medium">Password</label>
-                <Link to="/forgot-password" className="text-blue-600 hover:underline text-xs bg-transparent border-none">
+              <label className="font-medium">Password</label>
+              <Link
+                to="/forgot-password"
+                className="text-blue-600 hover:underline text-xs bg-transparent border-none"
+              >
                 I forgot the password
-                </Link>
+              </Link>
             </div>
             <div className="relative">
-                <input
+              <input
                 type={showPassword ? 'text' : 'password'}
                 className="w-full px-4 py-3 pr-10 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                />
-                <button
+              />
+              <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
                 className="absolute inset-y-0 right-3 flex items-center justify-center text-blue-600 hover:text-blue-800 focus:outline-none p-0 m-0 bg-transparent border-none"
-                >
+              >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+              </button>
             </div>
-        </div>
+          </div>
           <button
             type="submit"
             className="w-full bg-blue-700 text-white py-3 rounded-xl font-semibold hover:bg-blue-800 transition"
