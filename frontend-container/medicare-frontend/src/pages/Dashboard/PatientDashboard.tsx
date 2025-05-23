@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import Header from "../Header";
+import GoogleCalendarScheduler from "../Scheduler/GoogleCalendar";
 import { X } from "lucide-react";
 
 export default function PatientDashboard() {
@@ -36,8 +37,8 @@ export default function PatientDashboard() {
           <div className="w-3/4 space-y-6">
             <div className="bg-white rounded-2xl shadow-md p-6 h-[600px] flex flex-col">
               <h2 className="text-xl font-semibold text-blue-600 mb-4">Your Schedule</h2>
-              <div className="flex-1 bg-blue-50 rounded-lg flex items-center justify-center text-blue-300">
-                Scheduler Placeholder
+              <div className="flex-1 bg-blue-50 rounded-lg p-4 h-full">
+                <GoogleCalendarScheduler/>
               </div>
             </div>
             <div className="bg-white rounded-2xl shadow-md p-6">

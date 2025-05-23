@@ -10,10 +10,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@fullcalendar/daygrid": "^6.1.17",
+    "@fullcalendar/google-calendar": "^6.1.17",
+    "@fullcalendar/react": "^6.1.17",
+    "@fullcalendar/timegrid": "^6.1.17",
     "@tailwindcss/postcss": "^4.1.5",
     "@tailwindcss/vite": "^4.1.5",
     "@tanstack/react-query": "^5.75.4",
     "axios": "^1.9.0",
+    "gapi-script": "^1.2.0",
     "lucide-react": "^0.508.0",
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
