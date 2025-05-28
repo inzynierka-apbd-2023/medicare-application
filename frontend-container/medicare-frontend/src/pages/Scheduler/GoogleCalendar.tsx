@@ -1,8 +1,6 @@
-// src/components/GoogleCalendarScheduler.tsx
-import React from "react";
 import FullCalendar, { EventSourceFunc } from "@fullcalendar/react";
 import dayGridPlugin from "@fullcalendar/daygrid";
-import timeGridPlugin from "@fullcalendar/timegrid";       // ← new import
+import timeGridPlugin from "@fullcalendar/timegrid";
 import { gapi } from "gapi-script";
 import { useGoogleAuth } from "../../hooks/useGoogleAuth";
 
