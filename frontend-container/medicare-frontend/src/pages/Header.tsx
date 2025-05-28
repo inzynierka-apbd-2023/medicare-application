@@ -1,7 +1,10 @@
-import React, { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef } from "react";
+import { useNavigate } from 'react-router-dom';
 import { Menu, X, User } from "lucide-react";
-
+import DropdownMenu from "./Profile/DropdownMenu";
 export default function Header() {
+  const navigate = useNavigate();
+
   const [isMobile, setIsMobile] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -28,7 +31,6 @@ export default function Header() {
   const pastelText = "text-blue-300";
   const pastelHover = "hover:text-blue-400";
 
-  // Toggle profile menu and ensure drawer is closed
   const handleProfileToggle = () => {
     if (drawerOpen) setDrawerOpen(false);
     setProfileOpen((o) => !o);
@@ -39,7 +41,10 @@ export default function Header() {
       <header className="fixed top-0 left-0 w-full bg-blue-50 shadow-sm z-50 h-16">
         <div className="flex justify-between items-center h-full px-10">
           {/* Logo */}
-          <div className="text-xl font-bold text-blue-600 cursor-pointer">
+          <div
+            className="text-xl font-bold text-blue-600 cursor-pointer"
+            onClick={() => navigate('/')}
+          >
             IMUP Clinic
           </div>
 
@@ -69,15 +74,7 @@ export default function Header() {
               </button>
               {profileOpen && (
                 <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2 z-50">
-                  <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-blue-50">
-                    My Profile
-                  </a>
-                  <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-blue-50">
-                    Settings
-                  </a>
-                  <a href="#" className="block px-4 py-2 text-gray-700 hover:bg-blue-50">
-                    Logout
-                  </a>
+                  <DropdownMenu/>
                 </div>
               )}
             </div>
