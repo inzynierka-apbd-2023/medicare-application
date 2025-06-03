@@ -1,54 +1,78 @@
+import { useState } from "react";
 import Header from "../Header";
+import ChangePasswordModal from "./ChangePasswordModal";
 
-export default function MyProfile() {
+export default function Settings() {
   const profileData = {
     name: "John Doe",
-    type: "patient",
-    email: "john.doe@example.com",
     phone: "+1234567890",
     address: "Słoneczna 3, 12-254, Warsaw",
     dob: "1990-01-01",
     membershipName: "Gold Health Membership",
   };
 
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
   return (
-    <div className="min-h-screen bg-gray-100 overflow-x-hidden">
+    <div className="min-h-screen bg-gray-100">
       <Header />
-      <div className="container mx-auto max-w-2xl px-4 sm:px-6 lg:px-8">
-        <main className="pt-24 pb-10">
-          <h1 className="text-3xl font-bold text-center text-blue-700 mb-8">My Profile</h1>
+      <main className="pt-24 px-4 md:px-8 pb-10 flex justify-center">
+        <div className="w-full max-w-xl bg-white rounded-2xl shadow-md p-8 flex flex-col items-center">
+          <h1 className="text-3xl font-bold text-blue-700 mb-8">
+            Account Settings
+          </h1>
 
-          <div className="bg-white rounded-2xl shadow-md p-8 flex flex-col items-center">
-            <div className="w-32 h-32 bg-blue-100 rounded-full flex items-center justify-center mb-4">
-              <span className="text-4xl text-blue-500 font-semibold">JD</span>
+          {/* Account Information */}
+          <div className="w-full mb-8">
+            <h2 className="text-xl font-semibold text-blue-600 mb-2">
+              Account Information
+            </h2>
+            <div className="mb-2">
+              <span className="font-semibold text-gray-600">Name:</span>
+              <span className="ml-2 text-gray-700">{profileData.name}</span>
             </div>
-            <h2 className="text-xl font-semibold text-blue-600 mb-6">{profileData.name}</h2>
-
-            <div className="text-center space-y-3">
-              <div>
-                <span className="text-sm text-gray-500">Email</span>
-                <div className="text-gray-800 font-medium">{profileData.email}</div>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">Phone</span>
-                <div className="text-gray-800 font-medium">{profileData.phone}</div>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">Address</span>
-                <div className="text-gray-800 font-medium">{profileData.address}</div>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">Date of Birth</span>
-                <div className="text-gray-800 font-medium">{profileData.dob}</div>
-              </div>
-              <div>
-                <span className="text-sm text-gray-500">Membership Level</span>
-                <div className="text-gray-800 font-medium">{profileData.membershipName}</div>
-              </div>
+            <div className="mb-2">
+              <span className="font-semibold text-gray-600">Phone:</span>
+              <span className="ml-2 text-gray-700">{profileData.phone}</span>
+            </div>
+            <div className="mb-2">
+              <span className="font-semibold text-gray-600">Address:</span>
+              <span className="ml-2 text-gray-700">{profileData.address}</span>
+            </div>
+            <div className="mb-2">
+              <span className="font-semibold text-gray-600">
+                Date of Birth:
+              </span>
+              <span className="ml-2 text-gray-700">{profileData.dob}</span>
+            </div>
+            <div className="mb-2">
+              <span className="font-semibold text-gray-600">
+                Membership Level:
+              </span>
+              <span className="ml-2 text-gray-700">
+                {profileData.membershipName}
+              </span>
             </div>
           </div>
-        </main>
-      </div>
+
+          {/* Change Password Section */}
+          <div className="w-full mb-2">
+            <h2 className="text-xl font-semibold text-blue-600 mb-2">
+              Change Password
+            </h2>
+            <button
+              onClick={() => setShowPasswordModal(true)}
+              className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 transition font-semibold"
+            >
+              Change Password
+            </button>
+          </div>
+        </div>
+      </main>
+      <ChangePasswordModal
+        open={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+      />
     </div>
   );
 }

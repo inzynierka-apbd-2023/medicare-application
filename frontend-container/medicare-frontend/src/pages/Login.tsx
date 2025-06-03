@@ -1,39 +1,43 @@
-import React, { useState } from 'react';
-import { Eye, EyeOff } from 'lucide-react';
+import React, { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function Login() {
-  const [cardNumber, setCardNumber] = useState('');
-  const [password, setPassword] = useState('');
+  const [cardNumber, setCardNumber] = useState("");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<'full' | 'simple'>('full');
+  const [activeTab, setActiveTab] = useState<"full" | "simple">("full");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    console.log('Card:', cardNumber);
-    console.log('Password:', password);
+    console.log("Card:", cardNumber);
+    console.log("Password:", password);
   };
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
       <div className="bg-white shadow-xl rounded-2xl p-8 w-full max-w-md">
-        <h1 className="text-2xl font-bold text-center mb-2">Welcome to Medicare</h1>
+        <h1 className="text-2xl font-bold text-center mb-2">
+          Welcome to Medicare
+        </h1>
         <p className="text-sm text-center text-gray-600 mb-4">
-          Are you logging in for the first time?{' '}
+          Are you logging in for the first time?{" "}
           <a href="#" className="text-blue-600 hover:underline">
             Find out how to collect your password
           </a>
         </p>
 
         {/* Tabs */}
-        <div className="flex justify-center space-x-4 mb-6 border-b pb-2">
-        </div>
+        <div className="flex justify-center space-x-4 mb-6 border-b pb-2"></div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Card Number */}
           <div>
             <div className="flex justify-between text-sm mb-1">
               <label className="font-medium">Card number</label>
-              <button type="button" className="text-blue-600 hover:underline text-xs bg-transparent border-none">
+              <button
+                type="button"
+                className="text-blue-600 hover:underline text-xs bg-transparent border-none"
+              >
                 I forgot the card number
               </button>
             </div>
@@ -50,29 +54,32 @@ export default function Login() {
           {/* Password with eye icon */}
           <div>
             <div className="flex justify-between text-sm mb-1">
-                <label className="font-medium">Password</label>
-                <button type="button" className="text-blue-600 hover:underline text-xs bg-transparent border-none">
+              <label className="font-medium">Password</label>
+              <button
+                type="button"
+                className="text-blue-600 hover:underline text-xs bg-transparent border-none"
+              >
                 I forgot the password
-                </button>
+              </button>
             </div>
             <div className="relative">
-                <input
-                type={showPassword ? 'text' : 'password'}
+              <input
+                type={showPassword ? "text" : "password"}
                 className="w-full px-4 py-3 pr-10 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
                 placeholder="Enter password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                />
-                <button
+              />
+              <button
                 type="button"
                 onClick={() => setShowPassword((prev) => !prev)}
                 className="absolute inset-y-0 right-3 flex items-center justify-center text-blue-600 hover:text-blue-800 focus:outline-none p-0 m-0 bg-transparent border-none"
-                >
+              >
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
-                </button>
+              </button>
             </div>
-        </div>
+          </div>
           <button
             type="submit"
             className="w-full bg-blue-700 text-white py-3 rounded-xl font-semibold hover:bg-blue-800 transition"
@@ -86,7 +93,7 @@ export default function Login() {
           <p className="text-sm text-gray-600 mb-2">Not our patient?</p>
           <button
             className="w-full bg-green-600 text-white py-2 rounded-xl hover:bg-green-700 transition"
-            onClick={() => alert('Redirect to choose plan')}
+            onClick={() => alert("Redirect to choose plan")}
           >
             Choose your plan
           </button>

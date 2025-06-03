@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import { Menu, X, User } from "lucide-react";
 import DropdownMenu from "./Profile/DropdownMenu";
 export default function Header() {
@@ -19,7 +19,10 @@ export default function Header() {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(event.target as Node)
+      ) {
         setProfileOpen(false);
       }
     };
@@ -27,7 +30,7 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const navItems = ["Appointments", "Doctors", "Patients", "Reports"];
+  const navItems = ["Appointments", "Doctors", "Patients", "Documents"];
   const pastelText = "text-blue-300";
   const pastelHover = "hover:text-blue-400";
 
@@ -43,7 +46,7 @@ export default function Header() {
           {/* Logo */}
           <div
             className="text-xl font-bold text-blue-600 cursor-pointer"
-            onClick={() => navigate('/')}
+            onClick={() => navigate("/")}
           >
             IMUP Clinic
           </div>
@@ -72,11 +75,7 @@ export default function Header() {
               >
                 <User size={20} className="text-blue-400" />
               </button>
-              {profileOpen && (
-                <div className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2 z-50">
-                  <DropdownMenu/>
-                </div>
-              )}
+              {profileOpen && <DropdownMenu />}
             </div>
 
             {/* Mobile menu toggle */}
@@ -100,7 +99,7 @@ export default function Header() {
       {isMobile && (
         <div
           className={`fixed inset-0 bg-blue-50 bg-opacity-80 z-40 transition-opacity duration-300 ease-in-out ${
-            drawerOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'
+            drawerOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
           onClick={() => setDrawerOpen(false)}
         />
@@ -110,7 +109,7 @@ export default function Header() {
       {isMobile && (
         <aside
           className={`fixed top-16 right-0 h-[calc(100%-4rem)] w-2/3 max-w-xs bg-blue-100 shadow-lg z-50 p-6 flex flex-col space-y-4 transform transition-transform duration-300 ease-in-out ${
-            drawerOpen ? 'translate-x-0' : 'translate-x-full'
+            drawerOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
           {navItems.map((item) => (
