@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useLocation } from "react-router-dom";
 import {
   FileText,
   FileSignature,
@@ -32,6 +33,7 @@ async function fetchDocuments() {
   return [
     {
       id: "d1",
+      appointmentId: "appt2", // Link to appointment
       type: "Prescription",
       createdAt: "2025-05-10",
       notes: "Cholesterol meds",
@@ -45,9 +47,10 @@ async function fetchDocuments() {
     },
     {
       id: "d42",
+      appointmentId: "appt2",
       type: "Prescription",
       createdAt: "2025-05-10",
-      notes: "Cholesterol meds",
+      notes: "Cholesterol meds renewed",
       data: {
         medication: "Atorvastatin",
         dosage: "20mg",
@@ -58,6 +61,7 @@ async function fetchDocuments() {
     },
     {
       id: "d2",
+      appointmentId: "appt2",
       type: "Referral",
       createdAt: "2025-04-22",
       notes: "Consult cardiologist",
@@ -70,9 +74,10 @@ async function fetchDocuments() {
     },
     {
       id: "d3",
+      appointmentId: "appt1",
       type: "Sick_Leave",
       createdAt: "2025-03-15",
-      notes: "",
+      notes: "Flu recovery",
       data: {
         startDate: "2025-03-15",
         endDate: "2025-03-22",
@@ -81,9 +86,10 @@ async function fetchDocuments() {
     },
     {
       id: "d4",
+      appointmentId: "appt1",
       type: "VisitCard",
       createdAt: "2025-03-15",
-      notes: "",
+      notes: "First hypertension check",
       data: {
         symptoms: "Fatigue, high BP",
         findings: "Elevated BP",
@@ -94,19 +100,52 @@ async function fetchDocuments() {
   ];
 }
 
+const APPOINTMENTS = [
+  {
+    id: "appt1",
+    date: "2025-06-10",
+    doctor: "Dr. Anna Nowak",
+    specialization: "Cardiology",
+  },
+  {
+    id: "appt2",
+    date: "2025-05-10",
+    doctor: "Dr. Bob Vessel",
+    specialization: "Dermatology",
+  },
+  {
+    id: "appt3",
+    date: "2025-06-15",
+    doctor: "Dr. Anna Nowak",
+    specialization: "Cardiology",
+  },
+];
+
 export default function DocumentsView() {
+  const location = useLocation();
+  const query = new URLSearchParams(location.search);
   const [documents, setDocuments] = useState([]);
   const [selectedDoc, setSelectedDoc] = useState(null);
   const [search, setSearch] = useState("");
   const [typeFilter, setTypeFilter] = useState("All");
+  const [appointmentId, setAppointmentId] = useState(
+    query.get("appointmentId") || ""
+  );
 
   useEffect(() => {
     fetchDocuments().then(setDocuments);
   }, []);
 
+  // Listen to URL changes for appointment filter (e.g. from Documents button)
+  useEffect(() => {
+    setAppointmentId(query.get("appointmentId") || "");
+    // eslint-disable-next-line
+  }, [location.search]);
+
   const filteredDocs = documents.filter(
     (doc) =>
       (typeFilter === "All" || doc.type === typeFilter) &&
+      (!appointmentId || doc.appointmentId === appointmentId) &&
       ((doc.notes?.toLowerCase().includes(search.toLowerCase()) ?? false) ||
         (doc.type?.toLowerCase().includes(search.toLowerCase()) ?? false))
   );
@@ -139,6 +178,19 @@ export default function DocumentsView() {
                   {t.replace("_", " ")}
                 </option>
               ))}
+          </select>
+          <select
+            className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200"
+            value={appointmentId}
+            onChange={(e) => setAppointmentId(e.target.value)}
+          >
+            <option value="">All Appointments</option>
+            {APPOINTMENTS.map((appt) => (
+              <option key={appt.id} value={appt.id}>
+                {new Date(appt.date).toLocaleDateString()} –{" "}
+                {appt.specialization} ({appt.doctor})
+              </option>
+            ))}
           </select>
         </div>
 

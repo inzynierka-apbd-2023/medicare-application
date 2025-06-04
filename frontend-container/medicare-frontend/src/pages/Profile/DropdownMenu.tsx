@@ -15,6 +15,14 @@ export default function DropdownMenu() {
         My Profile
       </Link>
       <Link
+        to="/user/wallet"
+        onClick={() => {}}
+        className="block px-4 py-2 text-gray-700 hover:bg-blue-50"
+        role="menuitem"
+      >
+        Wallet
+      </Link>
+      <Link
         to="/login"
         onClick={() => {}}
         className="block px-4 py-2 text-gray-700 hover:bg-blue-50"

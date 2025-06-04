@@ -1,10 +1,9 @@
 import { useState, useEffect, useRef } from "react";
-import { useNavigate } from "react-router-dom";
+import { Link } from "react-router-dom";
 import { Menu, X, User } from "lucide-react";
 import DropdownMenu from "./Profile/DropdownMenu";
-export default function Header() {
-  const navigate = useNavigate();
 
+export default function Header() {
   const [isMobile, setIsMobile] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -30,9 +29,15 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const navItems = ["Appointments", "Doctors", "Patients", "Documents"];
-  const pastelText = "text-blue-300";
-  const pastelHover = "hover:text-blue-400";
+  const navItems = [
+    { name: "Appointments", path: "/appointments" },
+    { name: "Doctors", path: "/doctors" },
+    { name: "Patients", path: "/patients" },
+    { name: "Documents", path: "/documents" },
+  ];
+
+  const linkClasses =
+    "px-3 py-1 rounded-lg text-blue-700 hover:bg-blue-100 transition font-medium text-base";
 
   const handleProfileToggle = () => {
     if (drawerOpen) setDrawerOpen(false);
@@ -44,25 +49,22 @@ export default function Header() {
       <header className="fixed top-0 left-0 w-full bg-blue-50 shadow-sm z-50 h-16">
         <div className="flex justify-between items-center h-full px-10">
           {/* Logo */}
-          <div
+          <Link
+            to="/"
             className="text-xl font-bold text-blue-600 cursor-pointer"
-            onClick={() => navigate("/")}
           >
             IMUP Clinic
-          </div>
+          </Link>
 
-          {/* Right side container: nav + profile/menu toggle */}
+          {/* Right: nav + profile */}
           <div className="flex items-center space-x-6">
             {/* Desktop navigation */}
             {!isMobile && (
-              <nav className="flex space-x-6">
+              <nav className="flex space-x-2">
                 {navItems.map((item) => (
-                  <a
-                    key={item}
-                    className={`${pastelText} ${pastelHover} font-medium transition cursor-pointer`}
-                  >
-                    {item}
-                  </a>
+                  <Link key={item.name} to={item.path} className={linkClasses}>
+                    {item.name}
+                  </Link>
                 ))}
               </nav>
             )}
@@ -72,6 +74,7 @@ export default function Header() {
               <button
                 onClick={handleProfileToggle}
                 className="p-2 rounded-full bg-blue-100 hover:bg-blue-200 transition"
+                aria-label="Profile"
               >
                 <User size={20} className="text-blue-400" />
               </button>
@@ -85,9 +88,9 @@ export default function Header() {
                 className="p-2 rounded-md transition-colors duration-200"
               >
                 {drawerOpen ? (
-                  <X size={24} className={`${pastelText} ${pastelHover}`} />
+                  <X size={24} className="text-blue-700" />
                 ) : (
-                  <Menu size={24} className={`${pastelText} ${pastelHover}`} />
+                  <Menu size={24} className="text-blue-700" />
                 )}
               </button>
             )}
@@ -108,17 +111,19 @@ export default function Header() {
       {/* Mobile drawer */}
       {isMobile && (
         <aside
-          className={`fixed top-16 right-0 h-[calc(100%-4rem)] w-2/3 max-w-xs bg-blue-100 shadow-lg z-50 p-6 flex flex-col space-y-4 transform transition-transform duration-300 ease-in-out ${
+          className={`fixed top-16 right-0 h-[calc(100%-4rem)] w-2/3 max-w-xs bg-blue-100 shadow-lg z-50 p-6 flex flex-col space-y-3 transform transition-transform duration-300 ease-in-out ${
             drawerOpen ? "translate-x-0" : "translate-x-full"
           }`}
         >
           {navItems.map((item) => (
-            <a
-              key={item}
-              className={`${pastelText} ${pastelHover} font-medium transition cursor-pointer`}
+            <Link
+              key={item.name}
+              to={item.path}
+              className={linkClasses}
+              onClick={() => setDrawerOpen(false)}
             >
-              {item}
-            </a>
+              {item.name}
+            </Link>
           ))}
         </aside>
       )}
