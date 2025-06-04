@@ -8,11 +8,9 @@ export default function SubscriptionPage({
 }) {
   const [modalOpen, setModalOpen] = useState(false);
 
-  // Example: after payment, refresh subscription info if needed
   function handlePaymentSuccess(plan) {
     setModalOpen(false);
     if (refreshSubscription) refreshSubscription();
-    // Optionally show success message, etc.
   }
 
   return (
@@ -25,6 +23,7 @@ export default function SubscriptionPage({
         open={modalOpen}
         onClose={() => setModalOpen(false)}
         onPaymentSuccess={handlePaymentSuccess}
+        paymentService={undefined}
       />
     </>
   );
