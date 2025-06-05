@@ -240,7 +240,7 @@ export default function DocumentsView() {
             onClick={() => setSelectedDoc(null)}
           />
           <div className="fixed inset-0 flex items-center justify-center z-50">
-            <div className="bg-white rounded-2xl shadow-xl p-8 relative w-full max-w-xl animate-scale-in">
+            <div className="bg-white rounded-2xl shadow-xl p-8 relative w-full max-w-xl animate-scale-in text-gray-900">
               <button
                 className="absolute top-4 right-4 text-blue-300 hover:text-blue-400"
                 onClick={() => setSelectedDoc(null)}

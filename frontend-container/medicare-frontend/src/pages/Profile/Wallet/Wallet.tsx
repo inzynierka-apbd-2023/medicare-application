@@ -68,6 +68,7 @@ export default function WalletView() {
   if (!wallet)
     return (
       <div className="flex justify-center items-center h-60">
+        <Header />
         <span className="text-blue-400 animate-pulse">Loading wallet...</span>
       </div>
     );
@@ -138,7 +139,7 @@ export default function WalletView() {
             </div>
             <button
               className="mt-4 sm:mt-0 px-5 py-2 bg-blue-700 text-white rounded-lg font-semibold hover:bg-blue-800 transition"
-              onClick={() => navigate('/user/wallet/subscription')}
+              onClick={() => navigate("/user/wallet/subscription")}
             >
               {wallet.subscription.active
                 ? "View Subscription Details"
