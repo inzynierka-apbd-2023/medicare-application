@@ -31,8 +31,7 @@ export default function Header() {
 
   const navItems = [
     { name: "Appointments", path: "/appointments" },
-    { name: "Doctors", path: "/doctors" },
-    { name: "Patients", path: "/patients" },
+    { name: "Scheduler", path: "/scheduler" },
     { name: "Documents", path: "/documents" },
   ];
 

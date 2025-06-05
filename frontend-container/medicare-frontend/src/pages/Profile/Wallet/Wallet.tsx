@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { CreditCard, CheckCircle, XCircle } from "lucide-react";
 import Header from "../../Header";
 
@@ -21,6 +22,8 @@ type WalletData = {
 };
 
 export default function WalletView() {
+  const navigate = useNavigate();
+
   const [wallet, setWallet] = useState<WalletData | null>(null);
   const [payingVisitId, setPayingVisitId] = useState<string | null>(null);
 
@@ -135,7 +138,7 @@ export default function WalletView() {
             </div>
             <button
               className="mt-4 sm:mt-0 px-5 py-2 bg-blue-700 text-white rounded-lg font-semibold hover:bg-blue-800 transition"
-              // onClick={() => navigate('/subscription')} // Add navigation when ready
+              onClick={() => navigate('/user/wallet/subscription')}
             >
               {wallet.subscription.active
                 ? "View Subscription Details"
