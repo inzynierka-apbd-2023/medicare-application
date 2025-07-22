@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 echo "Husky pre-commit hook running on branch: $(git rev-parse --abbrev-ref HEAD)"
 branchName=$(git rev-parse --abbrev-ref HEAD)
 if [ "$branchName" = "main-v2" ]; then
