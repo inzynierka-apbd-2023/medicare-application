@@ -2,7 +2,7 @@
 
 branch_name=$(git symbolic-ref --short HEAD)
 if [ "$branch_name" = "main-v2" ]; then
-  echo "Cannot commit directly to 'main'. Use a feature branch."
+  echo "Cannot commit directly to 'main'. Use a feature branch2."
   exit 1
 fi
 
