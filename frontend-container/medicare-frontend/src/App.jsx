@@ -9,12 +9,15 @@ import Documents from "./pages/Documents/Documents";
 import WalletView from "./pages/Profile/Wallet/Wallet";
 import SubscriptionPage from "./pages/Profile/Wallet/SubscriptionPage";
 import AppointmentsPage from "./pages/Appointments/AppointmentsPage";
+import DoctorDashboard from "./pages/Dashboard/DoctorDashboard";
+import PatientList from "./pages/UserTypes/PatientListView";
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       <BrowserRouter>
         <Routes>
+          {/* Patient view */}
           <Route path="/" element={<PatientDashboard />} />
           <Route path="/scheduler" element={<Scheduler />} />
           <Route path="/login" element={<Login />} />
@@ -28,6 +31,10 @@ function App() {
             path="/user/wallet/subscription"
             element={<SubscriptionPage />}
           />
+
+          {/* Doctor view */}
+          <Route path="/dctdash" element={<DoctorDashboard />} />
+          <Route path="/patientlist" element={<PatientList />} />
         </Routes>
       </BrowserRouter>
     </div>
