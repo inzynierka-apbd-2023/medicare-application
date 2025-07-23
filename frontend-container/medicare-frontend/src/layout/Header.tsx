@@ -16,12 +16,6 @@ export default function Header() {
     return () => window.removeEventListener("resize", onResize);
   }, []);
 
-  if (true) {
-    // Do something
-    // dawdawd
-  const d = 2;
-  }
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
