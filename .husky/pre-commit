@@ -1,0 +1,38 @@
+﻿#!/bin/sh
+set -e
+echo " Husky pre-commit hook running on branch: Dashboard-v2"
+
+# Branch protection
+branchName=Dashboard-v2
+if [ "" = "main-v2" ]; then
+  echo " Cannot commit directly to 'main-v2'. Use a feature branch."
+  exit 1
+fi
+
+# Change to frontend directory
+cd frontend-container/medicare-frontend
+
+echo " Running Prettier and ESLint..."
+npx lint-staged
+
+echo " Checking for console.log statements..."
+if git diff --cached --name-only | xargs grep -l "console.log" 2>/dev/null; then
+  echo " Found console.log statements. Please remove them before committing."
+  echo "Files with console.log:"
+  git diff --cached --name-only | xargs grep -l "console.log" 2>/dev/null
+  exit 1
+fi
+
+echo " Checking for TODO/FIXME comments..."
+if git diff --cached --name-only | xargs grep -l "TODO\|FIXME" 2>/dev/null; then
+  echo "  Found TODO/FIXME comments:"
+  git diff --cached --name-only | xargs grep -n "TODO\|FIXME" 2>/dev/null || true
+  echo "Consider addressing these before committing."
+fi
+
+echo " Checking TypeScript compilation..."
+npx tsc --noEmit
+
+echo " All pre-commit checks passed!"
+echo " Remember: Commit messages will be validated using Conventional Commits format"
+echo "   Example: feat(auth): add two-factor authentication"
