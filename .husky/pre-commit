@@ -1,10 +1,10 @@
-﻿#!/bin/sh
+﻿#!/bin/bash
 set -e
-echo " Husky pre-commit hook running on branch: Dashboard-v2"
+echo " Husky pre-commit hook running on branch: $(git rev-parse --abbrev-ref HEAD)"
 
 # Branch protection
-branchName=Dashboard-v2
-if [ "" = "main-v2" ]; then
+branchName=$(git rev-parse --abbrev-ref HEAD)
+if [ "$branchName" = "main-v2" ]; then
   echo " Cannot commit directly to 'main-v2'. Use a feature branch."
   exit 1
 fi
