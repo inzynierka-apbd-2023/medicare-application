@@ -1,4 +1,4 @@
-#!/bin/bash
+﻿#!/bin/bash
 set -e
 echo " Husky pre-commit hook running on branch: $(git rev-parse --abbrev-ref HEAD)"
 
@@ -25,11 +25,14 @@ fi
 
 echo " Checking for TODO/FIXME comments..."
 if git diff --cached --name-only | xargs grep -l "TODO\|FIXME" 2>/dev/null; then
-  echo "⚠️  Found TODO/FIXME comments:"
+  echo "  Found TODO/FIXME comments:"
   git diff --cached --name-only | xargs grep -n "TODO\|FIXME" 2>/dev/null || true
   echo "Consider addressing these before committing."
 fi
 
-echo "✅ All pre-commit checks passed!"
+echo " Checking TypeScript compilation..."
+npx tsc --noEmit
+
+echo " All pre-commit checks passed!"
 echo " Remember: Commit messages will be validated using Conventional Commits format"
 echo "   Example: feat(auth): add two-factor authentication"
