@@ -1,9 +1,10 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./styles/App.css";
 import "./styles/styles.css";
+import "./styles/dashboard.css";
 import Login from "./features/auth/Login";
 import MyProfile from "./pages/Profile/MyProfile";
-import PatientDashboard from "./pages/Dashboard/PatientDashboard";
+import PatientDashboard from "./features/dashboard/patient/PatientDashboard";
 import Scheduler from "./pages/Scheduler/Scheduler";
 import Documents from "./pages/Documents/Documents";
 import WalletView from "./pages/Profile/Wallet/Wallet";

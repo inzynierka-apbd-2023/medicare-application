@@ -1,5 +1,5 @@
 import { CheckCircle, XCircle, HeartPulse } from "lucide-react";
-import Header from "../../Header";
+import Header from "../../../layout/Header";
 
 export default function SubscriptionView({ subscription, onBuy }) {
   const isActive = subscription?.active;

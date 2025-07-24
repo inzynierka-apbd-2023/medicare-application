@@ -8,7 +8,7 @@ import {
   ClipboardList,
   PlusCircle,
 } from "lucide-react";
-import Header from "../Header";
+import Header from "../../layout/Header";
 
 export default function PatientList() {
   const navigate = useNavigate();

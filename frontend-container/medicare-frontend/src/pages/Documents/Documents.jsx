@@ -7,7 +7,7 @@ import {
   Stethoscope,
   X,
 } from "lucide-react";
-import Header from "../Header";
+import Header from "../../layout/Header";
 
 const docTypeInfo = {
   Prescription: {

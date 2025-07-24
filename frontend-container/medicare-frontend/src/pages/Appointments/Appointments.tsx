@@ -5,7 +5,7 @@ import {
   XCircle,
   Info,
 } from "lucide-react";
-import Header from "../Header";
+import Header from "../../layout/Header";
 import { useNavigate } from "react-router-dom";
 
 export type Appointment = {
@@ -84,8 +84,8 @@ export default function Appointments({
                           appt.paymentStatus === "paid"
                             ? "bg-green-100 text-green-700"
                             : appt.paymentStatus === "partially_paid"
-                            ? "bg-yellow-100 text-yellow-600"
-                            : "bg-red-100 text-red-600"
+                              ? "bg-yellow-100 text-yellow-600"
+                              : "bg-red-100 text-red-600"
                         }`}
                       >
                         Paid: {appt.paid} / {appt.total} PLN
@@ -190,8 +190,8 @@ export default function Appointments({
                           appt.paymentStatus === "paid"
                             ? "bg-green-100 text-green-700"
                             : appt.paymentStatus === "partially_paid"
-                            ? "bg-yellow-100 text-yellow-600"
-                            : "bg-red-100 text-red-600"
+                              ? "bg-yellow-100 text-yellow-600"
+                              : "bg-red-100 text-red-600"
                         }`}
                       >
                         Paid: {appt.paid} / {appt.total} PLN

@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CreditCard, CheckCircle, XCircle } from "lucide-react";
-import Header from "../../Header";
+import Header from "../../../layout/Header";
 
 type Visit = {
   id: string;

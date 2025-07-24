@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
-import Header from "../Header";
+import Header from "../../layout/Header";
 import GoogleCalendarScheduler from "../Scheduler/GoogleCalendar";
 import { X } from "lucide-react";
 
