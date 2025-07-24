@@ -10,6 +10,7 @@ Welcome to the Medicare Frontend application documentation. This folder contains
 
 ### Development Guides
 - [`SHARED-COMPONENTS.md`](./SHARED-COMPONENTS.md) - Shared components library documentation
+- [`DASHBOARD-REFACTORING.md`](./DASHBOARD-REFACTORING.md) - Dashboard architecture and components
 
 ## 🚀 Quick Start
 
@@ -43,11 +44,16 @@ medicare-frontend/
 ├── docs/                     # 📖 Documentation
 │   ├── README.md            # This file
 │   ├── SETUP-HOOKS.md       # Git hooks setup
-│   └── SHARED-COMPONENTS.md # Component library
+│   ├── SHARED-COMPONENTS.md # Component library
+│   └── DASHBOARD-REFACTORING.md # Dashboard architecture
 ├── src/
-│   ├── shared/              # 🔧 Shared components
 │   ├── features/            # 🎯 Feature modules
-│   ├── pages/               # 📄 Page components
+│   │   └── dashboard/       # Dashboard feature
+│   │       ├── shared/      # Dashboard-specific components
+│   │       ├── patient/     # Patient dashboard
+│   │       └── doctor/      # Doctor dashboard
+│   ├── shared/              # 🔧 General shared components
+│   ├── pages/               # 📄 Page components (legacy)
 │   └── ...
 └── ...
 ```

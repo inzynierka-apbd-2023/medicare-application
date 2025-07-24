@@ -1,0 +1,22 @@
+/* Custom animations for dashboard components */
+@keyframes scale-in {
+    from { opacity: 0; transform: scale(0.95); }
+    to { opacity: 1; transform: scale(1.1); }
+}
+
+@keyframes scale-out {
+    from { opacity: 1; transform: scale(1.1); }
+    to { opacity: 0; transform: scale(0.95); }
+}
+
+.animate-scale-in { animation: scale-in 0.15s ease-out forwards; }
+.animate-scale-out { animation: scale-out 0.15s ease-in forwards; }
+
+/* Dashboard-specific utilities */
+.dashboard-card-shadow {
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+}
+
+.dashboard-gradient-bg {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+}
