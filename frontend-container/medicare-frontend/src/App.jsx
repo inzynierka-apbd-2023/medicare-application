@@ -1,7 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import "./styles/App.css";
 import "./styles/styles.css";
-import Login from "./pages/Login";
+import Login from "./features/auth/Login";
 import MyProfile from "./pages/Profile/MyProfile";
 import PatientDashboard from "./pages/Dashboard/PatientDashboard";
 import Scheduler from "./pages/Scheduler/Scheduler";
