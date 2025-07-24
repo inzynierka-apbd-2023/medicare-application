@@ -10,7 +10,7 @@ import Documents from "./pages/Documents/Documents";
 import WalletView from "./pages/Profile/Wallet/Wallet";
 import SubscriptionPage from "./pages/Profile/Wallet/SubscriptionPage";
 import AppointmentsPage from "./pages/Appointments/AppointmentsPage";
-import DoctorDashboard from "./pages/Dashboard/DoctorDashboard";
+import DoctorDashboard from "./features/dashboard/doctor/DoctorDashboard";
 import PatientList from "./pages/UserTypes/PatientListView";
 
 function App() {
