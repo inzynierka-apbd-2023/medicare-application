@@ -27,3 +27,9 @@ export type { TableProps, TableColumn } from './Table/Table';
 
 export { SearchInput } from './SearchInput/SearchInput';
 export type { SearchInputProps } from './SearchInput/SearchInput';
+
+export { LoadingOverlay } from "./LoadingOverlay";
+export type { LoadingOverlayProps } from "./LoadingOverlay";
+
+export { ErrorDisplay } from "./ErrorDisplay";
+export type { ErrorDisplayProps } from "./ErrorDisplay";
