@@ -7,9 +7,8 @@ import MyProfile from "./pages/Profile/MyProfile";
 import PatientDashboard from "./features/dashboard/patient/PatientDashboard";
 import Scheduler from "./pages/Scheduler/Scheduler";
 import Documents from "./pages/Documents/Documents";
-import WalletView from "./pages/Profile/Wallet/Wallet";
-import SubscriptionPage from "./pages/Profile/Wallet/SubscriptionPage";
-import AppointmentsPage from "./pages/Appointments/AppointmentsPage";
+import { WalletPage, SubscriptionPage } from "./features/wallet";
+import { AppointmentsPage } from "./features/appointments";
 import DoctorDashboard from "./features/dashboard/doctor/DoctorDashboard";
 import PatientList from "./pages/UserTypes/PatientListView";
 
@@ -26,7 +25,7 @@ function App() {
           <Route path="/appointments" element={<AppointmentsPage />} />
 
           {/* User view */}
-          <Route path="/user/wallet" element={<WalletView />} />
+          <Route path="/user/wallet" element={<WalletPage />} />
           <Route path="/user/myprofile" element={<MyProfile />} />
           <Route
             path="/user/wallet/subscription"

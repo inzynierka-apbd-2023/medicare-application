@@ -11,7 +11,12 @@ import {
   type Notification,
   type Document,
 } from "../shared/components";
-import { Modal, Card, LoadingOverlay, ErrorDisplay } from "../../../shared/components";
+import {
+  Modal,
+  Card,
+  LoadingOverlay,
+  ErrorDisplay,
+} from "../../../shared/components";
 import { patientDashboardApi } from "../../../shared/services/dashboardApi";
 import { useLoadingService } from "../../../shared/hooks/useLoadingService";
 
@@ -20,8 +25,9 @@ export default function PatientDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
-  
-  const { isLoading, error, clearError, executeInitialLoad, executeQuietly } = useLoadingService();
+
+  const { isLoading, error, clearError, executeInitialLoad, executeQuietly } =
+    useLoadingService();
 
   // Fetch dashboard data on component mount
   useEffect(() => {
@@ -44,12 +50,13 @@ export default function PatientDashboard() {
         if (documentsResponse.success) {
           setDocuments(documentsResponse.data);
         } else {
-          throw new Error(documentsResponse.error || "Failed to fetch documents");
+          throw new Error(
+            documentsResponse.error || "Failed to fetch documents"
+          );
         }
       } catch (err) {
-        const errorMessage = err instanceof Error
-          ? err.message
-          : "Failed to load dashboard data";
+        const errorMessage =
+          err instanceof Error ? err.message : "Failed to load dashboard data";
         throw new Error(errorMessage);
       }
     };
@@ -77,7 +84,8 @@ export default function PatientDashboard() {
     try {
       // Use executeQuietly to avoid showing loading state for this quick operation
       await executeQuietly(async () => {
-        const response = await patientDashboardApi.markNotificationAsRead(notificationId);
+        const response =
+          await patientDashboardApi.markNotificationAsRead(notificationId);
         if (response.success) {
           setNotifications((prev) =>
             prev.map((notif) =>
@@ -100,10 +108,9 @@ export default function PatientDashboard() {
         <DashboardLayout title="Welcome, Patient">
           {error ? (
             <div className="flex items-center justify-center h-64">
-              <ErrorDisplay 
-                error={error} 
-                onClose={clearError}
-                variant="inline"
+              <ErrorDisplay
+                message={error}
+                onRetry={clearError}
                 className="max-w-md"
               />
             </div>
