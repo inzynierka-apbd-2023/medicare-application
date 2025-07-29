@@ -1,37 +1,36 @@
+// DEPRECATED: Google Calendar integration has been removed
+// This hook has been replaced with Microsoft Graph API integration
+// Please use the scheduler feature in src/features/scheduler instead
+
 import { useEffect, useState } from "react";
-import { gapi } from "gapi-script";
 
-// Pull from Vite’s import.meta.env
-const CLIENT_ID = import.meta.env.VITE_GOOGLE_CLIENT_ID;
-const API_KEY   = import.meta.env.VITE_GOOGLE_API_KEY;
-const SCOPES    =
-  "https://www.googleapis.com/auth/calendar.events " +
-  "https://www.googleapis.com/auth/calendar.readonly";
-
+// Legacy Google Auth hook - marked for removal
+// Keeping for backward compatibility during transition
 export function useGoogleAuth() {
   const [inited, setInited] = useState(false);
   const [isSignedIn, setSignedIn] = useState(false);
 
   useEffect(() => {
-    gapi.load("client:auth2", async () => {
-      await gapi.client.init({
-        apiKey:    API_KEY,
-        clientId:  CLIENT_ID,
-        discoveryDocs: [
-          "https://www.googleapis.com/discovery/v1/apis/calendar/v3/rest",
-        ],
-        scope: SCOPES,
-      });
+    console.warn(
+      "useGoogleAuth is deprecated. Use the new scheduler feature with Microsoft Graph integration."
+    );
 
-      const auth = gapi.auth2.getAuthInstance();
-      setSignedIn(auth.isSignedIn.get());
-      auth.isSignedIn.listen(setSignedIn);
-      setInited(true);
-    });
+    // Return placeholder values
+    setInited(true);
+    setSignedIn(false);
   }, []);
 
-  const signIn  = () => gapi.auth2.getAuthInstance().signIn();
-  const signOut = () => gapi.auth2.getAuthInstance().signOut();
+  const signIn = () => {
+    console.warn(
+      "Google Auth has been deprecated. Please use Microsoft Graph authentication."
+    );
+  };
+
+  const signOut = () => {
+    console.warn(
+      "Google Auth has been deprecated. Please use Microsoft Graph authentication."
+    );
+  };
 
   return { inited, isSignedIn, signIn, signOut };
 }

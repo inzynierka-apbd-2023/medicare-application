@@ -5,7 +5,7 @@ import "./styles/dashboard.css";
 import Login from "./features/auth/Login";
 import MyProfile from "./pages/Profile/MyProfile";
 import PatientDashboard from "./features/dashboard/patient/PatientDashboard";
-import Scheduler from "./pages/Scheduler/Scheduler";
+import { SchedulerPage } from "./features/scheduler";
 import { DocumentsPage } from "./features/documents";
 import { WalletPage, SubscriptionPage } from "./features/wallet";
 import { AppointmentsPage } from "./features/appointments";
@@ -19,7 +19,7 @@ function App() {
         <Routes>
           {/* Patient view */}
           <Route path="/" element={<PatientDashboard />} />
-          <Route path="/scheduler" element={<Scheduler />} />
+          <Route path="/scheduler" element={<SchedulerPage />} />
           <Route path="/login" element={<Login />} />
           <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />
