@@ -3,7 +3,7 @@ import "./styles/App.css";
 import "./styles/styles.css";
 import "./styles/dashboard.css";
 import Login from "./features/auth/Login";
-import MyProfile from "./pages/Profile/MyProfile";
+import { ProfilePage } from "./features/profile";
 import PatientDashboard from "./features/dashboard/patient/PatientDashboard";
 import { SchedulerPage } from "./features/scheduler";
 import { DocumentsPage } from "./features/documents";
@@ -26,7 +26,7 @@ function App() {
 
           {/* User view */}
           <Route path="/user/wallet" element={<WalletPage />} />
-          <Route path="/user/myprofile" element={<MyProfile />} />
+          <Route path="/user/myprofile" element={<ProfilePage />} />
           <Route
             path="/user/wallet/subscription"
             element={<SubscriptionPage />}
