@@ -6,7 +6,7 @@ import Login from "./features/auth/Login";
 import MyProfile from "./pages/Profile/MyProfile";
 import PatientDashboard from "./features/dashboard/patient/PatientDashboard";
 import Scheduler from "./pages/Scheduler/Scheduler";
-import Documents from "./pages/Documents/Documents";
+import { DocumentsPage } from "./features/documents";
 import { WalletPage, SubscriptionPage } from "./features/wallet";
 import { AppointmentsPage } from "./features/appointments";
 import DoctorDashboard from "./features/dashboard/doctor/DoctorDashboard";
@@ -21,7 +21,7 @@ function App() {
           <Route path="/" element={<PatientDashboard />} />
           <Route path="/scheduler" element={<Scheduler />} />
           <Route path="/login" element={<Login />} />
-          <Route path="/documents" element={<Documents />} />
+          <Route path="/documents" element={<DocumentsPage />} />
           <Route path="/appointments" element={<AppointmentsPage />} />
 
           {/* User view */}
