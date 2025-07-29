@@ -52,11 +52,11 @@ const Modal: React.FC<ModalProps> = ({
           {(title || showCloseButton) && (
             <div className="flex items-center justify-between p-6 pb-4">
               {title && (
-                <h2 className="text-2xl font-semibold text-blue-600">{title}</h2>
+                <h2 className="text-2xl font-semibold text-blue-600 absolute left-1/2 transform -translate-x-1/2">{title}</h2>
               )}
               {showCloseButton && (
                 <button
-                  className="text-blue-300 hover:text-blue-500 transition p-1"
+                  className="text-blue-300 hover:text-blue-500 transition p-1 ml-auto"
                   onClick={onClose}
                   aria-label="Close modal"
                 >
