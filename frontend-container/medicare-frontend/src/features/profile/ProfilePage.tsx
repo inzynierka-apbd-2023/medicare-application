@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+
 import Header from "../../layout/Header";
-import { Profile } from "./Profile";
+import { ErrorDisplay, LoadingOverlay } from "../../shared/components";
 import { useProfile } from "../../shared/hooks/useProfile";
-import { LoadingOverlay, ErrorDisplay } from "../../shared/components";
+
+import { Profile } from "./Profile";
 import type { ProfilePageProps } from "./types";
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userId }) => {

@@ -1,7 +1,8 @@
-import { useState, useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X, User } from "lucide-react";
-import DropdownMenu from "../pages/Profile/DropdownMenu";
+import { Menu, User, X } from "lucide-react";
+
+import { DropdownMenu } from "../features/profile/components";
 
 export default function Header() {
   const [isMobile, setIsMobile] = useState(false);

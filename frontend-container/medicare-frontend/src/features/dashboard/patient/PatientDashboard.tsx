@@ -1,24 +1,24 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+
 import Header from "../../../layout/Header";
-import GoogleCalendarScheduler from "../../../pages/Scheduler/GoogleCalendar";
 import {
-  DashboardLayout,
+  Card,
+  ErrorDisplay,
+  LoadingOverlay,
+  Modal,
+} from "../../../shared/components";
+import { useLoadingService } from "../../../shared/hooks/useLoadingService";
+import { patientDashboardApi } from "../../../shared/services/dashboardApi";
+import {
   DashboardCard,
-  ScheduleCard,
-  NotificationsList,
+  DashboardLayout,
+  type Document,
   DocumentsList,
   type Notification,
-  type Document,
+  NotificationsList,
+  ScheduleCard,
 } from "../shared/components";
-import {
-  Modal,
-  Card,
-  LoadingOverlay,
-  ErrorDisplay,
-} from "../../../shared/components";
-import { patientDashboardApi } from "../../../shared/services/dashboardApi";
-import { useLoadingService } from "../../../shared/hooks/useLoadingService";
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
@@ -119,7 +119,9 @@ export default function PatientDashboard() {
               {/* Left Column - Schedule and Quick Actions */}
               <div className="w-full md:w-3/4 space-y-6">
                 <ScheduleCard title="Your Schedule">
-                  <GoogleCalendarScheduler />
+                  <div className="p-4 text-center text-gray-500">
+                    Calendar functionality will be implemented soon
+                  </div>
                 </ScheduleCard>
 
                 <Card variant="medical" padding="md">

@@ -1,9 +1,9 @@
-export { ProfileDisplay } from "./ProfileDisplay";
-export { ProfileForm } from "./ProfileForm";
-export { ChangePasswordModal } from "./ChangePasswordModal";
-
 export type {
+  ChangePasswordModalProps,
   ProfileDisplayProps,
   ProfileFormProps,
-  ChangePasswordModalProps,
 } from "../types";
+export { ChangePasswordModal } from "./ChangePasswordModal";
+export { DropdownMenu } from "./DropdownMenu";
+export { ProfileDisplay } from "./ProfileDisplay";
+export { ProfileForm } from "./ProfileForm";

@@ -10,7 +10,7 @@ import { DocumentsPage } from "./features/documents";
 import { WalletPage, SubscriptionPage } from "./features/wallet";
 import { AppointmentsPage } from "./features/appointments";
 import DoctorDashboard from "./features/dashboard/doctor/DoctorDashboard";
-import PatientList from "./pages/UserTypes/PatientListView";
+import { PatientListPage } from "./features/userTypes";
 
 function App() {
   return (
@@ -34,7 +34,7 @@ function App() {
 
           {/* Doctor view */}
           <Route path="/dctdash" element={<DoctorDashboard />} />
-          <Route path="/patientlist" element={<PatientList />} />
+          <Route path="/patientlist" element={<PatientListPage />} />
         </Routes>
       </BrowserRouter>
     </div>

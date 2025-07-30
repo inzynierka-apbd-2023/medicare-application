@@ -1,6 +1,7 @@
-import React, { useState } from "react";
-import { User, Calendar, MapPin, Phone, Mail, CreditCard } from "lucide-react";
-import { Card, Button } from "../../../shared/components";
+import React from "react";
+import { Calendar, CreditCard, Mail, MapPin, Phone, User } from "lucide-react";
+
+import { Button, Card } from "../../../shared/components";
 import type { ProfileDisplayProps } from "../types";
 
 export const ProfileDisplay: React.FC<ProfileDisplayProps> = ({

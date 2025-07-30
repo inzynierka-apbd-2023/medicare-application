@@ -1,2 +1,2 @@
-export { ScheduleCard } from "./ScheduleCard";
 export type { ScheduleCardProps } from "./ScheduleCard";
+export { ScheduleCard } from "./ScheduleCard";

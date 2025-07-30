@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { Modal, Input, Button } from "../../../shared/components";
+
+import { Button, Input, Modal } from "../../../shared/components";
 import type { ChangePasswordModalProps, PasswordChangeData } from "../types";
 
 export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({

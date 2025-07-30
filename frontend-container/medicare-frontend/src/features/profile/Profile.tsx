@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { ProfileDisplay, ProfileForm, ChangePasswordModal } from "./components";
+
+import { ChangePasswordModal, ProfileDisplay, ProfileForm } from "./components";
 import type { ProfileProps } from "./types";
 
 export const Profile: React.FC<ProfileProps> = ({
