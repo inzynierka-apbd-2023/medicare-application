@@ -1,6 +1,8 @@
 import React from "react";
-import { DocumentCard } from "./DocumentCard";
+
 import type { DocumentListProps } from "../types";
+
+import { DocumentCard } from "./DocumentCard";
 
 export const DocumentList: React.FC<DocumentListProps> = ({
   documents,

@@ -1,4 +1,9 @@
-export type DocumentType = "Prescription" | "Referral" | "Sick_Leave" | "VisitCard" | "Other";
+export type DocumentType =
+  | "Prescription"
+  | "Referral"
+  | "Sick_Leave"
+  | "VisitCard"
+  | "Other";
 
 export interface DocumentData {
   // Prescription specific data
@@ -7,18 +12,18 @@ export interface DocumentData {
   frequency?: string;
   duration_days?: number;
   instructions?: string;
-  
+
   // Referral specific data
   specialty?: string;
   referredTo?: string;
   validFrom?: string;
   validTo?: string;
-  
+
   // Sick Leave specific data
   startDate?: string;
   endDate?: string;
   daysOff?: number;
-  
+
   // Visit Card specific data
   symptoms?: string;
   findings?: string;
@@ -29,6 +34,7 @@ export interface DocumentData {
 export interface Document {
   id: string;
   appointmentId: string;
+  patientId?: string; // Add patientId to documents
   type: DocumentType;
   createdAt: string;
   notes?: string;
@@ -40,6 +46,8 @@ export interface Appointment {
   date: string;
   doctor: string;
   specialization: string;
+  patientId?: string; // Add patientId to appointments
+  patientName?: string; // Add patient name for display
 }
 
 export interface DocumentListProps {
@@ -75,4 +83,5 @@ export interface DocumentFilterProps {
 
 export interface DocumentsPageProps {
   initialAppointmentId?: string;
+  initialPatientId?: string; // Add support for patient filtering
 }

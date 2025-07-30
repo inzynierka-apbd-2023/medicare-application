@@ -1,4 +1,4 @@
 export { DocumentCard } from "./DocumentCard";
-export { DocumentList } from "./DocumentList";
-export { DocumentFilter } from "./DocumentFilter";
 export { DocumentDetailsModal } from "./DocumentDetailsModal";
+export { DocumentFilter } from "./DocumentFilter";
+export { DocumentList } from "./DocumentList";

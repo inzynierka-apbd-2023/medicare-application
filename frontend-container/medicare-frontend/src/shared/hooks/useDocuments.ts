@@ -1,6 +1,12 @@
-import { useState, useEffect } from "react";
+import { useCallback, useEffect, useState } from "react";
+
+import type { Appointment, Document } from "../../features/documents/types";
 import { documentsApi } from "../services/documentsApi";
-import type { Document, Appointment, DocumentType } from "../../features/documents/types";
+
+interface UseDocumentsParams {
+  appointmentId?: string;
+  patientId?: string;
+}
 
 interface UseDocumentsResult {
   documents: Document[];
@@ -11,19 +17,30 @@ interface UseDocumentsResult {
   refetch: () => Promise<void>;
 }
 
-export const useDocuments = (initialAppointmentId?: string): UseDocumentsResult => {
+export const useDocuments = (
+  params?: UseDocumentsParams
+): UseDocumentsResult => {
   const [documents, setDocuments] = useState<Document[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
-      const response = await documentsApi.getDocumentsWithAppointments();
-      
+      const filters: { appointmentId?: string; patientId?: string } = {};
+
+      if (params?.appointmentId) {
+        filters.appointmentId = params.appointmentId;
+      }
+      if (params?.patientId) {
+        filters.patientId = params.patientId;
+      }
+
+      const response = await documentsApi.getDocumentsWithAppointments(filters);
+
       if (response.success) {
         setDocuments(response.data.documents);
         setAppointments(response.data.appointments);
@@ -36,16 +53,16 @@ export const useDocuments = (initialAppointmentId?: string): UseDocumentsResult 
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [params?.appointmentId, params?.patientId]);
 
   const downloadDocument = async (document: Document): Promise<void> => {
     try {
       const response = await documentsApi.downloadDocument(document.id);
-      
+
       if (response.success) {
         // In a real app, this would trigger the actual download
         console.log("Download URL:", response.data.downloadUrl);
-        alert(`Document "${document.type.replace('_', ' ')}" download started`);
+        alert(`Document "${document.type.replace("_", " ")}" download started`);
       } else {
         alert(response.error || "Failed to download document");
       }
@@ -57,7 +74,7 @@ export const useDocuments = (initialAppointmentId?: string): UseDocumentsResult 
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [fetchData]);
 
   return {
     documents,

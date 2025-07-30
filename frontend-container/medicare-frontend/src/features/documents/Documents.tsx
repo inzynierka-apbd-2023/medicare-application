@@ -1,6 +1,11 @@
 import React, { useMemo } from "react";
-import { DocumentList, DocumentFilter, DocumentDetailsModal } from "./components";
-import type { Document, DocumentType, Appointment } from "./types";
+
+import {
+  DocumentDetailsModal,
+  DocumentFilter,
+  DocumentList,
+} from "./components";
+import type { Appointment, Document, DocumentType } from "./types";
 
 interface DocumentsProps {
   documents: Document[];
@@ -34,11 +39,13 @@ export const Documents: React.FC<DocumentsProps> = ({
   const filteredDocuments = useMemo(() => {
     return documents.filter((doc) => {
       const matchesType = typeFilter === "All" || doc.type === typeFilter;
-      const matchesAppointment = !appointmentFilter || doc.appointmentId === appointmentFilter;
-      const matchesSearch = !searchTerm || 
+      const matchesAppointment =
+        !appointmentFilter || doc.appointmentId === appointmentFilter;
+      const matchesSearch =
+        !searchTerm ||
         doc.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         doc.type.toLowerCase().includes(searchTerm.toLowerCase());
-      
+
       return matchesType && matchesAppointment && matchesSearch;
     });
   }, [documents, typeFilter, appointmentFilter, searchTerm]);
@@ -54,18 +61,18 @@ export const Documents: React.FC<DocumentsProps> = ({
         onAppointmentFilterChange={onAppointmentFilterChange}
         appointments={appointments}
       />
-      
+
       <DocumentList
         documents={filteredDocuments}
         onDocumentClick={onDocumentSelect}
         emptyMessage="No documents found matching your criteria."
       />
-      
+
       <DocumentDetailsModal
         document={selectedDocument}
         isOpen={!!selectedDocument}
         onClose={onDocumentDeselect}
-        onDownload={onDocumentDownload}
+        {...(onDocumentDownload && { onDownload: onDocumentDownload })}
       />
     </>
   );

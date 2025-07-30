@@ -1,14 +1,14 @@
 // Types
 export type {
-  DocumentType,
-  DocumentData,
-  Document,
   Appointment,
-  DocumentListProps,
+  Document,
   DocumentCardProps,
+  DocumentData,
   DocumentDetailsModalProps,
   DocumentFilterProps,
+  DocumentListProps,
   DocumentsPageProps,
+  DocumentType,
 } from "./types";
 
 // Main Components
@@ -18,9 +18,9 @@ export { DocumentsPage } from "./DocumentsPage";
 // Sub-components
 export {
   DocumentCard,
-  DocumentList,
-  DocumentFilter,
   DocumentDetailsModal,
+  DocumentFilter,
+  DocumentList,
 } from "./components";
 
 // Services - re-export from shared services

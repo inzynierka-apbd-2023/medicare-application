@@ -1,4 +1,5 @@
 import React from "react";
+
 import { SearchInput } from "../../../shared/components";
 import type { DocumentFilterProps, DocumentType } from "../types";
 
@@ -27,11 +28,13 @@ export const DocumentFilter: React.FC<DocumentFilterProps> = ({
         onChange={(e) => onSearchChange(e.target.value)}
         className="w-64"
       />
-      
+
       <select
         className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm"
         value={typeFilter}
-        onChange={(e) => onTypeFilterChange(e.target.value as DocumentType | "All")}
+        onChange={(e) =>
+          onTypeFilterChange(e.target.value as DocumentType | "All")
+        }
       >
         {documentTypes.map((type) => (
           <option key={type.value} value={type.value}>
@@ -39,7 +42,7 @@ export const DocumentFilter: React.FC<DocumentFilterProps> = ({
           </option>
         ))}
       </select>
-      
+
       <select
         className="px-3 py-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-200 text-sm"
         value={appointmentFilter}
@@ -48,7 +51,8 @@ export const DocumentFilter: React.FC<DocumentFilterProps> = ({
         <option value="">All Appointments</option>
         {appointments.map((appointment) => (
           <option key={appointment.id} value={appointment.id}>
-            {new Date(appointment.date).toLocaleDateString()} – {appointment.specialization} ({appointment.doctor})
+            {new Date(appointment.date).toLocaleDateString()} –{" "}
+            {appointment.specialization} ({appointment.doctor})
           </option>
         ))}
       </select>

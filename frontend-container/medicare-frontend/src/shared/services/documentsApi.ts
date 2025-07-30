@@ -1,15 +1,21 @@
+import type {
+  Appointment,
+  Document,
+  DocumentType,
+} from "../../features/documents/types";
+
 import {
-  createMockResponse,
-  createErrorResponse,
   type ApiResponse,
+  createErrorResponse,
+  createMockResponse,
 } from "./api";
-import type { Document, Appointment, DocumentType } from "../../features/documents/types";
 
 // Mock documents data - simulates API response
 const mockDocuments: Document[] = [
   {
     id: "d1",
     appointmentId: "appt2",
+    patientId: "1", // John Doe
     type: "Prescription",
     createdAt: "2025-05-10",
     notes: "Cholesterol meds",
@@ -24,6 +30,7 @@ const mockDocuments: Document[] = [
   {
     id: "d42",
     appointmentId: "appt2",
+    patientId: "1", // John Doe
     type: "Prescription",
     createdAt: "2025-05-10",
     notes: "Cholesterol meds renewed",
@@ -38,6 +45,7 @@ const mockDocuments: Document[] = [
   {
     id: "d2",
     appointmentId: "appt2",
+    patientId: "1", // John Doe
     type: "Referral",
     createdAt: "2025-04-22",
     notes: "Consult cardiologist",
@@ -51,6 +59,7 @@ const mockDocuments: Document[] = [
   {
     id: "d3",
     appointmentId: "appt1",
+    patientId: "2", // Adam Nowak
     type: "Sick_Leave",
     createdAt: "2025-03-15",
     notes: "Flu recovery",
@@ -63,6 +72,7 @@ const mockDocuments: Document[] = [
   {
     id: "d4",
     appointmentId: "appt1",
+    patientId: "2", // Adam Nowak
     type: "VisitCard",
     createdAt: "2025-03-15",
     notes: "First hypertension check",
@@ -76,6 +86,7 @@ const mockDocuments: Document[] = [
   {
     id: "d5",
     appointmentId: "appt3",
+    patientId: "3", // Emma Watson
     type: "Prescription",
     createdAt: "2025-06-15",
     notes: "Blood pressure medication",
@@ -90,6 +101,7 @@ const mockDocuments: Document[] = [
   {
     id: "d6",
     appointmentId: "appt3",
+    patientId: "3", // Emma Watson
     type: "VisitCard",
     createdAt: "2025-06-15",
     notes: "Follow-up hypertension check",
@@ -105,24 +117,32 @@ const mockDocuments: Document[] = [
 const mockAppointments: Appointment[] = [
   {
     id: "appt1",
+    patientId: "2", // Adam Nowak
+    patientName: "Adam Nowak",
     date: "2025-03-15",
     doctor: "Dr. Anna Nowak",
     specialization: "Cardiology",
   },
   {
     id: "appt2",
+    patientId: "1", // John Doe
+    patientName: "John Doe",
     date: "2025-05-10",
     doctor: "Dr. Bob Vessel",
     specialization: "Dermatology",
   },
   {
     id: "appt3",
+    patientId: "3", // Emma Watson
+    patientName: "Emma Watson",
     date: "2025-06-15",
     doctor: "Dr. Anna Nowak",
     specialization: "Cardiology",
   },
   {
     id: "appt4",
+    patientId: "4", // Michael Brown
+    patientName: "Michael Brown",
     date: "2025-07-20",
     doctor: "Dr. Sarah Johnson",
     specialization: "General Medicine",
@@ -133,6 +153,7 @@ export interface DocumentsFilterParams {
   searchTerm?: string;
   typeFilter?: DocumentType | "All";
   appointmentId?: string;
+  patientId?: string;
 }
 
 export interface DocumentsApiResponse {
@@ -144,35 +165,51 @@ export const documentsApi = {
   /**
    * Fetch all documents with optional filtering
    */
-  getDocuments: async (filters?: DocumentsFilterParams): Promise<ApiResponse<Document[]>> => {
+  getDocuments: async (
+    filters?: DocumentsFilterParams
+  ): Promise<ApiResponse<Document[]>> => {
     try {
       let filteredDocuments = [...mockDocuments];
 
       if (filters) {
-        const { searchTerm, typeFilter, appointmentId } = filters;
+        const { searchTerm, typeFilter, appointmentId, patientId } = filters;
 
         if (typeFilter && typeFilter !== "All") {
-          filteredDocuments = filteredDocuments.filter(doc => doc.type === typeFilter);
+          filteredDocuments = filteredDocuments.filter(
+            (doc) => doc.type === typeFilter
+          );
         }
 
         if (appointmentId) {
-          filteredDocuments = filteredDocuments.filter(doc => doc.appointmentId === appointmentId);
+          filteredDocuments = filteredDocuments.filter(
+            (doc) => doc.appointmentId === appointmentId
+          );
+        }
+
+        if (patientId) {
+          filteredDocuments = filteredDocuments.filter(
+            (doc) => doc.patientId === patientId
+          );
         }
 
         if (searchTerm) {
           const searchLower = searchTerm.toLowerCase();
-          filteredDocuments = filteredDocuments.filter(doc =>
-            doc.notes?.toLowerCase().includes(searchLower) ||
-            doc.type.toLowerCase().includes(searchLower)
+          filteredDocuments = filteredDocuments.filter(
+            (doc) =>
+              doc.notes?.toLowerCase().includes(searchLower) ||
+              doc.type.toLowerCase().includes(searchLower)
           );
         }
       }
 
       // Sort by creation date (newest first)
-      filteredDocuments.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      filteredDocuments.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
 
       return await createMockResponse(filteredDocuments, 300);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to fetch documents");
     }
   },
@@ -188,7 +225,7 @@ export const documentsApi = {
       );
 
       return await createMockResponse(sortedAppointments, 200);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to fetch appointments");
     }
   },
@@ -196,7 +233,9 @@ export const documentsApi = {
   /**
    * Fetch documents and appointments together for initial page load
    */
-  getDocumentsWithAppointments: async (filters?: DocumentsFilterParams): Promise<ApiResponse<DocumentsApiResponse>> => {
+  getDocumentsWithAppointments: async (
+    filters?: DocumentsFilterParams
+  ): Promise<ApiResponse<DocumentsApiResponse>> => {
     try {
       const [documentsResponse, appointmentsResponse] = await Promise.all([
         documentsApi.getDocuments(filters),
@@ -204,18 +243,25 @@ export const documentsApi = {
       ]);
 
       if (!documentsResponse.success) {
-        return createErrorResponse(documentsResponse.error || "Failed to fetch documents");
+        return createErrorResponse(
+          documentsResponse.error || "Failed to fetch documents"
+        );
       }
 
       if (!appointmentsResponse.success) {
-        return createErrorResponse(appointmentsResponse.error || "Failed to fetch appointments");
+        return createErrorResponse(
+          appointmentsResponse.error || "Failed to fetch appointments"
+        );
       }
 
-      return await createMockResponse({
-        documents: documentsResponse.data,
-        appointments: appointmentsResponse.data,
-      }, 400);
-    } catch (error) {
+      return await createMockResponse(
+        {
+          documents: documentsResponse.data,
+          appointments: appointmentsResponse.data,
+        },
+        400
+      );
+    } catch (_error) {
       return createErrorResponse("Failed to fetch documents data");
     }
   },
@@ -223,12 +269,14 @@ export const documentsApi = {
   /**
    * Get a single document by ID
    */
-  getDocumentById: async (documentId: string): Promise<ApiResponse<Document | null>> => {
+  getDocumentById: async (
+    documentId: string
+  ): Promise<ApiResponse<Document | null>> => {
     try {
-      const document = mockDocuments.find(doc => doc.id === documentId);
-      
+      const document = mockDocuments.find((doc) => doc.id === documentId);
+
       return await createMockResponse(document || null, 100);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to fetch document");
     }
   },
@@ -236,19 +284,21 @@ export const documentsApi = {
   /**
    * Mock download document functionality
    */
-  downloadDocument: async (documentId: string): Promise<ApiResponse<{ downloadUrl: string }>> => {
+  downloadDocument: async (
+    documentId: string
+  ): Promise<ApiResponse<{ downloadUrl: string }>> => {
     try {
-      const document = mockDocuments.find(doc => doc.id === documentId);
-      
+      const document = mockDocuments.find((doc) => doc.id === documentId);
+
       if (!document) {
         return createErrorResponse("Document not found");
       }
 
       // In a real app, this would return a download URL or initiate download
       const mockDownloadUrl = `https://api.medicare.com/documents/${documentId}/download`;
-      
+
       return await createMockResponse({ downloadUrl: mockDownloadUrl }, 500);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to download document");
     }
   },
