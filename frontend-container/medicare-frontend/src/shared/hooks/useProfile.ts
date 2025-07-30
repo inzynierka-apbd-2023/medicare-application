@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { profileApi } from "../services/profileApi";
+import { useEffect, useState } from "react";
+
 import type { ProfileData } from "../../features/profile/types";
+import { profileApi } from "../services/profileApi";
 
 interface UseProfileResult {
   profileData: ProfileData | null;
@@ -82,7 +83,8 @@ export const useProfile = (userId?: string): UseProfileResult => {
 
   useEffect(() => {
     fetchProfile();
-  }, [userId]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   return {
     profileData,

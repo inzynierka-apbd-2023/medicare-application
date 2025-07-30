@@ -1,8 +1,10 @@
 import React from "react";
+
+import type { ScheduleFiltersProps } from "../types";
+
+import { DoctorSelector } from "./DoctorSelector";
 import { ServiceSelector } from "./ServiceSelector";
 import { SpecializationSelector } from "./SpecializationSelector";
-import { DoctorSelector } from "./DoctorSelector";
-import type { ScheduleFiltersProps } from "../types";
 
 export const ScheduleFilters: React.FC<ScheduleFiltersProps> = ({
   services,

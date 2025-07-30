@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { walletApi, type WalletAppointment } from "../services/walletApi";
-import type { WalletData, Subscription } from "../../features/wallet/types";
+import { useEffect, useState } from "react";
+
+import type { Subscription, WalletData } from "../../features/wallet/types";
+import { walletApi } from "../services/walletApi";
 
 interface UseWalletReturn {
   wallet: WalletData | null;

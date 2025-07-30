@@ -1,22 +1,22 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
 import {
-  CreditCard,
-  CheckCircle,
-  XCircle,
-  Info,
   Calendar,
-  User,
+  CheckCircle,
+  CreditCard,
   FileText,
+  Info,
+  User,
+  XCircle,
 } from "lucide-react";
-import { Card, Button, Badge } from "../../../shared/components";
+
+import { Badge, Button, Card } from "../../../shared/components";
 import type { AppointmentCardProps } from "../types";
 
 export const AppointmentCard: React.FC<AppointmentCardProps> = ({
   appointment,
   onDetails,
   onPayment,
-  onCancel,
   isUpcoming = false,
 }) => {
   const navigate = useNavigate();

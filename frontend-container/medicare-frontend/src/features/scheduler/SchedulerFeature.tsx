@@ -1,8 +1,10 @@
 import React from "react";
-import { Scheduler } from "./components";
+
+import { ErrorDisplay, LoadingOverlay } from "../../shared/components";
 import { useScheduler } from "../../shared/hooks/useScheduler";
-import { LoadingOverlay, ErrorDisplay } from "../../shared/components";
-import type { SchedulerProps } from "./types";
+
+import { Scheduler } from "./components";
+import type { AppointmentBooking, SchedulerProps } from "./types";
 
 export const SchedulerFeature: React.FC<SchedulerProps> = ({
   onAppointmentBook,
@@ -24,7 +26,7 @@ export const SchedulerFeature: React.FC<SchedulerProps> = ({
     bookAppointment,
   } = useScheduler();
 
-  const handleAppointmentBook = async (booking: any) => {
+  const handleAppointmentBook = async (booking: AppointmentBooking) => {
     try {
       const result = await bookAppointment(booking);
 
@@ -60,7 +62,7 @@ export const SchedulerFeature: React.FC<SchedulerProps> = ({
         onSpecializationChange={handleSpecializationChange}
         onDoctorChange={handleDoctorChange}
         onAppointmentBook={handleAppointmentBook}
-        onEventSelect={onEventSelect}
+        {...(onEventSelect && { onEventSelect })}
       />
     </LoadingOverlay>
   );

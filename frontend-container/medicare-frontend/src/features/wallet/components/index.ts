@@ -1,6 +1,6 @@
-export { Wallet } from "./Wallet";
-export { AppointmentCard } from "./VisitCard";
-export { AppointmentsList } from "./VisitsList";
+export { BuySubscriptionModal } from "./BuySubscriptionModal";
 export { SubscriptionInfo } from "./SubscriptionInfo";
 export { SubscriptionView } from "./SubscriptionView";
-export { BuySubscriptionModal } from "./BuySubscriptionModal";
+export { AppointmentCard } from "./VisitCard";
+export { AppointmentsList } from "./VisitsList";
+export { Wallet } from "./Wallet";

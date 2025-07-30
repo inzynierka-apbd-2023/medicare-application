@@ -1,27 +1,27 @@
 // Types
 export type {
-  WalletAppointment,
-  PaymentStatus,
-  Subscription,
-  SubscriptionType,
-  WalletData,
-  Plan,
-  WalletProps,
-  SubscriptionViewProps,
   AppointmentCardProps,
   BuySubscriptionModalProps,
+  PaymentStatus,
+  Plan,
+  Subscription,
+  SubscriptionType,
+  SubscriptionViewProps,
+  WalletAppointment,
+  WalletData,
+  WalletProps,
 } from "./types";
 
 // Main Components
-export { WalletPage } from "./WalletPage";
 export { SubscriptionPage } from "./SubscriptionPage";
+export { WalletPage } from "./WalletPage";
 
 // Sub-components
 export {
-  Wallet,
   AppointmentCard,
   AppointmentsList,
+  BuySubscriptionModal,
   SubscriptionInfo,
   SubscriptionView,
-  BuySubscriptionModal,
+  Wallet,
 } from "./components";

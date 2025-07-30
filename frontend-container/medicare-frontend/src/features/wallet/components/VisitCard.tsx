@@ -1,6 +1,7 @@
 import React from "react";
 import { Calendar, User } from "lucide-react";
-import { Button, Card, Badge } from "../../../shared/components";
+
+import { Badge, Button, Card } from "../../../shared/components";
 import type { AppointmentCardProps } from "../types";
 
 export const AppointmentCard: React.FC<AppointmentCardProps> = ({

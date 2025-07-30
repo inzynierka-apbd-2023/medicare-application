@@ -1,4 +1,5 @@
 import React from "react";
+
 import type { SpecializationSelectorProps } from "../types";
 
 export const SpecializationSelector: React.FC<SpecializationSelectorProps> = ({

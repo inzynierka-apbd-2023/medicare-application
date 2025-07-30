@@ -1,13 +1,12 @@
 import React, { useState } from "react";
-import { Calendar, Clock, User } from "lucide-react";
+import { Calendar, Clock } from "lucide-react";
+
 import { Button } from "../../../shared/components";
 import type { CalendarViewProps, TimeSlot } from "../types";
 
 export const CalendarView: React.FC<CalendarViewProps> = ({
-  events,
   timeSlots,
   onTimeSlotSelect,
-  onEventSelect,
   selectedDoctor,
 }) => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<TimeSlot | null>(

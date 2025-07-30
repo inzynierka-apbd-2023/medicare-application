@@ -1,6 +1,8 @@
 import React from "react";
-import { AppointmentCard } from "./VisitCard";
+
 import type { WalletAppointment } from "../types";
+
+import { AppointmentCard } from "./VisitCard";
 
 interface AppointmentsListProps {
   appointments: WalletAppointment[];

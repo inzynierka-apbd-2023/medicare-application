@@ -1,24 +1,28 @@
-import React from 'react';
-import { Search } from 'lucide-react';
+import React from "react";
+import { Search } from "lucide-react";
 
-export interface SearchInputProps extends Omit<React.InputHTMLAttributes<HTMLInputElement>, 'type'> {
+export interface SearchInputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "type"> {
   onSearch?: (value: string) => void;
   loading?: boolean;
   debounceMs?: number;
 }
 
 const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
-  ({ className, onSearch, loading, debounceMs = 300, onChange, ...props }, ref) => {
-    const [value, setValue] = React.useState(props.value || '');
-    const debounceRef = React.useRef<NodeJS.Timeout | null>(null);
+  (
+    { className, onSearch, loading, debounceMs = 300, onChange, ...props },
+    ref
+  ) => {
+    const [value, setValue] = React.useState(props.value || "");
+    const debounceRef = React.useRef<number | null>(null);
 
     React.useEffect(() => {
       if (onSearch && debounceMs > 0) {
         if (debounceRef.current) {
           clearTimeout(debounceRef.current);
         }
-        
-        debounceRef.current = setTimeout(() => {
+
+        debounceRef.current = window.setTimeout(() => {
           onSearch(value as string);
         }, debounceMs);
 
@@ -33,7 +37,7 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
       const newValue = e.target.value;
       setValue(newValue);
-      
+
       if (onChange) {
         onChange(e);
       }
@@ -77,7 +81,7 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
           className={`
             flex-1 pl-8 pr-3 py-2 bg-white rounded-xl border-none shadow-sm
             focus:outline-none focus:ring-2 focus:ring-blue-500 text-left
-            ${className || ''}
+            ${className || ""}
           `.trim()}
           value={value}
           onChange={handleChange}
@@ -88,6 +92,6 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
   }
 );
 
-SearchInput.displayName = 'SearchInput';
+SearchInput.displayName = "SearchInput";
 
 export { SearchInput };

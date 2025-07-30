@@ -1,9 +1,10 @@
-import {
-  createMockResponse,
-  createErrorResponse,
-  type ApiResponse,
-} from "./api";
 import type { Appointment } from "../../features/appointments/types";
+
+import {
+  type ApiResponse,
+  createErrorResponse,
+  createMockResponse,
+} from "./api";
 
 // Mock appointments data - simulates API response
 const mockAppointments: Appointment[] = [
@@ -84,7 +85,7 @@ export const appointmentsApi = {
     try {
       // Simulate API delay
       return await createMockResponse(mockAppointments, 800);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to fetch appointments");
     }
   },
@@ -98,7 +99,7 @@ export const appointmentsApi = {
     try {
       const appointment = mockAppointments.find((apt) => apt.id === id) || null;
       return await createMockResponse(appointment, 300);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to fetch appointment");
     }
   },
@@ -125,7 +126,7 @@ export const appointmentsApi = {
       };
 
       return await createMockResponse(mockAppointments[appointmentIndex], 500);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to update payment status");
     }
   },
@@ -149,7 +150,7 @@ export const appointmentsApi = {
       };
 
       return await createMockResponse(mockAppointments[appointmentIndex], 400);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to cancel appointment");
     }
   },
@@ -163,7 +164,7 @@ export const appointmentsApi = {
         (apt) => apt.status === "upcoming"
       );
       return await createMockResponse(upcomingAppointments, 600);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to fetch upcoming appointments");
     }
   },
@@ -177,7 +178,7 @@ export const appointmentsApi = {
         (apt) => apt.status !== "upcoming"
       );
       return await createMockResponse(pastAppointments, 600);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to fetch past appointments");
     }
   },

@@ -1,10 +1,10 @@
-import { createMockResponse, ApiResponse } from './api';
+import { ApiResponse, createMockResponse } from "./api";
 
 // Types for dashboard data
 export interface Notification {
   id: string;
   message: string;
-  type?: 'info' | 'warning' | 'success' | 'error';
+  type?: "info" | "warning" | "success" | "error";
   timestamp?: string;
   read?: boolean;
 }
@@ -21,7 +21,7 @@ export interface QuickStat {
   label: string;
   value: number;
   change?: string;
-  trend?: 'up' | 'down' | 'stable';
+  trend?: "up" | "down" | "stable";
 }
 
 export interface PatientMessage {
@@ -36,7 +36,8 @@ export interface PatientMessage {
 const MOCK_PATIENT_NOTIFICATIONS: Notification[] = [
   {
     id: "1",
-    message: "Appointment Reminder: May 14, 2025 at 10:00 AM with Dr. Alice Heart",
+    message:
+      "Appointment Reminder: May 14, 2025 at 10:00 AM with Dr. Alice Heart",
     type: "info",
     timestamp: "2025-05-13T10:00:00Z",
     read: false,
@@ -188,8 +189,12 @@ export const patientDashboardApi = {
     return createMockResponse(MOCK_PATIENT_DOCUMENTS, 200);
   },
 
-  markNotificationAsRead: (notificationId: string): Promise<ApiResponse<boolean>> => {
-    const notification = MOCK_PATIENT_NOTIFICATIONS.find(n => n.id === notificationId);
+  markNotificationAsRead: (
+    notificationId: string
+  ): Promise<ApiResponse<boolean>> => {
+    const notification = MOCK_PATIENT_NOTIFICATIONS.find(
+      (n) => n.id === notificationId
+    );
     if (notification) {
       notification.read = true;
     }
@@ -211,8 +216,12 @@ export const doctorDashboardApi = {
     return createMockResponse(MOCK_PATIENT_MESSAGES, 200);
   },
 
-  markNotificationAsRead: (notificationId: string): Promise<ApiResponse<boolean>> => {
-    const notification = MOCK_DOCTOR_NOTIFICATIONS.find(n => n.id === notificationId);
+  markNotificationAsRead: (
+    notificationId: string
+  ): Promise<ApiResponse<boolean>> => {
+    const notification = MOCK_DOCTOR_NOTIFICATIONS.find(
+      (n) => n.id === notificationId
+    );
     if (notification) {
       notification.read = true;
     }

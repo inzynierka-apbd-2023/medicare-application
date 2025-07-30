@@ -1,11 +1,11 @@
 // Types
 export type {
   Appointment,
+  AppointmentCardProps,
+  AppointmentListProps,
+  AppointmentSectionProps,
   AppointmentStatus,
   PaymentStatus,
-  AppointmentListProps,
-  AppointmentCardProps,
-  AppointmentSectionProps,
 } from "./types";
 
 // Main Components
@@ -15,7 +15,7 @@ export { AppointmentsPage } from "./AppointmentsPage";
 // Sub-components
 export {
   AppointmentCard,
-  AppointmentSection,
   AppointmentList,
   AppointmentsDetailsModal,
+  AppointmentSection,
 } from "./components";

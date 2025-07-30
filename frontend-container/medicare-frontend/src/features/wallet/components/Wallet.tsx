@@ -1,8 +1,10 @@
 import React from "react";
-import { SubscriptionInfo } from "./SubscriptionInfo";
-import { AppointmentsList } from "./VisitsList";
+
 import { Loading } from "../../../shared/components";
 import type { WalletProps } from "../types";
+
+import { SubscriptionInfo } from "./SubscriptionInfo";
+import { AppointmentsList } from "./VisitsList";
 
 export const Wallet: React.FC<WalletProps> = ({
   wallet,
@@ -38,7 +40,7 @@ export const Wallet: React.FC<WalletProps> = ({
       <AppointmentsList
         appointments={wallet.unpaidAppointments}
         onPayAppointment={onPayAppointment}
-        payingAppointmentId={payingAppointmentId}
+        {...(payingAppointmentId !== undefined && { payingAppointmentId })}
       />
     </div>
   );

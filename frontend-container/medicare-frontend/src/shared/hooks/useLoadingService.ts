@@ -1,5 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
-import { loadingService } from '../services/loadingService';
+import { useCallback, useEffect, useState } from "react";
+
+import { loadingService } from "../services/loadingService";
 
 export function useLoadingService() {
   const [isLoading, setIsLoading] = useState(loadingService.getIsLoading());
@@ -43,7 +44,9 @@ export function useLoadingService() {
           return await asyncOperation();
         } catch (error) {
           const errorMessage =
-            error instanceof Error ? error.message : 'An unexpected error occurred';
+            error instanceof Error
+              ? error.message
+              : "An unexpected error occurred";
           loadingService.setError(errorMessage);
           throw error;
         }

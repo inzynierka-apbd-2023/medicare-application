@@ -16,11 +16,10 @@ const mockProfileData: ProfileData = {
   dateOfBirth: "1990-01-01",
   membershipLevel: "gold",
   membershipName: "Gold Health Membership",
-  profilePicture: undefined,
 };
 
 export const profileApi = {
-  async getProfile(userId?: string): Promise<ApiResponse<ProfileData>> {
+  async getProfile(_userId?: string): Promise<ApiResponse<ProfileData>> {
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 800));
 
@@ -32,7 +31,7 @@ export const profileApi = {
 
   async updateProfile(
     data: Partial<ProfileData>,
-    userId?: string
+    _userId?: string
   ): Promise<ApiResponse<ProfileData>> {
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 500));
@@ -58,7 +57,7 @@ export const profileApi = {
   async changePassword(
     currentPassword: string,
     newPassword: string,
-    userId?: string
+    _userId?: string
   ): Promise<ApiResponse<null>> {
     // Simulate API delay
     await new Promise((resolve) => setTimeout(resolve, 500));

@@ -12,7 +12,10 @@ export interface ApiResponse<T> {
 }
 
 // Generic API helper for creating mock responses
-export const createMockResponse = <T>(data: T, delay = 100): Promise<ApiResponse<T>> => {
+export const createMockResponse = <T>(
+  data: T,
+  delay = 100
+): Promise<ApiResponse<T>> => {
   return new Promise((resolve) => {
     setTimeout(() => {
       resolve({
@@ -24,8 +27,10 @@ export const createMockResponse = <T>(data: T, delay = 100): Promise<ApiResponse
 };
 
 // Error response helper
-export const createErrorResponse = (error: string): ApiResponse<any> => ({
-  data: null,
+export const createErrorResponse = <T = unknown>(
+  error: string
+): ApiResponse<T> => ({
+  data: null as T,
   error,
   success: false,
 });

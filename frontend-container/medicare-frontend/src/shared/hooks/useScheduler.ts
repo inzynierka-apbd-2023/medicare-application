@@ -1,20 +1,21 @@
-import { useState, useEffect } from "react";
-import { schedulerApi } from "../services/schedulerApi";
+import { useEffect, useState } from "react";
+
 import type {
+  AppointmentBooking,
+  CalendarEvent,
+  Doctor,
   Service,
   Specialization,
-  Doctor,
   TimeSlot,
-  CalendarEvent,
-  AppointmentBooking,
 } from "../../features/scheduler/types";
+import { schedulerApi } from "../services/schedulerApi";
 
 export const useScheduler = () => {
   const [services, setServices] = useState<Service[]>([]);
   const [specializations, setSpecializations] = useState<Specialization[]>([]);
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [timeSlots, setTimeSlots] = useState<TimeSlot[]>([]);
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
+  const [_events, _setEvents] = useState<CalendarEvent[]>([]);
 
   const [selectedService, setSelectedService] = useState<string>("");
   const [selectedSpecialization, setSelectedSpecialization] =
@@ -181,7 +182,7 @@ export const useScheduler = () => {
     specializations,
     doctors,
     timeSlots,
-    events,
+    events: _events,
 
     // Selections
     selectedService,

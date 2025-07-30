@@ -1,9 +1,11 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Wallet } from "./components/Wallet";
-import { useWallet } from "../../shared/hooks/useWallet";
-import { Loading, ErrorDisplay } from "../../shared/components";
+
 import Header from "../../layout/Header";
+import { ErrorDisplay, Loading } from "../../shared/components";
+import { useWallet } from "../../shared/hooks/useWallet";
+
+import { Wallet } from "./components/Wallet";
 
 export const WalletPage: React.FC = () => {
   const navigate = useNavigate();

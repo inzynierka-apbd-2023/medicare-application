@@ -1,15 +1,16 @@
 import type {
+  AppointmentBooking,
+  CalendarEvent,
+  Doctor,
   Service,
   Specialization,
-  Doctor,
   TimeSlot,
-  CalendarEvent,
-  AppointmentBooking,
 } from "../../features/scheduler/types";
+
 import {
-  createMockResponse,
-  createErrorResponse,
   type ApiResponse,
+  createErrorResponse,
+  createMockResponse,
 } from "./api";
 
 // Mock data
@@ -183,7 +184,7 @@ export const schedulerApi = {
   },
 
   // Get calendar events (for future Microsoft Graph integration)
-  async getEvents(doctorId?: string): Promise<ApiResponse<CalendarEvent[]>> {
+  async getEvents(_doctorId?: string): Promise<ApiResponse<CalendarEvent[]>> {
     await new Promise((resolve) => setTimeout(resolve, 400));
 
     // For now, return empty array - will be implemented with Microsoft Graph
@@ -211,7 +212,7 @@ export const schedulerApi = {
 
   // Cancel an appointment
   async cancelAppointment(
-    appointmentId: string
+    _appointmentId: string
   ): Promise<ApiResponse<{ message: string }>> {
     await new Promise((resolve) => setTimeout(resolve, 600));
 

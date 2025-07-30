@@ -47,7 +47,9 @@ class LoadingService {
     this.loadingListeners.push(listener);
     // Return unsubscribe function
     return () => {
-      this.loadingListeners = this.loadingListeners.filter(l => l !== listener);
+      this.loadingListeners = this.loadingListeners.filter(
+        (l) => l !== listener
+      );
     };
   }
 
@@ -55,7 +57,7 @@ class LoadingService {
     this.errorListeners.push(listener);
     // Return unsubscribe function
     return () => {
-      this.errorListeners = this.errorListeners.filter(l => l !== listener);
+      this.errorListeners = this.errorListeners.filter((l) => l !== listener);
     };
   }
 
@@ -67,21 +69,22 @@ class LoadingService {
       this.hide();
       return result;
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : 'An unexpected error occurred';
+      const errorMessage =
+        error instanceof Error ? error.message : "An unexpected error occurred";
       this.setError(errorMessage);
       throw error;
     }
   }
 
   private notifyLoadingListeners(): void {
-    this.loadingListeners.forEach(listener => listener(this.isLoading));
+    this.loadingListeners.forEach((listener) => listener(this.isLoading));
   }
 
   private notifyErrorListeners(): void {
-    this.errorListeners.forEach(listener => listener(this.error));
+    this.errorListeners.forEach((listener) => listener(this.error));
   }
 }
 
 // Export singleton instance
 export const loadingService = new LoadingService();
-export type { LoadingListener, ErrorListener };
+export type { ErrorListener, LoadingListener };

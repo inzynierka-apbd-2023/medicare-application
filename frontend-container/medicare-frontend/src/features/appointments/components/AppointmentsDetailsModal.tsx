@@ -1,12 +1,7 @@
 import React from "react";
-import {
-  Calendar,
-  User,
-  CreditCard,
-  Stethoscope,
-  FileText,
-} from "lucide-react";
-import { Modal, Badge } from "../../../shared/components";
+import { Calendar, CreditCard, FileText, User } from "lucide-react";
+
+import { Badge, Modal } from "../../../shared/components";
 import type { Appointment } from "../types";
 
 interface AppointmentsDetailsModalProps {

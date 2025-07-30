@@ -1,14 +1,17 @@
 import React from "react";
+
 import Header from "../../layout/Header";
+
 import { SchedulerFeature } from "./SchedulerFeature";
+import type { AppointmentBooking, CalendarEvent } from "./types";
 
 export const SchedulerPage: React.FC = () => {
-  const handleAppointmentBook = (booking: any) => {
+  const handleAppointmentBook = (booking: AppointmentBooking) => {
     console.log("Appointment booked:", booking);
     // Here you can add additional logic like navigation, notifications, etc.
   };
 
-  const handleEventSelect = (event: any) => {
+  const handleEventSelect = (event: CalendarEvent) => {
     console.log("Event selected:", event);
     // Handle event selection logic
   };

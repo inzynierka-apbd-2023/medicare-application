@@ -1,5 +1,6 @@
 import React from "react";
-import { CreditCard, CheckCircle, XCircle } from "lucide-react";
+import { CheckCircle, CreditCard, XCircle } from "lucide-react";
+
 import { Button } from "../../../shared/components";
 import type { Subscription } from "../types";
 

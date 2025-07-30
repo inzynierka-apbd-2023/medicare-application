@@ -1,6 +1,7 @@
 import React, { useState } from "react";
-import { X, ShieldCheck } from "lucide-react";
-import { Modal, Button, Card } from "../../../shared/components";
+import { ShieldCheck } from "lucide-react";
+
+import { Button, Card, Modal } from "../../../shared/components";
 import type { BuySubscriptionModalProps, Plan } from "../types";
 
 const DEFAULT_PLANS: Plan[] = [
@@ -40,7 +41,7 @@ export const BuySubscriptionModal: React.FC<BuySubscriptionModalProps> = ({
       await new Promise((resolve) => setTimeout(resolve, 1800));
       setLoading(false);
       onPaymentSuccess(selectedPlan);
-    } catch (err) {
+    } catch (_err) {
       setLoading(false);
       setError("Payment failed. Please try again or contact support.");
     }

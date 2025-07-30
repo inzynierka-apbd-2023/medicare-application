@@ -1,9 +1,10 @@
-import {
-  createMockResponse,
-  createErrorResponse,
-  type ApiResponse,
-} from "./api";
 import type { Appointment } from "../../features/appointments/types";
+
+import {
+  type ApiResponse,
+  createErrorResponse,
+  createMockResponse,
+} from "./api";
 
 export type PaymentStatus = "paid" | "not_paid";
 
@@ -57,7 +58,7 @@ export const walletApi = {
 
       // Simulate API delay
       return await createMockResponse(walletData, 800);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to fetch wallet data");
     }
   },
@@ -82,7 +83,7 @@ export const walletApi = {
       }
 
       return await createMockResponse(response.data, 1500);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Payment processing failed");
     }
   },
@@ -98,7 +99,7 @@ export const walletApi = {
       Object.assign(mockSubscription, subscriptionData);
 
       return await createMockResponse(mockSubscription, 500);
-    } catch (error) {
+    } catch (_error) {
       return createErrorResponse("Failed to update subscription");
     }
   },

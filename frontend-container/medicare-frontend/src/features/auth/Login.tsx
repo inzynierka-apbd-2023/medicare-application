@@ -5,7 +5,7 @@ export default function Login() {
   const [cardNumber, setCardNumber] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
-  const [activeTab, setActiveTab] = useState<"full" | "simple">("full");
+  const [_activeTab, _setActiveTab] = useState<"full" | "simple">("full");
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();

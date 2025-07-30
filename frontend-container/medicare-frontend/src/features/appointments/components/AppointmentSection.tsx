@@ -1,6 +1,8 @@
 import React from "react";
-import { AppointmentCard } from "./AppointmentCard";
+
 import type { AppointmentSectionProps } from "../types";
+
+import { AppointmentCard } from "./AppointmentCard";
 
 export const AppointmentSection: React.FC<AppointmentSectionProps> = ({
   title,
@@ -22,8 +24,8 @@ export const AppointmentSection: React.FC<AppointmentSectionProps> = ({
             key={appointment.id}
             appointment={appointment}
             onDetails={onDetails}
-            onPayment={onPayment}
-            onCancel={onCancel}
+            {...(onPayment && { onPayment })}
+            {...(onCancel && { onCancel })}
             isUpcoming={isUpcoming}
           />
         ))}

@@ -1,6 +1,7 @@
-import { useState, useEffect } from "react";
-import { appointmentsApi } from "../services/appointmentsApi";
+import { useEffect, useState } from "react";
+
 import type { Appointment } from "../../features/appointments/types";
+import { appointmentsApi } from "../services/appointmentsApi";
 
 interface UseAppointmentsReturn {
   appointments: Appointment[];

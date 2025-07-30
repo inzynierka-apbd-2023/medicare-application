@@ -1,12 +1,14 @@
 import React, { useMemo } from "react";
-import { ScheduleFilters, CalendarView } from "./";
+
 import type {
+  Doctor,
   SchedulerProps,
   Service,
   Specialization,
-  Doctor,
   TimeSlot,
 } from "../types";
+
+import { CalendarView, ScheduleFilters } from "./";
 
 interface SchedulerComponentProps extends SchedulerProps {
   services: Service[];
@@ -123,7 +125,7 @@ export const Scheduler: React.FC<SchedulerComponentProps> = ({
         events={[]} // Will be populated when Microsoft Graph integration is added
         timeSlots={filteredTimeSlots}
         onTimeSlotSelect={handleTimeSlotSelect}
-        onEventSelect={onEventSelect}
+        {...(onEventSelect && { onEventSelect })}
         selectedDoctor={selectedDoctor}
       />
     </div>

@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Appointments } from "./Appointments";
-import { AppointmentsDetailsModal } from "./components/AppointmentsDetailsModal";
-import { useAppointments } from "../../shared/hooks/useAppointments";
-import { Loading, ErrorDisplay } from "../../shared/components";
+
 import Header from "../../layout/Header";
+import { ErrorDisplay, Loading } from "../../shared/components";
+import { useAppointments } from "../../shared/hooks/useAppointments";
+
+import { AppointmentsDetailsModal } from "./components/AppointmentsDetailsModal";
+import { Appointments } from "./Appointments";
 import type { Appointment } from "./types";
 
 const AppointmentsPage: React.FC = () => {
@@ -18,7 +20,7 @@ const AppointmentsPage: React.FC = () => {
     loading,
     error,
     refetch,
-    updatePayment,
+    updatePayment: _updatePayment,
     cancelAppointment,
   } = useAppointments();
 

@@ -1,8 +1,10 @@
-import React, { useState, useEffect } from "react";
-import { SubscriptionView } from "./components/SubscriptionView";
-import { BuySubscriptionModal } from "./components/BuySubscriptionModal";
+import React, { useEffect, useState } from "react";
+
 import Header from "../../layout/Header";
-import type { Subscription, Plan } from "./types";
+
+import { BuySubscriptionModal } from "./components/BuySubscriptionModal";
+import { SubscriptionView } from "./components/SubscriptionView";
+import type { Plan, Subscription, SubscriptionType } from "./types";
 
 export const SubscriptionPage: React.FC = () => {
   const [subscription, setSubscription] = useState<Subscription | null>(null);
@@ -31,7 +33,7 @@ export const SubscriptionPage: React.FC = () => {
     setIsModalOpen(false);
     // Update subscription status
     setSubscription({
-      type: plan.name as any,
+      type: plan.name as SubscriptionType,
       active: true,
       renewalDate:
         plan.id === "yearly"

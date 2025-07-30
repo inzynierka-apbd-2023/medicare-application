@@ -1,7 +1,9 @@
 import React from "react";
 import { CalendarCheck } from "lucide-react";
-import { AppointmentSection } from "./AppointmentSection";
+
 import type { AppointmentListProps } from "../types";
+
+import { AppointmentSection } from "./AppointmentSection";
 
 export const AppointmentList: React.FC<AppointmentListProps> = ({
   appointments,
@@ -28,8 +30,8 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
         title="Upcoming Appointments"
         appointments={upcoming}
         onDetails={onDetails}
-        onPayment={onPayment}
-        onCancel={onCancel}
+        {...(onPayment && { onPayment })}
+        {...(onCancel && { onCancel })}
         isUpcoming={true}
         emptyMessage="You don't have any upcoming appointments."
       />
@@ -38,8 +40,8 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
         title="Previous Appointments"
         appointments={previous}
         onDetails={onDetails}
-        onPayment={onPayment}
-        onCancel={onCancel}
+        {...(onPayment && { onPayment })}
+        {...(onCancel && { onCancel })}
         isUpcoming={false}
         emptyMessage="No previous appointments."
       />

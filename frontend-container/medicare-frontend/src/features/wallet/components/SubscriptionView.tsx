@@ -1,5 +1,6 @@
 import React from "react";
-import { CheckCircle, XCircle, HeartPulse } from "lucide-react";
+import { CheckCircle, HeartPulse, XCircle } from "lucide-react";
+
 import { Button } from "../../../shared/components";
 import type { SubscriptionViewProps } from "../types";
 
