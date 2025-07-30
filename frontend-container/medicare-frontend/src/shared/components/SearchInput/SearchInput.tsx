@@ -32,6 +32,8 @@ const SearchInput = React.forwardRef<HTMLInputElement, SearchInputProps>(
           }
         };
       }
+
+      return undefined;
     }, [value, onSearch, debounceMs]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
