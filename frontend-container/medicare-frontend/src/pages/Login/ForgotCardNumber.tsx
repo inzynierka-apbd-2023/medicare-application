@@ -13,10 +13,10 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 px-4 sm:px-6">
+    <div className="h-screen flex items-center justify-center px-4 sm:px-6">
       <div className="bg-white shadow-xl rounded-2xl w-full max-w-md px-6 py-8 sm:px-8">
         <button
-          onClick={() => navigate('/')}
+          onClick={() => navigate('/login')}
           className="flex items-center text-blue-600 hover:underline mb-6"
         >
           <ArrowLeft className="w-4 h-4 mr-1" />

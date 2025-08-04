@@ -1,16 +1,21 @@
 import React, { useState } from 'react';
 import { Eye, EyeOff } from 'lucide-react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 
 export default function Login() {
   const [cardNumber, setCardNumber] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const navigate = useNavigate();
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     console.log('Card:', cardNumber);
     console.log('Password:', password);
+    
+    // TODO: integrate with backend authentication API
+    // For now, simulate successful login
+    navigate('/login-success');
   };
 
   return (
@@ -33,7 +38,7 @@ export default function Login() {
           <div>
             <div className="flex justify-between text-sm mb-1">
               <label className="font-medium">Card number</label>
-              <Link to="/forgot-password" className="text-blue-600 hover:underline text-xs bg-transparent border-none">
+              <Link to="/forgot-card" className="text-blue-600 hover:underline text-xs bg-transparent border-none">
                 I forgot the card number
               </Link>
             </div>

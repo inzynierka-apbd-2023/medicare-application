@@ -1,4 +1,5 @@
 import React, { useRef } from 'react';
+import { Circle } from 'lucide-react';
 
 const plans = [
   {
@@ -94,12 +95,21 @@ export default function ChoosePlan() {
                 </button>
               )}
               <h2 className="text-2xl font-bold mb-2">{plan.name}</h2>
-              <ul className="text-sm mb-3 space-y-1 list-disc list-inside">
-                {plan.benefits.map((b, i) => (
-                  <li key={i}>{b}</li>
+              <ul className="text-sm mb-3 space-y-1">
+                {plan.benefits.map((b) => (
+                  <li key={b} className="flex items-center">
+                    <Circle className="w-2 h-2 fill-current mr-2 flex-shrink-0" />
+                    {b}
+                  </li>
                 ))}
               </ul>
-              <p className="text-lg font-semibold">{plan.price}</p>
+              <p className="text-lg font-semibold mb-4">{plan.price}</p>
+              <button
+                onClick={() => window.location.href = `/plan-selection?plan=${encodeURIComponent(plan.name)}`}
+                className="w-full bg-white text-blue-700 font-bold py-2 px-4 rounded-xl hover:bg-blue-50 transition shadow-sm"
+              >
+                Select Plan
+              </button>
             </div>
           </div>
         ))}
