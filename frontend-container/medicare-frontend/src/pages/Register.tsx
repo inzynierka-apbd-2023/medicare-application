@@ -47,42 +47,42 @@ export default function Register() {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center px-4 sm:px-6 md:px-8 py-8 overflow-y-auto">
-      <div className="bg-white shadow-xl rounded-2xl w-full max-w-md px-6 py-8 sm:px-8 my-8">
+    <div className="page-container-with-scroll">
+      <div className="auth-card">
         <button
           onClick={() => navigate('/choose-plan')}
-          className="flex items-center text-blue-600 hover:underline mb-4"
+          className="btn-back"
         >
-          <ArrowLeft className="w-4 h-4 mr-1" />
+          <ArrowLeft className="icon-small" />
           Back to plans
         </button>
 
-        <h1 className="text-xl sm:text-2xl font-bold text-center mb-2">Create Your Account</h1>
-        <p className="text-sm text-center text-gray-600 mb-6">
+        <h1 className="auth-header">Create Your Account</h1>
+        <p className="auth-subtitle">
           Join Medicare to access quality healthcare services
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="auth-form-small">
           {/* Name Fields */}
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">First Name</label>
+          <div className="grid-2">
+            <div className="form-group-small">
+              <label className="form-label">First Name</label>
               <input
                 type="text"
                 name="firstName"
-                className="w-full px-3 py-2 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="form-input text-sm"
                 placeholder="John"
                 value={formData.firstName}
                 onChange={handleInputChange}
                 required
               />
             </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Last Name</label>
+            <div className="form-group-small">
+              <label className="form-label">Last Name</label>
               <input
                 type="text"
                 name="lastName"
-                className="w-full px-3 py-2 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="form-input text-sm"
                 placeholder="Doe"
                 value={formData.lastName}
                 onChange={handleInputChange}
@@ -92,12 +92,12 @@ export default function Register() {
           </div>
 
           {/* Email */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Email Address</label>
+          <div className="form-group-small">
+            <label className="form-label">Email Address</label>
             <input
               type="email"
               name="email"
-              className="w-full px-3 py-2 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+              className="form-input text-sm"
               placeholder="john.doe@example.com"
               value={formData.email}
               onChange={handleInputChange}
@@ -106,12 +106,12 @@ export default function Register() {
           </div>
 
           {/* Phone */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Phone Number</label>
+          <div className="form-group-small">
+            <label className="form-label">Phone Number</label>
             <input
               type="tel"
               name="phone"
-              className="w-full px-3 py-2 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+              className="form-input text-sm"
               placeholder="+48 123 456 789"
               value={formData.phone}
               onChange={handleInputChange}
@@ -120,12 +120,12 @@ export default function Register() {
           </div>
 
           {/* Date of Birth */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Date of Birth</label>
+          <div className="form-group-small">
+            <label className="form-label">Date of Birth</label>
             <input
               type="date"
               name="dateOfBirth"
-              className="w-full px-3 py-2 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+              className="form-input text-sm"
               value={formData.dateOfBirth}
               onChange={handleInputChange}
               required
@@ -133,13 +133,13 @@ export default function Register() {
           </div>
 
           {/* Password */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Password</label>
-            <div className="relative">
+          <div className="form-group-small">
+            <label className="form-label">Password</label>
+            <div className="field-group">
               <input
                 type={showPassword ? 'text' : 'password'}
                 name="password"
-                className="w-full px-3 py-2 pr-10 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="form-input form-input-with-icon text-sm"
                 placeholder="Create a strong password"
                 value={formData.password}
                 onChange={handleInputChange}
@@ -148,21 +148,21 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute inset-y-0 right-3 flex items-center text-blue-600 hover:text-blue-800"
+                className="input-icon"
               >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showPassword ? <EyeOff className="icon-small" /> : <Eye className="icon-small" />}
               </button>
             </div>
           </div>
 
           {/* Confirm Password */}
-          <div>
-            <label className="block text-sm font-medium mb-1">Confirm Password</label>
-            <div className="relative">
+          <div className="form-group-small">
+            <label className="form-label">Confirm Password</label>
+            <div className="field-group">
               <input
                 type={showConfirmPassword ? 'text' : 'password'}
                 name="confirmPassword"
-                className="w-full px-3 py-2 pr-10 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400 text-sm"
+                className="form-input form-input-with-icon text-sm"
                 placeholder="Confirm your password"
                 value={formData.confirmPassword}
                 onChange={handleInputChange}
@@ -171,43 +171,40 @@ export default function Register() {
               <button
                 type="button"
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                className="absolute inset-y-0 right-3 flex items-center text-blue-600 hover:text-blue-800"
+                className="input-icon"
               >
-                {showConfirmPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                {showConfirmPassword ? <EyeOff className="icon-small" /> : <Eye className="icon-small" />}
               </button>
             </div>
           </div>
 
           {/* Terms and Conditions */}
-          <div className="flex items-start space-x-2">
+          <div className="terms-container">
             <input
               type="checkbox"
               id="terms"
-              className="mt-1 h-4 w-4 text-blue-600 border-blue-500 rounded focus:ring-blue-400"
+              className="terms-checkbox"
               checked={acceptTerms}
               onChange={(e) => setAcceptTerms(e.target.checked)}
               required
             />
-            <label htmlFor="terms" className="text-xs text-gray-600">
+            <label htmlFor="terms" className="terms-text">
               I agree to the{' '}
-              <a href="#" className="text-blue-600 hover:underline">Terms of Service</a>
+              <a href="#" className="text-link">Terms of Service</a>
               {' '}and{' '}
-              <a href="#" className="text-blue-600 hover:underline">Privacy Policy</a>
+              <a href="#" className="text-link">Privacy Policy</a>
             </label>
           </div>
 
-          <button
-            type="submit"
-            className="w-full bg-blue-700 text-white py-3 rounded-xl font-semibold hover:bg-blue-800 transition"
-          >
+          <button type="submit" className="btn-primary">
             Create Account
           </button>
         </form>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600">
+        <div className="auth-footer">
+          <p className="auth-footer-text">
             Already have an account?{' '}
-            <Link to="/login" className="text-blue-600 hover:underline">
+            <Link to="/login" className="text-link">
               Sign in here
             </Link>
           </p>

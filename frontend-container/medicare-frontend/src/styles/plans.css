@@ -1,0 +1,414 @@
+/* Choose Plan Page */
+.choose-plan-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.choose-plan-title {
+  font-size: 2.25rem;
+  font-weight: bold;
+  text-align: center;
+  padding: 2rem 0;
+}
+
+.plan-slider {
+  display: flex;
+  overflow-x: auto;
+  gap: 1.5rem;
+  padding: 0 1.5rem 2.5rem 1.5rem;
+  cursor: grab;
+}
+
+.plan-slider.grabbing {
+  cursor: grabbing;
+}
+
+.plan-card {
+  position: relative;
+  min-width: 80vw;
+  height: 65vh;
+  border-radius: 1rem;
+  overflow: hidden;
+  transform: scale(1);
+  transition: transform 0.2s, filter 0.2s;
+  filter: brightness(0.9);
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+}
+
+.plan-card:hover {
+  transform: scale(1.03);
+  filter: brightness(1);
+}
+
+.plan-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.plan-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 1.5rem;
+  color: white;
+}
+
+.plan-popular-badge {
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  background-color: #fbbf24;
+  color: #000;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  box-shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1);
+}
+
+.plan-name {
+  font-size: 1.5rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.plan-benefits {
+  font-size: 0.875rem;
+  margin-bottom: 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.plan-benefit {
+  display: flex;
+  align-items: center;
+}
+
+.plan-price {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.plan-select-btn {
+  width: 100%;
+  background: white;
+  color: #1d4ed8;
+  font-weight: bold;
+  padding: 0.5rem 1rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+  box-shadow: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+}
+
+.plan-select-btn:hover {
+  background-color: #dbeafe;
+}
+
+/* Corporate CTA */
+.corporate-cta {
+  margin-top: 2rem;
+}
+
+.corporate-banner {
+  position: relative;
+  height: 20vh;
+  background-color: #d1d5db;
+}
+
+.corporate-image {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.corporate-content {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: white;
+  padding: 1rem;
+  text-align: center;
+}
+
+.corporate-title {
+  font-size: 1.875rem;
+  font-weight: bold;
+  margin-bottom: 0.5rem;
+}
+
+.corporate-subtitle {
+  font-size: 1.125rem;
+}
+
+.corporate-btn {
+  margin-top: 1rem;
+  background: white;
+  color: #1d4ed8;
+  font-weight: bold;
+  padding: 0.5rem 1.5rem;
+  border-radius: 0.75rem;
+  border: none;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.corporate-btn:hover {
+  background-color: #dbeafe;
+}
+
+/* Plan Selection Page */
+.plan-selection-container {
+  height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem 1rem 2rem 1rem;
+  overflow-y: auto;
+}
+
+.plan-selection-card {
+  background: white;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);
+  border-radius: 1rem;
+  width: 100%;
+  max-width: 42rem;
+  padding: 1.5rem 1.5rem 2rem 1.5rem;
+  margin: 2rem 0;
+}
+
+.plan-selection-title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  text-align: center;
+  margin-bottom: 0.5rem;
+}
+
+.plan-selection-subtitle {
+  text-align: center;
+  color: #6b7280;
+  margin-bottom: 2rem;
+}
+
+.plan-options-section {
+  margin-bottom: 2rem;
+}
+
+.plan-options-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  margin-bottom: 1rem;
+}
+
+.plan-options-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.plan-option {
+  border: 2px solid #e5e7eb;
+  border-radius: 0.75rem;
+  padding: 1rem;
+  cursor: pointer;
+  transition: border-color 0.2s, background-color 0.2s;
+}
+
+.plan-option:hover {
+  border-color: #93c5fd;
+}
+
+.plan-option.selected {
+  border-color: #3b82f6;
+  background-color: #dbeafe;
+}
+
+.plan-option-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+}
+
+.plan-option-name {
+  font-weight: 600;
+}
+
+.plan-option-popular {
+  display: inline-block;
+  background-color: #fbbf24;
+  color: #000;
+  font-size: 0.75rem;
+  font-weight: bold;
+  padding: 0.25rem 0.5rem;
+  border-radius: 9999px;
+  margin-top: 0.25rem;
+}
+
+.plan-option-price {
+  font-size: 1.125rem;
+  font-weight: bold;
+  color: #1d4ed8;
+  margin-bottom: 0.5rem;
+}
+
+.plan-option-benefits {
+  font-size: 0.875rem;
+  color: #6b7280;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.plan-option-benefit {
+  display: flex;
+  align-items: center;
+}
+
+.plan-option-more {
+  color: #2563eb;
+}
+
+.plan-summary {
+  border: 1px solid #93c5fd;
+  background-color: #dbeafe;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.plan-summary-title {
+  font-weight: 600;
+  color: #1e40af;
+  margin-bottom: 0.75rem;
+}
+
+.plan-summary-content {
+  display: grid;
+  gap: 1rem;
+}
+
+.plan-summary-pricing {
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-summary-price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #1d4ed8;
+  margin-bottom: 0.5rem;
+}
+
+.plan-summary-billing {
+  font-size: 0.875rem;
+  color: #2563eb;
+}
+
+.plan-summary-benefits {
+  display: flex;
+  flex-direction: column;
+}
+
+.plan-summary-benefits-title {
+  font-weight: 500;
+  color: #1e40af;
+  margin-bottom: 0.5rem;
+}
+
+.plan-summary-benefits-list {
+  font-size: 0.875rem;
+  color: #1d4ed8;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.plan-summary-benefit {
+  display: flex;
+  align-items: center;
+}
+
+.plan-selection-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.plan-selection-help {
+  margin-top: 2rem;
+  text-align: center;
+}
+
+.plan-selection-help-text {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+/* Responsive */
+@media (min-width: 640px) {
+  .plan-card {
+    min-width: 60vw;
+  }
+  
+  .corporate-title {
+    font-size: 2.25rem;
+  }
+  
+  .corporate-subtitle {
+    font-size: 1.25rem;
+  }
+  
+  .plan-options-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .plan-summary-content {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .plan-selection-container {
+    padding: 1.5rem;
+  }
+  
+  .plan-selection-card {
+    padding: 2rem;
+  }
+  
+  .plan-selection-title {
+    font-size: 1.875rem;
+  }
+}
+
+@media (min-width: 768px) {
+  .plan-card {
+    min-width: 40vw;
+  }
+  
+  .plan-selection-container {
+    padding: 2rem;
+  }
+}

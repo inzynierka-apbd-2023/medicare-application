@@ -60,8 +60,8 @@ export default function ChoosePlan() {
   };
 
   return (
-    <div className="h-screen flex flex-col">
-      <h1 className="text-4xl font-bold text-center py-8">Choose Your Plan</h1>
+    <div className="choose-plan-container">
+      <h1 className="choose-plan-title">Choose Your Plan</h1>
 
       {/* Plan slider */}
       <div
@@ -70,43 +70,40 @@ export default function ChoosePlan() {
         onMouseLeave={onMouseLeaveOrUp}
         onMouseUp={onMouseLeaveOrUp}
         onMouseMove={onMouseMove}
-        className="flex overflow-x-auto space-x-6 px-6 pb-10 scrollbar-hide cursor-grab"
+        className="plan-slider scrollbar-hide"
       >
         {plans.map((plan, idx) => (
-          <div
-            key={idx}
-            className="relative min-w-[80vw] sm:min-w-[60vw] md:min-w-[40vw] h-[65vh] rounded-2xl overflow-hidden transform transition hover:scale-[1.03] brightness-90 hover:brightness-100 shadow-xl"
-          >
+          <div key={idx} className="plan-card">
             <img
               src={plan.image}
               alt={plan.name}
-              className="absolute inset-0 w-full h-full object-cover"
+              className="plan-image"
             />
 
             {/* Overlay */}
-            <div className="absolute inset-0 bg-black bg-opacity-40 flex flex-col justify-end p-6 text-white">
+            <div className="plan-overlay">
               {plan.popular && (
                 <button
-                  className="absolute top-4 left-4 bg-yellow-400 text-black text-xs font-bold px-3 py-1 rounded-full shadow"
+                  className="plan-popular-badge"
                   aria-label="Most Popular Plan"
                   tabIndex={0}
                 >
                   Most Popular
                 </button>
               )}
-              <h2 className="text-2xl font-bold mb-2">{plan.name}</h2>
-              <ul className="text-sm mb-3 space-y-1">
+              <h2 className="plan-name">{plan.name}</h2>
+              <ul className="plan-benefits">
                 {plan.benefits.map((b) => (
-                  <li key={b} className="flex items-center">
-                    <Circle className="w-2 h-2 fill-current mr-2 flex-shrink-0" />
+                  <li key={b} className="plan-benefit">
+                    <Circle className="icon-bullet" />
                     {b}
                   </li>
                 ))}
               </ul>
-              <p className="text-lg font-semibold mb-4">{plan.price}</p>
+              <p className="plan-price">{plan.price}</p>
               <button
                 onClick={() => window.location.href = `/plan-selection?plan=${encodeURIComponent(plan.name)}`}
-                className="w-full bg-white text-blue-700 font-bold py-2 px-4 rounded-xl hover:bg-blue-50 transition shadow-sm"
+                className="plan-select-btn"
               >
                 Select Plan
               </button>
@@ -116,17 +113,17 @@ export default function ChoosePlan() {
       </div>
 
       {/* Corporate CTA */}
-      <div className="mt-8"> {/* push down from slider */}
-        <div className="relative h-[20vh] md:h-[20vh] bg-gray-300"> {/* smaller banner */}
+      <div className="corporate-cta">
+        <div className="corporate-banner">
           <img
             src="/assets/pexels-fauxels-3184465.jpg"
             alt="Corporate"
-            className="absolute inset-0 w-full h-full object-cover"
+            className="corporate-image"
           />
-          <div className="absolute inset-0 bg-black bg-opacity-50 flex flex-col items-center justify-center text-white px-4 text-center">
-            <h2 className="text-3xl sm:text-4xl font-bold mb-2">Are you a corporate client?</h2>
-            <p className="text-lg sm:text-xl">Contact us to learn more about enterprise packages</p>
-            <button className="mt-4 bg-white text-blue-700 font-bold py-2 px-6 rounded-xl hover:bg-blue-100 transition">
+          <div className="corporate-content">
+            <h2 className="corporate-title">Are you a corporate client?</h2>
+            <p className="corporate-subtitle">Contact us to learn more about enterprise packages</p>
+            <button className="corporate-btn">
               Get in touch
             </button>
           </div>

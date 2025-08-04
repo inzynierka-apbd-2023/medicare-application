@@ -14,37 +14,34 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="h-screen flex items-center justify-center px-4 sm:px-6">
-      <div className="bg-white shadow-xl rounded-2xl w-full max-w-md px-6 py-8 sm:px-8">
+    <div className="auth-container">
+      <div className="auth-card">
         <button
           onClick={() => navigate('/login')}
-          className="flex items-center text-blue-600 hover:underline mb-6"
+          className="btn-back"
         >
-          <ArrowLeft className="w-4 h-4 mr-1" />
+          <ArrowLeft className="icon-small" />
           Back to login
         </button>
 
-        <h2 className="text-2xl font-bold mb-4 text-center">Forgot your password?</h2>
-        <p className="text-sm text-gray-600 text-center mb-6">
+        <h2 className="auth-header">Forgot your password?</h2>
+        <p className="auth-subtitle">
           Enter your card number or email and we will send you a link to reset your password.
         </p>
 
-        <form onSubmit={handleSubmit} className="space-y-5">
-          <div>
-            <label className="block text-sm font-medium mb-1">Card Number / Email</label>
+        <form onSubmit={handleSubmit} className="auth-form">
+          <div className="form-group">
+            <label className="form-label">Card Number / Email</label>
             <input
               type="text"
-              className="w-full px-4 py-3 border border-blue-500 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              className="auth-input"
               placeholder="Enter your email or card number"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
             />
           </div>
-          <button
-            type="submit"
-            className="w-full bg-blue-700 text-white py-3 rounded-xl font-semibold hover:bg-blue-800 transition"
-          >
+          <button type="submit" className="auth-submit">
             Send reset link
           </button>
         </form>
