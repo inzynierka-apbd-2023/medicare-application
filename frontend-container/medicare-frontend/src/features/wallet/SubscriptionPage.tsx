@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Header from "../../layout/Header";
 
@@ -7,6 +8,7 @@ import { SubscriptionView } from "./components/SubscriptionView";
 import type { Plan, Subscription, SubscriptionType } from "./types";
 
 export const SubscriptionPage: React.FC = () => {
+  const navigate = useNavigate();
   const [subscription, setSubscription] = useState<Subscription | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
 
@@ -22,7 +24,7 @@ export const SubscriptionPage: React.FC = () => {
   }, []);
 
   const handleBuySubscription = () => {
-    setIsModalOpen(true);
+    navigate("/choose-plan");
   };
 
   const handleCloseModal = () => {

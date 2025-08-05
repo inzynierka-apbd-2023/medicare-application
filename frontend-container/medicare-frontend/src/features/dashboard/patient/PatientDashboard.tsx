@@ -3,7 +3,6 @@ import { useNavigate } from "react-router-dom";
 
 import Header from "../../../layout/Header";
 import {
-  Card,
   ErrorDisplay,
   LoadingOverlay,
   Modal,
@@ -20,6 +19,8 @@ import {
   ScheduleCard,
 } from "../shared/components";
 
+import { QuickActionsCard, UpcomingAppointmentsCard } from "./components";
+
 export default function PatientDashboard() {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -28,6 +29,29 @@ export default function PatientDashboard() {
 
   const { isLoading, error, clearError, executeInitialLoad, executeQuietly } =
     useLoadingService();
+
+  // Mock data for appointments
+  const mockAppointments = [
+    {
+      id: "1",
+      doctorName: "Smith",
+      specialty: "Cardiology",
+      date: new Date(Date.now() + 24 * 60 * 60 * 1000),
+      time: "10:00 AM",
+      type: "in-person" as const,
+      location: "Room 205, Main Building",
+      status: "upcoming" as const,
+    },
+    {
+      id: "2",
+      doctorName: "Johnson",
+      specialty: "General Medicine",
+      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
+      time: "2:30 PM",
+      type: "phone" as const,
+      status: "upcoming" as const,
+    },
+  ];
 
   // Fetch dashboard data on component mount
   useEffect(() => {
@@ -77,7 +101,23 @@ export default function PatientDashboard() {
   };
 
   const handleViewDocuments = () => {
-    navigate("/documents");
+    navigate("/documents?filter=medical-records");
+  };
+
+  const handleViewMessages = () => {
+    navigate("/messages");
+  };
+
+  const handleViewMedications = () => {
+    navigate("/documents?filter=prescriptions");
+  };
+
+  const handleViewBilling = () => {
+    navigate("/user/wallet");
+  };
+
+  const handleManageProfile = () => {
+    navigate("/profile");
   };
 
   const handleMarkNotificationAsRead = async (notificationId: string) => {
@@ -116,7 +156,7 @@ export default function PatientDashboard() {
             </div>
           ) : (
             <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
-              {/* Left Column - Schedule and Quick Actions */}
+              {/* Left Column - Schedule, Appointments and Quick Actions */}
               <div className="w-full md:w-3/4 space-y-6">
                 <ScheduleCard title="Your Schedule">
                   <div className="p-4 text-center text-gray-500">
@@ -124,17 +164,23 @@ export default function PatientDashboard() {
                   </div>
                 </ScheduleCard>
 
-                <Card variant="medical" padding="md">
-                  <h3 className="text-lg font-semibold text-blue-600 mb-2">
-                    Quick Actions
-                  </h3>
-                  <button
-                    onClick={handleBookAppointment}
-                    className="px-4 py-2 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 transition duration-150"
-                  >
-                    Book New Appointment
-                  </button>
-                </Card>
+                {/* Centered Appointments and Quick Actions */}
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <UpcomingAppointmentsCard
+                    appointments={mockAppointments}
+                    onBookNew={handleBookAppointment}
+                    onViewAll={() => navigate("/appointments")}
+                  />
+
+                  <QuickActionsCard
+                    onBookAppointment={handleBookAppointment}
+                    onViewMessages={handleViewMessages}
+                    onViewDocuments={handleViewDocuments}
+                    onViewMedications={handleViewMedications}
+                    onViewBilling={handleViewBilling}
+                    onManageProfile={handleManageProfile}
+                  />
+                </div>
               </div>
 
               {/* Right Column - Notifications and Documents */}

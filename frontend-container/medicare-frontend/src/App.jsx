@@ -9,6 +9,7 @@ import ForgotPassword from "./features/signon/ForgotPassword";
 import ForgotCardNumber from "./features/signon/ForgotCardNumber";
 import Register from "./features/signon/Register";
 import PlanSelection from "./features/signon/PlanSelection";
+import SubscriptionView from "./features/signon/SubscriptionView";
 import LoginSuccess from "./features/signon/LoginSuccess";
 import RegistrationSuccess from "./features/signon/RegistrationSuccess";
 import PasswordResetSuccess from "./features/signon/PasswordResetSuccess";
@@ -35,6 +36,7 @@ function App() {
           <Route path="/forgot-password" element={<ForgotPassword />} />
           <Route path="/forgot-card" element={<ForgotCardNumber />} />
           <Route path="/choose-plan" element={<PlanSelection />} />
+          <Route path="/subscription-view" element={<SubscriptionView />} />
           <Route path="/login-success" element={<LoginSuccess />} />
           <Route
             path="/registration-success"

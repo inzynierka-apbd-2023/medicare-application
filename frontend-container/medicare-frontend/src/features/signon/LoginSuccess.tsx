@@ -6,9 +6,9 @@ export default function LoginSuccess() {
   const navigate = useNavigate();
 
   useEffect(() => {
-    // Auto redirect to home after 3 seconds
+    // Auto redirect to dashboard after 3 seconds
     const timer = setTimeout(() => {
-      navigate("/home");
+      navigate("/dashboard");
     }, 3000);
 
     return () => clearTimeout(timer);
@@ -28,7 +28,7 @@ export default function LoginSuccess() {
         </p>
 
         <div className="success-actions">
-          <Link to="/home" className="btn-primary text-center">
+          <Link to="/dashboard" className="btn-primary text-center">
             Go to Dashboard
           </Link>
 
