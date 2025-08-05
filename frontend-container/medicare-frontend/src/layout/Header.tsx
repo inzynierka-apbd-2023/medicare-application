@@ -32,8 +32,10 @@ export default function Header() {
 
   const navItems = [
     { name: "Appointments", path: "/appointments" },
+    { name: "Messages", path: "/messages" },
     { name: "Scheduler", path: "/scheduler" },
     { name: "Documents", path: "/documents" },
+    { name: "Lab Results", path: "/lab-results" },
   ];
 
   const linkClasses =
