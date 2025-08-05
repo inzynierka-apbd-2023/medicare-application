@@ -47,17 +47,27 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({
     null
   );
 
-  // Listen to URL changes for appointment filter
+  // Listen to URL changes for appointment filter and type filter
   useEffect(() => {
     const appointmentIdFromUrl = query.get("appointmentId");
+    const filterFromUrl = query.get("filter");
+
     if (appointmentIdFromUrl) {
       setAppointmentFilter(appointmentIdFromUrl);
+    }
+
+    // Handle filter parameter for document types
+    if (filterFromUrl === "prescriptions") {
+      setTypeFilter("Prescription");
+    } else if (filterFromUrl === "medical-records") {
+      // Show all except prescriptions for medical records
+      setTypeFilter("All");
     }
   }, [location.search, query]);
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-100 pt-16">
         <Header />
         <LoadingOverlay
           isLoading={true}
@@ -71,7 +81,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gray-100">
+      <div className="min-h-screen bg-gray-100 pt-16">
         <Header />
         <div className="max-w-5xl mx-auto px-4 py-8">
           <h1 className="text-3xl font-bold text-blue-700 mb-6">
@@ -88,13 +98,21 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({
     ? appointments.find((apt) => apt.patientId === patientId)?.patientName
     : null;
 
+  // Check if we should show medical records only (all except prescriptions)
+  const filterFromUrl = query.get("filter");
+  const showMedicalRecordsOnly = filterFromUrl === "medical-records";
+
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-100 pt-16">
       <Header />
       <div className="max-w-5xl mx-auto px-4 py-8">
         <div className="mb-6">
           <h1 className="text-3xl font-bold text-blue-700">
-            Your Medical Documents
+            {filterFromUrl === "prescriptions"
+              ? "Your Prescriptions"
+              : filterFromUrl === "medical-records"
+                ? "Your Medical Records"
+                : "Your Medical Documents"}
           </h1>
           {currentPatient && (
             <p className="text-lg text-gray-600 mt-2">
@@ -119,6 +137,7 @@ export const DocumentsPage: React.FC<DocumentsPageProps> = ({
           onDocumentSelect={setSelectedDocument}
           onDocumentDeselect={() => setSelectedDocument(null)}
           onDocumentDownload={downloadDocument}
+          showMedicalRecordsOnly={showMedicalRecordsOnly}
         />
       </div>
     </div>

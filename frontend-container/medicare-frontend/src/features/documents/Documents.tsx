@@ -20,6 +20,7 @@ interface DocumentsProps {
   onDocumentSelect: (document: Document) => void;
   onDocumentDeselect: () => void;
   onDocumentDownload?: (document: Document) => void;
+  showMedicalRecordsOnly?: boolean; // New prop for medical records filter
 }
 
 export const Documents: React.FC<DocumentsProps> = ({
@@ -35,9 +36,15 @@ export const Documents: React.FC<DocumentsProps> = ({
   onDocumentSelect,
   onDocumentDeselect,
   onDocumentDownload,
+  showMedicalRecordsOnly = false,
 }) => {
   const filteredDocuments = useMemo(() => {
     return documents.filter((doc) => {
+      // Handle medical records filter (exclude prescriptions)
+      if (showMedicalRecordsOnly && doc.type === "Prescription") {
+        return false;
+      }
+
       const matchesType = typeFilter === "All" || doc.type === typeFilter;
       const matchesAppointment =
         !appointmentFilter || doc.appointmentId === appointmentFilter;
@@ -48,7 +55,13 @@ export const Documents: React.FC<DocumentsProps> = ({
 
       return matchesType && matchesAppointment && matchesSearch;
     });
-  }, [documents, typeFilter, appointmentFilter, searchTerm]);
+  }, [
+    documents,
+    typeFilter,
+    appointmentFilter,
+    searchTerm,
+    showMedicalRecordsOnly,
+  ]);
 
   return (
     <>
