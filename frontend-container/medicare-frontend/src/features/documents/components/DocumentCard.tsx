@@ -1,5 +1,11 @@
 import React from "react";
-import { FilePlus2, FileSignature, FileText, Stethoscope } from "lucide-react";
+import {
+  FilePlus2,
+  FileSignature,
+  FileText,
+  Stethoscope,
+  TestTube,
+} from "lucide-react";
 
 import { Badge, Card } from "../../../shared/components";
 import type { DocumentCardProps, DocumentType } from "../types";
@@ -32,6 +38,11 @@ const docTypeInfo: Record<
     color: "text-blue-600",
     badgeVariant: "default",
   },
+  Lab_Results: {
+    icon: <TestTube size={16} />,
+    color: "text-purple-600",
+    badgeVariant: "info",
+  },
   Other: {
     icon: <FileText size={16} />,
     color: "text-gray-500",
@@ -47,6 +58,56 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
 
   const handleClick = () => {
     onClick(document);
+  };
+
+  const renderPreview = () => {
+    switch (document.type) {
+      case "Lab_Results":
+        return (
+          <div className="text-gray-700 text-sm space-y-1">
+            {document.data.testType && (
+              <div>
+                <span className="font-medium">Test:</span>{" "}
+                {document.data.testType}
+              </div>
+            )}
+            {document.data.laboratory && (
+              <div>
+                <span className="font-medium">Lab:</span>{" "}
+                {document.data.laboratory}
+              </div>
+            )}
+            {document.data.status && (
+              <div>
+                <span className="font-medium">Status:</span>
+                <Badge
+                  variant={
+                    document.data.status === "Normal"
+                      ? "success"
+                      : document.data.status === "Critical"
+                        ? "error"
+                        : document.data.status === "Abnormal"
+                          ? "warning"
+                          : "default"
+                  }
+                  size="sm"
+                  className="ml-1"
+                >
+                  {document.data.status}
+                </Badge>
+              </div>
+            )}
+          </div>
+        );
+      default:
+        return (
+          document.notes && (
+            <div className="text-gray-700 text-sm">
+              <span className="font-medium">Notes:</span> {document.notes}
+            </div>
+          )
+        );
+    }
   };
 
   return (
@@ -65,11 +126,7 @@ export const DocumentCard: React.FC<DocumentCardProps> = ({
           </span>
         </div>
 
-        {document.notes && (
-          <div className="text-gray-700 text-sm">
-            <span className="font-medium">Notes:</span> {document.notes}
-          </div>
-        )}
+        {renderPreview()}
 
         <button
           onClick={handleClick}

@@ -1,100 +1,138 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 
-import { Button, Modal } from "../../../shared/components";
+import {
+  Button,
+  DefinitionList,
+  InfoCard,
+  Modal,
+} from "../../../shared/components";
 import type {
   Document,
   DocumentDetailsModalProps,
   DocumentType,
 } from "../types";
 
-const renderDocumentDetails = (document: Document) => {
+// Component for prescription details
+const PrescriptionDetails: React.FC<{ document: Document }> = ({
+  document,
+}) => (
+  <DefinitionList
+    variant="bordered"
+    items={[
+      { label: "Medication", value: document.data.medication },
+      { label: "Dosage", value: document.data.dosage },
+      { label: "Frequency", value: document.data.frequency },
+      { label: "Duration (days)", value: document.data.duration_days },
+      { label: "Instructions", value: document.data.instructions },
+    ]}
+  />
+);
+
+// Component for referral details
+const ReferralDetails: React.FC<{ document: Document }> = ({ document }) => (
+  <DefinitionList
+    variant="bordered"
+    items={[
+      { label: "Specialty", value: document.data.specialty },
+      { label: "Referred To", value: document.data.referredTo },
+      { label: "Valid From", value: document.data.validFrom },
+      { label: "Valid To", value: document.data.validTo },
+    ]}
+  />
+);
+
+// Component for sick leave details
+const SickLeaveDetails: React.FC<{ document: Document }> = ({ document }) => (
+  <DefinitionList
+    variant="bordered"
+    items={[
+      { label: "Start Date", value: document.data.startDate },
+      { label: "End Date", value: document.data.endDate },
+      { label: "Days Off", value: document.data.daysOff },
+    ]}
+  />
+);
+
+// Component for visit card details
+const VisitCardDetails: React.FC<{ document: Document }> = ({ document }) => (
+  <DefinitionList
+    variant="bordered"
+    items={[
+      { label: "Symptoms", value: document.data.symptoms },
+      { label: "Findings", value: document.data.findings },
+      { label: "Diagnosis", value: document.data.diagnosis },
+      { label: "Recommendations", value: document.data.recommendations },
+    ]}
+  />
+);
+
+// Component for lab results redirect
+const LabResultsRedirect: React.FC<{
+  document: Document;
+  onClose: () => void;
+}> = ({ document, onClose }) => {
+  const navigate = useNavigate();
+
+  const handleViewDetails = () => {
+    onClose();
+    navigate(`/lab-results/${document.id}`);
+  };
+
+  return (
+    <div className="text-center py-6 bg-purple-50 rounded-lg border border-purple-200">
+      <div className="mb-4">
+        <h4 className="text-lg font-medium text-purple-900 mb-2">
+          Laboratory Results Available
+        </h4>
+        <p className="text-purple-700 text-sm">
+          This document contains detailed laboratory test results. View them in
+          the dedicated lab results page for better readability.
+        </p>
+      </div>
+
+      <div className="space-y-2">
+        {document.data.testType && (
+          <p className="text-sm text-purple-800">
+            <span className="font-medium">Test Type:</span>{" "}
+            {document.data.testType}
+          </p>
+        )}
+        {document.data.status && (
+          <p className="text-sm text-purple-800">
+            <span className="font-medium">Status:</span> {document.data.status}
+          </p>
+        )}
+      </div>
+
+      <Button
+        onClick={handleViewDetails}
+        variant="primary"
+        className="mt-4 bg-purple-600 hover:bg-purple-700"
+      >
+        View Detailed Results
+      </Button>
+    </div>
+  );
+};
+
+const renderDocumentDetails = (document: Document, onClose: () => void) => {
   switch (document.type as DocumentType) {
     case "Prescription":
-      return (
-        <div className="space-y-2">
-          <div>
-            <span className="font-medium">Medication:</span>{" "}
-            {document.data.medication}
-          </div>
-          <div>
-            <span className="font-medium">Dosage:</span> {document.data.dosage}
-          </div>
-          <div>
-            <span className="font-medium">Frequency:</span>{" "}
-            {document.data.frequency}
-          </div>
-          <div>
-            <span className="font-medium">Duration (days):</span>{" "}
-            {document.data.duration_days}
-          </div>
-          <div>
-            <span className="font-medium">Instructions:</span>{" "}
-            {document.data.instructions}
-          </div>
-        </div>
-      );
+      return <PrescriptionDetails document={document} />;
     case "Referral":
-      return (
-        <div className="space-y-2">
-          <div>
-            <span className="font-medium">Specialty:</span>{" "}
-            {document.data.specialty}
-          </div>
-          <div>
-            <span className="font-medium">Referred To:</span>{" "}
-            {document.data.referredTo}
-          </div>
-          <div>
-            <span className="font-medium">Valid From:</span>{" "}
-            {document.data.validFrom}
-          </div>
-          <div>
-            <span className="font-medium">Valid To:</span>{" "}
-            {document.data.validTo}
-          </div>
-        </div>
-      );
+      return <ReferralDetails document={document} />;
     case "Sick_Leave":
-      return (
-        <div className="space-y-2">
-          <div>
-            <span className="font-medium">Start Date:</span>{" "}
-            {document.data.startDate}
-          </div>
-          <div>
-            <span className="font-medium">End Date:</span>{" "}
-            {document.data.endDate}
-          </div>
-          <div>
-            <span className="font-medium">Days Off:</span>{" "}
-            {document.data.daysOff}
-          </div>
-        </div>
-      );
+      return <SickLeaveDetails document={document} />;
     case "VisitCard":
-      return (
-        <div className="space-y-2">
-          <div>
-            <span className="font-medium">Symptoms:</span>{" "}
-            {document.data.symptoms}
-          </div>
-          <div>
-            <span className="font-medium">Findings:</span>{" "}
-            {document.data.findings}
-          </div>
-          <div>
-            <span className="font-medium">Diagnosis:</span>{" "}
-            {document.data.diagnosis}
-          </div>
-          <div>
-            <span className="font-medium">Recommendations:</span>{" "}
-            {document.data.recommendations}
-          </div>
-        </div>
-      );
+      return <VisitCardDetails document={document} />;
+    case "Lab_Results":
+      return <LabResultsRedirect document={document} onClose={onClose} />;
     default:
       return (
-        <div className="text-gray-500">No additional details available.</div>
+        <div className="text-center py-8 text-gray-500">
+          <p>No additional details available for this document type.</p>
+        </div>
       );
   }
 };
@@ -122,25 +160,42 @@ export const DocumentDetailsModal: React.FC<DocumentDetailsModalProps> = ({
       title={`${document.type.replace("_", " ")} Details`}
       size="lg"
     >
-      <div className="space-y-4">
-        <div className="text-gray-700">
-          <span className="font-medium">Issued:</span>{" "}
-          {new Date(document.createdAt).toLocaleDateString()}
-        </div>
+      <div className="space-y-6">
+        {/* Document Header Info */}
+        <InfoCard variant="default">
+          <DefinitionList
+            variant="compact"
+            items={[
+              {
+                label: "Issued",
+                value: new Date(document.createdAt).toLocaleDateString(),
+              },
+              {
+                label: "Document Type",
+                value: document.type.replace("_", " "),
+              },
+              {
+                label: "Notes",
+                value: document.notes,
+                show: !!document.notes,
+              },
+            ]}
+          />
+        </InfoCard>
 
-        {document.notes && (
-          <div className="text-gray-700">
-            <span className="font-medium">Notes:</span> {document.notes}
+        {/* Document Details */}
+        <InfoCard title="Document Details" variant="bordered">
+          {renderDocumentDetails(document, onClose)}
+        </InfoCard>
+
+        {/* Actions */}
+        {document.type !== "Lab_Results" && (
+          <div className="flex justify-end pt-4 border-t border-gray-200">
+            <Button variant="primary" onClick={handleDownload}>
+              Download PDF
+            </Button>
           </div>
         )}
-
-        <div className="border-t pt-4">{renderDocumentDetails(document)}</div>
-
-        <div className="flex pt-4">
-          <Button variant="primary" onClick={handleDownload} className="flex-1">
-            Download PDF
-          </Button>
-        </div>
       </div>
     </Modal>
   );
