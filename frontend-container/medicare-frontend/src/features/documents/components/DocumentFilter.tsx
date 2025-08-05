@@ -9,6 +9,7 @@ const documentTypes: { value: DocumentType | "All"; label: string }[] = [
   { value: "Referral", label: "Referral" },
   { value: "Sick_Leave", label: "Sick Leave" },
   { value: "VisitCard", label: "Visit Card" },
+  { value: "Lab_Results", label: "Lab Results" },
 ];
 
 export const DocumentFilter: React.FC<DocumentFilterProps> = ({

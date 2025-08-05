@@ -28,6 +28,117 @@ const mockDocuments: Document[] = [
     },
   },
   {
+    id: "lab1",
+    appointmentId: "appt1",
+    patientId: "1", // John Doe
+    type: "Lab_Results",
+    createdAt: "2025-08-01",
+    notes: "Routine blood work - annual checkup",
+    data: {
+      testType: "Complete Blood Count & Lipid Panel",
+      testDate: "2025-07-30",
+      laboratory: "IMUP Medical Laboratory",
+      status: "Abnormal",
+      interpretation:
+        "Cholesterol levels are elevated. Recommend dietary changes and continue medication. All other values within normal range.",
+      referenceRanges:
+        "Reference ranges are established for adults 18-65 years. Individual variations may apply.",
+      results: [
+        {
+          parameter: "Total Cholesterol",
+          value: 240,
+          unit: "mg/dL",
+          referenceRange: "<200",
+          status: "High",
+          notes: "Elevated - continue statin therapy",
+        },
+        {
+          parameter: "LDL Cholesterol",
+          value: 155,
+          unit: "mg/dL",
+          referenceRange: "<100",
+          status: "High",
+          notes: "Target <100 for cardiovascular risk",
+        },
+        {
+          parameter: "HDL Cholesterol",
+          value: 45,
+          unit: "mg/dL",
+          referenceRange: ">40 (M), >50 (F)",
+          status: "Normal",
+        },
+        {
+          parameter: "Triglycerides",
+          value: 180,
+          unit: "mg/dL",
+          referenceRange: "<150",
+          status: "High",
+          notes: "Moderate elevation",
+        },
+        {
+          parameter: "Hemoglobin",
+          value: 14.2,
+          unit: "g/dL",
+          referenceRange: "12.0-15.5",
+          status: "Normal",
+        },
+        {
+          parameter: "White Blood Cell Count",
+          value: 6800,
+          unit: "/µL",
+          referenceRange: "4500-11000",
+          status: "Normal",
+        },
+        {
+          parameter: "Platelet Count",
+          value: 285000,
+          unit: "/µL",
+          referenceRange: "150000-450000",
+          status: "Normal",
+        },
+      ],
+    },
+  },
+  {
+    id: "lab2",
+    appointmentId: "appt3",
+    patientId: "1", // John Doe
+    type: "Lab_Results",
+    createdAt: "2025-06-15",
+    notes: "Thyroid function test as requested",
+    data: {
+      testType: "Thyroid Function Panel",
+      testDate: "2025-06-12",
+      laboratory: "IMUP Medical Laboratory",
+      status: "Normal",
+      interpretation:
+        "All thyroid hormone levels are within normal limits. No thyroid dysfunction detected.",
+      results: [
+        {
+          parameter: "TSH",
+          value: 2.1,
+          unit: "mIU/L",
+          referenceRange: "0.4-4.0",
+          status: "Normal",
+        },
+        {
+          parameter: "Free T4",
+          value: 1.3,
+          unit: "ng/dL",
+          referenceRange: "0.8-1.8",
+          status: "Normal",
+        },
+        {
+          parameter: "Free T3",
+          value: 3.2,
+          unit: "pg/mL",
+          referenceRange: "2.3-4.2",
+          status: "Normal",
+        },
+      ],
+    },
+  },
+  {
     id: "d42",
     appointmentId: "appt2",
     patientId: "1", // John Doe
@@ -44,16 +155,59 @@ const mockDocuments: Document[] = [
   },
   {
     id: "d2",
-    appointmentId: "appt2",
-    patientId: "1", // John Doe
-    type: "Referral",
+    appointmentId: "appt3",
+    patientId: "2", // Jane Smith
+    type: "Prescription",
     createdAt: "2025-04-22",
-    notes: "Consult cardiologist",
+    notes: "Diabetes management",
     data: {
-      specialty: "Cardiologist",
-      referredTo: "Dr. Heart Strong",
-      validFrom: "2025-04-22",
-      validTo: "2025-06-01",
+      medication: "Metformin",
+      dosage: "500mg",
+      frequency: "2x daily",
+      duration_days: 90,
+      instructions: "Take with meals",
+    },
+  },
+  {
+    id: "lab3",
+    appointmentId: "appt4",
+    patientId: "2", // Jane Smith
+    type: "Lab_Results",
+    createdAt: "2025-05-20",
+    notes: "Diabetes monitoring - HbA1c and glucose levels",
+    data: {
+      testType: "Diabetes Panel",
+      testDate: "2025-05-18",
+      laboratory: "IMUP Medical Laboratory",
+      status: "Normal",
+      interpretation:
+        "HbA1c shows good glycemic control. Continue current diabetes management plan.",
+      results: [
+        {
+          parameter: "HbA1c",
+          value: 6.8,
+          unit: "%",
+          referenceRange: "<7.0 (diabetic target)",
+          status: "Normal",
+          notes: "Good diabetic control",
+        },
+        {
+          parameter: "Fasting Glucose",
+          value: 118,
+          unit: "mg/dL",
+          referenceRange: "70-100",
+          status: "High",
+          notes: "Slightly elevated but acceptable for diabetic patient",
+        },
+        {
+          parameter: "Creatinine",
+          value: 0.9,
+          unit: "mg/dL",
+          referenceRange: "0.6-1.2",
+          status: "Normal",
+          notes: "Kidney function normal",
+        },
+      ],
     },
   },
   {

@@ -3,6 +3,7 @@ export type DocumentType =
   | "Referral"
   | "Sick_Leave"
   | "VisitCard"
+  | "Lab_Results"
   | "Other";
 
 export interface DocumentData {
@@ -29,6 +30,24 @@ export interface DocumentData {
   findings?: string;
   diagnosis?: string;
   recommendations?: string;
+
+  // Lab Results specific data
+  testType?: string;
+  testDate?: string;
+  laboratory?: string;
+  results?: LabTestResult[];
+  interpretation?: string;
+  referenceRanges?: string;
+  status?: "Normal" | "Abnormal" | "Critical" | "Pending";
+}
+
+export interface LabTestResult {
+  parameter: string;
+  value: string | number;
+  unit?: string;
+  referenceRange?: string;
+  status?: "Normal" | "High" | "Low" | "Critical";
+  notes?: string;
 }
 
 export interface Document {

@@ -1,4 +1,6 @@
 import React from "react";
+import { EmptyState } from "@shared/components";
+import { FileText } from "lucide-react";
 
 import type { DocumentListProps } from "../types";
 
@@ -11,8 +13,12 @@ export const DocumentList: React.FC<DocumentListProps> = ({
 }) => {
   if (documents.length === 0) {
     return (
-      <div className="text-gray-500 text-center py-20 col-span-2">
-        {emptyMessage}
+      <div className="col-span-2">
+        <EmptyState
+          icon={<FileText className="h-16 w-16 text-gray-400" />}
+          title="No documents found"
+          description={emptyMessage}
+        />
       </div>
     );
   }
