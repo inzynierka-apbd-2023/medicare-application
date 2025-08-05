@@ -8,6 +8,7 @@ export const Appointments: React.FC<AppointmentListProps> = ({
   onDetails,
   onPayment,
   onCancel,
+  onRateDoctor,
 }) => {
   return (
     <AppointmentList
@@ -15,6 +16,7 @@ export const Appointments: React.FC<AppointmentListProps> = ({
       onDetails={onDetails}
       {...(onPayment && { onPayment })}
       {...(onCancel && { onCancel })}
+      {...(onRateDoctor && { onRateDoctor })}
     />
   );
 };

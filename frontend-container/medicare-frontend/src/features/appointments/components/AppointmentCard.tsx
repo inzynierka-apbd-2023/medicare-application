@@ -6,6 +6,7 @@ import {
   CreditCard,
   FileText,
   Info,
+  Star,
   User,
   XCircle,
 } from "lucide-react";
@@ -13,10 +14,13 @@ import {
 import { Badge, Button, Card } from "../../../shared/components";
 import type { AppointmentCardProps } from "../types";
 
+import { StarRating } from "./StarRating";
+
 export const AppointmentCard: React.FC<AppointmentCardProps> = ({
   appointment,
   onDetails,
   onPayment,
+  onRateDoctor,
   isUpcoming = false,
 }) => {
   const navigate = useNavigate();
@@ -90,6 +94,18 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
       >
         Documents
       </Button>
+      {onRateDoctor && (
+        <Button
+          variant={appointment.doctorRating ? "secondary" : "warning"}
+          leftIcon={<Star size={16} />}
+          onClick={() => {
+            // This will be handled by parent component
+            onRateDoctor(appointment.id, 0);
+          }}
+        >
+          {appointment.doctorRating ? "Edit Rating" : "Rate Doctor"}
+        </Button>
+      )}
       <Button variant="secondary" onClick={() => onDetails(appointment)}>
         Details
       </Button>
@@ -132,6 +148,21 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
               Total cost: {appointment.total} PLN
             </span>
           </div>
+
+          {/* Doctor Rating Display */}
+          {appointment.doctorRating && (
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-gray-600">Your rating:</span>
+              <StarRating
+                rating={appointment.doctorRating.rating}
+                readOnly={true}
+                size={16}
+              />
+              <span className="text-sm text-gray-500">
+                ({appointment.doctorRating.rating}/5)
+              </span>
+            </div>
+          )}
 
           {/* Status Badges */}
           <div className="flex gap-2">

@@ -44,9 +44,9 @@ const AppointmentsDetailsModal: React.FC<AppointmentsDetailsModalProps> = ({
       title="Appointment Details"
       size="lg"
     >
-      <div className="space-y-6">
+      <div className="space-y-6 text-center">
         {/* Date and Time */}
-        <div className="flex items-center gap-3 p-4 bg-blue-50 rounded-lg">
+        <div className="flex items-center justify-center gap-3 p-4 bg-blue-50 rounded-lg">
           <Calendar className="text-blue-600 flex-shrink-0" size={20} />
           <div>
             <div className="font-semibold text-blue-700">
@@ -62,7 +62,7 @@ const AppointmentsDetailsModal: React.FC<AppointmentsDetailsModalProps> = ({
         </div>
 
         {/* Doctor Information */}
-        <div className="flex items-center gap-3 p-4 bg-gray-50 rounded-lg">
+        <div className="flex items-center justify-center gap-3 p-4 bg-gray-50 rounded-lg">
           <User className="text-gray-600 flex-shrink-0" size={20} />
           <div>
             <div className="font-semibold text-gray-800">
@@ -76,20 +76,8 @@ const AppointmentsDetailsModal: React.FC<AppointmentsDetailsModalProps> = ({
           </div>
         </div>
 
-        {/* Status and Payment */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <div className="font-medium text-gray-700">Status</div>
-            {getStatusBadge()}
-          </div>
-          <div className="space-y-2">
-            <div className="font-medium text-gray-700">Payment</div>
-            {getPaymentBadge()}
-          </div>
-        </div>
-
         {/* Payment Details */}
-        <div className="flex items-center gap-3 p-4 bg-green-50 rounded-lg">
+        <div className="flex items-center justify-center gap-3 p-4 bg-green-50 rounded-lg">
           <CreditCard className="text-green-600 flex-shrink-0" size={20} />
           <div>
             <div className="font-medium text-gray-800">Payment Information</div>
@@ -111,7 +99,7 @@ const AppointmentsDetailsModal: React.FC<AppointmentsDetailsModalProps> = ({
         {/* Visit Purpose */}
         {appointment.description && (
           <div className="space-y-2">
-            <div className="flex items-center gap-2 font-medium text-gray-700">
+            <div className="flex items-center justify-center gap-2 font-medium text-gray-700">
               <FileText size={16} />
               Visit Purpose
             </div>
@@ -120,6 +108,18 @@ const AppointmentsDetailsModal: React.FC<AppointmentsDetailsModalProps> = ({
             </div>
           </div>
         )}
+
+        {/* Status and Payment */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="space-y-2">
+            <div className="font-medium text-gray-700">Status</div>
+            <div className="flex justify-center">{getStatusBadge()}</div>
+          </div>
+          <div className="space-y-2">
+            <div className="font-medium text-gray-700">Payment</div>
+            <div className="flex justify-center">{getPaymentBadge()}</div>
+          </div>
+        </div>
       </div>
     </Modal>
   );

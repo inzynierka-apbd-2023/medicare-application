@@ -5,8 +5,8 @@ import Header from "../../layout/Header";
 import { ErrorDisplay, Loading } from "../../shared/components";
 import { useAppointments } from "../../shared/hooks/useAppointments";
 
-import { AppointmentsDetailsModal } from "./components/AppointmentsDetailsModal";
 import { Appointments } from "./Appointments";
+import { AppointmentsDetailsModal, DoctorRatingModal } from "./components";
 import type { Appointment } from "./types";
 
 const AppointmentsPage: React.FC = () => {
@@ -14,6 +14,9 @@ const AppointmentsPage: React.FC = () => {
   const [selectedAppointment, setSelectedAppointment] =
     useState<Appointment | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isRatingModalOpen, setIsRatingModalOpen] = useState(false);
+  const [appointmentToRate, setAppointmentToRate] =
+    useState<Appointment | null>(null);
 
   const {
     appointments,
@@ -45,6 +48,31 @@ const AppointmentsPage: React.FC = () => {
       // Show success message or toast notification
       console.log("Appointment cancelled successfully");
     }
+  };
+
+  const handleRateDoctor = (appointmentId: string) => {
+    const appointment = appointments.find((appt) => appt.id === appointmentId);
+    if (appointment) {
+      setAppointmentToRate(appointment);
+      setIsRatingModalOpen(true);
+    }
+  };
+
+  const handleSubmitRating = async (
+    appointmentId: string,
+    rating: number,
+    comment?: string
+  ) => {
+    // Here you would call an API to submit the rating
+    // For now, we'll just update the local state
+    console.log("Rating submitted:", { appointmentId, rating, comment });
+
+    // Close the modal
+    setIsRatingModalOpen(false);
+    setAppointmentToRate(null);
+
+    // In a real app, you would refetch appointments to get updated data
+    await refetch();
   };
 
   if (loading) {
@@ -82,6 +110,7 @@ const AppointmentsPage: React.FC = () => {
               onDetails={handleAppointmentDetails}
               onPayment={handlePayment}
               onCancel={handleCancelAppointment}
+              onRateDoctor={handleRateDoctor}
             />
           </div>
         </div>
@@ -91,6 +120,16 @@ const AppointmentsPage: React.FC = () => {
         isOpen={isModalOpen}
         appointment={selectedAppointment}
         onClose={handleCloseModal}
+      />
+
+      <DoctorRatingModal
+        appointment={appointmentToRate}
+        isOpen={isRatingModalOpen}
+        onClose={() => {
+          setIsRatingModalOpen(false);
+          setAppointmentToRate(null);
+        }}
+        onSubmitRating={handleSubmitRating}
       />
     </div>
   );

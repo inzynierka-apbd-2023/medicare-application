@@ -10,6 +10,7 @@ export const AppointmentSection: React.FC<AppointmentSectionProps> = ({
   onDetails,
   onPayment,
   onCancel,
+  onRateDoctor,
   isUpcoming = false,
   emptyMessage,
 }) => (
@@ -26,6 +27,7 @@ export const AppointmentSection: React.FC<AppointmentSectionProps> = ({
             onDetails={onDetails}
             {...(onPayment && { onPayment })}
             {...(onCancel && { onCancel })}
+            {...(onRateDoctor && { onRateDoctor })}
             isUpcoming={isUpcoming}
           />
         ))}

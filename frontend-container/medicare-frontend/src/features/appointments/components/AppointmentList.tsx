@@ -10,6 +10,7 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
   onDetails,
   onPayment,
   onCancel,
+  onRateDoctor,
 }) => {
   const upcoming = appointments.filter((appt) => appt.status === "upcoming");
   const previous = appointments.filter((appt) => appt.status !== "upcoming");
@@ -42,6 +43,7 @@ export const AppointmentList: React.FC<AppointmentListProps> = ({
         onDetails={onDetails}
         {...(onPayment && { onPayment })}
         {...(onCancel && { onCancel })}
+        {...(onRateDoctor && { onRateDoctor })}
         isUpcoming={false}
         emptyMessage="No previous appointments."
       />
