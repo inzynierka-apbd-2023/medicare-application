@@ -1,0 +1,1 @@
+export { useMedicalRecords } from "./useMedicalRecords";
