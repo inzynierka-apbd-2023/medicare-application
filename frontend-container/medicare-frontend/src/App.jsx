@@ -21,6 +21,7 @@ import { WalletPage, SubscriptionPage } from "./features/wallet";
 import { AppointmentsPage } from "./features/appointments";
 import DoctorDashboard from "./features/dashboard/doctor/DoctorDashboard";
 import { PatientListPage } from "./features/userTypes";
+import { TodaysAppointmentsPage } from "./features/appointments";
 import TestMessagesPage from "./TestMessagesPage";
 import { LabResultsPage, LabResultDetailPage } from "./features/labResults";
 
@@ -70,6 +71,10 @@ function App() {
           {/* Doctor view */}
           <Route path="/dctdash" element={<DoctorDashboard />} />
           <Route path="/patientlist" element={<PatientListPage />} />
+          <Route
+            path="/todays-appointments"
+            element={<TodaysAppointmentsPage />}
+          />
         </Routes>
       </BrowserRouter>
     </div>

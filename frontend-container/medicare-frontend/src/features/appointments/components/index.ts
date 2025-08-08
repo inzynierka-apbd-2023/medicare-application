@@ -4,3 +4,5 @@ export { AppointmentsDetailsModal } from "./AppointmentsDetailsModal";
 export { AppointmentSection } from "./AppointmentSection";
 export { DoctorRatingModal } from "./DoctorRatingModal";
 export { StarRating } from "./StarRating";
+export { TodayAppointmentCard } from "./TodayAppointmentCard";
+export { TodayAppointmentDetailsModal } from "./TodayAppointmentDetailsModal";

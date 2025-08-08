@@ -60,3 +60,51 @@ export interface AppointmentSectionProps {
   isUpcoming?: boolean;
   emptyMessage: string;
 }
+
+// Today's appointments specific types
+export type TodayAppointmentStatus =
+  | "scheduled"
+  | "completed"
+  | "no-show"
+  | "cancelled";
+
+export type TimeStatus =
+  | "upcoming"
+  | "current"
+  | "overdue"
+  | "completed"
+  | "no-show";
+
+export interface PatientInfo {
+  id: string;
+  name: string;
+  age: number;
+  phone: string;
+  email?: string;
+  medicalHistory?: string[];
+  allergies?: string[];
+  currentMedications?: string[];
+}
+
+export interface TodayAppointment {
+  id: string;
+  date: string;
+  time: string;
+  duration: number; // in minutes
+  patient: PatientInfo;
+  appointmentType: string;
+  description?: string;
+  status: TodayAppointmentStatus;
+  notes?: string;
+  chiefComplaint?: string;
+}
+
+export interface TodayAppointmentCardProps {
+  appointment: TodayAppointment;
+  timeStatus: TimeStatus;
+  onDetails: (appointment: TodayAppointment) => void;
+  onMarkCompleted?: (appointmentId: string) => void;
+  onMarkNoShow?: (appointmentId: string) => void;
+  onContactPatient?: (patientId: string) => void;
+  showCompletionActions?: boolean;
+}
