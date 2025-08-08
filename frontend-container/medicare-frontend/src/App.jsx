@@ -22,6 +22,7 @@ import { AppointmentsPage } from "./features/appointments";
 import DoctorDashboard from "./features/dashboard/doctor/DoctorDashboard";
 import { PatientListPage } from "./features/userTypes";
 import { TodaysAppointmentsPage } from "./features/appointments";
+import { MedicalRecordsPage } from "./features/medicalRecords";
 import TestMessagesPage from "./TestMessagesPage";
 import { LabResultsPage, LabResultDetailPage } from "./features/labResults";
 
@@ -74,6 +75,11 @@ function App() {
           <Route
             path="/todays-appointments"
             element={<TodaysAppointmentsPage />}
+          />
+          <Route path="/medical-records" element={<MedicalRecordsPage />} />
+          <Route
+            path="/medical-records/:patientId"
+            element={<MedicalRecordsPage />}
           />
         </Routes>
       </BrowserRouter>

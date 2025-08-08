@@ -88,6 +88,10 @@ export default function DoctorDashboard() {
     navigate("/todays-appointments");
   };
 
+  const handleMedicalRecords = () => {
+    navigate("/medical-records");
+  };
+
   const handleMessagePatient = (patientId: number) => {
     navigate(`/messages?patientId=${patientId}`);
   };
@@ -200,7 +204,10 @@ export default function DoctorDashboard() {
                   </button>
                 </li>
                 <li>
-                  <button className="w-full text-left px-4 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 text-blue-700 font-medium transition">
+                  <button
+                    onClick={handleMedicalRecords}
+                    className="w-full text-left px-4 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 text-blue-700 font-medium transition"
+                  >
                     Medical Records
                   </button>
                 </li>

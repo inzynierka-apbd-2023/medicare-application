@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { Conversation, Message } from "../../features/messages/types";
 import { messagesApi } from "../services/messagesApi";
@@ -36,7 +36,7 @@ export const useMessages = (
   const [error, setError] = useState<string | null>(null);
 
   // Pobierz konwersacje
-  const fetchConversations = async () => {
+  const fetchConversations = useCallback(async () => {
     try {
       setError(null);
       const response = await messagesApi.getConversations(userId, userType);
@@ -56,7 +56,7 @@ export const useMessages = (
         err instanceof Error ? err.message : "An unexpected error occurred"
       );
     }
-  };
+  }, [userId, userType, selectedConversationId]);
 
   // Pobierz wiadomości dla wybranej konwersacji
   const fetchMessages = async (conversationId: string) => {

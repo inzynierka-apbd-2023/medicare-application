@@ -1,4 +1,3 @@
-import React from "react";
 import { Calendar, Clock, MapPin, Phone, User } from "lucide-react";
 
 import { Button, Card } from "../../../../shared/components";
