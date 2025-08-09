@@ -1,0 +1,17 @@
+version: "3.9"
+
+services:
+  mssql-dev:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-dev
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=${SA_PASSWORD}
+      - MSSQL_PID=Developer
+    ports:
+      - "${DB_PORT:-1435}:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+      - ./seed:/seed:ro  # optional, to inspect SQL scripts from inside DB container
+volumes:
+  mssql-data:
