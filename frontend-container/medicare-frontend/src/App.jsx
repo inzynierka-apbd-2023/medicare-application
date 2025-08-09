@@ -26,6 +26,7 @@ import { MedicalRecordsPage } from "./features/medicalRecords";
 import { PrescriptionsPage } from "./features/prescriptions";
 import TestMessagesPage from "./TestMessagesPage";
 import { LabResultsPage, LabResultDetailPage } from "./features/labResults";
+import { LabResultsReviewPage } from "./features/labResultsReview";
 
 function App() {
   return (
@@ -84,6 +85,10 @@ function App() {
             element={<MedicalRecordsPage />}
           />
           <Route path="/prescriptions" element={<PrescriptionsPage />} />
+          <Route
+            path="/lab-results-review"
+            element={<LabResultsReviewPage />}
+          />
         </Routes>
       </BrowserRouter>
     </div>

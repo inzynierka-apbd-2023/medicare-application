@@ -36,6 +36,7 @@ export default function Header() {
     { name: "Scheduler", path: "/scheduler" },
     { name: "Documents", path: "/documents" },
     { name: "Lab Results", path: "/lab-results" },
+    { name: "Lab Review", path: "/lab-results-review" },
     { name: "Prescriptions", path: "/prescriptions" },
   ];
 
