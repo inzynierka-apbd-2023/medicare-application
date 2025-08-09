@@ -23,6 +23,7 @@ import DoctorDashboard from "./features/dashboard/doctor/DoctorDashboard";
 import { PatientListPage } from "./features/userTypes";
 import { TodaysAppointmentsPage } from "./features/appointments";
 import { MedicalRecordsPage } from "./features/medicalRecords";
+import { PrescriptionsPage } from "./features/prescriptions";
 import TestMessagesPage from "./TestMessagesPage";
 import { LabResultsPage, LabResultDetailPage } from "./features/labResults";
 
@@ -60,6 +61,7 @@ function App() {
             element={<LabResultDetailPage />}
           />
           <Route path="/appointments" element={<AppointmentsPage />} />
+          <Route path="/prescriptions" element={<PrescriptionsPage />} />
 
           {/* User view */}
           <Route path="/user/wallet" element={<WalletPage />} />
@@ -81,6 +83,7 @@ function App() {
             path="/medical-records/:patientId"
             element={<MedicalRecordsPage />}
           />
+          <Route path="/prescriptions" element={<PrescriptionsPage />} />
         </Routes>
       </BrowserRouter>
     </div>
