@@ -1,5 +1,5 @@
 CREATE TABLE dbo.Conversation (
-  Id               VARCHAR(36) NOT NULL CONSTRAINT DF_Conv_Id DEFAULT dbo.NewGuidString(),
+  Id               VARCHAR(36) NOT NULL CONSTRAINT DF_Conv_Id DEFAULT CONVERT(VARCHAR(36), NEWID()),
   Doctor_User_Id   VARCHAR(36) NOT NULL,
   Patient_User_Id  VARCHAR(36) NOT NULL,
   Subject          NVARCHAR(500) NULL,
@@ -12,7 +12,7 @@ CREATE TABLE dbo.Conversation (
 );
 
 CREATE TABLE dbo.Message (
-  Id               VARCHAR(36) NOT NULL CONSTRAINT DF_Msg_Id DEFAULT dbo.NewGuidString(),
+  Id               VARCHAR(36) NOT NULL CONSTRAINT DF_Msg_Id DEFAULT CONVERT(VARCHAR(36), NEWID()),
   Conversation_Id  VARCHAR(36) NOT NULL,
   Sender_Id        VARCHAR(36) NOT NULL,
   Sender_Name      NVARCHAR(200) NULL,
@@ -30,16 +30,16 @@ CREATE TABLE dbo.Message (
 );
 
 CREATE TABLE dbo.Notification (
-  Id               VARCHAR(36) NOT NULL CONSTRAINT DF_Notif_Id DEFAULT dbo.NewGuidString(),
+  Id                VARCHAR(36) NOT NULL CONSTRAINT DF_Notif_Id DEFAULT CONVERT(VARCHAR(36), NEWID()),
   Recipient_User_Id VARCHAR(36) NOT NULL,
-  Description      NVARCHAR(255) NULL,
-  Type             TINYINT NULL,
-  Creation_Date    DATETIME NOT NULL DEFAULT SYSUTCDATETIME(),
-  Source_Service   NVARCHAR(64) NULL,
-  Is_Read          BIT NOT NULL DEFAULT 0,
-  Action_Url       NVARCHAR(500) NULL,
-  Priority_Level   NVARCHAR(20) NULL,
-  Expires_At       DATETIME NULL,
+  Description       NVARCHAR(255) NULL,
+  Type              TINYINT NULL,
+  Creation_Date     DATETIME NOT NULL DEFAULT SYSUTCDATETIME(),
+  Source_Service    NVARCHAR(64) NULL,
+  Is_Read           BIT NOT NULL DEFAULT 0,
+  Action_Url        NVARCHAR(500) NULL,
+  Priority_Level    NVARCHAR(20) NULL,
+  Expires_At        DATETIME NULL,
   CONSTRAINT PK_Notification PRIMARY KEY (Id),
   CONSTRAINT FK_Notification_User FOREIGN KEY (Recipient_User_Id) REFERENCES dbo.[User](Id)
 );

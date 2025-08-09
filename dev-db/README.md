@@ -36,7 +36,7 @@ docker compose logs -f
 - **Server:** `localhost,1435` (or your custom port from .env)
 - **Database:** `medicare_dev`
 - **Username:** `sa`
-- **Password:** `123123123` (or your custom password from .env)
+- **Password:** `Bo27erer#` (or your custom password from .env)
 
 ## ?? Detailed Setup Guide
 

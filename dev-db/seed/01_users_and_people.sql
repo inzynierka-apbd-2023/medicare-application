@@ -1,16 +1,18 @@
--- ROLE
+-- Role
 CREATE TABLE dbo.Role (
-  Id           VARCHAR(36)  NOT NULL CONSTRAINT DF_Role_Id DEFAULT dbo.NewGuidString(),
+  Id           VARCHAR(36)  NOT NULL CONSTRAINT DF_Role_Id DEFAULT CONVERT(VARCHAR(36), NEWID()),
   Name         NVARCHAR(100) NOT NULL,
   Description  NVARCHAR(500) NULL,
   CONSTRAINT PK_Role PRIMARY KEY (Id)
 );
 
--- USER (system account)
+-- User
 CREATE TABLE dbo.[User] (
-  Id           VARCHAR(36)  NOT NULL CONSTRAINT DF_User_Id DEFAULT dbo.NewGuidString(),
+  Id           VARCHAR(36)  NOT NULL CONSTRAINT DF_User_Id DEFAULT CONVERT(VARCHAR(36), NEWID()),
   Role_Id      VARCHAR(36)  NULL,
-  Schedule_Id  VARCHAR(36)  NULL, -- FK later (Schedule)
+  Schedule_Id  VARCHAR(36)  NULL,
+  Username     NVARCHAR(50) NULL,
+  PasswordHash NVARCHAR(255) NULL,
   Created_At   DATETIME     NOT NULL DEFAULT SYSUTCDATETIME(),
   Updated_At   DATETIME     NOT NULL DEFAULT SYSUTCDATETIME(),
   Is_Active    BIT          NOT NULL DEFAULT 1,
@@ -18,7 +20,7 @@ CREATE TABLE dbo.[User] (
   CONSTRAINT FK_User_Role FOREIGN KEY (Role_Id) REFERENCES dbo.Role(Id)
 );
 
--- USER PROFILE
+-- User_Profile
 CREATE TABLE dbo.User_Profile (
   User_Id       VARCHAR(36)  NOT NULL,
   FirstName     NVARCHAR(100) NOT NULL,
@@ -40,9 +42,9 @@ CREATE TABLE dbo.User_Profile (
   CONSTRAINT FK_User_Profile_User FOREIGN KEY (User_Id) REFERENCES dbo.[User](Id)
 );
 
--- DOCTOR (1-1 with User in your model)
+-- Doctor (1–1 with User)
 CREATE TABLE dbo.Doctor (
-  Id              VARCHAR(36)  NOT NULL, -- matches User.Id
+  Id              VARCHAR(36)  NOT NULL,
   License_Num     NVARCHAR(100) NULL,
   Years_Experi    INT          NULL,
   Biography       NVARCHAR(2000) NULL,
@@ -51,18 +53,18 @@ CREATE TABLE dbo.Doctor (
   CONSTRAINT FK_Doctor_User FOREIGN KEY (Id) REFERENCES dbo.[User](Id)
 );
 
--- RECEPTIONIST (1-1 with User)
+-- Receptionist (1–1 with User)
 CREATE TABLE dbo.Receptionist (
-  Id         VARCHAR(36) NOT NULL, -- matches User.Id
+  Id         VARCHAR(36) NOT NULL,
   Departm    NVARCHAR(200) NULL,
   CONSTRAINT PK_Receptionist PRIMARY KEY (Id),
   CONSTRAINT FK_Receptionist_User FOREIGN KEY (Id) REFERENCES dbo.[User](Id)
 );
 
--- PATIENT (separate entity with optional link to a Doctor)
+-- Patient
 CREATE TABLE dbo.Patient (
-  Id                    VARCHAR(36)  NOT NULL CONSTRAINT DF_Patient_Id DEFAULT dbo.NewGuidString(),
-  General_Doctor_Id     VARCHAR(36)  NULL, -- User/Doctor
+  Id                    VARCHAR(36)  NOT NULL CONSTRAINT DF_Patient_Id DEFAULT CONVERT(VARCHAR(36), NEWID()),
+  General_Doctor_Id     VARCHAR(36)  NULL,
   Medical_Record_Numbe  NVARCHAR(100) NULL,
   Blood_Type            NVARCHAR(10) NULL,
   Height_cm             DECIMAL(5,2) NULL,
@@ -72,20 +74,20 @@ CREATE TABLE dbo.Patient (
 );
 CREATE INDEX IX_Patient_GeneralDoctor ON dbo.Patient(General_Doctor_Id);
 
--- EMERGENCY CONTACT
+-- Emergency_Contact
 CREATE TABLE dbo.Emergency_Contact (
-  Id          VARCHAR(36) NOT NULL CONSTRAINT DF_EmergencyContact_Id DEFAULT dbo.NewGuidString(),
-  Patient_Id  VARCHAR(36) NOT NULL,
-  Name        NVARCHAR(200) NOT NULL,
-  Phone       NVARCHAR(20)  NULL,
+  Id           VARCHAR(36) NOT NULL CONSTRAINT DF_EmergencyContact_Id DEFAULT CONVERT(VARCHAR(36), NEWID()),
+  Patient_Id   VARCHAR(36) NOT NULL,
+  Name         NVARCHAR(200) NOT NULL,
+  Phone        NVARCHAR(20)  NULL,
   Relationship NVARCHAR(100) NULL,
-  Is_Primary  BIT NOT NULL DEFAULT 0,
-  Created_At  DATETIME NOT NULL DEFAULT SYSUTCDATETIME(),
+  Is_Primary   BIT NOT NULL DEFAULT 0,
+  Created_At   DATETIME NOT NULL DEFAULT SYSUTCDATETIME(),
   CONSTRAINT PK_Emergency_Contact PRIMARY KEY (Id),
   CONSTRAINT FK_Emergency_Contact_Patient FOREIGN KEY (Patient_Id) REFERENCES dbo.Patient(Id)
 );
 
--- INSURANCE
+-- Insurance
 CREATE TABLE dbo.Insurance (
   Patient_Id     VARCHAR(36)  NOT NULL,
   Provider_Name  NVARCHAR(200) NOT NULL,
