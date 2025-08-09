@@ -1,0 +1,50 @@
+version: "3.9"
+
+services:
+  # SQL Server Database
+  mssql-dev:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: mssql-dev
+    environment:
+      - ACCEPT_EULA=Y
+      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
+      - MSSQL_PID=Developer
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+      - ./dev-db/seed:/seed:ro
+    networks:
+      - medicare-network
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong!Passw0rd -Q 'SELECT 1'"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 80s
+
+  # User Service API
+  user-service:
+    build:
+      context: ./UserService
+      dockerfile: Dockerfile
+    container_name: user-service
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_URLS=http://+:8080
+      - ConnectionStrings__DefaultConnection=Server=mssql-dev,1433;Database=MedicareDB;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;Encrypt=false;
+    ports:
+      - "5001:8080"
+    depends_on:
+      mssql-dev:
+        condition: service_healthy
+    networks:
+      - medicare-network
+    restart: unless-stopped
+
+networks:
+  medicare-network:
+    driver: bridge
+
+volumes:
+  mssql-data:
