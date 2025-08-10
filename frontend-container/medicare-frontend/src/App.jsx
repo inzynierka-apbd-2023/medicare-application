@@ -20,6 +20,9 @@ import { DocumentsPage } from "./features/documents";
 import { WalletPage, SubscriptionPage } from "./features/wallet";
 import { AppointmentsPage } from "./features/appointments";
 import DoctorDashboard from "./features/dashboard/doctor/DoctorDashboard";
+import { OwnerDashboard } from "./features/dashboard/owner";
+import { UserManagement } from "./features/userManagement";
+import { AppointmentAnalytics } from "./features/appointmentAnalytics";
 import { PatientListPage } from "./features/userTypes";
 import { TodaysAppointmentsPage } from "./features/appointments";
 import { MedicalRecordsPage } from "./features/medicalRecords";
@@ -74,6 +77,19 @@ function App() {
 
           {/* Doctor view */}
           <Route path="/dctdash" element={<DoctorDashboard />} />
+
+          {/* Owner view */}
+          <Route path="/ownerdash" element={<OwnerDashboard />} />
+
+          {/* User Management view */}
+          <Route path="/user-management" element={<UserManagement />} />
+
+          {/* Appointment Analytics view */}
+          <Route
+            path="/appointment-analytics"
+            element={<AppointmentAnalytics />}
+          />
+
           <Route path="/patientlist" element={<PatientListPage />} />
           <Route
             path="/todays-appointments"
