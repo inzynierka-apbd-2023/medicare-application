@@ -11,11 +11,20 @@ services:
       - ASPNETCORE_ENVIRONMENT=Test
       - ASPNETCORE_URLS=http://+:8080
       - ConnectionStrings__DefaultConnection=Server=tcp:medicareapp-dbserver.database.windows.net,1433;Initial Catalog=medicare-db-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;
+      # Optional: allow EnvironmentCredential if a Service Principal is provided
+      # - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      # - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      # - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      # Ensure HOME is set so Azure CLI can find its token cache
+      - HOME=/home/appuser
     ports:
       - "8080:8080"
     networks:
       - medicare-network
     restart: unless-stopped
+    # Mount Azure CLI token/cache from host so AzureCliCredential works in the container (local dev only)
+    volumes:
+      - ${HOME}/.azure:/home/appuser/.azure
 
   # Frontend (Vite build served via Nginx)
   frontend:
