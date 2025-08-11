@@ -133,8 +133,15 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Add health check endpoint
-app.MapHealthChecks("/health");
+// Add health check endpoint with body writer
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
+{
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "text/plain";
+        await context.Response.WriteAsync(report.Status.ToString());
+    }
+});
 
 // Apply EF Core migrations automatically in non-production environments
 if (!app.Environment.IsProduction())
@@ -143,7 +150,7 @@ if (!app.Environment.IsProduction())
     var context = scope.ServiceProvider.GetRequiredService<UserDbContext>();
     try
     {
-        context.Database.Migrate();
+        await context.Database.MigrateAsync();
         Console.WriteLine("Database migrations applied successfully");
     }
     catch (Exception ex)
@@ -152,4 +159,4 @@ if (!app.Environment.IsProduction())
     }
 }
 
-app.Run();
+await app.RunAsync();
