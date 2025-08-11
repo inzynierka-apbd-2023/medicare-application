@@ -3,12 +3,11 @@ version: "3.9"
 services:
   # SQL Server Database
   mssql-dev:
-    image: mcr.microsoft.com/mssql/server:2022-latest
+    image: mcr.microsoft.com/azure-sql-edge:latest
     container_name: mssql-dev
     environment:
       - ACCEPT_EULA=Y
       - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
-      - MSSQL_PID=Developer
     ports:
       - "1433:1433"
     volumes:
@@ -16,12 +15,6 @@ services:
       - ./dev-db/seed:/seed:ro
     networks:
       - medicare-network
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong!Passw0rd -Q 'SELECT 1'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 80s
 
   # User Service API
   user-service:
@@ -32,12 +25,58 @@ services:
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=mssql-dev,1433;Database=MedicareDB;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;Encrypt=false;
+      - ConnectionStrings__DefaultConnection=Server=mssql-dev,1433;Database=medicare_dev;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;Encrypt=false;
     ports:
-      - "5001:8080"
+      - "8080:8080"
     depends_on:
-      mssql-dev:
-        condition: service_healthy
+      - mssql-dev
+    networks:
+      - medicare-network
+    restart: unless-stopped
+
+  # One-shot DB seeding job to run SQL scripts in ./dev-db/seed
+  db-seed:
+    image: mcr.microsoft.com/mssql-tools
+    platform: "linux/amd64"
+    container_name: db-seed
+    depends_on:
+      - mssql-dev
+    environment:
+      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
+    volumes:
+      - ./dev-db/seed:/seed:ro
+    command:
+      - /bin/sh
+      - -lc
+      - |
+        set -e;
+        echo "Waiting for SQL Server to be ready...";
+        for i in `seq 1 30`; do
+          /opt/mssql-tools/bin/sqlcmd -S mssql-dev -U sa -P $$MSSQL_SA_PASSWORD -Q "SELECT 1" && break || true;
+          echo "SQL not ready yet ($$i/30). Sleeping...";
+          sleep 5;
+        done;
+        /opt/mssql-tools/bin/sqlcmd -S mssql-dev -U sa -P $$MSSQL_SA_PASSWORD -Q "IF DB_ID('medicare_dev') IS NULL CREATE DATABASE medicare_dev;";
+        for f in /seed/*.sql; do
+          case "$$f" in
+            */migration_add_auth.sql) echo "Skipping $$f (env-specific)"; continue;;
+          esac;
+          echo Running $$f;
+          /opt/mssql-tools/bin/sqlcmd -S mssql-dev -U sa -P $$MSSQL_SA_PASSWORD -d medicare_dev -i "$$f" || exit 1;
+        done;
+    networks:
+      - medicare-network
+
+  # Frontend (Vite build served via Nginx)
+  frontend:
+    build:
+      context: ./frontend-container/medicare-frontend
+      dockerfile: Dockerfile
+    container_name: medicare-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - user-service
     networks:
       - medicare-network
     restart: unless-stopped
