@@ -11,9 +11,18 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container
 builder.Services.AddControllers();
 
-// Configure Entity Framework
+// Configure Entity Framework with Azure SQL + connection resiliency
+var connectionString =
+    builder.Configuration.GetConnectionString("DefaultConnection")
+    ?? builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
+    ?? builder.Configuration["ConnectionStrings__DefaultConnection"]
+    ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+
 builder.Services.AddDbContext<UserDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseSqlServer(connectionString, sql =>
+    {
+        sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
+    }));
 
 // Configure JWT Authentication
 var jwtSettings = builder.Configuration.GetSection("Jwt");
@@ -124,22 +133,30 @@ app.UseAuthorization();
 
 app.MapControllers();
 
-// Add health check endpoint
-app.MapHealthChecks("/health");
-
-// Ensure database is created and seeded
-using (var scope = app.Services.CreateScope())
+// Add health check endpoint with body writer
+app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
 {
+    ResponseWriter = async (context, report) =>
+    {
+        context.Response.ContentType = "text/plain";
+        await context.Response.WriteAsync(report.Status.ToString());
+    }
+});
+
+// Apply EF Core migrations automatically in non-production environments
+if (!app.Environment.IsProduction())
+{
+    using var scope = app.Services.CreateScope();
     var context = scope.ServiceProvider.GetRequiredService<UserDbContext>();
     try
     {
-        context.Database.EnsureCreated();
-        Console.WriteLine("Database initialized successfully");
+        await context.Database.MigrateAsync();
+        Console.WriteLine("Database migrations applied successfully");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"Database initialization failed: {ex.Message}");
+        Console.WriteLine($"Database migration failed: {ex.Message}");
     }
 }
 
-app.Run();
+await app.RunAsync();

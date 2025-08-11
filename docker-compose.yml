@@ -1,71 +1,30 @@
 version: "3.9"
 
 services:
-  # SQL Server Database
-  mssql-dev:
-    image: mcr.microsoft.com/azure-sql-edge:latest
-    container_name: mssql-dev
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
-    ports:
-      - "1433:1433"
-    volumes:
-      - mssql-data:/var/opt/mssql
-      - ./dev-db/seed:/seed:ro
-    networks:
-      - medicare-network
-
-  # User Service API
+  # User Service API (connects to Azure SQL using AAD Default)
   user-service:
     build:
       context: ./UserService
       dockerfile: Dockerfile
     container_name: user-service
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Test
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=mssql-dev,1433;Database=medicare_dev;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;Encrypt=false;
+      - ConnectionStrings__DefaultConnection=Server=tcp:medicareapp-dbserver.database.windows.net,1433;Initial Catalog=medicare-db-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;
+      # Optional: allow EnvironmentCredential if a Service Principal is provided
+      # - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      # - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      # - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      # Ensure HOME is set so Azure CLI can find its token cache
+      - HOME=/home/appuser
     ports:
       - "8080:8080"
-    depends_on:
-      - mssql-dev
     networks:
       - medicare-network
     restart: unless-stopped
-
-  # One-shot DB seeding job to run SQL scripts in ./dev-db/seed
-  db-seed:
-    image: mcr.microsoft.com/mssql-tools
-    platform: "linux/amd64"
-    container_name: db-seed
-    depends_on:
-      - mssql-dev
-    environment:
-      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
+    # Mount Azure CLI token/cache from host so AzureCliCredential works in the container (local dev only)
     volumes:
-      - ./dev-db/seed:/seed:ro
-    command:
-      - /bin/sh
-      - -lc
-      - |
-        set -e;
-        echo "Waiting for SQL Server to be ready...";
-        for i in `seq 1 30`; do
-          /opt/mssql-tools/bin/sqlcmd -S mssql-dev -U sa -P $$MSSQL_SA_PASSWORD -Q "SELECT 1" && break || true;
-          echo "SQL not ready yet ($$i/30). Sleeping...";
-          sleep 5;
-        done;
-        /opt/mssql-tools/bin/sqlcmd -S mssql-dev -U sa -P $$MSSQL_SA_PASSWORD -Q "IF DB_ID('medicare_dev') IS NULL CREATE DATABASE medicare_dev;";
-        for f in /seed/*.sql; do
-          case "$$f" in
-            */migration_add_auth.sql) echo "Skipping $$f (env-specific)"; continue;;
-          esac;
-          echo Running $$f;
-          /opt/mssql-tools/bin/sqlcmd -S mssql-dev -U sa -P $$MSSQL_SA_PASSWORD -d medicare_dev -i "$$f" || exit 1;
-        done;
-    networks:
-      - medicare-network
+      - ${HOME}/.azure:/home/appuser/.azure
 
   # Frontend (Vite build served via Nginx)
   frontend:
@@ -85,5 +44,4 @@ networks:
   medicare-network:
     driver: bridge
 
-volumes:
-  mssql-data:
+volumes: {}
