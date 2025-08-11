@@ -37,7 +37,10 @@ ENV ASPNETCORE_ENVIRONMENT=Development
 ENV ASPNETCORE_URLS=http://+:8080
 
 # Create a non-root user for security
-RUN adduser --disabled-password --home /app --gecos '' appuser && chown -R appuser /app
+RUN apt-get update && apt-get install -y --no-install-recommends curl \
+  && rm -rf /var/lib/apt/lists/* \
+  && adduser --disabled-password --home /app --gecos '' appuser \
+  && chown -R appuser /app
 USER appuser
 
 # Health check
