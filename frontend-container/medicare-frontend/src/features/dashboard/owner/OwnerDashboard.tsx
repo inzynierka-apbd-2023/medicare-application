@@ -1,15 +1,10 @@
 import React, { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
 import {
   Activity,
-  AlertTriangle,
   BarChart3,
   Clock,
   DollarSign,
   FileText,
-  PieChart,
-  Settings,
-  Shield,
   Star,
   TrendingDown,
   TrendingUp,
@@ -27,157 +22,120 @@ import {
 import { useLoadingService } from "../../../shared/hooks/useLoadingService";
 import { DashboardLayout } from "../shared/components";
 
-// Types for Owner Dashboard Data
-interface FinancialMetrics {
+// Database-aligned types based on your actual schema
+interface RevenueMetrics {
   dailyRevenue: number;
   monthlyRevenue: number;
   yearlyRevenue: number;
-  monthlyExpenses: number;
-  profitMargin: number;
   revenueGrowth: number;
-  expenseGrowth: number;
+  totalAppointmentPayments: number;
+  totalSubscriptionPayments: number;
 }
 
 interface PatientMetrics {
-  totalPatients: number;
+  totalActivePatients: number;
   newPatientsThisMonth: number;
-  newPatientsLastMonth: number;
   patientRetentionRate: number;
-  averagePatientValue: number;
-  patientSatisfactionScore: number;
+  averageRating: number;
+  totalRatings: number;
 }
 
-interface StaffMetrics {
-  totalDoctors: number;
-  totalStaff: number;
-  doctorUtilization: number;
-  averageAppointmentsPerDoctor: number;
-  staffSatisfactionScore: number;
+interface AppointmentMetrics {
+  totalAppointments: number;
+  appointmentsThisMonth: number;
+  completedAppointments: number;
+  cancelledAppointments: number;
+  noShowAppointments: number;
   appointmentCompletionRate: number;
 }
 
-interface ClinicEfficiency {
-  appointmentUtilization: number;
-  averageWaitTime: number;
-  noShowRate: number;
-  cancellationRate: number;
-  peakHours: string[];
-  roomUtilization: number;
+interface DoctorMetrics {
+  totalDoctors: number;
+  averageAppointmentsPerDoctor: number;
+  topRatedDoctor: string;
+  doctorAverageRating: number;
 }
 
 interface OwnerDashboardData {
-  financial: FinancialMetrics;
+  revenue: RevenueMetrics;
   patients: PatientMetrics;
-  staff: StaffMetrics;
-  efficiency: ClinicEfficiency;
-  alerts: Alert[];
+  appointments: AppointmentMetrics;
+  doctors: DoctorMetrics;
   recentActivities: ActivityLog[];
-}
-
-interface Alert {
-  id: string;
-  type: "warning" | "error" | "info";
-  title: string;
-  message: string;
-  timestamp: Date;
 }
 
 interface ActivityLog {
   id: string;
-  type: "financial" | "staff" | "patient" | "system";
+  type: "payment" | "appointment" | "patient" | "rating";
   description: string;
   timestamp: Date;
 }
 
 const OwnerDashboard: React.FC = () => {
-  const navigate = useNavigate();
   const { isLoading, error, executeInitialLoad } = useLoadingService();
   const [dashboardData, setDashboardData] = useState<OwnerDashboardData | null>(
     null
   );
-  const [selectedTimeframe, setSelectedTimeframe] = useState<
-    "today" | "week" | "month" | "year"
-  >("month");
 
   useEffect(() => {
     const fetchOwnerDashboardData = async () => {
-      // Simulate API call - replace with actual API endpoint
+      // Simulate API call - replace with actual API calls to your database
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
+      // Mock data based on your database schema capabilities
       const mockData: OwnerDashboardData = {
-        financial: {
+        revenue: {
           dailyRevenue: 12500,
           monthlyRevenue: 285000,
           yearlyRevenue: 3200000,
-          monthlyExpenses: 180000,
-          profitMargin: 36.8,
           revenueGrowth: 15.2,
-          expenseGrowth: 8.5,
+          totalAppointmentPayments: 245000,
+          totalSubscriptionPayments: 40000,
         },
         patients: {
-          totalPatients: 2847,
+          totalActivePatients: 2847,
           newPatientsThisMonth: 156,
-          newPatientsLastMonth: 132,
           patientRetentionRate: 89.2,
-          averagePatientValue: 485,
-          patientSatisfactionScore: 4.6,
+          averageRating: 4.6,
+          totalRatings: 892,
         },
-        staff: {
-          totalDoctors: 12,
-          totalStaff: 28,
-          doctorUtilization: 87.5,
-          averageAppointmentsPerDoctor: 28,
-          staffSatisfactionScore: 4.2,
+        appointments: {
+          totalAppointments: 3654,
+          appointmentsThisMonth: 340,
+          completedAppointments: 3234,
+          cancelledAppointments: 189,
+          noShowAppointments: 231,
           appointmentCompletionRate: 94.3,
         },
-        efficiency: {
-          appointmentUtilization: 91.2,
-          averageWaitTime: 12,
-          noShowRate: 8.7,
-          cancellationRate: 5.2,
-          peakHours: ["9:00 AM", "2:00 PM", "4:00 PM"],
-          roomUtilization: 82.4,
+        doctors: {
+          totalDoctors: 12,
+          averageAppointmentsPerDoctor: 28,
+          topRatedDoctor: "Dr. Sarah Johnson",
+          doctorAverageRating: 4.4,
         },
-        alerts: [
-          {
-            id: "1",
-            type: "warning",
-            title: "Equipment Maintenance Due",
-            message: "MRI machine #2 requires scheduled maintenance next week",
-            timestamp: new Date(),
-          },
-          {
-            id: "2",
-            type: "info",
-            title: "Insurance Contract Renewal",
-            message: "BlueCross contract expires in 30 days",
-            timestamp: new Date(),
-          },
-          {
-            id: "3",
-            type: "error",
-            title: "Staff Shortage Alert",
-            message: "Cardiology department understaffed - 2 doctors on leave",
-            timestamp: new Date(),
-          },
-        ],
         recentActivities: [
           {
             id: "1",
-            type: "financial",
-            description: "Monthly financial report generated",
+            type: "payment",
+            description: "Received $2,400 in appointment payments today",
             timestamp: new Date(),
           },
           {
             id: "2",
-            type: "staff",
-            description: "Dr. Johnson completed 35 appointments today",
+            type: "appointment",
+            description: "35 appointments completed successfully",
             timestamp: new Date(),
           },
           {
             id: "3",
             type: "patient",
             description: "24 new patient registrations this week",
+            timestamp: new Date(),
+          },
+          {
+            id: "4",
+            type: "rating",
+            description: "Received 12 new patient ratings (avg 4.8/5)",
             timestamp: new Date(),
           },
         ],
@@ -187,7 +145,7 @@ const OwnerDashboard: React.FC = () => {
     };
 
     executeInitialLoad(fetchOwnerDashboardData);
-  }, [executeInitialLoad, selectedTimeframe]);
+  }, [executeInitialLoad]);
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat("en-US", {
@@ -199,7 +157,7 @@ const OwnerDashboard: React.FC = () => {
   };
 
   const formatPercentage = (value: number) => {
-    return `${value.toFixed(1)}%`;
+    return `${value >= 0 ? "+" : ""}${value.toFixed(1)}%`;
   };
 
   const getGrowthIcon = (growth: number) => {
@@ -214,460 +172,314 @@ const OwnerDashboard: React.FC = () => {
     return growth >= 0 ? "text-green-600" : "text-red-600";
   };
 
-  const getAlertIcon = (type: Alert["type"]) => {
+  const getActivityIcon = (type: ActivityLog["type"]) => {
     switch (type) {
-      case "error":
-        return <AlertTriangle className="w-5 h-5 text-red-500" />;
-      case "warning":
-        return <AlertTriangle className="w-5 h-5 text-yellow-500" />;
-      case "info":
-        return <Activity className="w-5 h-5 text-blue-500" />;
+      case "payment":
+        return <DollarSign className="w-4 h-4 text-green-500" />;
+      case "appointment":
+        return <Clock className="w-4 h-4 text-blue-500" />;
+      case "patient":
+        return <Users className="w-4 h-4 text-purple-500" />;
+      case "rating":
+        return <Star className="w-4 h-4 text-yellow-500" />;
       default:
-        return <Activity className="w-5 h-5 text-gray-500" />;
+        return <Activity className="w-4 h-4 text-gray-500" />;
     }
   };
 
   if (error) {
+    return <ErrorDisplay message={error} />;
+  }
+
+  if (isLoading || !dashboardData) {
     return (
-      <div className="min-h-screen bg-gray-100">
-        <Header />
-        <div className="pt-20 pb-12">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <ErrorDisplay
-              message={error}
-              onRetry={() => window.location.reload()}
-            />
-          </div>
-        </div>
-      </div>
+      <LoadingOverlay isLoading={true}>
+        <div></div>
+      </LoadingOverlay>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-gray-50">
       <Header />
-      <LoadingOverlay
-        isLoading={isLoading}
-        message="Loading owner dashboard..."
-      >
-        <DashboardLayout title="Owner Dashboard - Medicare Clinic Management">
-          {dashboardData && (
-            <div className="space-y-6">
-              {/* Time Filter */}
-              <div className="flex justify-between items-center">
-                <div className="flex space-x-2">
-                  {(["today", "week", "month", "year"] as const).map(
-                    (timeframe) => (
-                      <Button
-                        key={timeframe}
-                        variant={
-                          selectedTimeframe === timeframe
-                            ? "primary"
-                            : "outline"
-                        }
-                        size="sm"
-                        onClick={() => setSelectedTimeframe(timeframe)}
-                        className="capitalize"
-                      >
-                        {timeframe}
-                      </Button>
-                    )
-                  )}
-                </div>
-                <div className="flex space-x-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    leftIcon={<FileText className="w-4 h-4" />}
-                    onClick={() => navigate("/reports")}
-                  >
-                    Generate Report
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    leftIcon={<Settings className="w-4 h-4" />}
-                    onClick={() => navigate("/settings")}
-                  >
-                    Settings
-                  </Button>
-                </div>
-              </div>
-
-              {/* Financial Overview */}
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <Card variant="elevated" padding="lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">
-                        Daily Revenue
-                      </p>
-                      <p className="text-2xl font-bold text-green-600">
-                        {formatCurrency(dashboardData.financial.dailyRevenue)}
-                      </p>
-                    </div>
-                    <DollarSign className="w-8 h-8 text-green-500" />
-                  </div>
-                </Card>
-
-                <Card variant="elevated" padding="lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">
-                        Monthly Revenue
-                      </p>
-                      <p className="text-2xl font-bold text-blue-600">
-                        {formatCurrency(dashboardData.financial.monthlyRevenue)}
-                      </p>
-                      <div
-                        className={`flex items-center gap-1 mt-1 ${getGrowthColor(dashboardData.financial.revenueGrowth)}`}
-                      >
-                        {getGrowthIcon(dashboardData.financial.revenueGrowth)}
-                        <span className="text-sm">
-                          {formatPercentage(
-                            dashboardData.financial.revenueGrowth
-                          )}
-                        </span>
-                      </div>
-                    </div>
-                    <TrendingUp className="w-8 h-8 text-blue-500" />
-                  </div>
-                </Card>
-
-                <Card variant="elevated" padding="lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">
-                        Profit Margin
-                      </p>
-                      <p className="text-2xl font-bold text-purple-600">
-                        {formatPercentage(dashboardData.financial.profitMargin)}
-                      </p>
-                    </div>
-                    <PieChart className="w-8 h-8 text-purple-500" />
-                  </div>
-                </Card>
-
-                <Card variant="elevated" padding="lg">
-                  <div className="flex items-center justify-between">
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">
-                        Total Patients
-                      </p>
-                      <p className="text-2xl font-bold text-indigo-600">
-                        {dashboardData.patients.totalPatients.toLocaleString()}
-                      </p>
-                    </div>
-                    <Users className="w-8 h-8 text-indigo-500" />
-                  </div>
-                </Card>
-              </div>
-
-              {/* Main Content Grid */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Patient Metrics */}
-                <Card variant="medical" padding="lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Patient Analytics
-                    </h3>
-                    <Users className="w-6 h-6 text-blue-500" />
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        New Patients (This Month)
-                      </span>
-                      <div className="text-right">
-                        <span className="font-semibold">
-                          {dashboardData.patients.newPatientsThisMonth}
-                        </span>
-                        <div className="text-xs text-green-600">
-                          +
-                          {dashboardData.patients.newPatientsThisMonth -
-                            dashboardData.patients.newPatientsLastMonth}{" "}
-                          from last month
-                        </div>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Retention Rate
-                      </span>
-                      <span className="font-semibold">
-                        {formatPercentage(
-                          dashboardData.patients.patientRetentionRate
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Avg. Patient Value
-                      </span>
-                      <span className="font-semibold">
-                        {formatCurrency(
-                          dashboardData.patients.averagePatientValue
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Satisfaction Score
-                      </span>
-                      <div className="flex items-center gap-1">
-                        <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                        <span className="font-semibold">
-                          {dashboardData.patients.patientSatisfactionScore}/5.0
-                        </span>
-                      </div>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-4"
-                    onClick={() => navigate("/analytics/patients")}
-                  >
-                    View Detailed Analytics
-                  </Button>
-                </Card>
-
-                {/* Staff Performance */}
-                <Card variant="medical" padding="lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Staff Performance
-                    </h3>
-                    <UserCheck className="w-6 h-6 text-green-500" />
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Total Doctors
-                      </span>
-                      <span className="font-semibold">
-                        {dashboardData.staff.totalDoctors}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Doctor Utilization
-                      </span>
-                      <span className="font-semibold">
-                        {formatPercentage(
-                          dashboardData.staff.doctorUtilization
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Avg. Appointments/Doctor
-                      </span>
-                      <span className="font-semibold">
-                        {dashboardData.staff.averageAppointmentsPerDoctor}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Completion Rate
-                      </span>
-                      <span className="font-semibold">
-                        {formatPercentage(
-                          dashboardData.staff.appointmentCompletionRate
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-4"
-                    onClick={() => navigate("/staff-management")}
-                  >
-                    Manage Staff
-                  </Button>
-                </Card>
-
-                {/* Clinic Efficiency */}
-                <Card variant="medical" padding="lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Clinic Efficiency
-                    </h3>
-                    <Activity className="w-6 h-6 text-purple-500" />
-                  </div>
-                  <div className="space-y-4">
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Appointment Utilization
-                      </span>
-                      <span className="font-semibold">
-                        {formatPercentage(
-                          dashboardData.efficiency.appointmentUtilization
-                        )}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Avg. Wait Time
-                      </span>
-                      <span className="font-semibold">
-                        {dashboardData.efficiency.averageWaitTime} min
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        No-Show Rate
-                      </span>
-                      <span className="font-semibold text-red-600">
-                        {formatPercentage(dashboardData.efficiency.noShowRate)}
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className="text-sm text-gray-600">
-                        Room Utilization
-                      </span>
-                      <span className="font-semibold">
-                        {formatPercentage(
-                          dashboardData.efficiency.roomUtilization
-                        )}
-                      </span>
-                    </div>
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-4"
-                    onClick={() => navigate("/operations")}
-                  >
-                    Optimize Operations
-                  </Button>
-                </Card>
-              </div>
-
-              {/* Alerts and Activities */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Critical Alerts */}
-                <Card variant="elevated" padding="lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Critical Alerts
-                    </h3>
-                    <AlertTriangle className="w-6 h-6 text-red-500" />
-                  </div>
-                  <div className="space-y-3">
-                    {dashboardData.alerts.map((alert) => (
-                      <div
-                        key={alert.id}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-gray-50"
-                      >
-                        {getAlertIcon(alert.type)}
-                        <div className="flex-1">
-                          <p className="font-medium text-sm text-gray-900">
-                            {alert.title}
-                          </p>
-                          <p className="text-xs text-gray-600 mt-1">
-                            {alert.message}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    variant="warning"
-                    size="sm"
-                    className="w-full mt-4"
-                    onClick={() => navigate("/alerts")}
-                  >
-                    View All Alerts
-                  </Button>
-                </Card>
-
-                {/* Recent Activities */}
-                <Card variant="elevated" padding="lg">
-                  <div className="flex items-center justify-between mb-4">
-                    <h3 className="text-lg font-semibold text-gray-900">
-                      Recent Activities
-                    </h3>
-                    <Clock className="w-6 h-6 text-blue-500" />
-                  </div>
-                  <div className="space-y-3">
-                    {dashboardData.recentActivities.map((activity) => (
-                      <div
-                        key={activity.id}
-                        className="flex items-start gap-3 p-3 rounded-lg bg-gray-50"
-                      >
-                        <Activity className="w-4 h-4 text-blue-500 mt-0.5" />
-                        <div className="flex-1">
-                          <p className="text-sm text-gray-900">
-                            {activity.description}
-                          </p>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {activity.timestamp.toLocaleTimeString()}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="w-full mt-4"
-                    onClick={() => navigate("/activity-log")}
-                  >
-                    View Activity Log
-                  </Button>
-                </Card>
-              </div>
-
-              {/* Quick Actions */}
-              <Card variant="elevated" padding="lg">
-                <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                  Quick Actions
-                </h3>
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  <Button
-                    variant="primary"
-                    size="lg"
-                    leftIcon={<BarChart3 className="w-5 h-5" />}
-                    onClick={() => navigate("/analytics")}
-                    className="flex-col h-auto py-4"
-                  >
-                    <span className="mt-2">View Analytics</span>
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    leftIcon={<Users className="w-5 h-5" />}
-                    onClick={() => navigate("/staff-management")}
-                    className="flex-col h-auto py-4"
-                  >
-                    <span className="mt-2">Manage Staff</span>
-                  </Button>
-                  <Button
-                    variant="success"
-                    size="lg"
-                    leftIcon={<DollarSign className="w-5 h-5" />}
-                    onClick={() => navigate("/financial-reports")}
-                    className="flex-col h-auto py-4"
-                  >
-                    <span className="mt-2">Financial Reports</span>
-                  </Button>
-                  <Button
-                    variant="secondary"
-                    size="lg"
-                    leftIcon={<Shield className="w-5 h-5" />}
-                    onClick={() => navigate("/compliance")}
-                    className="flex-col h-auto py-4"
-                  >
-                    <span className="mt-2">Compliance</span>
-                  </Button>
-                </div>
-              </Card>
+      <DashboardLayout title="Owner Dashboard">
+        <div className="space-y-6">
+          {/* Header Section */}
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Owner Dashboard
+              </h1>
+              <p className="text-gray-600 mt-1">
+                Overview of your medical practice performance
+              </p>
             </div>
-          )}
-        </DashboardLayout>
-      </LoadingOverlay>
+            <div className="flex gap-3">
+              <Button
+                variant="outline"
+                leftIcon={<BarChart3 className="w-4 h-4" />}
+              >
+                View Reports
+              </Button>
+              <Button
+                variant="primary"
+                leftIcon={<FileText className="w-4 h-4" />}
+              >
+                Export Data
+              </Button>
+            </div>
+          </div>
+
+          {/* Revenue Overview Row */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            <Card variant="elevated" className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Daily Revenue
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {formatCurrency(dashboardData.revenue.dailyRevenue)}
+                  </p>
+                </div>
+                <DollarSign className="w-8 h-8 text-green-500" />
+              </div>
+            </Card>
+
+            <Card variant="elevated" className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Monthly Revenue
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {formatCurrency(dashboardData.revenue.monthlyRevenue)}
+                  </p>
+                  <div
+                    className={`flex items-center gap-1 mt-1 ${getGrowthColor(dashboardData.revenue.revenueGrowth)}`}
+                  >
+                    {getGrowthIcon(dashboardData.revenue.revenueGrowth)}
+                    <span className="text-sm font-medium">
+                      {formatPercentage(dashboardData.revenue.revenueGrowth)}
+                    </span>
+                  </div>
+                </div>
+                <TrendingUp className="w-8 h-8 text-blue-500" />
+              </div>
+            </Card>
+
+            <Card variant="elevated" className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Yearly Revenue
+                  </p>
+                  <p className="text-2xl font-bold text-gray-900">
+                    {formatCurrency(dashboardData.revenue.yearlyRevenue)}
+                  </p>
+                </div>
+                <BarChart3 className="w-8 h-8 text-purple-500" />
+              </div>
+            </Card>
+
+            <Card variant="elevated" className="p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-gray-600">
+                    Payment Types
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Appointments:{" "}
+                    {formatCurrency(
+                      dashboardData.revenue.totalAppointmentPayments
+                    )}
+                  </p>
+                  <p className="text-sm text-gray-500">
+                    Subscriptions:{" "}
+                    {formatCurrency(
+                      dashboardData.revenue.totalSubscriptionPayments
+                    )}
+                  </p>
+                </div>
+                <FileText className="w-8 h-8 text-orange-500" />
+              </div>
+            </Card>
+          </div>
+
+          {/* Main Metrics Row */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Patient Metrics */}
+            <Card variant="elevated" className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Patient Metrics
+                </h3>
+                <Users className="w-6 h-6 text-blue-500" />
+              </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">
+                    Total Active Patients
+                  </span>
+                  <span className="text-xl font-bold text-gray-900">
+                    {dashboardData.patients.totalActivePatients.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">New This Month</span>
+                  <span className="text-lg font-semibold text-green-600">
+                    +{dashboardData.patients.newPatientsThisMonth}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Retention Rate</span>
+                  <span className="text-lg font-semibold text-blue-600">
+                    {formatPercentage(
+                      dashboardData.patients.patientRetentionRate
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Average Rating</span>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                    <span className="text-lg font-semibold text-gray-900">
+                      {dashboardData.patients.averageRating}/5.0
+                    </span>
+                    <span className="text-xs text-gray-500">
+                      ({dashboardData.patients.totalRatings})
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Appointment Metrics */}
+            <Card variant="elevated" className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Appointments
+                </h3>
+                <Clock className="w-6 h-6 text-green-500" />
+              </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">
+                    Total Appointments
+                  </span>
+                  <span className="text-xl font-bold text-gray-900">
+                    {dashboardData.appointments.totalAppointments.toLocaleString()}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">This Month</span>
+                  <span className="text-lg font-semibold text-blue-600">
+                    {dashboardData.appointments.appointmentsThisMonth}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Completion Rate</span>
+                  <span className="text-lg font-semibold text-green-600">
+                    {formatPercentage(
+                      dashboardData.appointments.appointmentCompletionRate
+                    )}
+                  </span>
+                </div>
+                <div className="text-xs text-gray-500 pt-2 border-t">
+                  <div className="flex justify-between">
+                    <span>
+                      Completed:{" "}
+                      {dashboardData.appointments.completedAppointments}
+                    </span>
+                    <span>
+                      Cancelled:{" "}
+                      {dashboardData.appointments.cancelledAppointments}
+                    </span>
+                  </div>
+                  <div className="flex justify-between mt-1">
+                    <span>
+                      No-shows: {dashboardData.appointments.noShowAppointments}
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+
+            {/* Doctor Metrics */}
+            <Card variant="elevated" className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold text-gray-900">
+                  Doctor Performance
+                </h3>
+                <UserCheck className="w-6 h-6 text-purple-500" />
+              </div>
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">Total Doctors</span>
+                  <span className="text-xl font-bold text-gray-900">
+                    {dashboardData.doctors.totalDoctors}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">
+                    Avg Appointments/Doctor
+                  </span>
+                  <span className="text-lg font-semibold text-blue-600">
+                    {dashboardData.doctors.averageAppointmentsPerDoctor}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">
+                    Top Rated Doctor
+                  </span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {dashboardData.doctors.topRatedDoctor}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-gray-600">
+                    Doctor Avg Rating
+                  </span>
+                  <div className="flex items-center gap-1">
+                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
+                    <span className="text-lg font-semibold text-gray-900">
+                      {dashboardData.doctors.doctorAverageRating}/5.0
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </Card>
+          </div>
+
+          {/* Recent Activities */}
+          <Card variant="elevated" className="p-6">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Recent Activities
+              </h3>
+              <Activity className="w-6 h-6 text-gray-500" />
+            </div>
+            <div className="space-y-3">
+              {dashboardData.recentActivities.map((activity) => (
+                <div
+                  key={activity.id}
+                  className="flex items-center gap-3 p-3 bg-gray-50 rounded-lg"
+                >
+                  {getActivityIcon(activity.type)}
+                  <div className="flex-1">
+                    <p className="text-sm font-medium text-gray-900">
+                      {activity.description}
+                    </p>
+                    <p className="text-xs text-gray-500">
+                      {activity.timestamp.toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      </DashboardLayout>
     </div>
   );
 };
