@@ -28,6 +28,7 @@ import { PrescriptionsPage } from "./features/prescriptions";
 import TestMessagesPage from "./TestMessagesPage";
 import { LabResultsPage, LabResultDetailPage } from "./features/labResults";
 import { LabResultsReviewPage } from "./features/labResultsReview";
+import { AppointmentAnalyticsPage } from "./features/appointmentAnalytics";
 
 function App() {
   return (
@@ -93,6 +94,7 @@ function App() {
 
           {/* Owner view */}
           <Route path="/ownerdash" element={<OwnerDashboard />} />
+          <Route path="/analytics" element={<AppointmentAnalyticsPage />} />
         </Routes>
       </BrowserRouter>
     </div>
