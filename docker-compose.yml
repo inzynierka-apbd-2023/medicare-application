@@ -1,43 +1,41 @@
 version: "3.9"
 
 services:
-  # SQL Server Database
-  mssql-dev:
-    image: mcr.microsoft.com/mssql/server:2022-latest
-    container_name: mssql-dev
-    environment:
-      - ACCEPT_EULA=Y
-      - MSSQL_SA_PASSWORD=YourStrong!Passw0rd
-      - MSSQL_PID=Developer
-    ports:
-      - "1433:1433"
-    volumes:
-      - mssql-data:/var/opt/mssql
-      - ./dev-db/seed:/seed:ro
-    networks:
-      - medicare-network
-    healthcheck:
-      test: ["CMD-SHELL", "/opt/mssql-tools/bin/sqlcmd -S localhost -U sa -P YourStrong!Passw0rd -Q 'SELECT 1'"]
-      interval: 30s
-      timeout: 10s
-      retries: 5
-      start_period: 80s
-
-  # User Service API
+  # User Service API (connects to Azure SQL using AAD Default)
   user-service:
     build:
       context: ./UserService
       dockerfile: Dockerfile
     container_name: user-service
     environment:
-      - ASPNETCORE_ENVIRONMENT=Development
+      - ASPNETCORE_ENVIRONMENT=Test
       - ASPNETCORE_URLS=http://+:8080
-      - ConnectionStrings__DefaultConnection=Server=mssql-dev,1433;Database=MedicareDB;User Id=sa;Password=YourStrong!Passw0rd;TrustServerCertificate=true;Encrypt=false;
+      - ConnectionStrings__DefaultConnection=Server=tcp:medicareapp-dbserver.database.windows.net,1433;Initial Catalog=medicare-db-dev;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;Authentication=Active Directory Default;
+      # Optional: allow EnvironmentCredential if a Service Principal is provided
+      # - AZURE_TENANT_ID=${AZURE_TENANT_ID}
+      # - AZURE_CLIENT_ID=${AZURE_CLIENT_ID}
+      # - AZURE_CLIENT_SECRET=${AZURE_CLIENT_SECRET}
+      # Ensure HOME is set so Azure CLI can find its token cache
+      - HOME=/home/appuser
     ports:
-      - "5001:8080"
+      - "8080:8080"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    # Mount Azure CLI token/cache from host so AzureCliCredential works in the container (local dev only)
+    volumes:
+      - ${HOME}/.azure:/home/appuser/.azure
+
+  # Frontend (Vite build served via Nginx)
+  frontend:
+    build:
+      context: ./frontend-container/medicare-frontend
+      dockerfile: Dockerfile
+    container_name: medicare-frontend
+    ports:
+      - "5173:80"
     depends_on:
-      mssql-dev:
-        condition: service_healthy
+      - user-service
     networks:
       - medicare-network
     restart: unless-stopped
@@ -46,5 +44,4 @@ networks:
   medicare-network:
     driver: bridge
 
-volumes:
-  mssql-data:
+volumes: {}
