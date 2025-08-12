@@ -1,5 +1,5 @@
-export type { AppointmentMetricsCardProps } from "./AppointmentMetricsCard";
-export { AppointmentMetricsCard } from "./AppointmentMetricsCard";
-export type { DoctorPerformanceCardProps } from "./DoctorPerformanceCard";
-export { DoctorPerformanceCard } from "./DoctorPerformanceCard";
-export { default as InteractiveChartsCard } from "./InteractiveChartsCard";
+export { default as AppointmentMetricsCard } from "./AppointmentMetricsCard";
+export { default as AppointmentTrendsCard } from "./AppointmentTrendsCard";
+export { default as DoctorPerformanceCard } from "./DoctorPerformanceCard";
+export { default as SpecializationStatsCard } from "./SpecializationStatsCard";
+export { default as TimeSlotAnalysisCard } from "./TimeSlotAnalysisCard";
