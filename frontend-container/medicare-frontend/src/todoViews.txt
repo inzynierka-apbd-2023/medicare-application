@@ -1,0 +1,94 @@
+RECEPTIONIST ROLE (5 Critical Views)
+1. ReceptionistDashboard
+Path: /receptionistdash
+File: src/features/dashboard/receptionist/ReceptionistDashboard.tsx
+Description: Main dashboard showing daily overview, today's appointments, waiting patients, quick actions, pending tasks, and real-time clinic status
+Key Features: Appointment timeline, patient queue, quick check-in buttons, payment alerts, doctor availability status
+2. PatientRegistration
+Path: /patient-registration
+File: src/features/patientRegistration/PatientRegistrationPage.tsx
+Description: Complete patient intake form for new patients including personal info, insurance, emergency contacts, and medical conditions
+Key Features: Multi-step form, insurance verification, emergency contact addition, medical history intake, profile photo upload
+3. AppointmentBooking
+Path: /book-appointment
+File: src/features/appointmentBooking/AppointmentBookingPage.tsx
+Description: Schedule new appointments with doctor availability, time slot selection, and patient search
+Key Features: Doctor schedule view, time slot picker, patient search/select, appointment type selection, conflict detection
+4. PatientCheckIn
+Path: /patient-checkin
+File: src/features/patientCheckIn/PatientCheckInPage.tsx
+Description: Manage patient arrivals, check-ins, waiting room queue, and appointment status updates
+Key Features: Patient search, check-in confirmation, waiting queue management, doctor notification, appointment status updates
+5. PaymentProcessing
+Path: /payment-processing
+File: src/features/paymentProcessing/PaymentProcessingPage.tsx
+Description: Handle appointment payments, insurance claims, co-pays, and payment history
+Key Features: Payment form, insurance verification, receipt generation, payment history, refund processing
+👨‍⚕️ DOCTOR ROLE (4 Critical Views)
+1. VisitDocumentation
+Path: /visit-documentation
+File: src/features/visitDocumentation/VisitDocumentationPage.tsx
+Description: Document patient visits with symptoms, diagnosis, treatment plans, and follow-up instructions
+Key Features: Visit notes editor, diagnosis selection, treatment planning, follow-up scheduling, document templates
+2. PatientDetailsView
+Path: /patient-details/:patientId
+File: src/features/patientDetails/PatientDetailsPage.tsx
+Description: Comprehensive patient profile with medical history, medications, allergies, past visits, and lab results
+Key Features: Patient timeline, medical history tabs, medication list, allergy alerts, visit history, lab results integration
+3. CreatePrescription
+Path: /create-prescription
+File: src/features/createPrescription/CreatePrescriptionPage.tsx
+Description: Issue prescriptions to patients with medication search, dosage instructions, and pharmacy integration
+Key Features: Medication database search, dosage calculator, drug interaction warnings, prescription printing, pharmacy selection
+4. DoctorScheduleManagement
+Path: /doctor-schedule
+File: src/features/doctorSchedule/DoctorSchedulePage.tsx
+Description: Manage personal schedule, availability, time slots, and appointment conflicts
+Key Features: Calendar view, availability toggle, break scheduling, appointment overview, conflict resolution
+🏥 OWNER/ADMIN ROLE (3 Critical Views)
+1. UserManagement
+Path: /user-management
+File: src/features/userManagement/UserManagementPage.tsx
+Description: Manage all system users including doctors, patients, receptionists with role assignment and permissions
+Key Features: User directory, role management, account activation/deactivation, permission settings, user search/filter
+2. DoctorManagement
+Path: /doctor-management
+File: src/features/doctorManagement/DoctorManagementPage.tsx
+Description: Add, edit, and manage doctors including specializations, schedules, and availability
+Key Features: Doctor profiles, specialization assignment, schedule configuration, performance metrics, doctor onboarding
+3. FinancialOverview
+Path: /financial-overview
+File: src/features/financialOverview/FinancialOverviewPage.tsx
+Description: Revenue tracking, payment analytics, financial reports, and billing management
+Key Features: Revenue dashboard, payment tracking, financial reports, billing analytics, outstanding payments
+👤 PATIENT ROLE (1 Critical View)
+1. MedicalHistory
+Path: /medical-history
+File: src/features/medicalHistory/MedicalHistoryPage.tsx
+Description: Complete medical history view with past visits, diagnoses, treatments, medications, and lab results
+Key Features: Timeline view, visit details, medication history, lab results, diagnosis tracking, downloadable reports
+
+
+
+
+
+          {/* Receptionist Routes */}
+          <Route path="/receptionistdash" element={<ReceptionistDashboard />} />
+          <Route path="/patient-registration" element={<PatientRegistrationPage />} />
+          <Route path="/book-appointment" element={<AppointmentBookingPage />} />
+          <Route path="/patient-checkin" element={<PatientCheckInPage />} />
+          <Route path="/payment-processing" element={<PaymentProcessingPage />} />
+
+          {/* Doctor Routes */}
+          <Route path="/visit-documentation" element={<VisitDocumentationPage />} />
+          <Route path="/patient-details/:patientId" element={<PatientDetailsPage />} />
+          <Route path="/create-prescription" element={<CreatePrescriptionPage />} />
+          <Route path="/doctor-schedule" element={<DoctorSchedulePage />} />
+
+          {/* Owner Routes */}
+          <Route path="/user-management" element={<UserManagementPage />} />
+          <Route path="/doctor-management" element={<DoctorManagementPage />} />
+          <Route path="/financial-overview" element={<FinancialOverviewPage />} />
+
+          {/* Patient Routes */}
+          <Route path="/medical-history" element={<MedicalHistoryPage />} />
