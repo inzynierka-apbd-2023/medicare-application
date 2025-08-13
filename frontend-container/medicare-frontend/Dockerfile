@@ -1,5 +1,7 @@
 # Build stage: compile the Vite React app
 FROM node:20-alpine AS build
+ARG VITE_API_BASE_URL
+ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 WORKDIR /app
 
 # Install dependencies
@@ -9,7 +11,7 @@ RUN npm install --no-audit --no-fund
 
 # Copy source and build
 COPY . .
-RUN npm run build
+RUN echo "Using VITE_API_BASE_URL=$VITE_API_BASE_URL" && npm run build
 
 # Runtime stage: serve static files via Nginx
 FROM nginx:alpine AS runtime

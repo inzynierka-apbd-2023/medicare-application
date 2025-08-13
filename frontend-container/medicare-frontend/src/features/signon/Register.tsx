@@ -1,9 +1,20 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../../shared/auth/AuthContext";
 
-export default function Register() {
-  const [formData, setFormData] = useState({
+interface RegisterFormData {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  password: string;
+  confirmPassword: string;
+}
+
+const Register: React.FC = () => {
+  const [formData, setFormData] = useState<RegisterFormData>({
     firstName: "",
     lastName: "",
     email: "",
@@ -15,35 +26,47 @@ export default function Register() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { register, loading } = useAuth();
   const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
+    setFormData((prev: RegisterFormData) => ({
       ...prev,
       [name]: value,
     }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    setError(null);
 
-    // Basic validation
     if (formData.password !== formData.confirmPassword) {
-      alert("Passwords do not match");
+      setError("Passwords do not match");
       return;
     }
-
     if (!acceptTerms) {
-      alert("Please accept the terms and conditions");
+      setError("Please accept the terms and conditions");
       return;
     }
-
-    console.log("Registration data:", formData);
-    // TODO: integrate with backend registration API
-
-    // For now, redirect to success page
-    navigate("/registration-success");
+    try {
+      // Use email as username for now
+      await register({
+        username: formData.email,
+        email: formData.email,
+        password: formData.password,
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phone,
+        dateOfBirth: formData.dateOfBirth,
+        role: "Patient",
+      });
+      navigate("/registration-success");
+    } catch (err) {
+      // Error handled in context but we set a generic fallback
+      setError((err as any)?.message || "Registration failed");
+    }
   };
 
   return (
@@ -205,8 +228,9 @@ export default function Register() {
             </label>
           </div>
 
-          <button type="submit" className="btn-primary">
-            Create Account
+          {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+          <button type="submit" className="btn-primary" disabled={loading}>
+            {loading ? "Creating..." : "Create Account"}
           </button>
         </form>
 
@@ -221,4 +245,6 @@ export default function Register() {
       </div>
     </div>
   );
-}
+};
+
+export default Register;
