@@ -16,6 +16,16 @@ All notable changes to this project will be documented in this file.
 
 ## 2025-08-13
 
+- feat(catalog): adopt exact LOINC schema (2.81) with full?text index and complete import suite
+  - New exact tables under schema `catalog`: loinc, loinc_map_to, loinc_answer_list, loinc_answer_link, loinc_panel, loinc_panel_item, loinc_consumer_name; full?text index on LongCommonName/Component/ShortName.
+  - Importers for LOINC main, MapTo, Answers (AnswerList + Link), Panels & Forms (with Ordinal and Optionality), and ConsumerName.
+  - Robust purge via TRUNCATE with batched DELETE fallback; 5k batch inserts; release row logged first.
+  - Diagnostics expanded: migrations, schema presence, loinc-stats, mapTo by code, answers by code, panel by code.
+- feat(catalog): widen LOINC columns for full dataset
+  - DefinitionDescription, ExternalCopyrightNotice, Equation ? NVARCHAR(MAX); System ? NVARCHAR(512).
+- fix(catalog): add Description column to catalog.release to unblock diagnostics
+  - Updates loinc-stats to include recent releases without query failures.
+
 - feat(practitioner): add PractitionerService (ASP.NET Core 8 Web API) sharing Azure SQL DB with independent EF Core migrations
   - New service under `backend-container/PractitionerService` with schema `practitioner` and migration history table `practitioner.__EFMigrationsHistory`.
   - Domain: Doctor, Receptionist, Service, Specialization, Doctor_Specialization, Doctor_Schedule; projection view `practitioner.DoctorDirectory` joining `[user].[User_Profile]`.

@@ -1,45 +1,92 @@
 # MedicalCatalogService
 
-Reference data service for clinical conditions and lab test types. Owns schema `catalog` in shared Azure SQL DB with independent EF Core migrations (history table `catalog.__EFMigrationsHistory`).
+Reference data service for ICD?10 and LOINC. Owns schema `catalog` in the shared SQL database with independent EF Core migrations (history table `catalog.__EFMigrationsHistory`).
 
-Endpoints:
+Key features
 
-- GET /api/catalog/conditions?q=
-- GET /api/catalog/lab-tests?q=
-- POST /api/catalog/conditions (JWT)
-- POST /api/catalog/lab-tests (JWT)
+- Exact LOINC schema (2.81) with full?text index on LongCommonName, Component, and ShortName.
+- Streaming CSV/TSV importers with robust parsing, file?level dedupe, and DB?level uniqueness.
+- Fast purge: TRUNCATE with safe whitelist and batched DELETE fallback.
+- Batched writes (~5k rows per batch) and release logging in `catalog.release` (with Description).
+- Diagnostics for schema, migrations, counts, and spot lookups.
+
+Auth
+
+- In Development/Test, import endpoints are open (policy CatalogImport allows anonymous). In other environments, a valid JWT is required.
+
+Endpoints
+
 - GET /api/catalog/icd10?q=
-- POST /api/catalog/import/icd10?version=YYYY-MM-DD[&purge=true] (JWT)
-- GET /api/catalog/loinc?q=
-- POST /api/catalog/import/loinc?version=X.YY[&purge=true] (JWT)
+- POST /api/catalog/import/icd10?version=YYYY-MM-DD[&purge=true]
+- POST /api/catalog/import/loinc?version=2.81[&purge=true] (multipart: file=@Loinc.csv)
+- POST /api/catalog/import/loinc-mapto?version=2.81[&purge=true] (multipart: file=@MapTo.csv)
+- POST /api/catalog/import/loinc-answers?version=2.81[&purge=true] (multipart: answerList=@AnswerList.csv, listLink=@LoincAnswerListLink.csv)
+- POST /api/catalog/import/loinc-panels-and-forms?version=2.81[&purge=true] (multipart: file=@PanelsAndForms.csv)
+- POST /api/catalog/import/loinc-consumer-names?version=2.81[&purge=true] (multipart: file=@ConsumerName.csv)
 - GET /api/catalog/diag/migrations
 - GET /api/catalog/diag/schema
+- GET /api/catalog/diag/loinc-stats
+- GET /api/catalog/diag/loinc-mapto/{code}
+- GET /api/catalog/diag/loinc-answers/{code}
+- GET /api/catalog/diag/loinc-panel/{code}
 
-Docker: listens on 8083.
+Import behavior
 
-ICD-10 Import
+- Auto?detects delimiter (tab/comma), handles quoted fields, skips empty rows and in?file duplicates.
+- Purge deletes existing rows in the target table using TRUNCATE (or batched DELETE fallback) before import.
+- Writes in batches (~5k) to reduce transaction pressure; upserts only when needed where applicable.
+- Records a `catalog.release` row for system="loinc"/"icd10" with the provided `version`.
 
-- Auth: POST /api/catalog/import/icd10 requires a valid JWT. Temporary AllowAnonymous used during bootstrap has been removed.
-- Format: CSV or TSV with headers including at least code and title (or desc/description). Optional columns: effective_from, effective_to, status.
-- Behavior:
-	- Auto-detects delimiter (tab or comma) and parses quoted values correctly.
-	- Skips empty rows and duplicate codes within the same upload.
-	- Upserts existing codes only when values change; use purge=true to clear catalog.icd10 before import.
-	- Records a release row in catalog.release for the provided version.
+LOINC dataset mapping
 
-Scripts
+- Main: `Loinc_2.81/LoincTable/Loinc.csv` ? catalog.loinc (exact fields).
+- MapTo: `Loinc_2.81/LoincTable/MapTo.csv` ? catalog.loinc_map_to.
+- Answers: `Loinc_2.81/AccessoryFiles/AnswerFile/AnswerList.csv` and `LoincAnswerListLink.csv` ? catalog.loinc_answer_list + loinc_answer_link.
+- Panels: `Loinc_2.81/AccessoryFiles/PanelsAndForms/PanelsAndForms.csv` ? catalog.loinc_panel + loinc_panel_item (Ordinal, Optionality captured).
+- Consumer names: `Loinc_2.81/AccessoryFiles/ConsumerName/ConsumerName.csv` ? catalog.loinc_consumer_name.
 
-- scripts/enrich-icd10-csv.ps1: enriches an input CSV to include columns effective_from/effective_to/status. Usage:
-	- powershell -File scripts/enrich-icd10-csv.ps1 -InputPath <in.csv> -OutputPath <out.csv> -EffectiveFrom 2025-10-01 -Status active
-- scripts/convert-icd10-to-csv.ps1: converts a space-delimited text list (code title...) into a CSV with code,title columns.
+Usage examples (Windows CMD)
+
+- Quote URLs with `&` to avoid shell parsing; for multipart fields use the shown names.
+- Main LOINC (purge):
+  
+	```cmd
+	curl -sS -X POST "http://localhost:8083/api/catalog/import/loinc?version=2.81&purge=true" -F "file=@d:/path/Loinc.csv"
+	```
+
+- MapTo:
+  
+	```cmd
+	curl -sS -X POST "http://localhost:8083/api/catalog/import/loinc-mapto?version=2.81&purge=true" -F "file=@d:/path/MapTo.csv"
+	```
+
+- Answers:
+  
+	```cmd
+	curl -sS -X POST "http://localhost:8083/api/catalog/import/loinc-answers?version=2.81&purge=true" -F "answerList=@d:/path/AnswerList.csv" -F "listLink=@d:/path/LoincAnswerListLink.csv"
+	```
+
+- Panels & Forms:
+  
+	```cmd
+	curl -sS -X POST "http://localhost:8083/api/catalog/import/loinc-panels-and-forms?version=2.81&purge=true" -F "file=@d:/path/PanelsAndForms.csv"
+	```
+
+- Consumer names:
+  
+	```cmd
+	curl -sS -X POST "http://localhost:8083/api/catalog/import/loinc-consumer-names?version=2.81&purge=true" -F "file=@d:/path/ConsumerName.csv"
+	```
+
+Docker
+
+- Service listens on 8083 (compose service: medical-catalog-service). On startup in non?prod it applies migrations automatically.
 
 Test data
 
-- testdata/test1.csv and testdata/test2.tsv include edge cases (quotes, commas, Unicode, duplicates) used to validate the importer.
+- See `backend-container/MedicalCatalogService/test-data/` for small sample clips of each LOINC file.
 
-LOINC Import
+Notes
 
-- Auth: POST /api/catalog/import/loinc requires a valid JWT.
-- Use the official LOINC distribution CSV (e.g., LoincTable/Loinc.csv). Required header: LOINC_NUM; optional: COMPONENT, PROPERTY, TIME_ASPCT, SYSTEM, SCALE_TYP, METHOD_TYP, LONG_COMMON_NAME.
-- Behavior mirrors ICD-10 import: CSV/TSV autodetect, quoted-field parsing, in-file duplicate skip, upsert-only-if-changed, optional purge.
-- Sample file: `testdata/loinc_sample.csv`.
+- Full?text index is created via migration outside transactions.
+- Some large text columns are NVARCHAR(MAX); `System` is NVARCHAR(512).
