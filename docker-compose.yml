@@ -67,6 +67,28 @@ services:
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
 
+  medical-catalog-service:
+    build:
+      context: ./backend-container/MedicalCatalogService
+      dockerfile: ${MEDICAL_CATALOG_SERVICE_DOCKERFILE:-MedicalCatalogService/Dockerfile}
+    container_name: medical-catalog-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8083
+      ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+      HOME: /home/appuser
+      USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+    ports:
+      - "8083:8083"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
   frontend:
     build:
       context: ./frontend-container/medicare-frontend
@@ -78,6 +100,7 @@ services:
       - user-service
       - practitioner-service
       - patient-service
+      - medical-catalog-service
     networks:
       - medicare-network
     restart: unless-stopped

@@ -14,6 +14,10 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PatientService", "PatientSe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatientService", "backend-container\PatientService\PatientService\PatientService.csproj", "{F4B1C34E-8B77-41D2-9B1D-630AB4B7D8B2}"
 EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MedicalCatalogService", "MedicalCatalogService", "{B8F1C9D2-3F0F-4A5A-9A4E-2E7C4C14A1B3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MedicalCatalogService", "backend-container\MedicalCatalogService\MedicalCatalogService\MedicalCatalogService.csproj", "{E2A5D0F1-6F48-4F6A-A2A8-1C2E1B2D3C4E}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +36,10 @@ Global
 		{F4B1C34E-8B77-41D2-9B1D-630AB4B7D8B2}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{F4B1C34E-8B77-41D2-9B1D-630AB4B7D8B2}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{F4B1C34E-8B77-41D2-9B1D-630AB4B7D8B2}.Release|Any CPU.Build.0 = Release|Any CPU
+		{E2A5D0F1-6F48-4F6A-A2A8-1C2E1B2D3C4E}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2A5D0F1-6F48-4F6A-A2A8-1C2E1B2D3C4E}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2A5D0F1-6F48-4F6A-A2A8-1C2E1B2D3C4E}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2A5D0F1-6F48-4F6A-A2A8-1C2E1B2D3C4E}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -40,6 +48,7 @@ Global
 		{B0CC8F42-9FF2-5EA5-6B6D-A87EF78CD035} = {C0127DB6-3CA8-EE98-7726-A4993E48C5D4}
 		{A5B3C7E1-7D61-4F0A-9E14-22E43231D2C7} = {8C9B0D34-6B7A-4F1F-9D8C-3F0D9B4E3F11}
 		{F4B1C34E-8B77-41D2-9B1D-630AB4B7D8B2} = {C7E4B9B1-0D6F-4E37-8D82-1B2B19A2C5EF}
+		{E2A5D0F1-6F48-4F6A-A2A8-1C2E1B2D3C4E} = {B8F1C9D2-3F0F-4A5A-9A4E-2E7C4C14A1B3}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {C1B63BEF-6CDF-4D7A-8B95-A3B437538658}
