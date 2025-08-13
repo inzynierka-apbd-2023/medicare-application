@@ -15,6 +15,7 @@ USE_AZURE_DEFAULT_CREDENTIAL=true AZURE_TENANT_ID=... AZURE_CLIENT_ID=... AZURE_
 
 Frontend: <http://localhost:5173>  
 UserService Swagger (dev only): <http://localhost:8080/swagger>
+PractitionerService Swagger (dev only): <http://localhost:8081/swagger>
 
 ## Azure AD Token Auth & Logging Inside Docker
 
@@ -68,11 +69,12 @@ Currently console logging is enabled by default (writes to Docker logs). To enri
    ```csharp
    using Serilog;
    Log.Logger = new LoggerConfiguration()
-     .Enrich.FromLogContext()
-     .WriteTo.Console()
-     .CreateLogger();
+      .Enrich.FromLogContext()
+      .WriteTo.Console()
+      .CreateLogger();
    builder.Host.UseSerilog();
    ```
+
 3. (Optional) Send logs to Azure Monitor / Log Analytics:
    * Add `Serilog.Sinks.AzureAnalytics` or use Azure Diagnostic Settings on the container host / AKS.
 
@@ -131,3 +133,18 @@ docker compose up -d --force-recreate --no-deps user-service
 ---
 
 For further database seed scripts see `docs/sql-seed/`.
+
+## Practitioner Service
+
+`PractitionerService` (under `backend-container/PractitionerService`) owns doctor & receptionist domain data in its own schema `practitioner` inside the shared database. It exposes:
+
+* Doctors catalog & search: `GET /api/doctors?specializationId=&serviceId=&q=`
+* Doctor registration: `POST /api/doctors`
+* Manage doctor specializations: `PUT /api/doctors/{id}/specializations`
+* Manage recurring availability: `PUT /api/doctors/{id}/availability` & fetch via `GET /api/doctors/{id}/availability`
+* Receptionist registry: `POST /api/receptionists`
+* Services & Specializations catalog: `GET /api/catalog/services`, `GET /api/catalog/specializations?serviceId=`
+
+Events (stored in Outbox for future dispatch): `DoctorRegistered`, `DoctorSpecializationUpdated`, `DoctorAvailabilityChanged`, `ReceptionistRegistered`.
+
+The initial migration also creates a simple `practitioner.DoctorDirectory` view (placeholder for a richer projection joining user profile data once cross-service integration is implemented). Each service uses isolated migrations (different schema) to avoid conflicts while sharing the physical Azure SQL database.
