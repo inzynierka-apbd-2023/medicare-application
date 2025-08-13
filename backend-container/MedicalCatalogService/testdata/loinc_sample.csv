@@ -1,3 +1,0 @@
-LOINC_NUM,COMPONENT,PROPERTY,TIME_ASPCT,SYSTEM,SCALE_TYP,METHOD_TYP,LONG_COMMON_NAME
-"718-7","Hemoglobin [Mass/volume] in Blood","MCnc","Pt","Bld","Qn","","Hemoglobin [Mass/volume] in Blood"
-"4548-4","Hematocrit [Volume Fraction] of Blood by Automated count","VF","Pt","Bld","Qn","Automated count","Hematocrit [Volume Fraction] of Blood by Automated count"
