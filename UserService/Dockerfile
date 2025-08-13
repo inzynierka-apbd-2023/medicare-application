@@ -2,7 +2,6 @@
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
 
 # Use the .NET 8 SDK for building
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
@@ -32,27 +31,10 @@ WORKDIR /app
 # Copy the published application
 COPY --from=publish /app/publish .
 
-# Set environment variables
-ENV ASPNETCORE_ENVIRONMENT=Development
 ENV ASPNETCORE_URLS=http://+:8080
 
-# Create a non-root user for security and install curl + Azure CLI (for AAD auth in local Docker)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-  apt-transport-https ca-certificates curl gnupg lsb-release \
-  && rm -rf /var/lib/apt/lists/* \
-  && adduser --disabled-password --home /app --gecos '' appuser \
-  && chown -R appuser /app
-USER appuser
-
-# Install Azure CLI (as appuser, but packages require root; escalate temporarily)
-USER root
-RUN set -eux; \
-    mkdir -p /etc/apt/keyrings; \
-    curl -fsSL https://packages.microsoft.com/keys/microsoft.asc | gpg --dearmor -o /etc/apt/keyrings/microsoft.gpg; \
-    echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/microsoft.gpg] https://packages.microsoft.com/repos/azure-cli/ $(lsb_release -cs) main" > /etc/apt/sources.list.d/azure-cli.list; \
-    apt-get update && apt-get install -y --no-install-recommends azure-cli && rm -rf /var/lib/apt/lists/*; \
-    az version || true; \
-    chown -R appuser /app
+# Create non-root user
+RUN adduser --disabled-password --home /app --gecos '' appuser && chown -R appuser /app
 USER appuser
 
 # Health check
