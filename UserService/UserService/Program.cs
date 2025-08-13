@@ -5,35 +5,52 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using UserService.Data;
 using UserService.Services;
+using UserService.Models;
+using Microsoft.Data.SqlClient;
+using Azure.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container
+// Constants
+const string UseAzureDefaultCredentialKey = "USE_AZURE_DEFAULT_CREDENTIAL";
+const string AuthenticationKeyword = "Authentication";
+const string AdminSeedUsername = "admin";
+
+// Normalize connection early
+var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeConnectionString(builder.Configuration);
+LogConnectionInfo(connectionString, connectionSource);
+
+// Controllers
 builder.Services.AddControllers();
 
-// Configure Entity Framework with Azure SQL + connection resiliency
-var connectionString =
-    builder.Configuration.GetConnectionString("DefaultConnection")
-    ?? builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
-    ?? builder.Configuration["ConnectionStrings__DefaultConnection"]
-    ?? throw new InvalidOperationException("ConnectionStrings:DefaultConnection is not configured.");
+// Database
+if (useAzureDefaultCredential)
+{
+    builder.Services.AddScoped(_ => CreateTokenSqlConnection(connectionString));
+}
 
-builder.Services.AddDbContext<UserDbContext>(options =>
-    options.UseSqlServer(connectionString, sql =>
+builder.Services.AddDbContext<UserDbContext>((sp, options) =>
+{
+    if (useAzureDefaultCredential)
     {
-        sql.EnableRetryOnFailure(maxRetryCount: 5, maxRetryDelay: TimeSpan.FromSeconds(10), errorNumbersToAdd: null);
-    }));
+        var sqlConn = sp.GetRequiredService<SqlConnection>();
+        options.UseSqlServer(sqlConn, sql => sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null));
+    }
+    else
+    {
+        options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null));
+    }
+});
 
-// Configure JWT Authentication
-var jwtSettings = builder.Configuration.GetSection("Jwt");
-var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
-var issuer = jwtSettings["Issuer"] ?? "MedicareApp";
-var audience = jwtSettings["Audience"] ?? "MedicareUsers";
-
+// Auth (JWT)
+var jwt = builder.Configuration.GetSection("Jwt");
+var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
+var issuer = jwt["Issuer"] ?? "MedicareApp";
+var audience = jwt["Audience"] ?? "MedicareUsers";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(options =>
+    .AddJwtBearer(o =>
     {
-        options.TokenValidationParameters = new TokenValidationParameters
+        o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
             ValidateAudience = true,
@@ -45,118 +62,170 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
-// Configure CORS
-builder.Services.AddCors(options =>
+// CORS
+builder.Services.AddCors(o =>
 {
-    options.AddPolicy("DefaultPolicy", policy =>
+    o.AddPolicy("DefaultPolicy", p =>
     {
-        var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] { "*" };
-        policy.WithOrigins(allowedOrigins)
-              .AllowAnyMethod()
-              .AllowAnyHeader()
-              .AllowCredentials();
+        var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? new[] { "*" };
+        p.WithOrigins(allowed).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 
-// Register custom services
+// Services
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
 builder.Services.AddScoped<IJwtService, JwtService>();
 
-// Configure Swagger/OpenAPI
+// Swagger
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo 
-    { 
-        Title = "Medicare User Service API", 
-        Version = "v1",
-        Description = "API for managing users in the Medicare application"
-    });
-
-    // Configure Swagger to use JWT Bearer token
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Medicare User Service API", Version = "v1", Description = "User management API" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Enter 'Bearer' [space] and then your token in the text input below.",
+        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer 12345abcdef'",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
         Scheme = "Bearer"
     });
-
     c.AddSecurityRequirement(new OpenApiSecurityRequirement
     {
         {
             new OpenApiSecurityScheme
             {
-                Reference = new OpenApiReference
-                {
-                    Type = ReferenceType.SecurityScheme,
-                    Id = "Bearer"
-                }
-            },
-            new string[] {}
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            }, Array.Empty<string>()
         }
     });
-
-    // Include XML comments if available
-    var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
-    var xmlPath = Path.Combine(AppContext.BaseDirectory, xmlFile);
-    if (File.Exists(xmlPath))
-    {
-        c.IncludeXmlComments(xmlPath);
-    }
 });
 
-// Add health checks
-builder.Services.AddHealthChecks()
-    .AddDbContextCheck<UserDbContext>();
+// Health checks
+builder.Services.AddHealthChecks().AddDbContextCheck<UserDbContext>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Medicare User Service API V1");
-        c.RoutePrefix = string.Empty; // Makes Swagger UI available at root
-    });
+    app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
-
 app.UseCors("DefaultPolicy");
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.MapControllers();
+app.MapHealthChecks("/health");
 
-// Add health check endpoint with body writer
-app.MapHealthChecks("/health", new Microsoft.AspNetCore.Diagnostics.HealthChecks.HealthCheckOptions
-{
-    ResponseWriter = async (context, report) =>
-    {
-        context.Response.ContentType = "text/plain";
-        await context.Response.WriteAsync(report.Status.ToString());
-    }
-});
-
-// Apply EF Core migrations automatically in non-production environments
 if (!app.Environment.IsProduction())
 {
-    using var scope = app.Services.CreateScope();
-    var context = scope.ServiceProvider.GetRequiredService<UserDbContext>();
-    try
-    {
-        await context.Database.MigrateAsync();
-        Console.WriteLine("Database migrations applied successfully");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"Database migration failed: {ex.Message}");
-    }
+    await ApplyMigrationsAndSeedAsync(app.Services, app.Environment.IsDevelopment());
 }
 
 await app.RunAsync();
+
+// --- Helpers ---
+static (string ConnectionString, string Source, bool UseAzureDefaultCredential) NormalizeConnectionString(IConfiguration config)
+{
+    string? src; string? cs;
+    if (!string.IsNullOrWhiteSpace(config["AZURE_SQL_CONNECTIONSTRING"])) { cs = config["AZURE_SQL_CONNECTIONSTRING"]; src = "AZURE_SQL_CONNECTIONSTRING"; }
+    else if (!string.IsNullOrWhiteSpace(config["ConnectionStrings__DefaultConnection"])) { cs = config["ConnectionStrings__DefaultConnection"]; src = "ConnectionStrings__DefaultConnection env var"; }
+    else { cs = config.GetConnectionString("DefaultConnection"); src = "appsettings"; }
+    if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException("No SQL connection string configured.");
+    var useAzure = string.Equals(config[UseAzureDefaultCredentialKey], "true", StringComparison.OrdinalIgnoreCase);
+    var csb = new SqlConnectionStringBuilder(cs);
+    if (useAzure)
+    {
+        bool modified = false;
+        void R(string k){ if (csb.ContainsKey(k)){ csb.Remove(k); modified = true; } }
+        R("User ID"); R("User"); R("UID"); R("Password"); R("Pwd"); R(AuthenticationKeyword);
+        if (modified) Console.WriteLine("[Startup] Normalized connection string for AAD token (removed credentials / Authentication).");
+    }
+    return (csb.ConnectionString, src!, useAzure);
+}
+
+static void LogConnectionInfo(string conn, string source)
+{
+    try
+    {
+        var csb = new SqlConnectionStringBuilder(conn);
+        var auth = csb.ContainsKey(AuthenticationKeyword) ? csb[AuthenticationKeyword] : "(none)";
+        Console.WriteLine($"[Startup] Using SQL Server connection (source: {source}) -> Server: {csb.DataSource}, Database: {csb.InitialCatalog}, Auth: {auth}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Connection info parse failed: {ex.Message}");
+    }
+}
+
+static SqlConnection CreateTokenSqlConnection(string connectionString)
+{
+    var credential = new DefaultAzureCredential();
+    var conn = new SqlConnection(connectionString)
+    {
+        AccessToken = credential.GetToken(new Azure.Core.TokenRequestContext(new[] { "https://database.windows.net/.default" })).Token
+    };
+    return conn;
+}
+
+static async Task ApplyMigrationsAndSeedAsync(IServiceProvider services, bool isDev)
+{
+    using var scope = services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<UserDbContext>();
+    try
+    {
+        Console.WriteLine("[Startup] Applying EF Core migrations...");
+        await db.Database.MigrateAsync();
+        await SeedRolesAsync(db);
+        if (isDev) await SeedAdminUserIfNoneAsync(db);
+        Console.WriteLine("[Startup] Migrations & seeding complete.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Migration failed: {ex.Message}");
+        if (ex.InnerException != null) Console.WriteLine($"[Startup] Inner: {ex.InnerException.Message}");
+    }
+}
+
+static async Task SeedRolesAsync(UserDbContext db)
+{
+    if (await db.Roles.AnyAsync()) return;
+    Console.WriteLine("[Startup] Seeding roles...");
+    db.Roles.AddRange(
+        new Role { Id = Guid.NewGuid().ToString(), Name = "Admin", Description = "Administrator" },
+        new Role { Id = Guid.NewGuid().ToString(), Name = "Doctor", Description = "Doctor user" },
+        new Role { Id = Guid.NewGuid().ToString(), Name = "Patient", Description = "Patient user" }
+    );
+    await db.SaveChangesAsync();
+}
+
+static async Task SeedAdminUserIfNoneAsync(UserDbContext db)
+{
+    if (await db.Users.AnyAsync()) return;
+    var adminRole = await db.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
+    if (adminRole == null) return;
+    var tempPassword = ($"Adm!n-{Guid.NewGuid():N}").Substring(0, 16);
+    var userId = Guid.NewGuid().ToString();
+    db.Users.Add(new User
+    {
+        Id = userId,
+        Username = AdminSeedUsername,
+        PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
+        RoleId = adminRole.Id,
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow,
+        IsActive = true
+    });
+    db.UserProfiles.Add(new UserProfile
+    {
+        UserId = userId,
+        FirstName = "System",
+        LastName = "Admin",
+        Email = "admin@local.invalid",
+        CreatedAt = DateTime.UtcNow,
+        UpdatedAt = DateTime.UtcNow
+    });
+    await db.SaveChangesAsync();
+    Console.WriteLine($"[Startup] Seeded admin user. Username: {AdminSeedUsername} TempPassword: {tempPassword}");
+}

@@ -1,21 +1,20 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+import { useAuth } from "../../shared/auth/AuthContext";
 
-export default function Login() {
-  const [cardNumber, setCardNumber] = useState("");
-  const [password, setPassword] = useState("");
+const Login: React.FC = () => {
+  const [cardNumber, setCardNumber] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    console.log("Card:", cardNumber);
-    console.log("Password:", password);
+  const { login, loading, error } = useAuth();
 
-    // TODO: integrate with backend authentication API
-    // For now, simulate successful login
-    navigate("/login-success");
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+  await login(cardNumber, password);
+  if (localStorage.getItem("authToken")) navigate("/login-success");
   };
 
   return (
@@ -77,9 +76,11 @@ export default function Login() {
               </button>
             </div>
           </div>
-          <button type="submit" className="auth-submit">
-            Log in
+          {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+          <button type="submit" className="auth-submit" disabled={loading}>
+            {loading ? "Logging in..." : "Log in"}
           </button>
+          {/* API base shown removed to avoid leaking internal URL */}
         </form>
 
         {/* CTA: Choose plan */}
@@ -93,4 +94,6 @@ export default function Login() {
       </div>
     </div>
   );
-}
+};
+
+export default Login;

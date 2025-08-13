@@ -1,0 +1,61 @@
+# Root ignore
+
+# Environment & secrets
+.env
+*.env.local
+.env.*.local
+.azure/
+/home/appuser/.azure
+
+# Node / frontend
+node_modules/
+frontend-container/medicare-frontend/node_modules/
+frontend-container/medicare-frontend/dist/
+frontend-container/medicare-frontend/dist-ssr/
+frontend-container/medicare-frontend/.vite/
+
+# Build outputs
+**/bin/
+**/obj/
+/app/build/
+/app/publish/
+
+# Logs & diagnostics
+*.log
+logs/
+*.trx
+TestResult*/
+
+# Coverage
+coverage/
+**/coverage.lcov
+
+# IDE/editor
+.vscode/
+!.vscode/extensions.json
+.idea/
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Python test artifacts (UserService tests)
+__pycache__/
+*.pyc
+.pytest_cache/
+
+# Generated tokens / temp auth
+admin_token.json
+
+# Misc
+*.swp
+*.lock
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*

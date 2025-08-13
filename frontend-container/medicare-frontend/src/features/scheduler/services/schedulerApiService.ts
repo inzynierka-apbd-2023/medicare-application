@@ -1,4 +1,4 @@
-import axios from "axios";
+import { apiClient as api } from "../../../shared/services/apiClient";
 
 import type {
   Appointment,
@@ -28,39 +28,7 @@ import {
 // Configuration flag to enable/disable mock mode
 const USE_MOCK_DATA = true; // Set to false when connecting to real backend
 
-// Base API configuration
-const API_BASE_URL =
-  import.meta.env.VITE_API_BASE_URL || "http://localhost:5000/api";
-
-const api = axios.create({
-  baseURL: API_BASE_URL,
-  timeout: 10000,
-  headers: {
-    "Content-Type": "application/json",
-  },
-});
-
-// Add auth token to requests
-api.interceptors.request.use((config) => {
-  const token = localStorage.getItem("authToken");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
-  }
-  return config;
-});
-
-// Handle response errors
-api.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Redirect to login or handle unauthorized access
-      localStorage.removeItem("authToken");
-      window.location.href = "/signin";
-    }
-    return Promise.reject(error);
-  }
-);
+// API_BASE_URL imported from shared client; api already configured with auth & error handling.
 
 export class SchedulerApiService {
   // Mock data storage for simulating state changes
