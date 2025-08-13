@@ -3,3 +3,6 @@
 
 # Ignore temporary enriched artifacts if generated elsewhere
 *.enriched.csv
+
+# Ignore local LOINC distribution dumps
+/Loinc_*/

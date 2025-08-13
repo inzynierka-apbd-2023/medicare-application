@@ -75,6 +75,192 @@ public sealed class ImportController : ControllerBase
         return Ok(result);
     }
 
+    [HttpPost("loinc")]
+    [Authorize]
+    [RequestSizeLimit(500_000_000)] // LOINC CSV can be large
+    public async Task<IActionResult> ImportLoinc([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return BadRequest("version is required, e.g., 2.81");
+        if (file == null || file.Length == 0) return BadRequest("file is required");
+
+        using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+
+        var headerLine = await reader.ReadLineAsync();
+        if (headerLine == null) return BadRequest("empty file");
+        var header = GetLoincHeaderInfo(headerLine);
+        if (header == null) return BadRequest("header must include LOINC_NUM and expected columns from the LOINC table");
+
+        if (purge)
+        {
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM [catalog].[loinc]");
+        }
+
+        var existing = await _db.Loinc.AsNoTracking().ToDictionaryAsync(x => x.LoincNum, x => x);
+        var seenThisFile = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+        var toInsert = new List<LoincEntry>(8192);
+        var toUpdate = new List<LoincEntry>(4096);
+        var result = new ImportResult { Version = version };
+
+        string? line;
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            if (!TryBuildLoincRow(line, header, out var row)) { result.Skipped++; continue; }
+            if (!seenThisFile.Add(row.LoincNum)) { result.Skipped++; continue; }
+            UpsertLoincDecision(row, existing, toInsert, toUpdate, result);
+            if (toInsert.Count + toUpdate.Count >= 5000) await FlushLoincAsync(toInsert, toUpdate, result);
+        }
+
+        await FlushLoincAsync(toInsert, toUpdate, result);
+
+        if (!await _db.Releases.AnyAsync(r => r.System == "loinc" && r.Version == version))
+        {
+            _db.Releases.Add(new CatalogRelease { System = "loinc", Version = version, ReleasedOn = DateTime.UtcNow });
+            await _db.SaveChangesAsync();
+        }
+
+        return Ok(result);
+    }
+
+    private sealed class LoincHeaderInfo
+    {
+        public required char Delimiter { get; init; }
+        public required int IdxLoincNum { get; init; }
+        public int IdxComponent { get; init; } = -1;
+        public int IdxProperty { get; init; } = -1;
+        public int IdxTimeAspct { get; init; } = -1;
+        public int IdxSystem { get; init; } = -1;
+        public int IdxScaleTyp { get; init; } = -1;
+        public int IdxMethodTyp { get; init; } = -1;
+        public int IdxLongCommonName { get; init; } = -1;
+    }
+
+    private LoincHeaderInfo? GetLoincHeaderInfo(string header)
+    {
+        // LOINC official CSVs are comma-delimited, but allow TSV for testing
+        var delimiter = header.Contains('\t') ? '\t' : ',';
+        var cols = delimiter == ',' ? SplitCsvLine(header) : header.Split(delimiter);
+
+        int idxNum = Array.FindIndex(cols, h => h.Equals("LOINC_NUM", StringComparison.OrdinalIgnoreCase) || h.Equals("LoincNum", StringComparison.OrdinalIgnoreCase) || h.Equals("Loinc", StringComparison.OrdinalIgnoreCase));
+        if (idxNum < 0) return null;
+        int idxComponent = Array.FindIndex(cols, h => h.Equals("COMPONENT", StringComparison.OrdinalIgnoreCase) || h.Equals("Component", StringComparison.OrdinalIgnoreCase));
+        int idxProperty = Array.FindIndex(cols, h => h.Equals("PROPERTY", StringComparison.OrdinalIgnoreCase) || h.Equals("Property", StringComparison.OrdinalIgnoreCase));
+        int idxTime = Array.FindIndex(cols, h => h.Equals("TIME_ASPCT", StringComparison.OrdinalIgnoreCase) || h.Equals("TimeAspct", StringComparison.OrdinalIgnoreCase));
+        int idxSystem = Array.FindIndex(cols, h => h.Equals("SYSTEM", StringComparison.OrdinalIgnoreCase) || h.Equals("System", StringComparison.OrdinalIgnoreCase));
+        int idxScale = Array.FindIndex(cols, h => h.Equals("SCALE_TYP", StringComparison.OrdinalIgnoreCase) || h.Equals("ScaleTyp", StringComparison.OrdinalIgnoreCase));
+        int idxMethod = Array.FindIndex(cols, h => h.Equals("METHOD_TYP", StringComparison.OrdinalIgnoreCase) || h.Equals("MethodTyp", StringComparison.OrdinalIgnoreCase));
+        int idxLong = Array.FindIndex(cols, h => h.Equals("LONG_COMMON_NAME", StringComparison.OrdinalIgnoreCase) || h.Equals("LongCommonName", StringComparison.OrdinalIgnoreCase));
+
+        return new LoincHeaderInfo
+        {
+            Delimiter = delimiter,
+            IdxLoincNum = idxNum,
+            IdxComponent = idxComponent,
+            IdxProperty = idxProperty,
+            IdxTimeAspct = idxTime,
+            IdxSystem = idxSystem,
+            IdxScaleTyp = idxScale,
+            IdxMethodTyp = idxMethod,
+            IdxLongCommonName = idxLong
+        };
+    }
+
+    private sealed record LoincRow(
+        string LoincNum,
+        string? Component,
+        string? Property,
+        string? TimeAspct,
+        string? System,
+        string? ScaleTyp,
+        string? MethodTyp,
+        string? LongCommonName
+    );
+
+    private static bool TryBuildLoincRow(string line, LoincHeaderInfo h, out LoincRow row)
+    {
+        row = new LoincRow("", null, null, null, null, null, null, null);
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        var cols = h.Delimiter == ',' ? SplitCsvLine(line) : line.Split(h.Delimiter);
+        if (h.IdxLoincNum < 0 || h.IdxLoincNum >= cols.Length) return false;
+        var num = TrimQuotes(cols[h.IdxLoincNum].Trim());
+        if (string.IsNullOrWhiteSpace(num)) return false;
+
+        string? pick(int idx) => (idx >= 0 && idx < cols.Length) ? TrimQuotes(cols[idx].Trim()) : null;
+
+        row = new LoincRow(
+            num,
+            pick(h.IdxComponent),
+            pick(h.IdxProperty),
+            pick(h.IdxTimeAspct),
+            pick(h.IdxSystem),
+            pick(h.IdxScaleTyp),
+            pick(h.IdxMethodTyp),
+            pick(h.IdxLongCommonName)
+        );
+        return true;
+    }
+
+    private static void UpsertLoincDecision(LoincRow row, Dictionary<string, LoincEntry> existing, List<LoincEntry> toInsert, List<LoincEntry> toUpdate, ImportResult result)
+    {
+        if (existing.TryGetValue(row.LoincNum, out var ex))
+        {
+            if ((ex.Component ?? "") != (row.Component ?? "") ||
+                (ex.Property ?? "") != (row.Property ?? "") ||
+                (ex.TimeAspct ?? "") != (row.TimeAspct ?? "") ||
+                (ex.System ?? "") != (row.System ?? "") ||
+                (ex.ScaleTyp ?? "") != (row.ScaleTyp ?? "") ||
+                (ex.MethodTyp ?? "") != (row.MethodTyp ?? "") ||
+                (ex.LongCommonName ?? "") != (row.LongCommonName ?? ""))
+            {
+                ex.Component = row.Component;
+                ex.Property = row.Property;
+                ex.TimeAspct = row.TimeAspct;
+                ex.System = row.System;
+                ex.ScaleTyp = row.ScaleTyp;
+                ex.MethodTyp = row.MethodTyp;
+                ex.LongCommonName = row.LongCommonName;
+                toUpdate.Add(ex);
+            }
+            else
+            {
+                result.Skipped++;
+            }
+        }
+        else
+        {
+            toInsert.Add(new LoincEntry
+            {
+                LoincNum = row.LoincNum,
+                Component = row.Component,
+                Property = row.Property,
+                TimeAspct = row.TimeAspct,
+                System = row.System,
+                ScaleTyp = row.ScaleTyp,
+                MethodTyp = row.MethodTyp,
+                LongCommonName = row.LongCommonName
+            });
+        }
+    }
+
+    private async Task FlushLoincAsync(List<LoincEntry> toInsert, List<LoincEntry> toUpdate, ImportResult result)
+    {
+        if (toInsert.Count > 0)
+        {
+            _db.Loinc.AddRange(toInsert);
+            result.Inserted += toInsert.Count;
+            toInsert.Clear();
+            await _db.SaveChangesAsync();
+        }
+        if (toUpdate.Count > 0)
+        {
+            _db.Loinc.UpdateRange(toUpdate);
+            result.Updated += toUpdate.Count;
+            toUpdate.Clear();
+            await _db.SaveChangesAsync();
+        }
+    }
+
     private HeaderInfo? GetHeaderInfo(string header)
     {
         var delimiter = header.Contains('\t') ? '\t' : ',';

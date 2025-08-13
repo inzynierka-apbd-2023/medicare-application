@@ -10,6 +10,8 @@ Endpoints:
 - POST /api/catalog/lab-tests (JWT)
 - GET /api/catalog/icd10?q=
 - POST /api/catalog/import/icd10?version=YYYY-MM-DD[&purge=true] (JWT)
+- GET /api/catalog/loinc?q=
+- POST /api/catalog/import/loinc?version=X.YY[&purge=true] (JWT)
 - GET /api/catalog/diag/migrations
 - GET /api/catalog/diag/schema
 
@@ -34,3 +36,10 @@ Scripts
 Test data
 
 - testdata/test1.csv and testdata/test2.tsv include edge cases (quotes, commas, Unicode, duplicates) used to validate the importer.
+
+LOINC Import
+
+- Auth: POST /api/catalog/import/loinc requires a valid JWT.
+- Use the official LOINC distribution CSV (e.g., LoincTable/Loinc.csv). Required header: LOINC_NUM; optional: COMPONENT, PROPERTY, TIME_ASPCT, SYSTEM, SCALE_TYP, METHOD_TYP, LONG_COMMON_NAME.
+- Behavior mirrors ICD-10 import: CSV/TSV autodetect, quoted-field parsing, in-file duplicate skip, upsert-only-if-changed, optional purge.
+- Sample file: `testdata/loinc_sample.csv`.
