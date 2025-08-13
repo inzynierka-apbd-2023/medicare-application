@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
+
 import { useAuth } from "../../shared/auth/AuthContext";
 
 interface RegisterFormData {
@@ -65,6 +66,7 @@ const Register: React.FC = () => {
       navigate("/registration-success");
     } catch (err) {
       // Error handled in context but we set a generic fallback
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setError((err as any)?.message || "Registration failed");
     }
   };

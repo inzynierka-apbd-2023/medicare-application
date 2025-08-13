@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
+
 import { useAuth } from "../../shared/auth/AuthContext";
 
 const Login: React.FC = () => {
@@ -13,8 +14,8 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-  await login(cardNumber, password);
-  if (localStorage.getItem("authToken")) navigate("/login-success");
+    await login(cardNumber, password);
+    if (localStorage.getItem("authToken")) navigate("/login-success");
   };
 
   return (

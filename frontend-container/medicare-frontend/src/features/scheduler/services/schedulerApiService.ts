@@ -1,5 +1,4 @@
 import { apiClient as api } from "../../../shared/services/apiClient";
-
 import type {
   Appointment,
   AppointmentStatus,
@@ -38,6 +37,126 @@ export class SchedulerApiService {
   // Helper function to simulate API delay
   private static delay(ms: number = 500): Promise<void> {
     return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  // ===== DOCTOR APPOINTMENTS =====
+
+  /**
+   * Get all appointments for a specific doctor
+   */
+  static async getDoctorAppointments(doctorId: string): Promise<Appointment[]> {
+    await this.delay();
+
+    if (USE_MOCK_DATA) {
+      // Filter appointments for the specific doctor and add populated fields
+      const doctorAppointments = this.appointments
+        .filter((apt) => apt.doctorUserId === doctorId)
+        .map((appointment) => {
+          const result: Appointment = {
+            ...appointment,
+          };
+
+          const patient = mockCurrentPatient; // In real app, fetch patient data
+          const status = mockAppointmentStatuses.find(
+            (s) => s.id === appointment.statusId
+          );
+
+          if (patient) result.patient = patient;
+          if (status) result.status = status;
+
+          return result;
+        });
+
+      return doctorAppointments;
+    }
+
+    try {
+      const response = await api.get(`/doctors/${doctorId}/appointments`);
+      return response.data;
+    } catch (error) {
+      console.error("Error fetching doctor appointments:", error);
+      throw new Error("Failed to fetch doctor appointments");
+    }
+  }
+
+  /**
+   * Update appointment status
+   */
+  static async updateAppointmentStatus(
+    appointmentId: string,
+    statusId: string
+  ): Promise<Appointment> {
+    await this.delay(300);
+
+    if (USE_MOCK_DATA) {
+      const appointmentIndex = this.appointments.findIndex(
+        (apt) => apt.id === appointmentId
+      );
+      if (appointmentIndex === -1) {
+        throw new Error("Appointment not found");
+      }
+
+      this.appointments[appointmentIndex] = {
+        ...this.appointments[appointmentIndex],
+        statusId,
+        updatedAt: new Date().toISOString(),
+      };
+
+      const updatedAppointment = this.appointments[appointmentIndex];
+      const status = mockAppointmentStatuses.find((s) => s.id === statusId);
+
+      if (!status) {
+        throw new Error("Status not found");
+      }
+
+      return {
+        ...updatedAppointment,
+        status,
+      };
+    }
+
+    try {
+      const response = await api.patch(`/appointments/${appointmentId}`, {
+        statusId,
+      });
+      return response.data;
+    } catch (error) {
+      console.error("Error updating appointment status:", error);
+      throw new Error("Failed to update appointment status");
+    }
+  }
+
+  /**
+   * Start virtual consultation (readonly - provides information about external app)
+   */
+  static getVirtualConsultationInfo(appointmentId: string): string {
+    return `Video call for appointment ${appointmentId} should be started in external application (e.g., Microsoft Teams, Zoom, or your organization's preferred video platform)`;
+  }
+
+  /**
+   * Get appointment statistics for a specific date
+   */
+  static getAppointmentStats(appointments: Appointment[], date: string) {
+    const dateString = date.split("T")[0];
+    const dayAppointments = appointments.filter((apt) =>
+      apt.day.startsWith(dateString)
+    );
+
+    return {
+      total: dayAppointments.length,
+      completed: dayAppointments.filter(
+        (apt) => apt.status?.name === "completed"
+      ).length,
+      pending: dayAppointments.filter(
+        (apt) =>
+          apt.status?.name === "confirmed" || apt.status?.name === "pending"
+      ).length,
+      cancelled: dayAppointments.filter(
+        (apt) => apt.status?.name === "cancelled"
+      ).length,
+      noShow: dayAppointments.filter((apt) => apt.status?.name === "no-show")
+        .length,
+    };
   }
 
   // ===== APPOINTMENTS =====
