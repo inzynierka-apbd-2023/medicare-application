@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2025-08-13
+
+- feat(practitioner): add PractitionerService (ASP.NET Core 8 Web API) sharing Azure SQL DB with independent EF Core migrations
+  - New service under `backend-container/PractitionerService` with schema `practitioner` and migration history table `practitioner.__EFMigrationsHistory`.
+  - Domain: Doctor, Receptionist, Service, Specialization, Doctor_Specialization, Doctor_Schedule; projection view `practitioner.DoctorDirectory` joining `[user].[User_Profile]`.
+  - JWT auth, Swagger, health checks, and CORS aligned with UserService; added diagnostics endpoints to list migrations and verify schema.
+  - Non-prod startup auto-migrates and seeds catalogs plus rich test data (idempotent).
+- refactor(userservice): move EF Core tables to schema `[user]` and update PractitionerService view reference
+  - Mapped Role, User, and User_Profile to schema `[user]`; created migration to ensure schema and transfer existing tables from `dbo`.
+  - Added a safe pre-migration SQL guard in UserService startup to CREATE SCHEMA and ALTER SCHEMA transfer if needed before EF queries.
+- fix(cors): correct wildcard + credentials usage across services
+  - Use AllowAnyOrigin without credentials for wildcard; require explicit origins when using credentials.
+- docs(practitioner): add comprehensive README with architecture, setup, endpoints, migrations, and validation steps.
+
 ## 2025-08-11
 
 - build(frontend): add production Dockerfile, Nginx config, and .dockerignore for SPA hosting
