@@ -3,6 +3,8 @@
 Monorepo containing:
 
 * UserService (ASP.NET Core 8 Web API + EF Core + Azure AD token-based SQL auth)
+* PractitionerService (ASP.NET Core 8 Web API + EF Core, isolated practitioner schema and migrations)
+* PatientService (ASP.NET Core 8 Web API + EF Core, isolated patient schema and migrations)
 * Frontend (Vite + React + TypeScript, served via Nginx container)
 
 ## Quick Start (Docker)
@@ -16,6 +18,7 @@ USE_AZURE_DEFAULT_CREDENTIAL=true AZURE_TENANT_ID=... AZURE_CLIENT_ID=... AZURE_
 Frontend: <http://localhost:5173>  
 UserService Swagger (dev only): <http://localhost:8080/swagger>
 PractitionerService Swagger (dev only): <http://localhost:8081/swagger>
+PatientService Swagger (dev only): <http://localhost:8082/swagger>
 
 ## Azure AD Token Auth & Logging Inside Docker
 
@@ -41,17 +44,21 @@ Server=tcp:<your-server>.database.windows.net,1433;Database=<your-db>;Encrypt=Tr
 
 1. Create Service Principal:
 
+
    ```bash
    az ad sp create-for-rbac --name medicare-sql-sp --role Reader --scopes /subscriptions/${SUBSCRIPTION_ID}
    ```
+
    Capture `appId`, `tenant`, `password`.
 2. In Azure SQL (master or target DB), create user mapped to the SP object ID:
+
 
    ```sql
    CREATE USER [medicare-sql-sp] FROM EXTERNAL PROVIDER;
    ALTER ROLE db_datareader ADD MEMBER [medicare-sql-sp];
    ALTER ROLE db_datawriter ADD MEMBER [medicare-sql-sp];
    ```
+
    If migrations need to run, temporarily grant `db_ddladmin` during deployment, then remove it.
 
 ### Enabling Structured Logging
@@ -60,11 +67,14 @@ Currently console logging is enabled by default (writes to Docker logs). To enri
 
 1. Add Serilog (example):
 
+
    ```xml
    <PackageReference Include="Serilog.AspNetCore" Version="8.*" />
    <PackageReference Include="Serilog.Sinks.Console" Version="5.*" />
    ```
+   
 2. In `Program.cs` (before `builder.Build()`):
+
 
    ```csharp
    using Serilog;

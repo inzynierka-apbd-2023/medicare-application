@@ -16,6 +16,11 @@ All notable changes to this project will be documented in this file.
   - Use AllowAnyOrigin without credentials for wildcard; require explicit origins when using credentials.
 - docs(practitioner): add comprehensive README with architecture, setup, endpoints, migrations, and validation steps.
 
+- feat(patient): add PatientService (ASP.NET Core 8) with independent EF Core migrations and patient schema
+  - Domain: Patient, Emergency_Contact, Insurance, Patient_Status; projection view patient.PatientOverview joining [user].[User_Profile].
+  - Endpoints for registration, status changes, emergency contacts, and insurance management; diagnostics and health.
+  - Uses shared Azure SQL DB with separate history table patient.__EFMigrationsHistory; wired into compose, Nginx, and solution.
+
 ## 2025-08-11
 
 - build(frontend): add production Dockerfile, Nginx config, and .dockerignore for SPA hosting
