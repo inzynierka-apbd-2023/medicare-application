@@ -25,6 +25,21 @@ builder.Services.AddHealthChecks().AddDbContextCheck<MedicalCatalogDbContext>();
 builder.Services.AddControllers();
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+builder.Services.AddAuthorization(options =>
+{
+    options.AddPolicy("CatalogImport", policy =>
+    {
+        // In Development, allow anonymous for import endpoints; otherwise require auth
+        if ((builder.Environment?.IsDevelopment() ?? false) || (builder.Environment?.EnvironmentName == "Test"))
+        {
+            policy.RequireAssertion(_ => true);
+        }
+        else
+        {
+            policy.RequireAuthenticatedUser();
+        }
+    });
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

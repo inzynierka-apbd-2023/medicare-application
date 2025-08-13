@@ -1,0 +1,8 @@
+# Ignore bulky local ICD-10 source dumps
+/ICD10-CM Code Descriptions 2025/
+
+# Ignore temporary enriched artifacts if generated elsewhere
+*.enriched.csv
+
+# Ignore local LOINC distribution dumps
+/Loinc_*/

@@ -2,7 +2,29 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2025-08-14
+
+- feat(catalog): add MedicalCatalogService with independent EF Core migrations and schema `catalog`
+  - Entities: Icd10, SnomedConcept, LoincEntry, CptCode, HcpcsCode, CodeMapping, CatalogRelease, plus app-level Medical_Condition and Lab_Test_Type.
+  - Endpoints for browsing/searching and diagnostics; integrated into solution, compose, and reverse proxy at /api/catalog/.
+- feat(catalog/import): robust ICD-10 importer with CSV/TSV autodetect, quoted-field parsing, in-file dedupe, and batched upsert
+  - POST /api/catalog/import/icd10?version=YYYY-MM-DD[&purge=true] now requires JWT; records catalog.release on success.
+  - Skips empty rows and duplicates; upserts only changed rows; optional purge clears catalog.icd10 before import.
+- chore(catalog): add scripts/enrich-icd10-csv.ps1 and scripts/convert-icd10-to-csv.ps1; add testdata for importer edge cases
+  - Enrichment script adds effective_from/effective_to/status columns; test CSV/TSV cover quotes, commas, Unicode, and duplicates.
+  - .gitignore excludes large ICD-10 source folders and enriched artifacts.
+
 ## 2025-08-13
+
+- feat(catalog): adopt exact LOINC schema (2.81) with full?text index and complete import suite
+  - New exact tables under schema `catalog`: loinc, loinc_map_to, loinc_answer_list, loinc_answer_link, loinc_panel, loinc_panel_item, loinc_consumer_name; full?text index on LongCommonName/Component/ShortName.
+  - Importers for LOINC main, MapTo, Answers (AnswerList + Link), Panels & Forms (with Ordinal and Optionality), and ConsumerName.
+  - Robust purge via TRUNCATE with batched DELETE fallback; 5k batch inserts; release row logged first.
+  - Diagnostics expanded: migrations, schema presence, loinc-stats, mapTo by code, answers by code, panel by code.
+- feat(catalog): widen LOINC columns for full dataset
+  - DefinitionDescription, ExternalCopyrightNotice, Equation ? NVARCHAR(MAX); System ? NVARCHAR(512).
+- fix(catalog): add Description column to catalog.release to unblock diagnostics
+  - Updates loinc-stats to include recent releases without query failures.
 
 - feat(practitioner): add PractitionerService (ASP.NET Core 8 Web API) sharing Azure SQL DB with independent EF Core migrations
   - New service under `backend-container/PractitionerService` with schema `practitioner` and migration history table `practitioner.__EFMigrationsHistory`.
