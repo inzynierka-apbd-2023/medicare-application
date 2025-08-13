@@ -16,10 +16,10 @@
     "prepare": "husky"
   },
   "dependencies": {
-    "@fullcalendar/daygrid": "^6.1.17",
+    "@fullcalendar/daygrid": "^6.1.19",
     "@fullcalendar/google-calendar": "^6.1.17",
-    "@fullcalendar/react": "^6.1.17",
-    "@fullcalendar/timegrid": "^6.1.17",
+    "@fullcalendar/react": "^6.1.19",
+    "@fullcalendar/timegrid": "^6.1.19",
     "@tailwindcss/postcss": "^4.1.5",
     "@tailwindcss/vite": "^4.1.5",
     "@tanstack/react-query": "^5.75.4",
