@@ -108,11 +108,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         eventDisplay="block"
         dayHeaderFormat={{ weekday: "short" }}
         slotMinTime="08:00:00"
-        slotMaxTime="18:00:00"
+        slotMaxTime="17:00:00"
         allDaySlot={false}
         businessHours={{
           daysOfWeek: [1, 2, 3, 4, 5], // Monday to Friday
-          startTime: "09:00",
+          startTime: "08:00",
           endTime: "17:00",
         }}
         slotDuration="00:30:00"

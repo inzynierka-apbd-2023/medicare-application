@@ -9,6 +9,7 @@ import {
 } from "../../../shared/components";
 import { useLoadingService } from "../../../shared/hooks/useLoadingService";
 import { patientDashboardApi } from "../../../shared/services/dashboardApi";
+import useScheduler from "../../scheduler/hooks/useScheduler";
 import {
   DashboardCard,
   DashboardLayout,
@@ -16,10 +17,13 @@ import {
   DocumentsList,
   type Notification,
   NotificationsList,
-  ScheduleCard,
 } from "../shared/components";
 
-import { QuickActionsCard, UpcomingAppointmentsCard } from "./components";
+import {
+  DashboardScheduleView,
+  QuickActionsCard,
+  UpcomingAppointmentsCard,
+} from "./components";
 
 export default function PatientDashboard() {
   const navigate = useNavigate();
@@ -30,28 +34,39 @@ export default function PatientDashboard() {
   const { isLoading, error, clearError, executeInitialLoad, executeQuietly } =
     useLoadingService();
 
-  // Mock data for appointments
-  const mockAppointments = [
-    {
-      id: "1",
-      doctorName: "Smith",
-      specialty: "Cardiology",
-      date: new Date(Date.now() + 24 * 60 * 60 * 1000),
-      time: "10:00 AM",
-      type: "in-person" as const,
-      location: "Room 205, Main Building",
-      status: "upcoming" as const,
-    },
-    {
-      id: "2",
-      doctorName: "Johnson",
-      specialty: "General Medicine",
-      date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000),
-      time: "2:30 PM",
-      type: "phone" as const,
-      status: "upcoming" as const,
-    },
-  ];
+  // Get current patient ID (this would come from auth context in real app)
+  const currentPatientId = "current-patient-id"; // Replace with actual patient ID
+
+  // Initialize scheduler for read-only dashboard view
+  const { appointments } = useScheduler({
+    patientId: currentPatientId,
+  });
+
+  // Convert scheduler appointments to dashboard format for compatibility
+  const dashboardAppointments = appointments.map((apt) => ({
+    id: apt.id,
+    doctorName: apt.doctor
+      ? `${apt.doctor.firstName} ${apt.doctor.lastName}`
+      : "Unknown Doctor",
+    specialty: apt.doctor?.specializations[0]?.name || "General",
+    date: new Date(apt.day),
+    time: apt.timeSlot?.startDateTime
+      ? new Date(apt.timeSlot.startDateTime).toLocaleTimeString([], {
+          hour: "2-digit",
+          minute: "2-digit",
+        })
+      : "Time TBD",
+    type: (apt.appointmentType === "virtual"
+      ? "phone"
+      : apt.appointmentType) as "in-person" | "phone",
+    ...(apt.room && { location: apt.room }),
+    status:
+      apt.status?.name === "Cancelled"
+        ? ("cancelled" as const)
+        : apt.status?.name === "Completed"
+          ? ("completed" as const)
+          : ("upcoming" as const),
+  }));
 
   // Fetch dashboard data on component mount
   useEffect(() => {
@@ -158,16 +173,12 @@ export default function PatientDashboard() {
             <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
               {/* Left Column - Schedule, Appointments and Quick Actions */}
               <div className="w-full md:w-3/4 space-y-6">
-                <ScheduleCard title="Your Schedule">
-                  <div className="p-4 text-center text-gray-500">
-                    Calendar functionality will be implemented soon
-                  </div>
-                </ScheduleCard>
+                <DashboardScheduleView appointments={appointments} />
 
                 {/* Centered Appointments and Quick Actions */}
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   <UpcomingAppointmentsCard
-                    appointments={mockAppointments}
+                    appointments={dashboardAppointments}
                     onBookNew={handleBookAppointment}
                     onViewAll={() => navigate("/appointments")}
                   />

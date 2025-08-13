@@ -1,0 +1,59 @@
+/* Dashboard Calendar Styles */
+.dashboard-calendar .fc-event {
+  border-radius: 4px;
+  border: none;
+  padding: 2px;
+  font-size: 11px;
+}
+
+.dashboard-calendar .fc-event-title {
+  font-weight: 600;
+}
+
+.dashboard-calendar .fc-daygrid-event {
+  border-radius: 4px;
+  margin: 1px;
+}
+
+.dashboard-calendar .fc-header-toolbar {
+  margin-bottom: 1rem;
+}
+
+.dashboard-calendar .fc-button {
+  background-color: #3b82f6;
+  border-color: #3b82f6;
+  color: white;
+  font-size: 12px;
+  padding: 4px 8px;
+}
+
+.dashboard-calendar .fc-button:hover {
+  background-color: #2563eb;
+  border-color: #2563eb;
+}
+
+.dashboard-calendar .fc-button:focus {
+  box-shadow: 0 0 0 2px #93c5fd;
+}
+
+.dashboard-calendar .fc-today {
+  background-color: #f0f9ff !important;
+}
+
+.dashboard-calendar .fc-day-number {
+  color: #374151;
+  font-weight: 500;
+}
+
+/* Emphasize business hours in time grid views */
+.dashboard-calendar .fc-slot[data-time^="08:"], 
+.dashboard-calendar .fc-slot[data-time^="09:"], 
+.dashboard-calendar .fc-slot[data-time^="10:"], 
+.dashboard-calendar .fc-slot[data-time^="11:"], 
+.dashboard-calendar .fc-slot[data-time^="12:"], 
+.dashboard-calendar .fc-slot[data-time^="13:"], 
+.dashboard-calendar .fc-slot[data-time^="14:"], 
+.dashboard-calendar .fc-slot[data-time^="15:"], 
+.dashboard-calendar .fc-slot[data-time^="16:"] {
+  background-color: #f8fafc;
+}

@@ -233,8 +233,8 @@ export const generateMockTimeSlots = (): TimeSlot[] => {
     // Skip weekends for most doctors
     if (date.getDay() === 0 || date.getDay() === 6) continue;
 
-    // Generate time slots from 9 AM to 5 PM
-    for (let hour = 9; hour < 17; hour++) {
+    // Generate time slots from 8 AM to 5 PM
+    for (let hour = 8; hour < 17; hour++) {
       for (let minute = 0; minute < 60; minute += 30) {
         mockDoctors.forEach((doctor) => {
           // Create some variation in availability
@@ -274,7 +274,7 @@ export const generateMockAppointments = (): Appointment[] => {
   for (let i = 1; i <= 5; i++) {
     const pastDate = new Date(today);
     pastDate.setDate(today.getDate() - i * 7); // Weekly past appointments
-    pastDate.setHours(10 + i, 0, 0, 0);
+    pastDate.setHours(8 + i, 0, 0, 0);
 
     const endDate = new Date(pastDate);
     endDate.setMinutes(pastDate.getMinutes() + 30);
@@ -301,7 +301,7 @@ export const generateMockAppointments = (): Appointment[] => {
   for (let i = 1; i <= 8; i++) {
     const futureDate = new Date(today);
     futureDate.setDate(today.getDate() + i * 3); // Every 3 days
-    futureDate.setHours(9 + ((i * 2) % 8), (i % 2) * 30, 0, 0);
+    futureDate.setHours(8 + ((i * 2) % 9), (i % 2) * 30, 0, 0);
 
     const endDate = new Date(futureDate);
     endDate.setMinutes(futureDate.getMinutes() + 30);
@@ -358,7 +358,7 @@ export const mockDoctorSchedules: DoctorSchedule[] = [
     id: "schedule-1-1",
     doctorId: "doctor-1",
     dayOfWeek: 1, // Monday
-    startTime: "09:00",
+    startTime: "08:00",
     endTime: "17:00",
     isAvailable: true,
     validFrom: "2025-01-01",
@@ -370,7 +370,7 @@ export const mockDoctorSchedules: DoctorSchedule[] = [
     id: "schedule-1-3",
     doctorId: "doctor-1",
     dayOfWeek: 3, // Wednesday
-    startTime: "09:00",
+    startTime: "08:00",
     endTime: "17:00",
     isAvailable: true,
     validFrom: "2025-01-01",
@@ -382,7 +382,7 @@ export const mockDoctorSchedules: DoctorSchedule[] = [
     id: "schedule-1-5",
     doctorId: "doctor-1",
     dayOfWeek: 5, // Friday
-    startTime: "09:00",
+    startTime: "08:00",
     endTime: "15:00",
     isAvailable: true,
     validFrom: "2025-01-01",
