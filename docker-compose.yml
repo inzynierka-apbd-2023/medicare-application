@@ -23,6 +23,28 @@ services:
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
 
+  practitioner-service:
+    build:
+      context: ./backend-container/PractitionerService
+      dockerfile: ${PRACTITIONER_SERVICE_DOCKERFILE:-Dockerfile}
+    container_name: practitioner-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8081
+      ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+      HOME: /home/appuser
+      USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+    ports:
+      - "8081:8081"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
   frontend:
     build:
       context: ./frontend-container/medicare-frontend
@@ -32,6 +54,7 @@ services:
       - "5173:80"
     depends_on:
       - user-service
+      - practitioner-service
     networks:
       - medicare-network
     restart: unless-stopped
