@@ -43,7 +43,7 @@ namespace UserService.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Role");
+                    b.ToTable("Role", "user");
                 });
 
             modelBuilder.Entity("UserService.Models.User", b =>
@@ -98,7 +98,7 @@ namespace UserService.Migrations
                         .IsUnique()
                         .HasFilter("[Username] IS NOT NULL");
 
-                    b.ToTable("User");
+                    b.ToTable("User", "user");
                 });
 
             modelBuilder.Entity("UserService.Models.UserProfile", b =>
@@ -191,7 +191,7 @@ namespace UserService.Migrations
                     b.HasIndex("Email")
                         .IsUnique();
 
-                    b.ToTable("User_Profile");
+                    b.ToTable("User_Profile", "user");
                 });
 
             modelBuilder.Entity("UserService.Models.User", b =>

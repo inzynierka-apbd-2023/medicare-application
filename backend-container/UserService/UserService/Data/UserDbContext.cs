@@ -14,10 +14,12 @@ public class UserDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+    const string SysUtc = "SYSUTCDATETIME()";
 
         // Configure Role entity
         modelBuilder.Entity<Role>(entity =>
         {
+            entity.ToTable("Role", schema: "user");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
         });
@@ -25,10 +27,11 @@ public class UserDbContext : DbContext
         // Configure User entity
         modelBuilder.Entity<User>(entity =>
         {
+            entity.ToTable("User", schema: "user");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.Id).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql(SysUtc);
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql(SysUtc);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
             
             entity.HasOne(e => e.Role)
@@ -45,9 +48,10 @@ public class UserDbContext : DbContext
         // Configure UserProfile entity
         modelBuilder.Entity<UserProfile>(entity =>
         {
+            entity.ToTable("User_Profile", schema: "user");
             entity.HasKey(e => e.UserId);
-            entity.Property(e => e.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
-            entity.Property(e => e.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql(SysUtc);
+            entity.Property(e => e.UpdatedAt).HasDefaultValueSql(SysUtc);
             
             entity.HasIndex(e => e.Email).IsUnique();
         });

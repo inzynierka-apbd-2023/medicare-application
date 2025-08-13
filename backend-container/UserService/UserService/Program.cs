@@ -8,6 +8,7 @@ using UserService.Services;
 using UserService.Models;
 using Microsoft.Data.SqlClient;
 using Azure.Identity;
+using Microsoft.EntityFrameworkCore.Infrastructure;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -34,11 +35,19 @@ builder.Services.AddDbContext<UserDbContext>((sp, options) =>
     if (useAzureDefaultCredential)
     {
         var sqlConn = sp.GetRequiredService<SqlConnection>();
-        options.UseSqlServer(sqlConn, sql => sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null));
+        options.UseSqlServer(sqlConn, sql =>
+        {
+            sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+            sql.MigrationsHistoryTable("__EFMigrationsHistory", null);
+        });
     }
     else
     {
-        options.UseSqlServer(connectionString, sql => sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null));
+        options.UseSqlServer(connectionString, sql =>
+        {
+            sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+            sql.MigrationsHistoryTable("__EFMigrationsHistory", null);
+        });
     }
 });
 
@@ -176,6 +185,19 @@ static async Task ApplyMigrationsAndSeedAsync(IServiceProvider services, bool is
     try
     {
         Console.WriteLine("[Startup] Applying EF Core migrations...");
+        // Pre-migration safeguard: ensure [user] schema exists and transfer tables if still under dbo.
+        var transferSql = @"IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'user') EXEC('CREATE SCHEMA [user]');
+IF OBJECT_ID('[dbo].[Role]', 'U') IS NOT NULL AND OBJECT_ID('[user].[Role]', 'U') IS NULL ALTER SCHEMA [user] TRANSFER [dbo].[Role];
+IF OBJECT_ID('[dbo].[User]', 'U') IS NOT NULL AND OBJECT_ID('[user].[User]', 'U') IS NULL ALTER SCHEMA [user] TRANSFER [dbo].[User];
+IF OBJECT_ID('[dbo].[User_Profile]', 'U') IS NOT NULL AND OBJECT_ID('[user].[User_Profile]', 'U') IS NULL ALTER SCHEMA [user] TRANSFER [dbo].[User_Profile];";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(transferSql);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Startup] Pre-migration transfer warning: {ex.Message}");
+        }
         await db.Database.MigrateAsync();
         await SeedRolesAsync(db);
         if (isDev) await SeedAdminUserIfNoneAsync(db);
