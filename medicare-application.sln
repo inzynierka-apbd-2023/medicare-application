@@ -14,6 +14,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "PatientService", "PatientSe
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatientService", "backend-container\PatientService\PatientService\PatientService.csproj", "{F4B1C34E-8B77-41D2-9B1D-630AB4B7D8B2}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DocumentsService", "backend-container\DocumentsService\DocumentsService\DocumentsService.csproj", "{0D5B7A7C-1234-4A1B-9D8C-ABCD1234EF56}"
+EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "MedicalCatalogService", "MedicalCatalogService", "{B8F1C9D2-3F0F-4A5A-9A4E-2E7C4C14A1B3}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MedicalCatalogService", "backend-container\MedicalCatalogService\MedicalCatalogService\MedicalCatalogService.csproj", "{E2A5D0F1-6F48-4F6A-A2A8-1C2E1B2D3C4E}"
