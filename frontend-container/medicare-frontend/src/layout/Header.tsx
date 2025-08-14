@@ -38,6 +38,7 @@ export default function Header() {
     { name: "Lab Results", path: "/lab-results" },
     { name: "Lab Review", path: "/lab-results-review" },
     { name: "Prescriptions", path: "/prescriptions" },
+    { name: "Staff Management", path: "/staff-management" },
   ];
 
   const linkClasses =

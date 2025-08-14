@@ -31,6 +31,7 @@ import { ProtectedRoute } from "./shared/auth/ProtectedRoute";
 import { LabResultsPage, LabResultDetailPage } from "./features/labResults";
 import { LabResultsReviewPage } from "./features/labResultsReview";
 import { AppointmentAnalyticsPage } from "./features/appointmentAnalytics";
+import { StaffManagementPage } from "./features/staffManagement";
 
 function App() {
   return (
@@ -59,7 +60,7 @@ function App() {
             {/* Patient view */}
             {/* <Route path="/dashboard" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} /> */}
             <Route path="/dashboard" element={<PatientDashboard />} />
-            {/* <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} /> */}
+            {/* <Route path="/messages" element={<ProtectedRoute><TestMessagesPage /></ProtectedRoute>} /> */}
             <Route path="/messages" element={<TestMessagesPage />} />
             {/* <Route path="/scheduler" element={<ProtectedRoute><SchedulerPage /></ProtectedRoute>} /> */}
             <Route path="/scheduler" element={<SchedulerPage />} />
@@ -118,6 +119,8 @@ function App() {
             <Route path="/ownerdash" element={<OwnerDashboard />} />
             {/* <Route path="/analytics" element={<ProtectedRoute><AppointmentAnalyticsPage /></ProtectedRoute>} /> */}
             <Route path="/analytics" element={<AppointmentAnalyticsPage />} />
+            {/* <Route path="/staff-management" element={<ProtectedRoute><StaffManagementPage /></ProtectedRoute>} /> */}
+            <Route path="/staff-management" element={<StaffManagementPage />} />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
