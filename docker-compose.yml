@@ -89,6 +89,29 @@ services:
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
 
+  documents-service:
+    build:
+      context: ./backend-container/DocumentsService
+      dockerfile: Dockerfile
+    container_name: documents-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8084
+      ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+      HOME: /home/appuser
+      USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
+      DOCUMENTS_BYPASS_AUTH: "true"
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+    ports:
+      - "8084:8084"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
   frontend:
     build:
       context: ./frontend-container/medicare-frontend
@@ -101,6 +124,7 @@ services:
       - practitioner-service
       - patient-service
       - medical-catalog-service
+      - documents-service
     networks:
       - medicare-network
     restart: unless-stopped
