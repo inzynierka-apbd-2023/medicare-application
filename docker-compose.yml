@@ -89,6 +89,29 @@ services:
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
 
+  billing-service:
+    build:
+      context: ./backend-container/BillingService
+      dockerfile: Dockerfile
+    container_name: billing-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8085
+      ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+      HOME: /home/appuser
+      USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
+      BILLING_BYPASS_AUTH: "true"
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+    ports:
+      - "8085:8085"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
   documents-service:
     build:
       context: ./backend-container/DocumentsService
@@ -125,6 +148,7 @@ services:
       - patient-service
       - medical-catalog-service
       - documents-service
+      - billing-service
     networks:
       - medicare-network
     restart: unless-stopped
