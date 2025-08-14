@@ -16,6 +16,7 @@ public class MedicalCatalogDbContext : DbContext
     public DbSet<LoincPanel> LoincPanel => Set<LoincPanel>();
     public DbSet<LoincPanelItem> LoincPanelItem => Set<LoincPanelItem>();
     public DbSet<LoincConsumerName> LoincConsumerName => Set<LoincConsumerName>();
+    public DbSet<AtcEntry> Atc => Set<AtcEntry>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -131,6 +132,19 @@ public class MedicalCatalogDbContext : DbContext
             e.Property(x => x.ConsumerName).HasMaxLength(255).IsRequired();
             e.Property(x => x.Language).HasMaxLength(20);
             e.HasIndex(x => new { x.LoincNum, x.ConsumerName, x.Language }).IsUnique();
+        });
+
+        modelBuilder.Entity<AtcEntry>(e =>
+        {
+            e.ToTable("atc", schema: "catalog");
+            e.HasKey(x => x.AtcCode);
+            e.Property(x => x.AtcCode).HasMaxLength(10);
+            e.Property(x => x.AtcName).HasMaxLength(500).IsRequired();
+            e.Property(x => x.Ddd).HasColumnType("decimal(18,4)");
+            e.Property(x => x.Uom).HasMaxLength(50);
+            e.Property(x => x.AdmR).HasMaxLength(50);
+            e.Property(x => x.Note).HasMaxLength(1000);
+            e.HasIndex(x => x.AtcName);
         });
     }
 }

@@ -28,6 +28,7 @@ public class DiagnosticsController : ControllerBase
             "catalog.icd10",
             "catalog.loinc",
             "catalog.release",
+            "catalog.atc",
             "catalog.loinc_map_to",
             "catalog.loinc_answer_list",
             "catalog.loinc_answer_link",

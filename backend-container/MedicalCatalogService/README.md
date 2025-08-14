@@ -1,6 +1,6 @@
 # MedicalCatalogService
 
-Reference data service for ICD?10 and LOINC. Owns schema `catalog` in the shared SQL database with independent EF Core migrations (history table `catalog.__EFMigrationsHistory`).
+Reference data service for ICD?10, LOINC, and ATC/DDD. Owns schema `catalog` in the shared SQL database with independent EF Core migrations (history table `catalog.__EFMigrationsHistory`).
 
 Key features
 
@@ -19,6 +19,7 @@ Endpoints
 - GET /api/catalog/icd10?q=
 - POST /api/catalog/import/icd10?version=YYYY-MM-DD[&purge=true]
 - POST /api/catalog/import/loinc?version=2.81[&purge=true] (multipart: file=@Loinc.csv)
+- POST /api/catalog/import/atc?version=2024-07-31[&purge=true] (multipart: file=@WHO-ATC-DDD.csv)
 - POST /api/catalog/import/loinc-mapto?version=2.81[&purge=true] (multipart: file=@MapTo.csv)
 - POST /api/catalog/import/loinc-answers?version=2.81[&purge=true] (multipart: answerList=@AnswerList.csv, listLink=@LoincAnswerListLink.csv)
 - POST /api/catalog/import/loinc-panels-and-forms?version=2.81[&purge=true] (multipart: file=@PanelsAndForms.csv)
@@ -26,6 +27,9 @@ Endpoints
 - GET /api/catalog/diag/migrations
 - GET /api/catalog/diag/schema
 - GET /api/catalog/diag/loinc-stats
+ATC
+
+- GET /api/catalog/atc?q=
 - GET /api/catalog/diag/loinc-mapto/{code}
 - GET /api/catalog/diag/loinc-answers/{code}
 - GET /api/catalog/diag/loinc-panel/{code}
@@ -68,15 +72,21 @@ Usage examples (Windows CMD)
 
 - Panels & Forms:
   
-	```cmd
-	curl -sS -X POST "http://localhost:8083/api/catalog/import/loinc-panels-and-forms?version=2.81&purge=true" -F "file=@d:/path/PanelsAndForms.csv"
-	```
+		```cmd
+		curl -sS -X POST "http://localhost:8083/api/catalog/import/loinc-panels-and-forms?version=2.81&purge=true" -F "file=@d:/path/PanelsAndForms.csv"
+		```
 
 - Consumer names:
   
-	```cmd
-	curl -sS -X POST "http://localhost:8083/api/catalog/import/loinc-consumer-names?version=2.81&purge=true" -F "file=@d:/path/ConsumerName.csv"
-	```
+		```cmd
+		curl -sS -X POST "http://localhost:8083/api/catalog/import/loinc-consumer-names?version=2.81&purge=true" -F "file=@d:/path/ConsumerName.csv"
+		```
+
+	- ATC/DDD:
+
+		```cmd
+		curl -sS -X POST "http://localhost:8083/api/catalog/import/atc?version=2024-07-31&purge=true" -F "file=@d:/path/WHO ATC-DDD 2024-07-31.csv"
+		```
 
 Docker
 

@@ -6,3 +6,9 @@
 
 # Ignore local LOINC distribution dumps
 /Loinc_*/
+
+# Ignore local WHO ATC/DDD distribution dumps
+/ATC/
+
+# Ignore accidental alt sample folder (we use test-data/ instead)
+/testdata/

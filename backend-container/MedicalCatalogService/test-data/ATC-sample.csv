@@ -1,0 +1,6 @@
+atc_code,atc_name,ddd,uom,adm_r,note
+A,Alimentary tract and metabolism,,,,
+A10,Drugs used in diabetes,,,,
+A10BA02,Metformin,2.000,gm,O,
+C,CARDIOVASCULAR SYSTEM,,,,
+C07AB02,Metoprolol,0.150,gm,O,

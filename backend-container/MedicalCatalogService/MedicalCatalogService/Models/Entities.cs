@@ -122,3 +122,20 @@ public class LoincConsumerName
     [Required, MaxLength(255)] public string ConsumerName { get; set; } = default!;
     [MaxLength(20)] public string? Language { get; set; }
 }
+
+// WHO ATC/DDD entries
+public class AtcEntry
+{
+    [Key]
+    [MaxLength(10)]
+    public string AtcCode { get; set; } = default!; // e.g., A10BA02
+    [Required, MaxLength(500)]
+    public string AtcName { get; set; } = default!;
+    public decimal? Ddd { get; set; } // Defined Daily Dose (nullable)
+    [MaxLength(50)]
+    public string? Uom { get; set; } // Unit of measure (mg, ml, etc.)
+    [MaxLength(50)]
+    public string? AdmR { get; set; } // Administration route code (e.g., O)
+    [MaxLength(1000)]
+    public string? Note { get; set; }
+}
