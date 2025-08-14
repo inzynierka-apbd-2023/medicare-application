@@ -17,7 +17,7 @@ import { ProfilePage } from "./features/profile";
 import PatientDashboard from "./features/dashboard/patient/PatientDashboard";
 import DoctorDashboard from "./features/dashboard/doctor/DoctorDashboard";
 import { OwnerDashboard } from "./features/dashboard/owner";
-import { SchedulerPage } from "./features/scheduler";
+import { SchedulerPage, DoctorSchedulerPage } from "./features/scheduler";
 import { DocumentsPage } from "./features/documents";
 import { WalletPage, SubscriptionPage } from "./features/wallet";
 import { AppointmentsPage } from "./features/appointments";
@@ -92,6 +92,8 @@ function App() {
             {/* Doctor view */}
             {/* <Route path="/dctdash" element={<ProtectedRoute><DoctorDashboard /></ProtectedRoute>} /> */}
             <Route path="/dctdash" element={<DoctorDashboard />} />
+            {/* Doctor Scheduler - Read-only schedule view */}
+            <Route path="/doctor/scheduler" element={<DoctorSchedulerPage />} />
             {/* <Route path="/patientlist" element={<ProtectedRoute><PatientListPage /></ProtectedRoute>} /> */}
             <Route path="/patientlist" element={<PatientListPage />} />
             {/* <Route path="/todays-appointments" element={<ProtectedRoute><TodaysAppointmentsPage /></ProtectedRoute>} /> */}
