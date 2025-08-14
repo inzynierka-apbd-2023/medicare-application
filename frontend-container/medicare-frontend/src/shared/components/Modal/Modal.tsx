@@ -46,7 +46,7 @@ const Modal: React.FC<ModalProps> = ({
       />
 
       {/* Modal */}
-      <div className="fixed inset-0 flex items-center justify-center z-50 p-4">
+      <div className="fixed inset-0 flex items-center justify-center z-50 p-4 pt-20">
         <div
           className={`bg-white rounded-2xl shadow-lg w-full ${sizeClasses[size]} relative ${className} flex flex-col`}
         >
