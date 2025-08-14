@@ -37,53 +37,88 @@ function App() {
     <div className="min-h-screen bg-gray-100">
       <BrowserRouter>
         <AuthProvider>
-        <Routes>
-          {/* Authentication routes */}
-          <Route path="/" element={<Login />} />
-          <Route path="/login" element={<Login />} />
-          <Route path="/register" element={<Register />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/forgot-card" element={<ForgotCardNumber />} />
-          <Route path="/choose-plan" element={<PlanSelection />} />
-          <Route path="/subscription-view" element={<SubscriptionView />} />
-          <Route path="/login-success" element={<LoginSuccess />} />
-          <Route
-            path="/registration-success"
-            element={<RegistrationSuccess />}
-          />
-          <Route
-            path="/password-reset-success"
-            element={<PasswordResetSuccess />}
-          />
+          <Routes>
+            {/* Authentication routes */}
+            <Route path="/" element={<PatientDashboard />} />
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/forgot-card" element={<ForgotCardNumber />} />
+            <Route path="/choose-plan" element={<PlanSelection />} />
+            <Route path="/subscription-view" element={<SubscriptionView />} />
+            <Route path="/login-success" element={<LoginSuccess />} />
+            <Route
+              path="/registration-success"
+              element={<RegistrationSuccess />}
+            />
+            <Route
+              path="/password-reset-success"
+              element={<PasswordResetSuccess />}
+            />
 
-          {/* Patient view */}
-          <Route path="/dashboard" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} />
-          <Route path="/messages" element={<ProtectedRoute><TestMessagesPage /></ProtectedRoute>} />
-          <Route path="/scheduler" element={<ProtectedRoute><SchedulerPage /></ProtectedRoute>} />
-          <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} />
-          <Route path="/lab-results" element={<ProtectedRoute><LabResultsPage /></ProtectedRoute>} />
-          <Route path="/lab-results/:documentId" element={<ProtectedRoute><LabResultDetailPage /></ProtectedRoute>} />
-          <Route path="/appointments" element={<ProtectedRoute><AppointmentsPage /></ProtectedRoute>} />
-          <Route path="/prescriptions" element={<ProtectedRoute><PrescriptionsPage /></ProtectedRoute>} />
+            {/* Patient view */}
+            {/* <Route path="/dashboard" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} /> */}
+            <Route path="/dashboard" element={<PatientDashboard />} />
+            {/* <Route path="/messages" element={<ProtectedRoute><MessagesPage /></ProtectedRoute>} /> */}
+            <Route path="/messages" element={<TestMessagesPage />} />
+            {/* <Route path="/scheduler" element={<ProtectedRoute><SchedulerPage /></ProtectedRoute>} /> */}
+            <Route path="/scheduler" element={<SchedulerPage />} />
+            {/* <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} /> */}
+            <Route path="/documents" element={<DocumentsPage />} />
+            {/* <Route path="/lab-results" element={<ProtectedRoute><LabResultsPage /></ProtectedRoute>} /> */}
+            <Route path="/lab-results" element={<LabResultsPage />} />
+            {/* <Route path="/lab-results/:documentId" element={<ProtectedRoute><LabResultDetailPage /></ProtectedRoute>} /> */}
+            <Route
+              path="/lab-results/:documentId"
+              element={<LabResultDetailPage />}
+            />
+            {/* <Route path="/appointments" element={<ProtectedRoute><AppointmentsPage /></ProtectedRoute>} /> */}
+            <Route path="/appointments" element={<AppointmentsPage />} />
+            {/* <Route path="/prescriptions" element={<ProtectedRoute><PrescriptionsPage /></ProtectedRoute>} /> */}
+            <Route path="/prescriptions" element={<PrescriptionsPage />} />
 
-          {/* User view */}
-          <Route path="/user/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} />
-          <Route path="/user/myprofile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} />
-          <Route path="/user/wallet/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} />
+            {/* User view */}
+            {/* <Route path="/user/wallet" element={<ProtectedRoute><WalletPage /></ProtectedRoute>} /> */}
+            <Route path="/user/wallet" element={<WalletPage />} />
+            {/* <Route path="/user/myprofile" element={<ProtectedRoute><ProfilePage /></ProtectedRoute>} /> */}
+            <Route path="/user/myprofile" element={<ProfilePage />} />
+            {/* <Route path="/user/wallet/subscription" element={<ProtectedRoute><SubscriptionPage /></ProtectedRoute>} /> */}
+            <Route
+              path="/user/wallet/subscription"
+              element={<SubscriptionPage />}
+            />
 
-          {/* Doctor view */}
-          <Route path="/dctdash" element={<ProtectedRoute><DoctorDashboard /></ProtectedRoute>} />
-          <Route path="/patientlist" element={<ProtectedRoute><PatientListPage /></ProtectedRoute>} />
-          <Route path="/todays-appointments" element={<ProtectedRoute><TodaysAppointmentsPage /></ProtectedRoute>} />
-          <Route path="/medical-records" element={<ProtectedRoute><MedicalRecordsPage /></ProtectedRoute>} />
-          <Route path="/medical-records/:patientId" element={<ProtectedRoute><MedicalRecordsPage /></ProtectedRoute>} />
-          <Route path="/prescriptions" element={<ProtectedRoute><PrescriptionsPage /></ProtectedRoute>} />
-          <Route path="/lab-results-review" element={<ProtectedRoute><LabResultsReviewPage /></ProtectedRoute>} />
+            {/* Doctor view */}
+            {/* <Route path="/dctdash" element={<ProtectedRoute><DoctorDashboard /></ProtectedRoute>} /> */}
+            <Route path="/dctdash" element={<DoctorDashboard />} />
+            {/* <Route path="/patientlist" element={<ProtectedRoute><PatientListPage /></ProtectedRoute>} /> */}
+            <Route path="/patientlist" element={<PatientListPage />} />
+            {/* <Route path="/todays-appointments" element={<ProtectedRoute><TodaysAppointmentsPage /></ProtectedRoute>} /> */}
+            <Route
+              path="/todays-appointments"
+              element={<TodaysAppointmentsPage />}
+            />
+            {/* <Route path="/medical-records" element={<ProtectedRoute><MedicalRecordsPage /></ProtectedRoute>} /> */}
+            <Route path="/medical-records" element={<MedicalRecordsPage />} />
+            {/* <Route path="/medical-records/:patientId" element={<ProtectedRoute><MedicalRecordsPage /></ProtectedRoute>} /> */}
+            <Route
+              path="/medical-records/:patientId"
+              element={<MedicalRecordsPage />}
+            />
+            {/* <Route path="/prescriptions" element={<ProtectedRoute><PrescriptionsPage /></ProtectedRoute>} /> */}
+            <Route path="/prescriptions" element={<PrescriptionsPage />} />
+            {/* <Route path="/lab-results-review" element={<ProtectedRoute><LabResultsReviewPage /></ProtectedRoute>} /> */}
+            <Route
+              path="/lab-results-review"
+              element={<LabResultsReviewPage />}
+            />
 
-          {/* Owner view */}
-          <Route path="/ownerdash" element={<ProtectedRoute><OwnerDashboard /></ProtectedRoute>} />
-          <Route path="/analytics" element={<ProtectedRoute><AppointmentAnalyticsPage /></ProtectedRoute>} />
-        </Routes>
+            {/* Owner view */}
+            {/* <Route path="/ownerdash" element={<ProtectedRoute><OwnerDashboard /></ProtectedRoute>} /> */}
+            <Route path="/ownerdash" element={<OwnerDashboard />} />
+            {/* <Route path="/analytics" element={<ProtectedRoute><AppointmentAnalyticsPage /></ProtectedRoute>} /> */}
+            <Route path="/analytics" element={<AppointmentAnalyticsPage />} />
+          </Routes>
         </AuthProvider>
       </BrowserRouter>
     </div>
