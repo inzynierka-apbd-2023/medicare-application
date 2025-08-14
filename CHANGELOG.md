@@ -26,6 +26,13 @@ All notable changes to this project will be documented in this file.
 - fix(catalog): add Description column to catalog.release to unblock diagnostics
   - Updates loinc-stats to include recent releases without query failures.
 
+- feat(catalog): add WHO ATC/DDD support
+  - New table `catalog.atc` with columns: AtcCode (PK), AtcName, Ddd (decimal, nullable), Uom, AdmR, Note.
+  - Import endpoint: POST /api/catalog/import/atc?version=YYYY-MM-DD[&purge=true] (CSV or TSV autodetected).
+  - Query endpoint: GET /api/catalog/atc?q=
+  - Migration `AddAtcSchema` ensures table and index on AtcName; added diagnostics schema check.
+  - Scripts: `scripts/import-atc.cmd` (single run) and `scripts/purge-and-import-atc.cmd` (sample then full import).
+
 - feat(practitioner): add PractitionerService (ASP.NET Core 8 Web API) sharing Azure SQL DB with independent EF Core migrations
   - New service under `backend-container/PractitionerService` with schema `practitioner` and migration history table `practitioner.__EFMigrationsHistory`.
   - Domain: Doctor, Receptionist, Service, Specialization, Doctor_Specialization, Doctor_Schedule; projection view `practitioner.DoctorDirectory` joining `[user].[User_Profile]`.
