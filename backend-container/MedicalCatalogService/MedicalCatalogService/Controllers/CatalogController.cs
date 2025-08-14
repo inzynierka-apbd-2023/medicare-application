@@ -47,6 +47,19 @@ public class CatalogController : ControllerBase
 
     // HCPCS endpoint removed
 
+    [HttpGet("atc")]
+    public async Task<IActionResult> GetAtc([FromQuery] string? q)
+    {
+        var query = _db.Atc.AsQueryable();
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var like = $"%{q}%";
+            query = query.Where(x => EF.Functions.Like(x.AtcCode, like) || EF.Functions.Like(x.AtcName!, like));
+        }
+        var list = await query.OrderBy(x => x.AtcCode).Take(200).ToListAsync();
+        return Ok(list);
+    }
+
     [HttpGet("releases")]
     public async Task<IActionResult> GetReleases([FromQuery] string? system)
     {

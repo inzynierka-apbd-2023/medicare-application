@@ -16,6 +16,7 @@ public sealed class ImportController : ControllerBase
     public ImportController(MedicalCatalogDbContext db) => _db = db;
     private const string SystemIcd10 = "icd10";
     private const string SystemLoinc = "loinc";
+    private const string SystemAtc = "atc";
 
     public sealed class ImportResult { public int Inserted { get; set; } public int Updated { get; set; } public int Skipped { get; set; } public string? Version { get; set; } }
 
@@ -1019,7 +1020,8 @@ public sealed class ImportController : ControllerBase
             "[catalog].[loinc_answer_link]",
             "[catalog].[loinc_panel]",
             "[catalog].[loinc_panel_item]",
-            "[catalog].[loinc_consumer_name]"
+            "[catalog].[loinc_consumer_name]",
+            "[catalog].[atc]"
         };
         if (!allowed.Contains(qualifiedTable)) throw new InvalidOperationException("Invalid table for purge.");
         try
@@ -1035,6 +1037,122 @@ public sealed class ImportController : ControllerBase
         {
             var rows = await _db.Database.ExecuteSqlRawAsync($"DELETE TOP (100000) FROM {qualifiedTable}");
             if (rows <= 0) break;
+        }
+    }
+
+    // =============== ATC / DDD ===============
+
+    private sealed class AtcHeaderInfo
+    {
+        public required char Delimiter { get; init; }
+        public required int IdxCode { get; init; }
+        public required int IdxName { get; init; }
+        public int IdxDdd { get; init; } = -1;
+        public int IdxUom { get; init; } = -1;
+        public int IdxAdmR { get; init; } = -1;
+        public int IdxNote { get; init; } = -1;
+    }
+
+    private static AtcHeaderInfo? GetAtcHeader(string header)
+    {
+        var delim = header.Contains('\t') ? '\t' : ',';
+        var cols = delim == ',' ? SplitCsvLine(header) : header.Split(delim);
+        static string N(string s) => new string((s ?? string.Empty).Where(char.IsLetterOrDigit).ToArray()).ToUpperInvariant();
+        var norm = cols.Select(N).ToArray();
+        int find(params string[] keys) { for (int i = 0; i < norm.Length; i++) if (keys.Contains(norm[i])) return i; return -1; }
+        int idxCode = find("ATCCODE", "CODE", "ATC");
+        int idxName = find("ATCNAME", "NAME", "DESCRIPTION");
+        if (idxCode < 0 || idxName < 0) return null;
+        int idxDdd = find("DDD", "DEFINEDDAILYDOSE");
+        int idxUom = find("UOM", "UNIT", "UNITOFMEASURE");
+        int idxAdmR = find("ADMR", "ADMINISTRATIONROUTE", "ROUTE");
+        int idxNote = find("NOTE", "NOTES");
+        return new AtcHeaderInfo { Delimiter = delim, IdxCode = idxCode, IdxName = idxName, IdxDdd = idxDdd, IdxUom = idxUom, IdxAdmR = idxAdmR, IdxNote = idxNote };
+    }
+
+    private sealed record AtcRow(string Code, string Name, decimal? Ddd, string? Uom, string? AdmR, string? Note);
+
+    private static bool TryBuildAtcRow(string line, AtcHeaderInfo h, out AtcRow row)
+    {
+        row = new AtcRow("", "", null, null, null, null);
+        if (string.IsNullOrWhiteSpace(line)) return false;
+        var cols = h.Delimiter == ',' ? SplitCsvLine(line) : line.Split(h.Delimiter);
+        if (cols.Length <= Math.Max(h.IdxCode, h.IdxName)) return false;
+        var code = TrimQuotes(cols[h.IdxCode].Trim());
+        var name = TrimQuotes(cols[h.IdxName].Trim());
+        if (string.IsNullOrWhiteSpace(code) || string.IsNullOrWhiteSpace(name)) return false;
+        decimal? ddd = null;
+        if (h.IdxDdd >= 0 && h.IdxDdd < cols.Length)
+        {
+            var s = TrimQuotes(cols[h.IdxDdd].Trim());
+            if (decimal.TryParse(s, NumberStyles.Any, CultureInfo.InvariantCulture, out var val)) ddd = val;
+        }
+        string? pick(int i) => i >= 0 && i < cols.Length ? TrimQuotes(cols[i].Trim()) : null;
+        row = new AtcRow(code, name, ddd, pick(h.IdxUom), pick(h.IdxAdmR), pick(h.IdxNote));
+        return true;
+    }
+
+    [HttpPost("atc")]
+    [Authorize(Policy = "CatalogImport")]
+    [RequestSizeLimit(200_000_000)]
+    public async Task<IActionResult> ImportAtc([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
+    {
+        if (string.IsNullOrWhiteSpace(version)) return BadRequest("version is required, e.g., 2024-07-31");
+        if (file == null || file.Length == 0) return BadRequest("file is required");
+
+        if (!await _db.Releases.AnyAsync(r => r.System == SystemAtc && r.Version == version))
+        {
+            _db.Releases.Add(new CatalogRelease { System = SystemAtc, Version = version, ReleasedOn = DateTime.UtcNow, Description = $"WHO ATC/DDD: {file.FileName}" });
+            await _db.SaveChangesAsync();
+        }
+
+        using var stream = file.OpenReadStream();
+        using var reader = new StreamReader(stream, Encoding.UTF8);
+        var headerLine = await reader.ReadLineAsync();
+        if (headerLine == null) return BadRequest("empty file");
+        var header = GetAtcHeader(headerLine);
+        if (header == null) return BadRequest("header must include atc_code and atc_name");
+
+        if (purge) await PurgeTableAsync("[catalog].[atc]");
+
+        var existing = await _db.Atc.AsNoTracking().ToDictionaryAsync(x => x.AtcCode, x => x);
+        var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+        var toInsert = new List<AtcEntry>(4096);
+        var toUpdate = new List<AtcEntry>(1024);
+        var res = new ImportResult { Version = version };
+
+        string? line;
+        while ((line = await reader.ReadLineAsync()) != null)
+        {
+            if (!TryBuildAtcRow(line, header, out var row)) { res.Skipped++; continue; }
+            if (!seen.Add(row.Code)) { res.Skipped++; continue; }
+            if (existing.TryGetValue(row.Code, out var ex))
+            {
+                if (ex.AtcName != row.Name || ex.Ddd != row.Ddd || ex.Uom != row.Uom || ex.AdmR != row.AdmR || ex.Note != row.Note)
+                {
+                    ex.AtcName = row.Name; ex.Ddd = row.Ddd; ex.Uom = row.Uom; ex.AdmR = row.AdmR; ex.Note = row.Note; toUpdate.Add(ex);
+                }
+                else { res.Skipped++; }
+            }
+            else
+            {
+                toInsert.Add(new AtcEntry { AtcCode = row.Code, AtcName = row.Name, Ddd = row.Ddd, Uom = row.Uom, AdmR = row.AdmR, Note = row.Note });
+            }
+            if (toInsert.Count + toUpdate.Count >= 5000) await FlushAtcAsync(toInsert, toUpdate, res);
+        }
+        await FlushAtcAsync(toInsert, toUpdate, res);
+        return Ok(res);
+    }
+
+    private async Task FlushAtcAsync(List<AtcEntry> toInsert, List<AtcEntry> toUpdate, ImportResult res)
+    {
+        if (toInsert.Count > 0)
+        {
+            _db.Atc.AddRange(toInsert); res.Inserted += toInsert.Count; toInsert.Clear(); await _db.SaveChangesAsync();
+        }
+        if (toUpdate.Count > 0)
+        {
+            _db.Atc.UpdateRange(toUpdate); res.Updated += toUpdate.Count; toUpdate.Clear(); await _db.SaveChangesAsync();
         }
     }
 }
