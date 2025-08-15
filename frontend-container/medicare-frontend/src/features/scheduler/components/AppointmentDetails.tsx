@@ -29,7 +29,7 @@ export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
 
   const handleViewPatientRecords = () => {
     if (appointment?.patient?.id) {
-      navigate(`/patient-management?patientId=${appointment.patient.id}`);
+      navigate(`/medical-records/${appointment.patient.id}`);
     }
   };
 
@@ -119,13 +119,6 @@ export const AppointmentDetails: React.FC<AppointmentDetailsProps> = ({
               {appointment.status?.name || "Unknown"}
             </span>
           </div>
-
-          {appointment.room && appointment.room.length > 0 && (
-            <div className="flex justify-between">
-              <span className="text-gray-600">Room:</span>
-              <span className="font-medium">{appointment.room}</span>
-            </div>
-          )}
         </div>
       </div>
 

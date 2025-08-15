@@ -6,9 +6,9 @@ import type { PatientAction, PatientTableProps } from "../types";
 import { PatientActionButton } from "./PatientActionButton";
 
 const actionConfigs: Record<PatientAction, string> = {
-  appointments: "/appointments",
-  "medical-records": "/documents",
-  prescription: "/prescriptions/new",
+  appointments: "/my-appointments",
+  "medical-records": "/my-documents",
+  prescription: "/prescriptions-management",
   message: "/messages",
   notes: "/notes",
 };

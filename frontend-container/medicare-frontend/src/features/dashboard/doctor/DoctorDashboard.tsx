@@ -9,8 +9,9 @@ import {
   DashboardLayout,
   type Notification,
   NotificationsList,
-  ScheduleCard,
 } from "../shared/components";
+
+import { DashboardScheduler } from "./components";
 
 interface QuickStat {
   label: string;
@@ -81,23 +82,19 @@ export default function DoctorDashboard() {
   };
 
   const handlePatientList = () => {
-    navigate("/patientlist");
+    navigate("/patient-list");
   };
 
   const handleTodaysAppointments = () => {
-    navigate("/doctor-schedule");
-  };
-
-  const handleEnhancedSchedule = () => {
-    navigate("/enhanced-doctor-schedule");
-  };
-
-  const handlePatientManagement = () => {
-    navigate("/patient-management");
+    navigate("/todays-appointments");
   };
 
   const handleMedicalRecords = () => {
     navigate("/medical-records");
+  };
+
+  const handleFullSchedule = () => {
+    navigate("/doctor-scheduler");
   };
 
   const handleMessagePatient = (patientId: number) => {
@@ -111,37 +108,8 @@ export default function DoctorDashboard() {
         <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
           {/* Left Column - Schedule and Recent Messages */}
           <div className="w-full md:w-3/4 space-y-6">
-            <ScheduleCard title="Your Schedule">
-              <div className="space-y-4">
-                <div className="flex items-center justify-between p-4 bg-blue-50 rounded-lg">
-                  <div>
-                    <p className="text-sm text-blue-600 font-medium">
-                      Today's Appointments
-                    </p>
-                    <p className="text-2xl font-bold text-blue-700">
-                      6 appointments
-                    </p>
-                    <p className="text-xs text-blue-500">
-                      3 remaining, 2 completed, 1 no-show
-                    </p>
-                  </div>
-                  <button
-                    onClick={handleTodaysAppointments}
-                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition text-sm font-medium"
-                  >
-                    View Schedule
-                  </button>
-                </div>
-                <div className="p-4 text-center">
-                  <button
-                    onClick={handleTodaysAppointments}
-                    className="text-blue-600 hover:text-blue-800 underline font-medium"
-                  >
-                    Open Full Schedule Timeline →
-                  </button>
-                </div>
-              </div>
-            </ScheduleCard>
+            {/* Today's Schedule - Embedded Scheduler */}
+            <DashboardScheduler />
 
             <Card variant="medical" padding="md">
               <h3 className="text-lg font-semibold text-blue-600 mb-2">
@@ -213,23 +181,15 @@ export default function DoctorDashboard() {
                     onClick={handleTodaysAppointments}
                     className="w-full text-left px-4 py-2 bg-green-50 rounded-lg hover:bg-green-100 text-green-700 font-medium transition"
                   >
-                    My Schedule & Timeline
+                    Today's Appointments
                   </button>
                 </li>
                 <li>
                   <button
-                    onClick={handleEnhancedSchedule}
+                    onClick={handleFullSchedule}
                     className="w-full text-left px-4 py-2 bg-purple-50 rounded-lg hover:bg-purple-100 text-purple-700 font-medium transition"
                   >
-                    Enhanced Schedule & Patient Records
-                  </button>
-                </li>
-                <li>
-                  <button
-                    onClick={handlePatientManagement}
-                    className="w-full text-left px-4 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 text-blue-700 font-medium transition"
-                  >
-                    Patient Management
+                    Full Schedule Calendar
                   </button>
                 </li>
                 <li>

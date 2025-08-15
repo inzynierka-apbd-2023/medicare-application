@@ -3,8 +3,14 @@ import { Link } from "react-router-dom";
 import { Menu, User, X } from "lucide-react";
 
 import { DropdownMenu } from "../features/profile/components";
+import { useAuth } from "../shared/auth/AuthContext";
+import {
+  getDefaultDashboard,
+  getNavigationForRole,
+} from "../shared/constants/routes";
 
 export default function Header() {
+  const { user } = useAuth();
   const [isMobile, setIsMobile] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
@@ -30,15 +36,8 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const navItems = [
-    { name: "Appointments", path: "/appointments" },
-    { name: "Messages", path: "/messages" },
-    { name: "Scheduler", path: "/scheduler" },
-    { name: "Documents", path: "/documents" },
-    { name: "Lab Results", path: "/lab-results" },
-    { name: "Lab Review", path: "/lab-results-review" },
-    { name: "Prescriptions", path: "/prescriptions" },
-  ];
+  // Get navigation items based on user role
+  const navItems = user ? getNavigationForRole(user.role) : [];
 
   const linkClasses =
     "px-3 py-1 rounded-lg text-blue-700 hover:bg-blue-100 transition font-medium text-base";
@@ -54,7 +53,7 @@ export default function Header() {
         <div className="flex justify-between items-center h-full px-10">
           {/* Logo */}
           <Link
-            to="/"
+            to={user ? getDefaultDashboard(user.role) : "/"}
             className="text-xl font-bold text-blue-600 cursor-pointer"
           >
             IMUP Clinic
@@ -66,8 +65,8 @@ export default function Header() {
             {!isMobile && (
               <nav className="flex space-x-2">
                 {navItems.map((item) => (
-                  <Link key={item.name} to={item.path} className={linkClasses}>
-                    {item.name}
+                  <Link key={item.label} to={item.path} className={linkClasses}>
+                    {item.label}
                   </Link>
                 ))}
               </nav>
@@ -121,12 +120,12 @@ export default function Header() {
         >
           {navItems.map((item) => (
             <Link
-              key={item.name}
+              key={item.label}
               to={item.path}
               className={linkClasses}
               onClick={() => setDrawerOpen(false)}
             >
-              {item.name}
+              {item.label}
             </Link>
           ))}
         </aside>

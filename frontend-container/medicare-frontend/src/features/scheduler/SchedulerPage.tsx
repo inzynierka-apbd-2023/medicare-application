@@ -1,5 +1,5 @@
 import React, { useCallback, useState } from "react";
-import { Calendar, Plus } from "lucide-react";
+import { Calendar, Edit3, Plus, Trash2 } from "lucide-react";
 
 import Header from "../../layout/Header";
 import {
@@ -88,24 +88,6 @@ export const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
       mode: "create",
     });
   }, [selectAppointment]);
-
-  const handleEditAppointment = useCallback(() => {
-    setModalState((prev) => ({
-      ...prev,
-      mode: "edit",
-    }));
-  }, []);
-
-  const handleCancelAppointment = useCallback(async () => {
-    if (selectedAppointment) {
-      try {
-        await cancelAppointment(selectedAppointment.id);
-        setModalState({ isOpen: false, mode: "create" });
-      } catch (error) {
-        console.error("Failed to cancel appointment:", error);
-      }
-    }
-  }, [selectedAppointment, cancelAppointment]);
 
   const handleModalSave = useCallback(
     async (data: CreateAppointmentRequest | UpdateAppointmentRequest) => {
@@ -281,26 +263,28 @@ export const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
                       return (
                         <div
                           key={appointment.id}
-                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
-                          onClick={() =>
-                            handleEventClick({
-                              id: appointment.id,
-                              title: "",
-                              start: appointment.day,
-                              end: appointment.day,
-                              extendedProps: {
-                                appointment,
-                                doctorName:
-                                  `${doctor?.firstName || ""} ${doctor?.lastName || ""}`.trim(),
-                                patientName: "",
-                                appointmentType: appointment.appointmentType,
-                                status: appointment.status?.name || "Unknown",
-                                description: appointment.description || "",
-                              },
-                            })
-                          }
+                          className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
                         >
-                          <div className="flex items-center space-x-4">
+                          <div
+                            className="flex items-center space-x-4 flex-1 cursor-pointer"
+                            onClick={() =>
+                              handleEventClick({
+                                id: appointment.id,
+                                title: "",
+                                start: appointment.day,
+                                end: appointment.day,
+                                extendedProps: {
+                                  appointment,
+                                  doctorName:
+                                    `${doctor?.firstName || ""} ${doctor?.lastName || ""}`.trim(),
+                                  patientName: "",
+                                  appointmentType: appointment.appointmentType,
+                                  status: appointment.status?.name || "Unknown",
+                                  description: appointment.description || "",
+                                },
+                              })
+                            }
+                          >
                             <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
                               <Calendar className="w-6 h-6 text-blue-600" />
                             </div>
@@ -325,13 +309,46 @@ export const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
                               </div>
                             </div>
                           </div>
-                          <div className="text-right">
-                            <div className="text-sm font-medium text-gray-900">
-                              {appointment.status?.name || "Unknown"}
-                            </div>
-                            <div className="text-xs text-gray-500">
-                              {appointment.description}
-                            </div>
+
+                          {/* Action buttons */}
+                          <div className="flex items-center space-x-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                selectAppointment(appointment);
+                                setModalState({
+                                  isOpen: true,
+                                  mode: "edit",
+                                });
+                              }}
+                              className="p-2 text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                              title="Edit appointment"
+                            >
+                              <Edit3 className="w-4 h-4" />
+                            </button>
+                            <button
+                              onClick={async (e) => {
+                                e.stopPropagation();
+                                if (
+                                  window.confirm(
+                                    "Are you sure you want to cancel this appointment?"
+                                  )
+                                ) {
+                                  try {
+                                    await cancelAppointment(appointment.id);
+                                  } catch (error) {
+                                    console.error(
+                                      "Failed to cancel appointment:",
+                                      error
+                                    );
+                                  }
+                                }
+                              }}
+                              className="p-2 text-red-600 hover:text-red-700 hover:bg-red-50 rounded-lg transition-colors"
+                              title="Cancel appointment"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </button>
                           </div>
                         </div>
                       );
@@ -352,24 +369,6 @@ export const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
         onSave={handleModalSave}
         mode={modalState.mode}
       />
-
-      {/* Appointment Details Actions (when viewing) */}
-      {modalState.isOpen &&
-        modalState.mode === "view" &&
-        selectedAppointment && (
-          <div className="fixed bottom-4 right-4 flex space-x-2">
-            <Button variant="outline" onClick={handleEditAppointment}>
-              Edit
-            </Button>
-            <Button
-              variant="outline"
-              onClick={handleCancelAppointment}
-              className="text-red-600 hover:text-red-700 border-red-300 hover:border-red-400"
-            >
-              Cancel
-            </Button>
-          </div>
-        )}
     </div>
   );
 };

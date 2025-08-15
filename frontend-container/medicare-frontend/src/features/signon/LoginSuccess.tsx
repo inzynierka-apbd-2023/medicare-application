@@ -2,17 +2,28 @@ import { useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 
+import { useAuth } from "../../shared/auth/AuthContext";
+import { getDefaultDashboard } from "../../shared/constants/routes";
+
 export default function LoginSuccess() {
   const navigate = useNavigate();
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Auto redirect to dashboard after 3 seconds
+    // Auto redirect to appropriate dashboard after 3 seconds
     const timer = setTimeout(() => {
-      navigate("/dashboard");
+      const dashboardRoute = user?.role
+        ? getDefaultDashboard(user.role)
+        : "/patient-dashboard";
+      navigate(dashboardRoute);
     }, 3000);
 
     return () => clearTimeout(timer);
-  }, [navigate]);
+  }, [navigate, user]);
+
+  const getDashboardRoute = () => {
+    return user?.role ? getDefaultDashboard(user.role) : "/patient-dashboard";
+  };
 
   return (
     <div className="success-container">
@@ -28,7 +39,7 @@ export default function LoginSuccess() {
         </p>
 
         <div className="success-actions">
-          <Link to="/dashboard" className="btn-primary text-center">
+          <Link to={getDashboardRoute()} className="btn-primary text-center">
             Go to Dashboard
           </Link>
 

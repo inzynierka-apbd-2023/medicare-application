@@ -1,8 +1,9 @@
 import React from "react";
-import { MessagesPage } from "@features/messages";
 
-import { DashboardLayout } from "./features/dashboard/shared/components";
-import Header from "./layout/Header";
+import Header from "../../layout/Header";
+import { DashboardLayout } from "../dashboard/shared/components";
+
+import { MessagesPage } from "./MessagesPage";
 
 const TestMessagesPage: React.FC = () => {
   return (
