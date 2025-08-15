@@ -161,7 +161,7 @@ export const ReadOnlyScheduler: React.FC<ReadOnlySchedulerProps> = ({
           {/* Patient Dropdown */}
           {showPatientDropdown && patientSearchResults.length > 0 && (
             <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-              {patientSearchResults.map((patient) => (
+              {patientSearchResults.map((patient: Patient) => (
                 <button
                   key={patient.id}
                   onClick={() => handlePatientSelect(patient)}
@@ -201,7 +201,7 @@ export const ReadOnlyScheduler: React.FC<ReadOnlySchedulerProps> = ({
           {/* Doctor Dropdown */}
           {showDoctorDropdown && doctorSearchResults.length > 0 && (
             <div className="absolute z-10 mt-1 w-full bg-white border border-gray-300 rounded-md shadow-lg max-h-60 overflow-auto">
-              {doctorSearchResults.map((doctor) => (
+              {doctorSearchResults.map((doctor: Doctor) => (
                 <button
                   key={doctor.id}
                   onClick={() => handleDoctorSelect(doctor)}

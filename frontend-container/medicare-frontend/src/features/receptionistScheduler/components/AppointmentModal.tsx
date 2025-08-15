@@ -9,7 +9,6 @@ import {
   Trash2,
   User,
   Video,
-  X,
 } from "lucide-react";
 
 import { Button, Input, Modal, SearchInput } from "../../../shared/components";
@@ -306,12 +305,6 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
             <Calendar className="w-5 h-5 mr-2" />
             {getModalTitle()}
           </h2>
-          <button
-            onClick={onClose}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-          >
-            <X size={20} />
-          </button>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">

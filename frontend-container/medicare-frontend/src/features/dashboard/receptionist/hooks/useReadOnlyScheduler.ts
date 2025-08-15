@@ -12,6 +12,9 @@ export const useReadOnlyScheduler = (
 ) => {
   const { patientFilter, doctorFilter } = options;
 
+  const [allCalendarEvents, setAllCalendarEvents] = useState<CalendarEvent[]>(
+    []
+  );
   const [calendarEvents, setCalendarEvents] = useState<CalendarEvent[]>([]);
   const [patientSearchResults, setPatientSearchResults] = useState<Patient[]>(
     []
@@ -205,35 +208,47 @@ export const useReadOnlyScheduler = (
     setIsLoading(false);
   }, []);
 
-  // Load calendar events on mount and when filters change
+  // Generate initial calendar events once on mount
   useEffect(() => {
-    const loadEvents = async () => {
+    const initializeEvents = async () => {
       setIsLoading(true);
 
       // Simulate API delay
       await new Promise((resolve) => setTimeout(resolve, 500));
 
-      let events = generateMockCalendarEvents();
-
-      // Apply filters
-      if (patientFilter) {
-        events = events.filter(
-          (event) => event.extendedProps?.patientId === patientFilter
-        );
-      }
-
-      if (doctorFilter) {
-        events = events.filter(
-          (event) => event.extendedProps?.doctorId === doctorFilter
-        );
-      }
-
+      const events = generateMockCalendarEvents();
+      setAllCalendarEvents(events);
       setCalendarEvents(events);
       setIsLoading(false);
     };
 
-    loadEvents();
-  }, [patientFilter, doctorFilter, generateMockCalendarEvents]);
+    // Only generate events once when component mounts
+    if (allCalendarEvents.length === 0) {
+      initializeEvents();
+    }
+  }, [generateMockCalendarEvents, allCalendarEvents.length]);
+
+  // Apply filters to existing events when filters change
+  useEffect(() => {
+    if (allCalendarEvents.length === 0) return;
+
+    let filteredEvents = [...allCalendarEvents];
+
+    // Apply filters
+    if (patientFilter) {
+      filteredEvents = filteredEvents.filter(
+        (event) => event.extendedProps?.patientId === patientFilter
+      );
+    }
+
+    if (doctorFilter) {
+      filteredEvents = filteredEvents.filter(
+        (event) => event.extendedProps?.doctorId === doctorFilter
+      );
+    }
+
+    setCalendarEvents(filteredEvents);
+  }, [patientFilter, doctorFilter, allCalendarEvents]);
 
   return {
     calendarEvents,
