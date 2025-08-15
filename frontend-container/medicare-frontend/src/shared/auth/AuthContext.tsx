@@ -7,6 +7,10 @@ import React, {
 } from "react";
 
 import { AuthResponse, authService, AuthUser } from "../services/authService";
+import { mockAuthService } from "../services/mockAuthService";
+
+// Set to true to use mock authentication for testing
+const USE_MOCK_AUTH = true;
 
 interface AuthState {
   user: AuthUser | null;
@@ -30,8 +34,9 @@ interface AuthState {
 const Ctx = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const service = USE_MOCK_AUTH ? mockAuthService : authService;
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(authService.getToken());
+  const [token, setToken] = useState<string | null>(service.getToken());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -44,11 +49,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await authService.login(username, password);
+      const service = USE_MOCK_AUTH ? mockAuthService : authService;
+      const resp = await service.login(username, password);
       applyAuth(resp);
-    } catch (e: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setError(e.response?.data?.message || "Login failed");
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || "Login failed");
     } finally {
       setLoading(false);
     }
@@ -67,18 +73,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     try {
-      const resp = await authService.register(data);
+      const service = USE_MOCK_AUTH ? mockAuthService : authService;
+      const resp = await service.register(data);
       applyAuth(resp);
-    } catch (e: any) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setError(e.response?.data?.message || "Registration failed");
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { message?: string } } };
+      setError(error.response?.data?.message || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
   const logout = () => {
-    authService.logout();
+    const service = USE_MOCK_AUTH ? mockAuthService : authService;
+    service.logout();
     setUser(null);
     setToken(null);
   };
