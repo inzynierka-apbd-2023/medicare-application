@@ -33,6 +33,7 @@ import { LabResultsReviewPage } from "./features/labResultsReview";
 import { AppointmentAnalyticsPage } from "./features/appointmentAnalytics";
 import { StaffManagementPage } from "./features/staffManagement";
 import { ReceptionistSchedulerPage } from "./features/receptionistScheduler";
+import { ReceptionistDashboard } from "./features/dashboard/receptionist";
 
 function App() {
   return (
@@ -126,6 +127,11 @@ function App() {
             <Route path="/staff-management" element={<StaffManagementPage />} />
 
             {/* Receptionist view */}
+            {/* <Route path="/receptionist-dashboard" element={<ProtectedRoute><ReceptionistDashboard /></ProtectedRoute>} /> */}
+            <Route
+              path="/receptionist-dashboard"
+              element={<ReceptionistDashboard />}
+            />
             {/* <Route path="/receptionist-scheduler" element={<ProtectedRoute><ReceptionistSchedulerPage /></ProtectedRoute>} /> */}
             <Route
               path="/receptionist-scheduler"

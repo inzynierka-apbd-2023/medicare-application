@@ -1,4 +1,5 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Calendar, Clock, Plus, Users } from "lucide-react";
 
 import Header from "../../layout/Header";
@@ -22,11 +23,25 @@ import type {
 
 export const ReceptionistSchedulerPage: React.FC<
   ReceptionistSchedulerPageProps
-> = ({ className = "" }) => {
+> = ({ className = "", autoOpenBooking = false, isEmbedded = false }) => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const shouldOpenBooking =
+    searchParams.get("openBooking") === "true" || autoOpenBooking;
+
   const [modalState, setModalState] = useState({
-    isOpen: false,
+    isOpen: shouldOpenBooking,
     mode: "create" as "create" | "edit" | "view",
   });
+
+  // Clear the URL parameter after opening the modal
+  useEffect(() => {
+    if (searchParams.get("openBooking") === "true") {
+      setSearchParams((params) => {
+        params.delete("openBooking");
+        return params;
+      });
+    }
+  }, [searchParams, setSearchParams]);
 
   const {
     appointments,
@@ -172,9 +187,11 @@ export const ReceptionistSchedulerPage: React.FC<
   }
 
   return (
-    <div className={`min-h-screen bg-gray-100 pt-16 ${className}`}>
-      <Header />
-      <div className="max-w-7xl mx-auto px-4 py-8">
+    <div
+      className={`${isEmbedded ? "" : "min-h-screen bg-gray-100 pt-16"} ${className}`}
+    >
+      {!isEmbedded && <Header />}
+      <div className={`${isEmbedded ? "p-6" : "max-w-7xl mx-auto px-4 py-8"}`}>
         {/* Page Header */}
         <div className="flex items-center justify-between mb-8">
           <div className="flex items-center">

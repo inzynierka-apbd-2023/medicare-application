@@ -139,6 +139,8 @@ export interface CalendarEvent {
 
 export interface ReceptionistSchedulerPageProps {
   className?: string;
+  autoOpenBooking?: boolean;
+  isEmbedded?: boolean;
 }
 
 export interface AppointmentModalProps {
