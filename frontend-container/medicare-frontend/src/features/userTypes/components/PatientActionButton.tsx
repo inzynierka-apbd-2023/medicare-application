@@ -18,7 +18,7 @@ const actionConfigs: Record<PatientAction, PatientActionConfig> = {
     icon: <Calendar size={16} />,
     title: "View appointments",
     colorClass: "bg-blue-100 hover:bg-blue-200 text-blue-700",
-    route: "/appointments",
+    route: "/my-appointments",
   },
   "medical-records": {
     icon: <FileText size={16} />,

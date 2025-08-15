@@ -57,7 +57,7 @@ export const ReceptionistDashboard: React.FC<
           navigate("/receptionist-scheduler?openBooking=true");
           break;
         case "new-patient":
-          navigate("/patients/new");
+          navigate("/patient-registry?action=new");
           break;
         case "view-schedule":
           navigate("/receptionist-scheduler");

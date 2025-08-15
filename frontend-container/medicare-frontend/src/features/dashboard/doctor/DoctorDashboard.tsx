@@ -82,7 +82,7 @@ export default function DoctorDashboard() {
   };
 
   const handlePatientList = () => {
-    navigate("/patientlist");
+    navigate("/patient-list");
   };
 
   const handleTodaysAppointments = () => {
@@ -94,7 +94,7 @@ export default function DoctorDashboard() {
   };
 
   const handleFullSchedule = () => {
-    navigate("/doctor/scheduler");
+    navigate("/doctor-scheduler");
   };
 
   const handleMessagePatient = (patientId: number) => {

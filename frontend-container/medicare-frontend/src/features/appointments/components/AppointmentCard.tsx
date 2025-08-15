@@ -90,7 +90,9 @@ export const AppointmentCard: React.FC<AppointmentCardProps> = ({
       <Button
         variant="emerald"
         leftIcon={<FileText size={16} />}
-        onClick={() => navigate(`/documents?appointmentId=${appointment.id}`)}
+        onClick={() =>
+          navigate(`/my-documents?appointmentId=${appointment.id}`)
+        }
       >
         Documents
       </Button>

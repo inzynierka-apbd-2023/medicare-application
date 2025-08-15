@@ -112,11 +112,11 @@ export default function PatientDashboard() {
   };
 
   const handleBookAppointment = () => {
-    navigate("/scheduler");
+    navigate("/appointment-scheduler");
   };
 
   const handleViewDocuments = () => {
-    navigate("/documents?filter=medical-records");
+    navigate("/my-documents?filter=medical-records");
   };
 
   const handleViewMessages = () => {
@@ -124,7 +124,7 @@ export default function PatientDashboard() {
   };
 
   const handleViewMedications = () => {
-    navigate("/documents?filter=prescriptions");
+    navigate("/my-documents?filter=prescriptions");
   };
 
   const handleViewBilling = () => {
@@ -132,7 +132,7 @@ export default function PatientDashboard() {
   };
 
   const handleManageProfile = () => {
-    navigate("/profile");
+    navigate("/user/myprofile");
   };
 
   const handleMarkNotificationAsRead = async (notificationId: string) => {
@@ -180,7 +180,7 @@ export default function PatientDashboard() {
                   <UpcomingAppointmentsCard
                     appointments={dashboardAppointments}
                     onBookNew={handleBookAppointment}
-                    onViewAll={() => navigate("/appointments")}
+                    onViewAll={() => navigate("/my-appointments")}
                   />
 
                   <QuickActionsCard
