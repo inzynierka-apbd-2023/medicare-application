@@ -143,19 +143,14 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
     }
   };
 
-  const loadTimeSlots = async (
-    doctorId: string,
-    serviceId: string,
-    date: string
-  ) => {
+  const loadTimeSlots = async (doctorId: string, date: string) => {
     setFormState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
       // Only load time slots for the selected date
       const timeSlots = await SchedulerApiService.getAvailableTimeSlots({
-        doctorId,
-        serviceId,
+        doctorId: doctorId, // Use doctorId parameter directly
         startDate: date,
-        endDate: date, // Same date for start and end to get only selected day
+        endDate: date, // Same date for both start and end to get only selected day
       });
       setFormState((prev) => ({
         ...prev,
@@ -197,8 +192,8 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
   const handleDateSelect = (date: string) => {
     setSelectedDate(date);
-    if (formData.doctorUserId && formData.serviceId) {
-      loadTimeSlots(formData.doctorUserId, formData.serviceId, date);
+    if (formData.doctorUserId) {
+      loadTimeSlots(formData.doctorUserId, date);
     }
   };
 
@@ -219,12 +214,14 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
             timeSlotId: formData.timeSlotId,
             appointmentType: formData.appointmentType,
             description: formData.description,
+            appointmentCategory: "consultation", // Patients can only book consultation appointments
           };
           await onSave(createData);
         } else if (mode === "edit" && appointment) {
           const updateData: UpdateAppointmentRequest = {
             appointmentType: formData.appointmentType,
             description: formData.description,
+            appointmentCategory: "consultation", // Patients can only modify to consultation appointments
           };
           if (formData.timeSlotId) {
             updateData.timeSlotId = formData.timeSlotId;
@@ -462,15 +459,8 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                                 Dr. {doctor.firstName} {doctor.lastName}
                               </h4>
                               <p className="text-sm text-gray-600">
-                                {doctor.specializations
-                                  ?.map((s) => s.name)
-                                  .join(", ")}
+                                {doctor.specialization?.name}
                               </p>
-                              {doctor.yearsExperience && (
-                                <p className="text-xs text-gray-500">
-                                  {doctor.yearsExperience} years experience
-                                </p>
-                              )}
                             </div>
                           </div>
                         </div>
