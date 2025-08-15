@@ -25,7 +25,7 @@ import { PatientListPage } from "./features/userTypes";
 import { TodaysAppointmentsPage } from "./features/appointments";
 import { MedicalRecordsPage } from "./features/medicalRecords";
 import { PrescriptionsPage } from "./features/prescriptions";
-import TestMessagesPage from "./TestMessagesPage";
+import SimpleMessagesPage from "./features/messages/SimpleMessagesPage";
 import { AuthProvider } from "./shared/auth/AuthContext";
 import { ProtectedRoute } from "./shared/auth/ProtectedRoute";
 import { LabResultsPage, LabResultDetailPage } from "./features/labResults";
@@ -61,8 +61,8 @@ function App() {
             {/* Patient view */}
             {/* <Route path="/dashboard" element={<ProtectedRoute><PatientDashboard /></ProtectedRoute>} /> */}
             <Route path="/dashboard" element={<PatientDashboard />} />
-            {/* <Route path="/messages" element={<ProtectedRoute><TestMessagesPage /></ProtectedRoute>} /> */}
-            <Route path="/messages" element={<TestMessagesPage />} />
+            {/* <Route path="/messages" element={<ProtectedRoute><SimpleMessagesPage /></ProtectedRoute>} /> */}
+            <Route path="/messages" element={<SimpleMessagesPage />} />
             {/* <Route path="/scheduler" element={<ProtectedRoute><SchedulerPage /></ProtectedRoute>} /> */}
             <Route path="/scheduler" element={<SchedulerPage />} />
             {/* <Route path="/documents" element={<ProtectedRoute><DocumentsPage /></ProtectedRoute>} /> */}

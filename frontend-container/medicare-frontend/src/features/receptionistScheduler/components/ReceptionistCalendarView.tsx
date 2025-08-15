@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import type { EventClickArg } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -54,9 +55,8 @@ export const ReceptionistCalendarView: React.FC<
   onDateSelect: _onDateSelect,
   isLoading = false,
 }) => {
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const handleEventClick = useCallback(
-    (info: any) => {
+    (info: EventClickArg) => {
       const appointment = info.event.extendedProps
         .appointment as ReceptionistAppointment;
       onEventClick(appointment);
