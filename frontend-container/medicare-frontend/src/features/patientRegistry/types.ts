@@ -100,3 +100,103 @@ export interface PatientRegistryData {
 export interface PatientRegistryPageProps {
   className?: string;
 }
+
+// API Response types
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+}
+
+// Form data for patient registration
+export interface PatientRegistrationFormData {
+  // Personal Information
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone: string;
+  dateOfBirth: string;
+  gender: "male" | "female" | "other" | "prefer-not-to-say";
+
+  // Address
+  addressLine1: string;
+  addressLine2: string;
+  city: string;
+  state: string;
+  zipCode: string;
+  country: string;
+
+  // Medical Information
+  bloodType: string;
+  height: string; // string for form input, converted to number later
+  weight: string; // string for form input, converted to number later
+  generalDoctorId: string;
+
+  // Insurance
+  insuranceProvider: string;
+  policyNumber: string;
+  groupNumber: string;
+  validFrom: string;
+  validTo: string;
+
+  // Emergency Contact
+  emergencyContactName: string;
+  emergencyContactPhone: string;
+  emergencyContactRelationship: string;
+
+  // Account Setup
+  password: string;
+  confirmPassword: string;
+}
+
+// Doctor interface for dropdown
+export interface Doctor {
+  id: string;
+  firstName: string;
+  lastName: string;
+  specialization: string;
+  email: string;
+  phone: string;
+}
+
+// Create patient request for API
+export interface CreatePatientRequest {
+  personalInfo: {
+    firstName: string;
+    lastName: string;
+    email: string;
+    phone: string;
+    dateOfBirth: string;
+    gender: "male" | "female" | "other" | "prefer-not-to-say";
+  };
+  address: {
+    addressLine1: string;
+    addressLine2?: string;
+    city: string;
+    state: string;
+    zipCode: string;
+    country: string;
+  };
+  medicalInfo: {
+    bloodType?: string;
+    height?: number;
+    weight?: number;
+    generalDoctorId?: string;
+  };
+  insurance?: {
+    providerName: string;
+    policyNumber: string;
+    groupNumber?: string;
+    validFrom: string;
+    validTo?: string;
+    isPrimary: boolean;
+  };
+  emergencyContact: {
+    name: string;
+    phone: string;
+    relationship: string;
+  };
+  accountSetup: {
+    password: string;
+  };
+}

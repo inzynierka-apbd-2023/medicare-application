@@ -1,4 +1,5 @@
 export { useAppointments } from "./useAppointments";
+export { useDebounce } from "./useDebounce";
 export { useDocuments } from "./useDocuments";
 export { useLoadingService } from "./useLoadingService";
 export { usePatients } from "./usePatients";
