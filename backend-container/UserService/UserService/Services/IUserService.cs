@@ -13,4 +13,6 @@ public interface IUserService
     Task<bool> DeleteUserAsync(string id);
     Task<bool> UserExistsAsync(string id);
     Task<UserResponseDto?> AuthenticateAsync(string username, string password);
+    Task<bool> EmailExistsAsync(string email, string? excludeUserId = null);
+    Task<bool> UsernameExistsAsync(string username, string? excludeUserId = null);
 }

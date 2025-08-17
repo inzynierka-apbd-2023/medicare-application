@@ -165,6 +165,9 @@ public class UserServiceImpl : IUserService
             if (updateUserDto.DateOfBirth.HasValue)
                 user.Profile.DateOfBirth = updateUserDto.DateOfBirth;
 
+            if (updateUserDto.AvatarUrl != null)
+                user.Profile.AvatarUrl = string.IsNullOrWhiteSpace(updateUserDto.AvatarUrl) ? null : updateUserDto.AvatarUrl;
+
             user.Profile.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -205,7 +208,7 @@ public class UserServiceImpl : IUserService
         return MapToDto(user);
     }
 
-    private async Task<bool> UsernameExistsAsync(string username, string? excludeUserId = null)
+    public async Task<bool> UsernameExistsAsync(string username, string? excludeUserId = null)
     {
         return await _context.Users.AnyAsync(u => 
             u.Username == username && 
@@ -213,7 +216,7 @@ public class UserServiceImpl : IUserService
             (excludeUserId == null || u.Id != excludeUserId));
     }
 
-    private async Task<bool> EmailExistsAsync(string email, string? excludeUserId = null)
+    public async Task<bool> EmailExistsAsync(string email, string? excludeUserId = null)
     {
         return await _context.UserProfiles.AnyAsync(up => 
             up.Email == email && 

@@ -57,6 +57,9 @@ public class UpdateUserDto
     public DateTime? DateOfBirth { get; set; }
 
     public bool? IsActive { get; set; }
+
+    // Optional profile fields not previously exposed
+    public string? AvatarUrl { get; set; }
 }
 
 public class UserResponseDto
