@@ -1,6 +1,16 @@
 version: "3.9"
 
 services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+
   user-service:
     build:
       context: ./backend-container/UserService
@@ -15,6 +25,9 @@ services:
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
       AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
     ports:
       - "8080:8080"
     networks:
@@ -22,6 +35,8 @@ services:
     restart: unless-stopped
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+    depends_on:
+      - rabbitmq
 
   practitioner-service:
     build:
@@ -59,6 +74,9 @@ services:
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
       AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
     ports:
       - "8082:8082"
     networks:
@@ -66,6 +84,8 @@ services:
     restart: unless-stopped
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+    depends_on:
+      - rabbitmq
 
   medical-catalog-service:
     build:
