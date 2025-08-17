@@ -15,6 +15,19 @@ All notable changes to this project will be documented in this file.
   - Handles concurrent inserts gracefully; unique conflicts are treated as already-processed.
 - docs(userservice,patientservice): update READMEs to document messaging flow, configs, and validation steps.
 
+- fix(frontend): route SPA API calls through Nginx proxy at `/api` instead of container DNS
+  - Set `VITE_API_BASE_URL=/api` in docker-compose build args; frontend uses axios base `/api`.
+  - Avoids browser DNS resolution issues (e.g., `http://user-service:8080` not resolvable from host).
+- feat(userservice): add UsersController with profile endpoints and availability check
+  - GET `/api/users/{id}` and PUT `/api/users/{id}` (JWT required) for reading/updating profile, including optional `avatarUrl`.
+  - GET `/api/users/availability?email=&username=` (AllowAnonymous) returns `{ emailExists, usernameExists }` for sign-up validation.
+- feat(signup): enhance registration UX with password strength meter and duplicate email check
+  - Debounced server-side email check with inline error under the email field; submit disabled when invalid/weak.
+  - Strength meter enforces minimum threshold before allowing continue.
+- fix(signup): eliminate race by using returned `user.id` from Register when immediately updating profile on CompleteProfile step
+  - Persist JWT token to localStorage and remove mock auth; profile update uses explicit `userIdOverride`.
+- docs: update READMEs and usage notes for proxy base path, endpoints, and sign-on flow.
+
 ## 2025-08-14
 
 - feat(catalog): add MedicalCatalogService with independent EF Core migrations and schema `catalog`

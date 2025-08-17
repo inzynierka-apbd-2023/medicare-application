@@ -28,6 +28,13 @@ npm run dev
 
 ---
 
+## API Base and Sign-on Flow
+
+- All API calls go through `/api` which is proxied by Nginx to the UserService. In Docker, this is configured via `VITE_API_BASE_URL=/api`.
+- Registration is a two-step flow: Register (create account) then Complete Profile (update profile with returned `user.id`).
+- JWT is persisted in `localStorage` as `authToken` and attached in the `Authorization` header.
+- The Register page enforces password strength and checks for duplicate emails via `/api/users/availability` with debouncing.
+
 # Git Hooks & Commit Convention Documentation
 
 This project uses automated Git hooks to enforce code quality and commit message standards.
