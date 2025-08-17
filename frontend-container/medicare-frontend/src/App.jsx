@@ -15,6 +15,7 @@ import SubscriptionView from "./features/signon/SubscriptionView";
 import LoginSuccess from "./features/signon/LoginSuccess";
 import RegistrationSuccess from "./features/signon/RegistrationSuccess";
 import PasswordResetSuccess from "./features/signon/PasswordResetSuccess";
+import CompleteProfile from "./features/signon/CompleteProfile";
 
 // Dashboard Components
 import PatientDashboard from "./features/dashboard/patient/PatientDashboard";
@@ -56,6 +57,7 @@ function App() {
             <Route path="/" element={<Login />} />
             <Route path="/login" element={<Login />} />
             <Route path="/register" element={<Register />} />
+            <Route path="/complete-profile" element={<CompleteProfile />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
             <Route path="/forgot-card" element={<ForgotCardNumber />} />
             <Route path="/choose-plan" element={<PlanSelection />} />

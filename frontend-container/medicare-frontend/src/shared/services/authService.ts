@@ -7,6 +7,9 @@ export interface AuthUser {
   role: string;
   firstName: string;
   lastName: string;
+  phoneNumber?: string;
+  dateOfBirth?: string;
+  avatarUrl?: string | null;
 }
 
 export interface AuthResponse {
