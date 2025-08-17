@@ -55,6 +55,8 @@ public class PatientStatus
     [Required, MaxLength(50)]
     public string Status { get; set; } = default!; // e.g., Active, Inactive, Suspended
     public DateTime EffectiveAt { get; set; }
+    [MaxLength(100)]
+    public string? IdempotencyKey { get; set; }
 }
 
 // Projection read model

@@ -52,7 +52,9 @@ public class PatientDbContext : DbContext
             e.Property(s => s.PatientId).HasMaxLength(36).IsRequired();
             e.Property(s => s.Status).HasMaxLength(50).IsRequired();
             e.Property(s => s.EffectiveAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(s => s.IdempotencyKey).HasMaxLength(100);
             e.HasIndex(s => new { s.PatientId, s.EffectiveAt });
+            e.HasIndex(s => s.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
         });
 
         modelBuilder.Entity<PatientOverview>().HasNoKey().ToView("PatientOverview", schema: "patient");

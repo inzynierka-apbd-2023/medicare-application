@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2025-08-17
+
+- feat(messaging): add RabbitMQ to docker-compose with management UI; wire UserService publisher and PatientService consumer
+  - UserService publishes domain events from a transactional outbox to exchange `user.events` (topic) with MessageId set to outbox Id.
+  - PatientService consumes `user.created` to auto-create a Patient and initial Patient_Status.
+- feat(patient): add DLQ and bounded retries for consumer
+  - Declare DLX `patient.dlx` and DLQ `patient.user-registered.dlq`; nack with requeue=false on final failure.
+  - Immediate republish retries up to 3 times with `x-retry` header; prefetch set to 10.
+- feat(patient): enforce idempotency on Patient_Status
+  - Add `IdempotencyKey` column with unique filtered index; consumer uses RabbitMQ MessageId or `UserId:OccurredAt` fallback.
+  - Handles concurrent inserts gracefully; unique conflicts are treated as already-processed.
+- docs(userservice,patientservice): update READMEs to document messaging flow, configs, and validation steps.
+
 ## 2025-08-14
 
 - feat(catalog): add MedicalCatalogService with independent EF Core migrations and schema `catalog`

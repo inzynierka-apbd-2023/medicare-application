@@ -10,6 +10,7 @@ public class UserDbContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UserProfile> UserProfiles { get; set; }
+    public DbSet<OutboxEvent> OutboxEvents { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -54,6 +55,14 @@ public class UserDbContext : DbContext
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql(SysUtc);
             
             entity.HasIndex(e => e.Email).IsUnique();
+        });
+        modelBuilder.Entity<OutboxEvent>(entity =>
+        {
+            entity.ToTable("Outbox_Event", schema: "user");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            entity.Property(e => e.OccurredAt).HasDefaultValueSql(SysUtc);
+            entity.HasIndex(e => e.PublishedAt);
         });
     }
 }
