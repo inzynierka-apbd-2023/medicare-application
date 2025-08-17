@@ -103,6 +103,9 @@ export const mockAuthService = {
         role: data.role || "Patient",
         firstName: data.firstName,
         lastName: data.lastName,
+        ...(data.phoneNumber ? { phoneNumber: data.phoneNumber } : {}),
+        ...(data.dateOfBirth ? { dateOfBirth: data.dateOfBirth } : {}),
+        avatarUrl: null,
       },
     };
   },

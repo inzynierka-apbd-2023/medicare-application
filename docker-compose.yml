@@ -159,6 +159,8 @@ services:
     build:
       context: ./frontend-container/medicare-frontend
       dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/api}
     container_name: medicare-frontend
     ports:
       - "5173:80"
@@ -172,9 +174,6 @@ services:
     networks:
       - medicare-network
     restart: unless-stopped
-    environment:
-      # Provided to nginx static build via build ARG/env (for SSR you'd rehydrate differently). If using Vite env replacement at build time, rebuild when this changes.
-      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://user-service:8080/api}
 
   # Optional local SQL Server for development (disabled by default; uncomment to use)
   # sqlserver:

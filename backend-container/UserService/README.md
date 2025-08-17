@@ -22,6 +22,20 @@ Environment variables (docker-compose already sets these):
 - POST `/api/auth/register` – creates user and enqueues `user.created` outbox event
 - GET `/api/admin/outbox` – diagnostic endpoint listing recent outbox entries
 
+### Users (new)
+
+- GET `/api/users/{id}` – fetch profile (JWT required)
+- PUT `/api/users/{id}` – update profile fields including `firstName`, `lastName`, and optional `avatarUrl` (JWT required)
+- GET `/api/users/availability?email=&username=` – anonymous availability check for sign-up. Response shape:
+
+	```json
+	{ "emailExists": true|false, "usernameExists": true|false }
+	```
+
+Notes
+
+- The registration flow returns `{ token, user }`; the `user.id` can be used immediately to update the profile.
+
 ## Local URLs
 
 - Base: <http://localhost:8080>

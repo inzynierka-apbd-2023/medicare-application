@@ -121,9 +121,23 @@ docker compose up -d --force-recreate --no-deps user-service
 
 ## Frontend Auth Integration
 
-* Register & Login forms call `/api/auth/register` and `/api/auth/login` via Nginx proxy (`/api/*` -> user-service).
-* JWT token stored in `localStorage` as `authToken`.
+* SPA API calls go through the Nginx proxy path `/api` (mapped to user-service). This avoids host DNS issues from the browser.
+   * Compose sets `VITE_API_BASE_URL=/api`; the frontend axios client uses this base.
+* Register & Login forms call `/api/auth/register` and `/api/auth/login`.
+* After registration, the flow continues to a second page to complete profile details; the returned `user.id` is used for the immediate profile update to avoid races.
+* JWT token is stored in `localStorage` as `authToken` and attached as `Authorization: Bearer <token>`.
 * Protected routes enforce presence of token.
+
+### Users API (new)
+
+* GET `/api/users/{id}` – get profile (JWT required)
+* PUT `/api/users/{id}` – update profile, including optional `avatarUrl` (JWT required)
+* GET `/api/users/availability?email=&username=` – anonymous availability check for sign-up, returns `{ emailExists, usernameExists }`
+
+### Registration UX
+
+* Password strength meter blocks weak passwords.
+* Debounced duplicate email check shows inline error; submit disabled if email is already taken.
 
 ## Development Tips
 

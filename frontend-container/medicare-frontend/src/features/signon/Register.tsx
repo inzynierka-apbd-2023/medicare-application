@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 import { useAuth } from "../../shared/auth/AuthContext";
+import { availabilityApi } from "../../shared/services/availabilityApi";
 
 interface RegisterFormData {
   firstName: string;
@@ -28,7 +29,10 @@ const Register: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { register, loading } = useAuth();
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState<"weak" | "medium" | "strong" | null>(null);
+  const emailCheckAbort = useRef<AbortController | null>(null);
+  const { loading } = useAuth();
   const navigate = useNavigate();
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,6 +43,52 @@ const Register: React.FC = () => {
     }));
   };
 
+  // Simple password strength estimator
+  const computeStrength = (pwd: string): "weak" | "medium" | "strong" => {
+    let score = 0;
+    if (pwd.length >= 8) { score++; }
+    if (/[A-Z]/.test(pwd)) { score++; }
+    if (/[a-z]/.test(pwd)) { score++; }
+    if (/\d/.test(pwd)) { score++; }
+    if (/[^A-Za-z0-9]/.test(pwd)) { score++; }
+    if (pwd.length >= 12) { score++; }
+    if (score >= 5) return "strong";
+    if (score >= 3) return "medium";
+    return "weak";
+  };
+
+  useEffect(() => {
+    if (formData.password) setPasswordStrength(computeStrength(formData.password));
+    else setPasswordStrength(null);
+  }, [formData.password]);
+
+  // Debounced email duplicate check
+  useEffect(() => {
+    setEmailError(null);
+    const email = formData.email.trim();
+    if (!email) return;
+    // simple email pattern gate before pinging server
+    const emailPattern = /.+@.+\..+/;
+    if (!emailPattern.test(email)) return;
+
+    if (emailCheckAbort.current) emailCheckAbort.current.abort();
+    const ctrl = new AbortController();
+    emailCheckAbort.current = ctrl;
+
+  const t = setTimeout(async () => {
+      try {
+    const exists = await availabilityApi.checkEmail(email, ctrl.signal);
+        if (!ctrl.signal.aborted && exists) setEmailError("Email is already in use");
+      } catch {
+        // ignore availability errors in UI; don't block typing
+      }
+    }, 400);
+    return () => {
+      ctrl.abort();
+      clearTimeout(t);
+    };
+  }, [formData.email]);
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
@@ -47,28 +97,33 @@ const Register: React.FC = () => {
       setError("Passwords do not match");
       return;
     }
+    if (passwordStrength === "weak") {
+      setError("Password too weak. Add length, numbers, upper/lowercase and a symbol.");
+      return;
+    }
+    if (emailError) {
+      setError(emailError);
+      return;
+    }
     if (!acceptTerms) {
       setError("Please accept the terms and conditions");
       return;
     }
-    try {
-      // Use email as username for now
-      await register({
-        username: formData.email,
-        email: formData.email,
-        password: formData.password,
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        phoneNumber: formData.phone,
-        dateOfBirth: formData.dateOfBirth,
-        role: "Patient",
-      });
-      navigate("/registration-success");
-    } catch (err) {
-      // Error handled in context but we set a generic fallback
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setError((err as any)?.message || "Registration failed");
-    }
+    // Defer account creation until profile completion; pass data to next step
+    navigate("/complete-profile", {
+      state: {
+        registerData: {
+          username: formData.email,
+          email: formData.email,
+          password: formData.password,
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          phoneNumber: formData.phone,
+          dateOfBirth: formData.dateOfBirth,
+          role: "Patient",
+        },
+      },
+    });
   };
 
   return (
@@ -88,10 +143,11 @@ const Register: React.FC = () => {
           {/* Name Fields */}
           <div className="grid-2">
             <div className="form-group-small">
-              <label className="form-label">First Name</label>
+              <label className="form-label" htmlFor="firstName">First Name</label>
               <input
                 type="text"
                 name="firstName"
+                id="firstName"
                 className="form-input text-sm"
                 placeholder="John"
                 value={formData.firstName}
@@ -100,10 +156,11 @@ const Register: React.FC = () => {
               />
             </div>
             <div className="form-group-small">
-              <label className="form-label">Last Name</label>
+              <label className="form-label" htmlFor="lastName">Last Name</label>
               <input
                 type="text"
                 name="lastName"
+                id="lastName"
                 className="form-input text-sm"
                 placeholder="Doe"
                 value={formData.lastName}
@@ -115,24 +172,27 @@ const Register: React.FC = () => {
 
           {/* Email */}
           <div className="form-group-small">
-            <label className="form-label">Email Address</label>
+            <label className="form-label" htmlFor="email">Email Address</label>
             <input
               type="email"
               name="email"
+              id="email"
               className="form-input text-sm"
               placeholder="john.doe@example.com"
               value={formData.email}
               onChange={handleInputChange}
               required
             />
+            {emailError && <div className="text-red-600 text-xs mt-1">{emailError}</div>}
           </div>
 
           {/* Phone */}
           <div className="form-group-small">
-            <label className="form-label">Phone Number</label>
+            <label className="form-label" htmlFor="phone">Phone Number</label>
             <input
               type="tel"
               name="phone"
+              id="phone"
               className="form-input text-sm"
               placeholder="+48 123 456 789"
               value={formData.phone}
@@ -143,10 +203,11 @@ const Register: React.FC = () => {
 
           {/* Date of Birth */}
           <div className="form-group-small">
-            <label className="form-label">Date of Birth</label>
+            <label className="form-label" htmlFor="dateOfBirth">Date of Birth</label>
             <input
               type="date"
               name="dateOfBirth"
+              id="dateOfBirth"
               className="form-input text-sm"
               value={formData.dateOfBirth}
               onChange={handleInputChange}
@@ -156,11 +217,12 @@ const Register: React.FC = () => {
 
           {/* Password */}
           <div className="form-group-small">
-            <label className="form-label">Password</label>
+            <label className="form-label" htmlFor="password">Password</label>
             <div className="field-group">
               <input
                 type={showPassword ? "text" : "password"}
                 name="password"
+                id="password"
                 className="form-input form-input-with-icon text-sm"
                 placeholder="Create a strong password"
                 value={formData.password}
@@ -179,15 +241,27 @@ const Register: React.FC = () => {
                 )}
               </button>
             </div>
+            {passwordStrength && (() => {
+              let strengthClass = "text-red-600";
+              if (passwordStrength === "medium") strengthClass = "text-yellow-600";
+              if (passwordStrength === "strong") strengthClass = "text-green-600";
+              return (
+                <div className="text-xs mt-1" aria-live="polite">
+                  <span>Password strength: </span>
+                  <span className={strengthClass}>{passwordStrength}</span>
+                </div>
+              );
+            })()}
           </div>
 
           {/* Confirm Password */}
           <div className="form-group-small">
-            <label className="form-label">Confirm Password</label>
+            <label className="form-label" htmlFor="confirmPassword">Confirm Password</label>
             <div className="field-group">
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 name="confirmPassword"
+                id="confirmPassword"
                 className="form-input form-input-with-icon text-sm"
                 placeholder="Confirm your password"
                 value={formData.confirmPassword}
@@ -220,19 +294,15 @@ const Register: React.FC = () => {
             />
             <label htmlFor="terms" className="terms-text">
               I agree to the{" "}
-              <a href="#" className="text-link">
-                Terms of Service
-              </a>{" "}
+              <button type="button" className="text-link" onClick={() => window.open("/terms", "_blank")}>Terms of Service</button>{" "}
               and{" "}
-              <a href="#" className="text-link">
-                Privacy Policy
-              </a>
+              <button type="button" className="text-link" onClick={() => window.open("/privacy", "_blank")}>Privacy Policy</button>
             </label>
           </div>
 
           {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
-          <button type="submit" className="btn-primary" disabled={loading}>
-            {loading ? "Creating..." : "Create Account"}
+          <button type="submit" className="btn-primary" disabled={loading || emailError !== null || passwordStrength === "weak"}>
+            {loading ? "Continuing..." : "Continue"}
           </button>
         </form>
 
