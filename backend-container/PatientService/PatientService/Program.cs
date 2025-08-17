@@ -8,6 +8,7 @@ using Azure.Identity;
 using PatientService.Data;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using PatientService.Infrastructure.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -106,6 +107,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddHealthChecks().AddDbContextCheck<PatientDbContext>();
+builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("RABBITMQ"));
+builder.Services.AddHostedService<UserRegisteredConsumer>();
 
 var app = builder.Build();
 
