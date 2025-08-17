@@ -1,6 +1,9 @@
 using Microsoft.AspNetCore.Mvc;
 using UserService.DTOs;
 using UserService.Services;
+using UserService.Infrastructure.Messaging;
+using UserService.Data;
+using UserService.Models;
 
 namespace UserService.Controllers;
 
@@ -10,11 +13,13 @@ public class AuthController : ControllerBase
 {
     private readonly IUserService _userService;
     private readonly IJwtService _jwtService;
+    private readonly UserDbContext _db;
 
-    public AuthController(IUserService userService, IJwtService jwtService)
+    public AuthController(IUserService userService, IJwtService jwtService, UserDbContext db)
     {
         _userService = userService;
         _jwtService = jwtService;
+        _db = db;
     }
 
     /// <summary>
@@ -74,6 +79,14 @@ public class AuthController : ControllerBase
             }
 
             var user = await _userService.CreateUserAsync(createUserDto);
+            // transactional outbox: store event in same DB
+            var evt = new UserRegistered(user.Id, user.Username, user.Email, DateTime.UtcNow);
+            _db.OutboxEvents.Add(new OutboxEvent
+            {
+                Type = "user.created",
+                PayloadJson = System.Text.Json.JsonSerializer.Serialize(evt)
+            });
+            await _db.SaveChangesAsync();
             
             // Generate JWT token response for the new user
             var tokenResponse = _jwtService.GenerateTokenResponse(user);

@@ -9,6 +9,7 @@ using UserService.Models;
 using Microsoft.Data.SqlClient;
 using Azure.Identity;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using UserService.Infrastructure.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -84,6 +85,8 @@ builder.Services.AddCors(o =>
 // Services
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
 builder.Services.AddScoped<IJwtService, JwtService>();
+builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("RABBITMQ"));
+builder.Services.AddHostedService<OutboxPublisherHostedService>();
 
 // Swagger
 builder.Services.AddEndpointsApiExplorer();
