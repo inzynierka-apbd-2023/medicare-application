@@ -24,7 +24,7 @@ public class PaymentsController : ControllerBase
         {
             Kind = req.Kind,
             SubjectId = req.SubjectId,
-            PatientId = req.PatientId,
+            PatientId = req.PatientId.ToString(),
             Provider = req.Provider ?? "mock",
             AmountCents = req.AmountCents,
             Currency = req.Currency ?? "USD",
@@ -142,5 +142,5 @@ public class PaymentsController : ControllerBase
     }
 }
 
-public record CreateIntentRequest(PaymentIntentKind Kind, string SubjectId, string PatientId, string? Provider, long AmountCents, string? Currency);
+public record CreateIntentRequest(PaymentIntentKind Kind, string SubjectId, Guid PatientId, string? Provider, long AmountCents, string? Currency);
 public record RecordTransactionRequest(TransactionType Type, long AmountCents, string? Currency, string? ProviderChargeId, string? ProviderRefundId, string? FailureCode, string? FailureMessage, string? RawPayloadJson);

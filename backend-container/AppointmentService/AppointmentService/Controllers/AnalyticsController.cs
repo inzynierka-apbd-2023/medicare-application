@@ -35,15 +35,16 @@ public class AnalyticsController : ControllerBase
     public async Task<ActionResult<AppointmentAnalyticsResponse>> GetDashboardAnalytics(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
-        [FromQuery] string? doctorId = null,
+        [FromQuery] Guid? doctorId = null,
         [FromQuery] string? specialization = null,
         [FromQuery] string? status = null)
     {
         try
         {
             // Validate request parameters
+            var doctorIdStr = doctorId?.ToString();
             var validationResults = AnalyticsRequestValidator.ValidateAnalyticsRequest(
-                startDate, endDate, doctorId, specialization, status);
+                startDate, endDate, doctorIdStr, specialization, status);
 
             if (validationResults.Any())
             {
@@ -65,16 +66,19 @@ public class AnalyticsController : ControllerBase
             }
 
             // If user is a doctor, restrict to their own data unless they have admin role
-            if (userRole == "Doctor" && string.IsNullOrEmpty(doctorId))
+            if (userRole == "Doctor" && doctorId == null)
             {
-                doctorId = userId; // Restrict to their own data
+                if (Guid.TryParse(userId, out var userGuid))
+                {
+                    doctorId = userGuid; // Restrict to their own data
+                }
             }
 
             var query = new GetAppointmentAnalyticsQuery
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorId,
+                DoctorId = doctorIdStr,
                 Specialization = specialization,
                 Status = status
             };
@@ -99,7 +103,7 @@ public class AnalyticsController : ControllerBase
     public async Task<ActionResult<IEnumerable<AppointmentMetricDto>>> GetAppointmentMetrics(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
-        [FromQuery] string? doctorId = null)
+        [FromQuery] Guid? doctorId = null)
     {
         try
         {
@@ -111,16 +115,19 @@ public class AnalyticsController : ControllerBase
                 return Forbid("Insufficient permissions to access analytics data");
             }
 
-            if (userRole == "Doctor" && string.IsNullOrEmpty(doctorId))
+            if (userRole == "Doctor" && doctorId == null)
             {
-                doctorId = userId;
+                if (Guid.TryParse(userId, out var userGuid))
+                {
+                    doctorId = userGuid;
+                }
             }
 
             var query = new GetAppointmentMetricsQuery
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorId
+                DoctorId = doctorId?.ToString()
             };
 
             var result = await _mediator.Send(query);
@@ -140,7 +147,7 @@ public class AnalyticsController : ControllerBase
     public async Task<ActionResult<IEnumerable<TrendDataDto>>> GetAppointmentTrends(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
-        [FromQuery] string? doctorId = null,
+        [FromQuery] Guid? doctorId = null,
         [FromQuery] int days = 30)
     {
         try
@@ -153,16 +160,19 @@ public class AnalyticsController : ControllerBase
                 return Forbid("Insufficient permissions to access analytics data");
             }
 
-            if (userRole == "Doctor" && string.IsNullOrEmpty(doctorId))
+            if (userRole == "Doctor" && doctorId == null)
             {
-                doctorId = userId;
+                if (Guid.TryParse(userId, out var userGuid))
+                {
+                    doctorId = userGuid;
+                }
             }
 
             var query = new GetAppointmentTrendsQuery
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorId,
+                DoctorId = doctorId?.ToString(),
                 Days = days
             };
 
@@ -183,7 +193,7 @@ public class AnalyticsController : ControllerBase
     public async Task<ActionResult<IEnumerable<DoctorPerformanceDto>>> GetDoctorPerformance(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
-        [FromQuery] string? doctorId = null,
+        [FromQuery] Guid? doctorId = null,
         [FromQuery] string? specialization = null)
     {
         try
@@ -199,14 +209,17 @@ public class AnalyticsController : ControllerBase
             // Restrict doctor access to their own data
             if (userRole == "Doctor")
             {
-                doctorId = userId;
+                if (Guid.TryParse(userId, out var userGuid))
+                {
+                    doctorId = userGuid;
+                }
             }
 
             var query = new GetDoctorPerformanceQuery
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorId,
+                DoctorId = doctorId?.ToString(),
                 Specialization = specialization
             };
 
@@ -261,7 +274,7 @@ public class AnalyticsController : ControllerBase
     public async Task<ActionResult<TimeSlotAnalysisDto>> GetTimeSlotAnalysis(
         [FromQuery] DateTime? startDate = null,
         [FromQuery] DateTime? endDate = null,
-        [FromQuery] string? doctorId = null)
+        [FromQuery] Guid? doctorId = null)
     {
         try
         {
@@ -273,16 +286,19 @@ public class AnalyticsController : ControllerBase
                 return Forbid("Insufficient permissions to access analytics data");
             }
 
-            if (userRole == "Doctor" && string.IsNullOrEmpty(doctorId))
+            if (userRole == "Doctor" && doctorId == null)
             {
-                doctorId = userId;
+                if (Guid.TryParse(userId, out var userGuid))
+                {
+                    doctorId = userGuid;
+                }
             }
 
             var query = new GetTimeSlotAnalysisQuery
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorId
+                DoctorId = doctorId?.ToString()
             };
 
             var result = await _mediator.Send(query);

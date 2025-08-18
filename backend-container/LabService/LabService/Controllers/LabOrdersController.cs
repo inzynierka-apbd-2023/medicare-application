@@ -19,7 +19,7 @@ public class LabOrdersController : ControllerBase
     {
         var order = new LabOrder
         {
-            PatientId = req.PatientId,
+            PatientId = req.PatientId.ToString(),
             OrderingDoctorId = req.OrderingDoctorId,
             MedicalRecordId = req.MedicalRecordId,
             OrderedDate = req.OrderedDate,
@@ -36,7 +36,7 @@ public class LabOrdersController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var order = await _db.LabOrders.FindAsync(id);
         if (order == null) return NotFound();
@@ -44,10 +44,11 @@ public class LabOrdersController : ControllerBase
     }
 
     [HttpGet("patient/{patientId}")]
-    public async Task<IActionResult> GetByPatientId(string patientId)
+    public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
+        var patientIdStr = patientId.ToString();
         var orders = await _db.LabOrders
-            .Where(o => o.PatientId == patientId)
+            .Where(o => o.PatientId == patientIdStr)
             .OrderByDescending(o => o.OrderedDate)
             .ToListAsync();
         return Ok(orders);
@@ -86,7 +87,7 @@ public class LabOrdersController : ControllerBase
 
     [HttpPut("{id}/status")]
     [Authorize]
-    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateOrderStatusRequest req)
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateOrderStatusRequest req)
     {
         var order = await _db.LabOrders.FindAsync(id);
         if (order == null) return NotFound();
@@ -105,7 +106,7 @@ public class LabOrdersController : ControllerBase
 }
 
 public record CreateLabOrderRequest(
-    string PatientId,
+    Guid PatientId,
     string OrderingDoctorId,
     string? MedicalRecordId,
     DateTime OrderedDate,

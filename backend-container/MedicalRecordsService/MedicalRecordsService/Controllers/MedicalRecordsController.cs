@@ -17,13 +17,13 @@ public class MedicalRecordsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> CreateMedicalRecord([FromBody] CreateMedicalRecordRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.PatientId) || string.IsNullOrWhiteSpace(req.DoctorId))
+        if (req.PatientId == Guid.Empty || req.DoctorId == Guid.Empty)
             return BadRequest("PatientId and DoctorId are required");
 
         var record = new MedicalRecord
         {
-            PatientId = req.PatientId,
-            DoctorId = req.DoctorId,
+            PatientId = req.PatientId.ToString(),
+            DoctorId = req.DoctorId.ToString(),
             AppointmentId = req.AppointmentId,
             VisitDate = req.VisitDate,
             ChiefComplaint = req.ChiefComplaint,
@@ -43,7 +43,7 @@ public class MedicalRecordsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var record = await _db.MedicalRecords.FindAsync(id);
         if (record == null) return NotFound();
@@ -51,10 +51,11 @@ public class MedicalRecordsController : ControllerBase
     }
 
     [HttpGet("patient/{patientId}")]
-    public async Task<IActionResult> GetByPatientId(string patientId)
+    public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
+        var patientIdStr = patientId.ToString();
         var records = await _db.MedicalRecords
-            .Where(r => r.PatientId == patientId)
+            .Where(r => r.PatientId == patientIdStr)
             .OrderByDescending(r => r.VisitDate)
             .ToListAsync();
         return Ok(records);
@@ -89,8 +90,8 @@ public class MedicalRecordsController : ControllerBase
 }
 
 public record CreateMedicalRecordRequest(
-    string PatientId,
-    string DoctorId,
+    Guid PatientId,
+    Guid DoctorId,
     string? AppointmentId,
     DateTime VisitDate,
     string? ChiefComplaint,

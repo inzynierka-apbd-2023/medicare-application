@@ -19,9 +19,9 @@ public class PrescriptionsController : ControllerBase
     {
         var prescription = new Prescription
         {
-            MedicalRecordId = req.MedicalRecordId,
-            PatientId = req.PatientId,
-            DoctorId = req.DoctorId,
+            MedicalRecordId = req.MedicalRecordId.ToString(),
+            PatientId = req.PatientId.ToString(),
+            DoctorId = req.DoctorId.ToString(),
             MedicationName = req.MedicationName,
             AtcCode = req.AtcCode,
             Dosage = req.Dosage,
@@ -40,7 +40,7 @@ public class PrescriptionsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var prescription = await _db.Prescriptions.FindAsync(id);
         if (prescription == null) return NotFound();
@@ -48,10 +48,11 @@ public class PrescriptionsController : ControllerBase
     }
 
     [HttpGet("patient/{patientId}")]
-    public async Task<IActionResult> GetByPatientId(string patientId)
+    public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
+        var patientIdStr = patientId.ToString();
         var prescriptions = await _db.Prescriptions
-            .Where(p => p.PatientId == patientId)
+            .Where(p => p.PatientId == patientIdStr)
             .OrderByDescending(p => p.PrescribedDate)
             .ToListAsync();
         return Ok(prescriptions);
@@ -69,7 +70,7 @@ public class PrescriptionsController : ControllerBase
 
     [HttpPut("{id}/status")]
     [Authorize]
-    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdatePrescriptionStatusRequest req)
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdatePrescriptionStatusRequest req)
     {
         var prescription = await _db.Prescriptions.FindAsync(id);
         if (prescription == null) return NotFound();
@@ -83,9 +84,9 @@ public class PrescriptionsController : ControllerBase
 }
 
 public record CreatePrescriptionRequest(
-    string MedicalRecordId,
-    string PatientId,
-    string DoctorId,
+    Guid MedicalRecordId,
+    Guid PatientId,
+    Guid DoctorId,
     string MedicationName,
     string? AtcCode,
     string Dosage,

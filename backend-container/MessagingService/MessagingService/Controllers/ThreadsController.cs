@@ -56,7 +56,7 @@ public class ThreadsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var thread = await _db.MessageThreads.FindAsync(id);
         if (thread == null) return NotFound();

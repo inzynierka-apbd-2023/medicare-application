@@ -17,7 +17,7 @@ public class SchedulesController : ControllerBase
     {
         var schedule = new Schedule
         {
-            DoctorId = req.DoctorId,
+            DoctorId = req.DoctorId.ToString(),
             DayOfWeek = req.DayOfWeek,
             StartTime = req.StartTime,
             EndTime = req.EndTime,
@@ -54,4 +54,4 @@ public class SchedulesController : ControllerBase
     }
 }
 
-public record CreateScheduleRequest(string DoctorId, DayOfWeek DayOfWeek, TimeOnly StartTime, TimeOnly EndTime);
+public record CreateScheduleRequest(Guid DoctorId, DayOfWeek DayOfWeek, TimeOnly StartTime, TimeOnly EndTime);

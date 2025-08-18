@@ -18,11 +18,12 @@ public class PatientsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Register([FromBody] RegisterPatientRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.UserId)) return BadRequest("UserId is required");
-        if (await _db.Patients.AnyAsync(p => p.UserId == req.UserId)) return Conflict("Patient already exists for this user");
+        if (req.UserId == Guid.Empty) return BadRequest("UserId is required");
+        var userIdStr = req.UserId.ToString();
+        if (await _db.Patients.AnyAsync(p => p.UserId == userIdStr)) return Conflict("Patient already exists for this user");
         var patient = new Patient
         {
-            UserId = req.UserId,
+            UserId = userIdStr,
             PrimaryDoctorId = req.PrimaryDoctorId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
@@ -41,7 +42,7 @@ public class PatientsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var patient = await _db.Patients.FindAsync(id);
         if (patient == null) return NotFound();
@@ -104,7 +105,7 @@ public class PatientsController : ControllerBase
     }
 }
 
-public record RegisterPatientRequest(string UserId, string? PrimaryDoctorId);
+public record RegisterPatientRequest(Guid UserId, string? PrimaryDoctorId);
 public record ChangeStatusRequest(string Status);
 public record EmergencyContactRequest(string Name, string? Relation, string? Phone);
 public record InsuranceRequest(string? Provider, string? PolicyNumber, DateTime? ValidFrom, DateTime? ValidTo);

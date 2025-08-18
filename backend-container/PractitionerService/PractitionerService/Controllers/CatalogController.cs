@@ -20,7 +20,7 @@ public class CatalogController : ControllerBase
     }
 
     [HttpGet("specializations")]
-    public async Task<IActionResult> GetSpecializations([FromQuery] string? serviceId)
+    public async Task<IActionResult> GetSpecializations([FromQuery] Guid? serviceId)
     {
         // For now, independent of service; extend later with mapping table
         var items = await _db.Specializations.Select(s => new { s.Id, s.Name }).ToListAsync();

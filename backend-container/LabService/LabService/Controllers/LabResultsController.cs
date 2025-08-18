@@ -14,17 +14,18 @@ public class LabResultsController : ControllerBase
     public LabResultsController(LabDbContext db) => _db = db;
 
     [HttpGet("patient/{patientId}")]
-    public async Task<IActionResult> GetByPatientId(string patientId)
+    public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
+        var patientIdStr = patientId.ToString();
         var results = await _db.LabResults
-            .Where(r => r.PatientId == patientId)
+            .Where(r => r.PatientId == patientIdStr)
             .OrderByDescending(r => r.ResultDate)
             .ToListAsync();
         return Ok(results);
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var result = await _db.LabResults.FindAsync(id);
         if (result == null) return NotFound();
@@ -60,7 +61,7 @@ public class LabResultsController : ControllerBase
         var result = new LabResult
         {
             LabTestId = req.LabTestId,
-            PatientId = req.PatientId,
+            PatientId = req.PatientId.ToString(),
             Value = req.Value,
             Unit = req.Unit,
             ReferenceRange = req.ReferenceRange,
@@ -118,7 +119,7 @@ public class LabResultsController : ControllerBase
 
 public record CreateLabResultRequest(
     string LabTestId,
-    string PatientId,
+    Guid PatientId,
     string? Value,
     string? Unit,
     string? ReferenceRange,

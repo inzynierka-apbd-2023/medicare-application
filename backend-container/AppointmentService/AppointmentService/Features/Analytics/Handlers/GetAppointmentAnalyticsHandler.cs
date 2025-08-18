@@ -68,21 +68,21 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
             .Where(sa => string.IsNullOrEmpty(doctorId) || sa.Doctor_User_Id == doctorId)
             .ToListAsync(cancellationToken);
 
-        var totalAppointments = appointments.Count;
-        var previousTotal = previousAppointments.Count;
+        var totalAppointments = appointments.Count();
+        var previousTotal = previousAppointments.Count();
         var totalChange = previousTotal > 0 ? ((double)(totalAppointments - previousTotal) / previousTotal) * 100 : 0;
 
         var completedAppointments = await _context.ScheduleAppointments
             .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                 (sa, status) => new { sa, status })
-            .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "completed")
+            .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Completed")
             .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
             .CountAsync(cancellationToken);
 
         var previousCompleted = await _context.ScheduleAppointments
             .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                 (sa, status) => new { sa, status })
-            .Where(x => x.sa.Day >= previousPeriodStart && x.sa.Day < startDate && x.status.Name == "completed")
+            .Where(x => x.sa.Day >= previousPeriodStart && x.sa.Day < startDate && x.status.Name == "Completed")
             .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
             .CountAsync(cancellationToken);
 
@@ -163,21 +163,21 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
             var completed = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "completed")
+                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "Completed")
                 .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
                 .CountAsync(cancellationToken);
 
             var cancelled = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "cancelled")
+                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "Cancelled")
                 .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
                 .CountAsync(cancellationToken);
 
             var noShow = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "no-show")
+                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "NoShow")
                 .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
                 .CountAsync(cancellationToken);
 
@@ -232,19 +232,19 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
             var completed = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "completed")
+                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Completed")
                 .CountAsync(cancellationToken);
 
             var cancelled = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "cancelled")
+                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Cancelled")
                 .CountAsync(cancellationToken);
 
             var noShow = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "no-show")
+                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "NoShow")
                 .CountAsync(cancellationToken);
 
             var ratings = await _context.Rates
@@ -300,7 +300,7 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
             var completed = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
-                .Where(x => spec.DoctorIds.Contains(x.sa.Doctor_User_Id) && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "completed")
+                .Where(x => spec.DoctorIds.Contains(x.sa.Doctor_User_Id) && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Completed")
                 .CountAsync(cancellationToken);
 
             var patients = await _context.ScheduleAppointments

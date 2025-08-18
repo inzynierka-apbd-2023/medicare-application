@@ -18,9 +18,10 @@ public class ReceptionistsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> Register([FromBody] RegisterReceptionistRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.UserId)) return BadRequest("UserId is required");
-        if (await _db.Receptionists.AnyAsync(r => r.UserId == req.UserId)) return Conflict("Receptionist already registered for this user");
-        var rec = new Receptionist { UserId = req.UserId, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
+        if (req.UserId == Guid.Empty) return BadRequest("UserId is required");
+        var userIdStr = req.UserId.ToString();
+        if (await _db.Receptionists.AnyAsync(r => r.UserId == userIdStr)) return Conflict("Receptionist already registered for this user");
+        var rec = new Receptionist { UserId = userIdStr, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow };
         _db.Receptionists.Add(rec);
         await _db.SaveChangesAsync();
         // TODO: publish ReceptionistRegistered
@@ -28,4 +29,4 @@ public class ReceptionistsController : ControllerBase
     }
 }
 
-public record RegisterReceptionistRequest(string UserId);
+public record RegisterReceptionistRequest(Guid UserId);

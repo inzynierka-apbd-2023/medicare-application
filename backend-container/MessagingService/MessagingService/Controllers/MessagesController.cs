@@ -38,7 +38,7 @@ public class MessagesController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var message = await _db.Messages.FindAsync(id);
         if (message == null) return NotFound();

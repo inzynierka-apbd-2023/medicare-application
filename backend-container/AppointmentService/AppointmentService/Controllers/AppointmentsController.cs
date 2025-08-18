@@ -17,13 +17,13 @@ public class AppointmentsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> CreateAppointment([FromBody] CreateAppointmentRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.PatientId) || string.IsNullOrWhiteSpace(req.DoctorId))
+        if (req.PatientId == Guid.Empty || req.DoctorId == Guid.Empty)
             return BadRequest("PatientId and DoctorId are required");
 
         var appointment = new Appointment
         {
-            PatientId = req.PatientId,
-            DoctorId = req.DoctorId,
+            PatientId = req.PatientId.ToString(),
+            DoctorId = req.DoctorId.ToString(),
             ScheduledAt = req.ScheduledAt,
             ScheduledEndAt = req.ScheduledEndAt,
             AppointmentType = req.AppointmentType,
@@ -39,7 +39,7 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment == null) return NotFound();
@@ -47,10 +47,11 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpGet("patient/{patientId}")]
-    public async Task<IActionResult> GetByPatientId(string patientId)
+    public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
+        var patientIdStr = patientId.ToString();
         var appointments = await _db.Appointments
-            .Where(a => a.PatientId == patientId)
+            .Where(a => a.PatientId == patientIdStr)
             .OrderBy(a => a.ScheduledAt)
             .ToListAsync();
         return Ok(appointments);
@@ -68,7 +69,7 @@ public class AppointmentsController : ControllerBase
 
     [HttpPut("{id}/status")]
     [Authorize]
-    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateStatusRequest req)
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest req)
     {
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment == null) return NotFound();
@@ -96,5 +97,5 @@ public class AppointmentsController : ControllerBase
     }
 }
 
-public record CreateAppointmentRequest(string PatientId, string DoctorId, DateTime ScheduledAt, DateTime ScheduledEndAt, string? AppointmentType, string? Notes);
+public record CreateAppointmentRequest(Guid PatientId, Guid DoctorId, DateTime ScheduledAt, DateTime ScheduledEndAt, string? AppointmentType, string? Notes);
 public record UpdateStatusRequest(string Status);
