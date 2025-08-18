@@ -49,21 +49,27 @@ export default function PatientDashboard() {
     const cardType: "in-person" | "phone" =
       apt.appointmentType === "in-person" ? "in-person" : "phone";
 
+    // Derive start/end to detect overdue
+    const startTime = apt.timeSlot?.startDateTime
+      ? new Date(apt.timeSlot.startDateTime)
+      : new Date(apt.day);
+    const endTime = apt.timeSlot?.endDateTime
+      ? new Date(apt.timeSlot.endDateTime as unknown as string)
+      : new Date(startTime.getTime() + (apt.durationMinutes || 30) * 60000);
+    const isOverdue = endTime.getTime() < Date.now();
+
     let cardStatus: "upcoming" | "completed" | "cancelled" = "upcoming";
     if (apt.status?.name === "Cancelled") cardStatus = "cancelled";
-    else if (apt.status?.name === "Completed") cardStatus = "completed";
+    else if (apt.status?.name === "Completed" || isOverdue) cardStatus = "completed";
 
     return {
       id: apt.id,
       doctorName: apt.doctor
         ? `${apt.doctor.firstName} ${apt.doctor.lastName}`
         : "Unknown Doctor",
-  specialty: apt.doctor?.specializations?.[0]?.name || "General",
-      date: new Date(apt.day),
-      time: (apt.timeSlot?.startDateTime
-        ? new Date(apt.timeSlot.startDateTime)
-        : new Date(apt.day)
-      ).toLocaleTimeString([], {
+      specialty: apt.doctor?.specializations?.[0]?.name || "General",
+      date: startTime,
+      time: startTime.toLocaleTimeString([], {
         hour: "2-digit",
         minute: "2-digit",
       }),
@@ -144,8 +150,8 @@ export default function PatientDashboard() {
       const response =
         await patientDashboardApi.markNotificationAsRead(notificationId);
       if (response.success) {
-        setNotifications((prev) => {
-          const updated = prev.map((notif) =>
+        setNotifications((prev: Notification[]) => {
+          const updated = prev.map((notif: Notification) =>
             notif.id === notificationId ? { ...notif, read: true } : notif
           );
           return updated;

@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 
 import type { Appointment } from "../../features/appointments/types";
 import { appointmentsApi } from "../services/appointmentsApi";
+import { useAuth } from "../auth/AuthContext";
 
 interface UseAppointmentsReturn {
   appointments: Appointment[];
@@ -16,6 +17,7 @@ interface UseAppointmentsReturn {
 }
 
 export const useAppointments = (): UseAppointmentsReturn => {
+  const { user } = useAuth();
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -24,8 +26,13 @@ export const useAppointments = (): UseAppointmentsReturn => {
     try {
       setLoading(true);
       setError(null);
+      if (!user?.id) {
+        setAppointments([]);
+        setLoading(false);
+        return;
+      }
 
-      const response = await appointmentsApi.getAppointments();
+  const response = await appointmentsApi.getAppointmentsForPatient(user.id);
 
       if (response.success) {
         setAppointments(response.data);
@@ -53,8 +60,8 @@ export const useAppointments = (): UseAppointmentsReturn => {
 
       if (response.success) {
         // Update local state
-        setAppointments((prev) =>
-          prev.map((apt) =>
+        setAppointments((prev: Appointment[]) =>
+          prev.map((apt: Appointment) =>
             apt.id === id
               ? { ...apt, paymentStatus: paymentData.paymentStatus }
               : apt
@@ -77,8 +84,8 @@ export const useAppointments = (): UseAppointmentsReturn => {
 
       if (response.success) {
         // Update local state
-        setAppointments((prev) =>
-          prev.map((apt) =>
+        setAppointments((prev: Appointment[]) =>
+          prev.map((apt: Appointment) =>
             apt.id === id ? { ...apt, status: "cancelled" } : apt
           )
         );
@@ -101,7 +108,8 @@ export const useAppointments = (): UseAppointmentsReturn => {
 
   useEffect(() => {
     fetchAppointments();
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
   return {
     appointments,
