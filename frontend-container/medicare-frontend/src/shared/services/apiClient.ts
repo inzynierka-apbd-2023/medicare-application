@@ -1,7 +1,7 @@
 import axios, { AxiosResponse } from "axios";
 
 // Derive API base URL from Vite env (injected at build) or fallback to same-origin proxy or localhost.
-export const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
