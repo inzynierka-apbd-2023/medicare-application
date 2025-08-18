@@ -135,6 +135,94 @@ services:
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
 
+  appointment-service:
+    build:
+      context: ./backend-container/AppointmentService
+      dockerfile: Dockerfile
+    container_name: appointment-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8087
+      ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+      HOME: /home/appuser
+      USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+    ports:
+      - "8087:8087"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
+  medical-records-service:
+    build:
+      context: ./backend-container/MedicalRecordsService
+      dockerfile: Dockerfile
+    container_name: medical-records-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8088
+      ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+      HOME: /home/appuser
+      USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+    ports:
+      - "8088:8088"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
+  lab-service:
+    build:
+      context: ./backend-container/LabService
+      dockerfile: Dockerfile
+    container_name: lab-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8089
+      ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+      HOME: /home/appuser
+      USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+    ports:
+      - "8089:8089"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
+  messaging-service:
+    build:
+      context: ./backend-container/MessagingService
+      dockerfile: Dockerfile
+    container_name: messaging-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8086
+      ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+      HOME: /home/appuser
+      USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+    ports:
+      - "8086:8086"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
   frontend:
     build:
       context: ./frontend-container/medicare-frontend
@@ -149,6 +237,10 @@ services:
       - medical-catalog-service
       - documents-service
       - billing-service
+      - appointment-service
+      - medical-records-service
+      - lab-service
+      - messaging-service
     networks:
       - medicare-network
     restart: unless-stopped
