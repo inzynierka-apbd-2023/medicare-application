@@ -1,7 +1,8 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 import type { Appointment, Document } from "../../features/documents/types";
 import { documentsApi } from "../services/documentsApi";
+import { useAuth } from "../auth/AuthContext";
 
 interface UseDocumentsParams {
   appointmentId?: string;
@@ -20,26 +21,27 @@ interface UseDocumentsResult {
 export const useDocuments = (
   params?: UseDocumentsParams
 ): UseDocumentsResult => {
+  const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const effectiveFilters = useMemo(() => {
+    const filters: { appointmentId?: string; patientId?: string } = {};
+    if (params?.appointmentId) filters.appointmentId = params.appointmentId;
+    // Default to current user id when patientId not explicitly passed
+    const pid = params?.patientId ?? user?.id;
+    if (pid) filters.patientId = pid;
+    return filters;
+  }, [params?.appointmentId, params?.patientId, user?.id]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const filters: { appointmentId?: string; patientId?: string } = {};
-
-      if (params?.appointmentId) {
-        filters.appointmentId = params.appointmentId;
-      }
-      if (params?.patientId) {
-        filters.patientId = params.patientId;
-      }
-
-      const response = await documentsApi.getDocumentsWithAppointments(filters);
+  const response = await documentsApi.getDocumentsWithAppointments(effectiveFilters);
 
       if (response.success) {
         setDocuments(response.data.documents);
@@ -53,7 +55,7 @@ export const useDocuments = (
     } finally {
       setIsLoading(false);
     }
-  }, [params?.appointmentId, params?.patientId]);
+  }, [effectiveFilters]);
 
   const downloadDocument = async (document: Document): Promise<void> => {
     try {

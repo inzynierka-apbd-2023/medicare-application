@@ -252,6 +252,7 @@ services:
     container_name: medicare-frontend
     ports:
       - "5173:80"
+      - "80:80"
     depends_on:
       - user-service
       - practitioner-service

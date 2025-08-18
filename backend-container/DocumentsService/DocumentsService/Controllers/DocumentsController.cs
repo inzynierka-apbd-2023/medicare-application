@@ -59,6 +59,7 @@ public class DocumentsController : ControllerBase
             .Include(x => x.Referral)
             .Include(x => x.SickLeave)
             .Include(x => x.LabResults).ThenInclude(r => r!.Results)
+            .Include(x => x.Assignments)
             .FirstOrDefaultAsync(x => x.Id == idStr);
         if (d == null) return NotFound();
         return d;
@@ -73,7 +74,8 @@ public class DocumentsController : ControllerBase
             .Include(x => x.Prescription)
             .Include(x => x.Referral)
             .Include(x => x.SickLeave)
-            .Include(x => x.LabResults).ThenInclude(r => r!.Results);
+            .Include(x => x.LabResults).ThenInclude(r => r!.Results)
+            .Include(x => x.Assignments);
         if (patientId != null && patientId != Guid.Empty) 
         {
             var patientIdStr = patientId.ToString();
