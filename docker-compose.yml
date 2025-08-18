@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   rabbitmq:
     image: rabbitmq:3-management
@@ -225,6 +223,32 @@ services:
     restart: unless-stopped
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
+  notification-service:
+    build:
+      context: ./backend-container/NotificationService
+      dockerfile: Dockerfile
+    container_name: notification-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8090
+      ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+      USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
+      AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
+      AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
+      AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    ports:
+      - "8090:8090"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+    depends_on:
+      - rabbitmq
 
   pdf-service:
     build:
