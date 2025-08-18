@@ -329,14 +329,14 @@ public sealed class ImportController : ControllerBase
         if (toInsert.Count > 0)
         {
             _db.Loinc.AddRange(toInsert);
-            result.Inserted += toInsert.Count;
+            result.Inserted += toInsert.Count();
             toInsert.Clear();
             await _db.SaveChangesAsync();
         }
         if (toUpdate.Count > 0)
         {
             _db.Loinc.UpdateRange(toUpdate);
-            result.Updated += toUpdate.Count;
+            result.Updated += toUpdate.Count();
             toUpdate.Clear();
             await _db.SaveChangesAsync();
         }
@@ -394,9 +394,9 @@ public sealed class ImportController : ControllerBase
             string? pick(int i) => i >= 0 && i < cols.Length ? TrimQuotes(cols[i].Trim()) : null;
             // collect optional columns
             toAdd.Add(new LoincMapTo { FromLoinc = src, ToLoinc = dst, MapType = pick(idxMapType), Comment = pick(idxComment) });
-            if (toAdd.Count >= 5000) { _db.LoincMapTo.AddRange(toAdd); await _db.SaveChangesAsync(); resultObj.Inserted += toAdd.Count; toAdd.Clear(); }
+            if (toAdd.Count >= 5000) { _db.LoincMapTo.AddRange(toAdd); await _db.SaveChangesAsync(); resultObj.Inserted += toAdd.Count(); toAdd.Clear(); }
         }
-        if (toAdd.Count > 0) { _db.LoincMapTo.AddRange(toAdd); await _db.SaveChangesAsync(); resultObj.Inserted += toAdd.Count; toAdd.Clear(); }
+        if (toAdd.Count > 0) { _db.LoincMapTo.AddRange(toAdd); await _db.SaveChangesAsync(); resultObj.Inserted += toAdd.Count(); toAdd.Clear(); }
 
     // release already ensured at start
 
@@ -515,7 +515,7 @@ public sealed class ImportController : ControllerBase
             var k = keyAL(item);
             if (existingALSet.Contains(k) || !pendingAL.Add(k)) continue;
             toAddLists.Add(item);
-            if (toAddLists.Count >= 5000) { _db.LoincAnswerList.AddRange(toAddLists); await _db.SaveChangesAsync(); inserted += toAddLists.Count; toAddLists.Clear(); }
+            if (toAddLists.Count >= 5000) { _db.LoincAnswerList.AddRange(toAddLists); await _db.SaveChangesAsync(); inserted += toAddLists.Count(); toAddLists.Clear(); }
         }
         var existingLinks = new HashSet<string>((await _db.LoincAnswerLink.AsNoTracking().Select(x => new { x.LoincNum, x.AnswerListId }).ToListAsync())
             .Select(x => $"{x.LoincNum?.Trim().ToUpperInvariant()}||{x.AnswerListId?.Trim().ToUpperInvariant()}"));
@@ -525,10 +525,10 @@ public sealed class ImportController : ControllerBase
             var k = $"{link.LoincNum?.Trim().ToUpperInvariant()}||{link.AnswerListId?.Trim().ToUpperInvariant()}";
             if (existingLinks.Contains(k) || !pendingLinks.Add(k)) continue;
             toAddLinks.Add(link);
-            if (toAddLinks.Count >= 5000) { _db.LoincAnswerLink.AddRange(toAddLinks); await _db.SaveChangesAsync(); inserted += toAddLinks.Count; toAddLinks.Clear(); }
+            if (toAddLinks.Count >= 5000) { _db.LoincAnswerLink.AddRange(toAddLinks); await _db.SaveChangesAsync(); inserted += toAddLinks.Count(); toAddLinks.Clear(); }
         }
-        if (toAddLists.Count > 0) { _db.LoincAnswerList.AddRange(toAddLists); await _db.SaveChangesAsync(); inserted += toAddLists.Count; toAddLists.Clear(); }
-        if (toAddLinks.Count > 0) { _db.LoincAnswerLink.AddRange(toAddLinks); await _db.SaveChangesAsync(); inserted += toAddLinks.Count; toAddLinks.Clear(); }
+        if (toAddLists.Count > 0) { _db.LoincAnswerList.AddRange(toAddLists); await _db.SaveChangesAsync(); inserted += toAddLists.Count(); toAddLists.Clear(); }
+        if (toAddLinks.Count > 0) { _db.LoincAnswerLink.AddRange(toAddLinks); await _db.SaveChangesAsync(); inserted += toAddLinks.Count(); toAddLinks.Clear(); }
 
     return Ok(new ImportResult { Version = version, Inserted = inserted, Updated = 0, Skipped = 0 });
     }
@@ -661,10 +661,10 @@ public sealed class ImportController : ControllerBase
             }
             if (toInsert.Count >= 5000)
             {
-                if (toInsert.Count > 0) { _db.LoincPanel.AddRange(toInsert); res.Inserted += toInsert.Count; toInsert.Clear(); await _db.SaveChangesAsync(); }
+                if (toInsert.Count > 0) { _db.LoincPanel.AddRange(toInsert); res.Inserted += toInsert.Count(); toInsert.Clear(); await _db.SaveChangesAsync(); }
             }
         }
-        if (toInsert.Count > 0) { _db.LoincPanel.AddRange(toInsert); res.Inserted += toInsert.Count; toInsert.Clear(); await _db.SaveChangesAsync(); }
+        if (toInsert.Count > 0) { _db.LoincPanel.AddRange(toInsert); res.Inserted += toInsert.Count(); toInsert.Clear(); await _db.SaveChangesAsync(); }
 
         return Ok(res);
     }
@@ -716,9 +716,9 @@ public sealed class ImportController : ControllerBase
             }
             string? opt = (idxOptional >= 0 && idxOptional < cols.Length) ? TrimQuotes(cols[idxOptional].Trim()) : null;
             toAdd.Add(new LoincPanelItem { PanelLoincNum = panel, ItemLoincNum = item, Ordinal = ord, Optionality = opt });
-            if (toAdd.Count >= 5000) { _db.LoincPanelItem.AddRange(toAdd); await _db.SaveChangesAsync(); res.Inserted += toAdd.Count; toAdd.Clear(); }
+            if (toAdd.Count >= 5000) { _db.LoincPanelItem.AddRange(toAdd); await _db.SaveChangesAsync(); res.Inserted += toAdd.Count(); toAdd.Clear(); }
         }
-        if (toAdd.Count > 0) { _db.LoincPanelItem.AddRange(toAdd); await _db.SaveChangesAsync(); res.Inserted += toAdd.Count; toAdd.Clear(); }
+        if (toAdd.Count > 0) { _db.LoincPanelItem.AddRange(toAdd); await _db.SaveChangesAsync(); res.Inserted += toAdd.Count(); toAdd.Clear(); }
 
         return Ok(res);
     }
@@ -797,13 +797,13 @@ public sealed class ImportController : ControllerBase
 
             if (toInsertPanels.Count + toInsertItems.Count >= 5000)
             {
-                if (toInsertPanels.Count > 0) { _db.LoincPanel.AddRange(toInsertPanels); res.Inserted += toInsertPanels.Count; toInsertPanels.Clear(); await _db.SaveChangesAsync(); }
-                if (toInsertItems.Count > 0) { _db.LoincPanelItem.AddRange(toInsertItems); res.Inserted += toInsertItems.Count; toInsertItems.Clear(); await _db.SaveChangesAsync(); }
+                if (toInsertPanels.Count > 0) { _db.LoincPanel.AddRange(toInsertPanels); res.Inserted += toInsertPanels.Count(); toInsertPanels.Clear(); await _db.SaveChangesAsync(); }
+                if (toInsertItems.Count > 0) { _db.LoincPanelItem.AddRange(toInsertItems); res.Inserted += toInsertItems.Count(); toInsertItems.Clear(); await _db.SaveChangesAsync(); }
             }
         }
 
-        if (toInsertPanels.Count > 0) { _db.LoincPanel.AddRange(toInsertPanels); res.Inserted += toInsertPanels.Count; toInsertPanels.Clear(); await _db.SaveChangesAsync(); }
-        if (toInsertItems.Count > 0) { _db.LoincPanelItem.AddRange(toInsertItems); res.Inserted += toInsertItems.Count; toInsertItems.Clear(); await _db.SaveChangesAsync(); }
+        if (toInsertPanels.Count > 0) { _db.LoincPanel.AddRange(toInsertPanels); res.Inserted += toInsertPanels.Count(); toInsertPanels.Clear(); await _db.SaveChangesAsync(); }
+        if (toInsertItems.Count > 0) { _db.LoincPanelItem.AddRange(toInsertItems); res.Inserted += toInsertItems.Count(); toInsertItems.Clear(); await _db.SaveChangesAsync(); }
 
         return Ok(res);
     }
@@ -850,9 +850,9 @@ public sealed class ImportController : ControllerBase
             var key = $"{loinc.ToUpperInvariant()}||{name.ToUpperInvariant()}||{(lang ?? string.Empty).ToUpperInvariant()}";
             if (existing.Contains(key) || !pending.Add(key)) { res.Skipped++; continue; }
             toAdd.Add(new LoincConsumerName { LoincNum = loinc, ConsumerName = name, Language = string.IsNullOrWhiteSpace(lang) ? null : lang });
-            if (toAdd.Count >= 5000) { _db.LoincConsumerName.AddRange(toAdd); await _db.SaveChangesAsync(); res.Inserted += toAdd.Count; toAdd.Clear(); }
+            if (toAdd.Count >= 5000) { _db.LoincConsumerName.AddRange(toAdd); await _db.SaveChangesAsync(); res.Inserted += toAdd.Count(); toAdd.Clear(); }
         }
-        if (toAdd.Count > 0) { _db.LoincConsumerName.AddRange(toAdd); await _db.SaveChangesAsync(); res.Inserted += toAdd.Count; toAdd.Clear(); }
+        if (toAdd.Count > 0) { _db.LoincConsumerName.AddRange(toAdd); await _db.SaveChangesAsync(); res.Inserted += toAdd.Count(); toAdd.Clear(); }
 
         if (!await _db.Releases.AnyAsync(r => r.System == SystemLoinc && r.Version == version))
         {
@@ -945,14 +945,14 @@ public sealed class ImportController : ControllerBase
         if (toInsert.Count > 0)
         {
             _db.Icd10.AddRange(toInsert);
-            result.Inserted += toInsert.Count;
+            result.Inserted += toInsert.Count();
             toInsert.Clear();
             await _db.SaveChangesAsync();
         }
         if (toUpdate.Count > 0)
         {
             _db.Icd10.UpdateRange(toUpdate);
-            result.Updated += toUpdate.Count;
+            result.Updated += toUpdate.Count();
             toUpdate.Clear();
             await _db.SaveChangesAsync();
         }
@@ -1148,11 +1148,11 @@ public sealed class ImportController : ControllerBase
     {
         if (toInsert.Count > 0)
         {
-            _db.Atc.AddRange(toInsert); res.Inserted += toInsert.Count; toInsert.Clear(); await _db.SaveChangesAsync();
+            _db.Atc.AddRange(toInsert); res.Inserted += toInsert.Count(); toInsert.Clear(); await _db.SaveChangesAsync();
         }
         if (toUpdate.Count > 0)
         {
-            _db.Atc.UpdateRange(toUpdate); res.Updated += toUpdate.Count; toUpdate.Clear(); await _db.SaveChangesAsync();
+            _db.Atc.UpdateRange(toUpdate); res.Updated += toUpdate.Count(); toUpdate.Clear(); await _db.SaveChangesAsync();
         }
     }
 }

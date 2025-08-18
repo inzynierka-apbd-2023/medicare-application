@@ -34,8 +34,8 @@ public class DocumentsController : ControllerBase
         };
         var doc = new Document
         {
-            PatientId = req.PatientId,
-            DoctorId = req.DoctorId,
+            PatientId = req.PatientId.ToString(),
+            DoctorId = req.DoctorId.ToString(),
             Notes = req.Notes,
             DocumentTypeId = type.Id,
             Type = resolvedType,
@@ -50,22 +50,23 @@ public class DocumentsController : ControllerBase
 
     [HttpGet("{id}")]
     [Authorize]
-    public async Task<ActionResult<Document>> GetById(string id)
+    public async Task<ActionResult<Document>> GetById(Guid id)
     {
+        var idStr = id.ToString();
         var d = await _db.Documents
             .Include(x => x.VisitDocument)
             .Include(x => x.Prescription)
             .Include(x => x.Referral)
             .Include(x => x.SickLeave)
             .Include(x => x.LabResults).ThenInclude(r => r!.Results)
-            .FirstOrDefaultAsync(x => x.Id == id);
+            .FirstOrDefaultAsync(x => x.Id == idStr);
         if (d == null) return NotFound();
         return d;
     }
 
     [HttpGet]
     [Authorize]
-    public async Task<ActionResult<IEnumerable<Document>>> List([FromQuery] string? patientId, [FromQuery] string? appointmentId, [FromQuery] int? type)
+    public async Task<ActionResult<IEnumerable<Document>>> List([FromQuery] Guid? patientId, [FromQuery] Guid? appointmentId, [FromQuery] int? type)
     {
         IQueryable<Document> q = _db.Documents
             .Include(x => x.VisitDocument)
@@ -73,13 +74,18 @@ public class DocumentsController : ControllerBase
             .Include(x => x.Referral)
             .Include(x => x.SickLeave)
             .Include(x => x.LabResults).ThenInclude(r => r!.Results);
-        if (!string.IsNullOrWhiteSpace(patientId)) q = q.Where(d => d.PatientId == patientId);
-        if (type.HasValue) q = q.Where(d => d.Type == type.Value);
-        if (!string.IsNullOrWhiteSpace(appointmentId))
+        if (patientId != null && patientId != Guid.Empty) 
         {
+            var patientIdStr = patientId.ToString();
+            q = q.Where(d => d.PatientId == patientIdStr);
+        }
+        if (type.HasValue) q = q.Where(d => d.Type == type.Value);
+        if (appointmentId != null && appointmentId != Guid.Empty)
+        {
+            var appointmentIdStr = appointmentId.ToString();
             q = from d in q
                 join a in _db.DocumentAssignments on d.Id equals a.DocumentId
-                where a.AppointmentId == appointmentId
+                where a.AppointmentId == appointmentIdStr
                 select d;
         }
         var list = await q.OrderByDescending(d => d.CreatedAt).ToListAsync();
@@ -379,8 +385,8 @@ public class DocumentsController : ControllerBase
 }
 
 public record CreateDocumentRequest(
-    string PatientId,
-    string DoctorId,
+    Guid PatientId,
+    Guid DoctorId,
     string? Notes,
     string? DocumentTypeId,
     string? DocumentTypeCode,

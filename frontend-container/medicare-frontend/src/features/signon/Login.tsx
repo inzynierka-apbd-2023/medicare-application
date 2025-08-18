@@ -18,8 +18,6 @@ const Login: React.FC = () => {
     if (localStorage.getItem("authToken")) navigate("/login-success");
   };
 
-  // Removed quick login mocks
-
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -37,8 +35,6 @@ const Login: React.FC = () => {
 
         {/* Tabs */}
         <div className="flex justify-center space-x-4 mb-6 border-b pb-2"></div>
-
-  {/* Removed mock credentials UI */}
 
         <form onSubmit={handleSubmit} className="auth-form">
           {/* Card Number */}
@@ -100,7 +96,7 @@ const Login: React.FC = () => {
           <Link to="/choose-plan" className="text-link">
             Choose your plan
           </Link>
-          <p className="auth-cta-text">Skip queues with us!</p>
+          <p className="auth-cta-text">Skip queues with us!!!!!</p>
         </div>
       </div>
     </div>

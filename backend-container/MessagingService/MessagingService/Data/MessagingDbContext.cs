@@ -1,0 +1,93 @@
+using Microsoft.EntityFrameworkCore;
+using MessagingService.Models;
+
+namespace MessagingService.Data;
+
+public class MessagingDbContext : DbContext
+{
+    public MessagingDbContext(DbContextOptions<MessagingDbContext> options) : base(options) { }
+
+    public DbSet<Message> Messages => Set<Message>();
+    public DbSet<MessageThread> MessageThreads => Set<MessageThread>();
+    public DbSet<ThreadParticipant> ThreadParticipants => Set<ThreadParticipant>();
+    public DbSet<ThreadMessage> ThreadMessages => Set<ThreadMessage>();
+    public DbSet<MessageReceipt> MessageReceipts => Set<MessageReceipt>();
+
+    protected override void OnModelCreating(ModelBuilder modelBuilder)
+    {
+        modelBuilder.Entity<Message>(e =>
+        {
+            e.ToTable("Message", schema: "messaging");
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            e.Property(m => m.SenderId).HasMaxLength(36).IsRequired();
+            e.Property(m => m.RecipientId).HasMaxLength(36).IsRequired();
+            e.Property(m => m.Subject).HasMaxLength(200).IsRequired();
+            e.Property(m => m.Content).HasMaxLength(2000).IsRequired();
+            e.Property(m => m.MessageType).HasMaxLength(50).HasDefaultValue("General");
+            e.Property(m => m.Priority).HasMaxLength(50).HasDefaultValue("Normal");
+            e.Property(m => m.IsRead).HasDefaultValue(false);
+            e.Property(m => m.RelatedEntityId).HasMaxLength(36);
+            e.Property(m => m.RelatedEntityType).HasMaxLength(50);
+            e.Property(m => m.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(m => m.SenderId);
+            e.HasIndex(m => m.RecipientId);
+            e.HasIndex(m => m.SentAt);
+            e.HasIndex(m => m.IsRead);
+        });
+
+        modelBuilder.Entity<MessageThread>(e =>
+        {
+            e.ToTable("Message_Thread", schema: "messaging");
+            e.HasKey(t => t.Id);
+            e.Property(t => t.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            e.Property(t => t.Subject).HasMaxLength(200).IsRequired();
+            e.Property(t => t.InitiatorId).HasMaxLength(36).IsRequired();
+            e.Property(t => t.IsActive).HasDefaultValue(true);
+            e.Property(t => t.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(t => t.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(t => t.InitiatorId);
+        });
+
+        modelBuilder.Entity<ThreadParticipant>(e =>
+        {
+            e.ToTable("Thread_Participant", schema: "messaging");
+            e.HasKey(p => p.Id);
+            e.Property(p => p.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            e.Property(p => p.ThreadId).HasMaxLength(36).IsRequired();
+            e.Property(p => p.UserId).HasMaxLength(36).IsRequired();
+            e.Property(p => p.IsActive).HasDefaultValue(true);
+            e.Property(p => p.JoinedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(p => p.ThreadId);
+            e.HasIndex(p => p.UserId);
+            e.HasIndex(p => new { p.ThreadId, p.UserId }).IsUnique();
+        });
+
+        modelBuilder.Entity<ThreadMessage>(e =>
+        {
+            e.ToTable("Thread_Message", schema: "messaging");
+            e.HasKey(m => m.Id);
+            e.Property(m => m.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            e.Property(m => m.ThreadId).HasMaxLength(36).IsRequired();
+            e.Property(m => m.SenderId).HasMaxLength(36).IsRequired();
+            e.Property(m => m.Content).HasMaxLength(2000).IsRequired();
+            e.Property(m => m.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(m => m.ThreadId);
+            e.HasIndex(m => m.SenderId);
+            e.HasIndex(m => m.SentAt);
+        });
+
+        modelBuilder.Entity<MessageReceipt>(e =>
+        {
+            e.ToTable("Message_Receipt", schema: "messaging");
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            e.Property(r => r.MessageId).HasMaxLength(36).IsRequired();
+            e.Property(r => r.UserId).HasMaxLength(36).IsRequired();
+            e.Property(r => r.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(r => r.MessageId);
+            e.HasIndex(r => r.UserId);
+            e.HasIndex(r => new { r.MessageId, r.UserId }).IsUnique();
+        });
+    }
+}

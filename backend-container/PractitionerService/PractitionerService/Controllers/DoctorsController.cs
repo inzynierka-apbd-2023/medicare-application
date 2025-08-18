@@ -22,9 +22,10 @@ public class DoctorsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> RegisterDoctor([FromBody] RegisterDoctorRequest req)
     {
-        if (string.IsNullOrWhiteSpace(req.UserId)) return BadRequest("UserId is required");
-        if (await _db.Doctors.AnyAsync(d => d.UserId == req.UserId)) return Conflict("Doctor already registered for this user");
-        var doctor = new Doctor { UserId = req.UserId, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, Bio = req.Bio };
+        if (req.UserId == Guid.Empty) return BadRequest("UserId is required");
+        var userIdStr = req.UserId.ToString();
+        if (await _db.Doctors.AnyAsync(d => d.UserId == userIdStr)) return Conflict("Doctor already registered for this user");
+        var doctor = new Doctor { UserId = userIdStr, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, Bio = req.Bio };
         _db.Doctors.Add(doctor);
         await _db.SaveChangesAsync();
         // TODO: publish DoctorRegistered event
@@ -46,7 +47,7 @@ public class DoctorsController : ControllerBase
     {
         if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound("Doctor not found");
         // Ensure all provided specialization IDs exist
-        var specIds = req.SpecializationIds?.Distinct().ToList() ?? new();
+        var specIds = req.SpecializationIds?.Distinct().Select(g => g.ToString()).ToList() ?? new();
         var existing = await _db.Specializations.Where(s => specIds.Contains(s.Id)).Select(s => s.Id).ToListAsync();
         if (existing.Count != specIds.Count) return BadRequest("One or more specialization IDs are invalid");
         // Replace current set
@@ -60,7 +61,7 @@ public class DoctorsController : ControllerBase
 
     // Catalog/search endpoint
     [HttpGet]
-    public async Task<IActionResult> Search([FromQuery] string? specializationId, [FromQuery] string? serviceId, [FromQuery] string? q)
+    public async Task<IActionResult> Search([FromQuery] Guid? specializationId, [FromQuery] Guid? serviceId, [FromQuery] string? q)
     {
         // For now, query from projection view DoctorDirectory and filter
         var query = _db.Set<DoctorDirectory>().AsQueryable();
@@ -69,9 +70,10 @@ public class DoctorsController : ControllerBase
             var ql = q.ToLowerInvariant();
             query = query.Where(d => d.FirstName.ToLower().Contains(ql) || d.LastName.ToLower().Contains(ql));
         }
-        if (!string.IsNullOrWhiteSpace(specializationId))
+        if (specializationId != null && specializationId != Guid.Empty)
         {
-            query = query.Where(d => d.Specializations != null && d.Specializations.Contains(specializationId));
+            var specializationIdStr = specializationId.ToString();
+            query = query.Where(d => d.Specializations != null && d.Specializations.Contains(specializationIdStr));
         }
         // serviceId reserved; would require mapping services to doctors
         var results = await query.Take(100).ToListAsync();
@@ -102,6 +104,6 @@ public class DoctorsController : ControllerBase
     }
 }
 
-public record RegisterDoctorRequest(string UserId, string? Bio);
-public record UpdateSpecializationsRequest(List<string> SpecializationIds);
+public record RegisterDoctorRequest(Guid UserId, string? Bio);
+public record UpdateSpecializationsRequest(List<Guid> SpecializationIds);
 public record ScheduleEntry(int DayOfWeek, string Start, string End);
