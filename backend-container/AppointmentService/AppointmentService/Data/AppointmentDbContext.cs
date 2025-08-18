@@ -43,6 +43,8 @@ public class AppointmentDbContext : DbContext
             e.HasIndex(a => a.PatientId);
             e.HasIndex(a => a.DoctorId);
             e.HasIndex(a => a.ScheduledAt);
+            // Composite index to support fast lookup for overdue transitions
+            e.HasIndex(a => new { a.Status, a.ScheduledEndAt });
         });
 
         modelBuilder.Entity<AppointmentSlot>(e =>

@@ -305,18 +305,18 @@ public class AnalyticsControllerTests
         SetupUserClaims("admin-user-id", "Admin");
         var startDate = DateTime.UtcNow.AddDays(-30);
         var endDate = DateTime.UtcNow;
-        var doctorId = "specific-doctor-id";
+    Guid? doctorId = Guid.NewGuid();
 
         _mediatorMock.Setup(m => m.Send(It.IsAny<GetAppointmentMetricsQuery>(), It.IsAny<CancellationToken>()))
                     .ReturnsAsync(new List<AppointmentMetricDto>());
 
         // Act
-        await _controller.GetAppointmentMetrics(startDate, endDate, doctorId);
+    await _controller.GetAppointmentMetrics(startDate, endDate, doctorId);
 
         // Assert
         _mediatorMock.Verify(m => m.Send(It.Is<GetAppointmentMetricsQuery>(q => 
             q.StartDate == startDate && 
             q.EndDate == endDate && 
-            q.DoctorId == doctorId), It.IsAny<CancellationToken>()), Times.Once);
+            q.DoctorId == doctorId.ToString()), It.IsAny<CancellationToken>()), Times.Once);
     }
 }

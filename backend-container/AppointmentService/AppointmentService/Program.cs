@@ -114,6 +114,8 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddHealthChecks().AddDbContextCheck<AppointmentDbContext>();
+// Background services
+builder.Services.AddHostedService<OverdueStatusUpdater>();
 
 var app = builder.Build();
 
@@ -214,6 +216,32 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
             // No migrations found in assembly. Fall back to EnsureCreated to materialize the model.
             Console.WriteLine("[Startup] No migrations found. Falling back to Database.EnsureCreated for Appointment DB.");
             await db.Database.EnsureCreatedAsync();
+        }
+
+        // Ensure performance index for overdue background job exists
+        const string ensureOverdueIndexSql = @"
+IF NOT EXISTS (
+    SELECT 1
+    FROM sys.indexes i
+    JOIN sys.objects o ON i.object_id = o.object_id
+    JOIN sys.schemas s ON o.schema_id = s.schema_id
+    WHERE i.name = 'IX_Appointment_Status_ScheduledEndAt'
+      AND o.name = 'Appointment'
+      AND s.name = 'appointment'
+)
+BEGIN
+    CREATE INDEX IX_Appointment_Status_ScheduledEndAt
+    ON [appointment].[Appointment] ([Status], [ScheduledEndAt]);
+END
+";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(ensureOverdueIndexSql);
+            Console.WriteLine("[Startup] Ensured index IX_Appointment_Status_ScheduledEndAt on [appointment].[Appointment].");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Startup] Warning ensuring overdue index: {ex.Message}");
         }
 
         await SeedCatalogAsync(db);

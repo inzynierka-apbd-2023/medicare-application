@@ -57,6 +57,12 @@ public class AppointmentsController : ControllerBase
     {
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment == null) return NotFound();
+        var now = DateTime.Now;
+        if ((appointment.Status == "Scheduled" || appointment.Status == "Confirmed") && appointment.ScheduledEndAt < now)
+        {
+            // Effective overdue on read
+            appointment.Status = "Overdue";
+        }
         return Ok(appointment);
     }
 
@@ -66,10 +72,18 @@ public class AppointmentsController : ControllerBase
         try
         {
             var patientIdStr = patientId.ToString();
+            var now = DateTime.Now;
             var appointments = await _db.Appointments
                 .Where(a => a.PatientId == patientIdStr)
                 .OrderBy(a => a.ScheduledAt)
                 .ToListAsync();
+            foreach (var a in appointments)
+            {
+                if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
+                {
+                    a.Status = "Overdue";
+                }
+            }
             return Ok(appointments);
         }
         catch
@@ -84,10 +98,18 @@ public class AppointmentsController : ControllerBase
     {
         try
         {
+            var now = DateTime.Now;
             var appointments = await _db.Appointments
                 .Where(a => a.DoctorId == doctorId)
                 .OrderBy(a => a.ScheduledAt)
                 .ToListAsync();
+            foreach (var a in appointments)
+            {
+                if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
+                {
+                    a.Status = "Overdue";
+                }
+            }
             return Ok(appointments);
         }
         catch
