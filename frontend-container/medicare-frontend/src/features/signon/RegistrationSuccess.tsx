@@ -1,7 +1,17 @@
 import { Link } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
+import { useAuth } from "../../shared/auth/AuthContext";
 
 export default function RegistrationSuccess() {
+  const { user } = useAuth();
+
+  const greeting = (() => {
+    if (!user) return "Registration Successful!";
+    if (user.role === "Doctor") return `Welcome, Dr. ${user.lastName || ""}`;
+    if (user.role === "Patient" || user.role === "Receptionist")
+      return `Welcome, ${user.firstName || ""}`;
+    return "Registration Successful!";
+  })();
   return (
     <div className="success-container">
       <div className="success-card">
@@ -9,11 +19,9 @@ export default function RegistrationSuccess() {
           <CheckCircle className="success-icon-green" />
         </div>
 
-        <h1 className="success-title">Registration Successful!</h1>
+        <h1 className="success-title">{greeting}</h1>
 
-        <p className="success-text">
-          Welcome to Medicare! Your account has been created successfully.
-        </p>
+  <p className="success-text">Your account has been created successfully.</p>
 
         <div className="success-info">
           <h3 className="success-info-title">What's Next?</h3>

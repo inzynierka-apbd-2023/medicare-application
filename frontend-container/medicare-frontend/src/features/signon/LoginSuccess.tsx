@@ -32,7 +32,13 @@ export default function LoginSuccess() {
           <CheckCircle className="success-icon-green" />
         </div>
 
-        <h1 className="success-title">Welcome Back!</h1>
+        <h1 className="success-title">
+          {user?.role === "Doctor"
+            ? `Welcome, Dr. ${user?.lastName || ""}`
+            : user?.role === "Patient" || user?.role === "Receptionist"
+            ? `Welcome, ${user?.firstName || ""}`
+            : "Welcome Back!"}
+        </h1>
 
         <p className="success-text">
           You have successfully signed in to your Medicare account.
