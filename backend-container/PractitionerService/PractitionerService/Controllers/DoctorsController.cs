@@ -120,6 +120,19 @@ public class DoctorsController : ControllerBase
         // TODO: publish DoctorAvailabilityChanged event
         return NoContent();
     }
+
+    // Read recurring availability
+    [HttpGet("{id}/availability")]
+    public async Task<IActionResult> GetAvailability(string id)
+    {
+        if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound("Doctor not found");
+        var schedules = await _db.DoctorSchedules
+            .Where(s => s.DoctorId == id)
+            .OrderBy(s => s.DayOfWeek)
+            .ThenBy(s => s.StartTime)
+            .ToListAsync();
+        return Ok(schedules);
+    }
 }
 
 public record RegisterDoctorRequest(Guid UserId, string? Bio);

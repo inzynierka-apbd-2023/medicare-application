@@ -228,6 +228,14 @@ export const useScheduler = ({
         if (matchedDoctor) {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           newAppointment = { ...newAppointment, doctor: matchedDoctor as any };
+        } else {
+          try {
+            const d = await SchedulerApiService.getDoctorById(newAppointment.doctorUserId);
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            newAppointment = { ...newAppointment, doctor: d as any };
+          } catch {
+            // ignore, doctor name will fill after next refresh
+          }
         }
         setState((prev: SchedulerState) => ({
           ...prev,
@@ -573,6 +581,17 @@ export const useScheduler = ({
   // Compute calendar events from appointments
   const calendarEvents: CalendarEvent[] = state.appointments.map(
     (appointment: Appointment) => {
+      const toLocalIso = (d: Date) => {
+        const pad = (n: number) => String(n).padStart(2, "0");
+        return (
+          `${d.getFullYear()}-` +
+          `${pad(d.getMonth() + 1)}-` +
+          `${pad(d.getDate())}T` +
+          `${pad(d.getHours())}:` +
+          `${pad(d.getMinutes())}:` +
+          `${pad(d.getSeconds())}`
+        );
+      };
       const doctor =
         state.doctors.find((d: Doctor) => d.id === appointment.doctorUserId) ||
         appointment.doctor;
@@ -584,10 +603,11 @@ export const useScheduler = ({
         id: appointment.id,
         title: `${doctor?.firstName ?? ""} ${doctor?.lastName ?? ""} - ${appointment.description || "Appointment"}`.trim(),
         start: appointment.day,
-        end: new Date(
-          new Date(appointment.day).getTime() +
-            appointment.durationMinutes * 60000
-        ).toISOString(),
+        end: (() => {
+          const s = new Date(appointment.day);
+          const e = new Date(s.getTime() + appointment.durationMinutes * 60000);
+          return toLocalIso(e);
+        })(),
         backgroundColor: status?.colorCode || "#3b82f6",
         borderColor: status?.colorCode || "#3b82f6",
         textColor: "#ffffff",

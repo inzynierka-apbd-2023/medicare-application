@@ -141,12 +141,17 @@ IF @dermSpec IS NOT NULL BEGIN INSERT INTO practitioner.Doctor (UserId, Bio) VAL
 IF @pedSpec IS NOT NULL BEGIN INSERT INTO practitioner.Doctor (UserId, Bio) VALUES (@pedUser, 'Pediatrics specialist'); SET @dPed = (SELECT TOP 1 Id FROM practitioner.Doctor WHERE UserId=@pedUser); INSERT INTO practitioner.Doctor_Specialization (DoctorId, SpecializationId) VALUES (@dPed, @pedSpec); END
 IF @orthoSpec IS NOT NULL BEGIN INSERT INTO practitioner.Doctor (UserId, Bio) VALUES (@orthoUser, 'Orthopedics specialist'); SET @dOrtho = (SELECT TOP 1 Id FROM practitioner.Doctor WHERE UserId=@orthoUser); INSERT INTO practitioner.Doctor_Specialization (DoctorId, SpecializationId) VALUES (@dOrtho, @orthoSpec); END
 
--- Schedules for each doctor (simple weekly slots)
-IF @dGp IS NOT NULL BEGIN INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dGp, 1, '09:00','12:00'), (@dGp, 3, '13:00','17:00'); END
-IF @dCard IS NOT NULL BEGIN INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dCard, 2, '10:00','14:00'); END
-IF @dDerm IS NOT NULL BEGIN INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dDerm, 4, '09:00','12:00'); END
-IF @dPed IS NOT NULL BEGIN INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dPed, 5, '10:00','13:00'); END
-IF @dOrtho IS NOT NULL BEGIN INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dOrtho, 1, '14:00','17:00'); END
+-- Schedules for each doctor (Mon–Fri 09:00–17:00)
+DECLARE @dow INT = 1; -- Monday=1 (SQL Server DATEFIRST default may vary; we follow our model 0=Sunday,1=Monday)
+WHILE @dow <= 5
+BEGIN
+    IF @dGp IS NOT NULL INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dGp, @dow, '09:00','17:00');
+    IF @dCard IS NOT NULL INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dCard, @dow, '09:00','17:00');
+    IF @dDerm IS NOT NULL INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dDerm, @dow, '09:00','17:00');
+    IF @dPed IS NOT NULL INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dPed, @dow, '09:00','17:00');
+    IF @dOrtho IS NOT NULL INSERT INTO practitioner.Doctor_Schedule (DoctorId, DayOfWeek, StartTime, EndTime) VALUES (@dOrtho, @dow, '09:00','17:00');
+    SET @dow = @dow + 1;
+END
 
 -- Refresh view
 IF OBJECT_ID('practitioner.DoctorDirectory','V') IS NOT NULL EXEC sp_refreshview 'practitioner.DoctorDirectory';

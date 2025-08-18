@@ -24,12 +24,14 @@ import {
   mockTimeSlots,
 } from "./mockData";
 
-// Configuration flag to enable/disable mock mode
-const USE_MOCK_DATA = true; // Keep mock by default for catalogs
+// Configuration flag to enable/disable mock mode (kept for non-critical catalogs)
+const USE_MOCK_DATA = true; // Keep mock by default for catalogs where real endpoints are optional
 // Prefer real backend just for appointments flows
 const USE_REAL_APPOINTMENTS = true;
 // When using real appointments, also source doctors from PractitionerService
 const USE_REAL_DOCTORS = true;
+// Always use real, database-backed availability (Practitioner schedules + booked appointments)
+const USE_REAL_TIME_SLOTS = true;
 // When using real appointments but mock doctors, map to a real test doctor GUID
 const TEST_DOCTOR_ID: string = (import.meta as any).env?.VITE_TEST_DOCTOR_ID ||
   "5a576dc0-cf45-4868-9112-9ae245461020"; // fallback known test doctor id
@@ -46,10 +48,40 @@ export class SchedulerApiService {
   private static appointments = [...mockAppointments];
   private static timeSlots = [...mockTimeSlots];
 
+  // Normalize a Date to a local ISO-like string without timezone designator (YYYY-MM-DDTHH:mm:ss)
+  // This prevents calendar libraries that assume local time from shifting UTC "Z" values backwards.
+  private static toLocalIso(datetime: Date): string {
+    const pad = (n: number) => String(n).padStart(2, "0");
+    const d = new Date(datetime);
+    return (
+      `${d.getFullYear()}-` +
+      `${pad(d.getMonth() + 1)}-` +
+      `${pad(d.getDate())}T` +
+      `${pad(d.getHours())}:` +
+      `${pad(d.getMinutes())}:` +
+      `${pad(d.getSeconds())}`
+    );
+  }
+
+  // Parse backend datetime that might be UTC (Z), have an offset, or be naive (no TZ).
+  // For naive values, interpret as local wall-clock time to match how the server stores datetime without TZ.
+  private static parseBackendDate(input: unknown): Date {
+    if (input instanceof Date) return new Date(input);
+    const s = (input === null || input === undefined) ? "" : String(input);
+    // Explicit timezone designator: keep as-is (will be parsed as UTC/with offset)
+    if (/Z$|[+\-]\d{2}:\d{2}$/.test(s)) return new Date(s);
+    // Naive formats we often see from .NET/EF: allow space or T, optional seconds and fractional seconds
+    // Interpret as local time (no timezone adjustment)
+    const naive = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::(\d{2})(?:\.\d{1,7})?)?$/);
+    if (naive) return new Date(s.replace(" ", "T"));
+    // Fallback
+    return new Date(s);
+  }
+
   // Map backend AppointmentService entity to UI Appointment shape
   private static mapBackendAppointmentToUi(backend: any): Appointment {
-    const start = new Date(backend.scheduledAt);
-    const end = new Date(backend.scheduledEndAt ?? backend.scheduledAt);
+  const start = this.parseBackendDate(backend.scheduledAt);
+  const end = this.parseBackendDate(backend.scheduledEndAt ?? backend.scheduledAt);
     const durationMinutes = Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000) || 30);
 
     const status = mockAppointmentStatuses.find(
@@ -78,7 +110,8 @@ export class SchedulerApiService {
       service: service as any,
       timeSlotId: "",
       timeSlot: undefined as any,
-      day: new Date(start).toISOString(),
+  // Store as local ISO (no Z) so calendar renders at the intended wall-clock time
+  day: this.toLocalIso(start),
       durationMinutes,
       appointmentType: (backend.appointmentType) === "virtual" || (backend.appointmentType) === "phone"
         ? backend.appointmentType
@@ -87,8 +120,8 @@ export class SchedulerApiService {
       description: backend.notes || "",
       statusId: status.id,
       status: status as any,
-      createdAt: new Date(backend.createdAt || backend.scheduledAt).toISOString(),
-      updatedAt: new Date(backend.updatedAt || backend.scheduledAt).toISOString(),
+  createdAt: this.parseBackendDate(backend.createdAt || backend.scheduledAt).toISOString(),
+  updatedAt: this.parseBackendDate(backend.updatedAt || backend.scheduledAt).toISOString(),
     };
 
     return ui;
@@ -395,18 +428,64 @@ export class SchedulerApiService {
       const doctorGuid = isGuid(appointmentData.doctorUserId)
         ? appointmentData.doctorUserId
         : TEST_DOCTOR_ID;
-      // If a timeSlotId was selected and exists in local cache, honor its window; else next half-hour
-      let start: Date;
-      let end: Date;
-      const selectedSlot = this.timeSlots.find((s) => s.id === appointmentData.timeSlotId);
-      if (selectedSlot) {
-        start = new Date(selectedSlot.startDateTime);
-        end = new Date(selectedSlot.endDateTime);
-      } else {
+
+      // Resolve selected time slot into exact start/end
+      let start: Date | undefined;
+      let end: Date | undefined;
+      const selectedSlotId = appointmentData.timeSlotId;
+
+      // 1) Try local cache (may be empty if mock disabled)
+      let resolvedSlot = this.timeSlots.find((s) => s.id === selectedSlotId);
+
+      // 2) If not found, try fetch by day parsed from slot id
+      if (!resolvedSlot && selectedSlotId) {
+        const m = selectedSlotId.match(/^(.+)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})$/);
+        const dayStr = m ? m[2] : undefined;
+        const hh = m ? m[3] : undefined;
+        const mm = m ? m[4] : undefined;
+        if (dayStr) {
+          try {
+            const list = await this.getAvailableTimeSlots({
+              doctorId: doctorGuid,
+              serviceId: appointmentData.serviceId,
+              startDate: dayStr,
+              endDate: dayStr,
+            });
+            resolvedSlot = list.find((s) => s.id === selectedSlotId);
+            if (!resolvedSlot && hh && mm) {
+              // Fallback: match by same HH:mm on the same day
+              const target = `${hh}:${mm}`;
+              resolvedSlot = list.find((s) => {
+                const d = new Date(s.startDateTime);
+                const h = String(d.getHours()).padStart(2, "0");
+                const m2 = String(d.getMinutes()).padStart(2, "0");
+                return s.doctorId === doctorGuid && s.startDateTime.startsWith(dayStr) && `${h}:${m2}` === target;
+              });
+            }
+          } catch {
+            // ignore and try final parse fallback
+          }
+          if (!resolvedSlot && hh && mm) {
+            // 3) Final fallback: construct local time from parsed id
+            const localStart = new Date(`${dayStr}T${hh}:${mm}:00`);
+            const localEnd = new Date(localStart.getTime() + 30 * 60000);
+            start = localStart;
+            end = localEnd;
+          }
+        }
+      }
+
+      if (resolvedSlot) {
+        start = new Date(resolvedSlot.startDateTime);
+        end = new Date(resolvedSlot.endDateTime);
+      }
+
+      // Safety fallback (should rarely happen)
+      if (!start || !end) {
         const now = new Date();
-        start = new Date(now);
         const minutes = now.getMinutes();
         const add = minutes === 0 || minutes <= 30 ? 30 - (minutes % 30 || 30) : 60 - (minutes % 30);
+        start = new Date(now);
         start.setMinutes(minutes + add, 0, 0);
         end = new Date(start.getTime() + 30 * 60000);
       }
@@ -414,8 +493,9 @@ export class SchedulerApiService {
       const payload = {
         patientId,
         doctorId: doctorGuid,
-        scheduledAt: start.toISOString(),
-        scheduledEndAt: end.toISOString(),
+        // Send local wall-clock times (no Z) so DB persists the intended time
+        scheduledAt: this.toLocalIso(start),
+        scheduledEndAt: this.toLocalIso(end),
         appointmentType: appointmentData.appointmentType,
         notes: appointmentData.description,
       };
@@ -1000,57 +1080,109 @@ export class SchedulerApiService {
   ): Promise<TimeSlot[]> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
-      const startDate = new Date(request.startDate);
-      const endDate = new Date(request.endDate);
-      // Normalize comparison bounds
+    // Always use real data path when flag is enabled: Practitioner schedules + Appointment bookings
+    try {
+      if (!USE_REAL_TIME_SLOTS && USE_MOCK_DATA) {
+        return [];
+      }
+      // Robust parse for both ISO (YYYY-MM-DD) and localized DD/MM/YYYY from date picker
+      const parseDateAny = (v: string) => {
+        if (/^\d{2}\/\d{2}\/\d{4}$/.test(v)) {
+          const [dd, mm, yyyy] = v.split("/");
+          return new Date(Number(yyyy), Number(mm) - 1, Number(dd));
+        }
+        return new Date(v);
+      };
+      const startDate = parseDateAny(request.startDate);
+      const endDate = parseDateAny(request.endDate);
       const rangeStart = new Date(startDate);
       rangeStart.setHours(0, 0, 0, 0);
       const rangeEnd = new Date(endDate);
       rangeEnd.setHours(23, 59, 59, 999);
 
-      // Generate 9–5 schedule with 30-minute slots for each day in range
-      const dayCursor = new Date(rangeStart);
-      while (dayCursor <= rangeEnd) {
-        const dayStr = dayCursor.toISOString().split("T")[0];
-        for (let hour = 9; hour < 17; hour++) {
-          for (let minute of [0, 30]) {
-            const start = new Date(`${dayStr}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00.000Z`);
-            const end = new Date(start.getTime() + 30 * 60000);
-            const id = `${request.doctorId}-${dayStr}-${String(hour).padStart(2, "0")}${String(minute).padStart(2, "0")}`;
-            if (!this.timeSlots.find((s) => s.id === id)) {
-              this.timeSlots.push({
+      // 1) Load recurring availability for the doctor
+      //    GET /api/practitioner/doctors/{id}/availability => [{ dayOfWeek, startTime, endTime }]
+      const availabilityResp = await api.get(`/practitioner/doctors/${request.doctorId}/availability`);
+      const availability: Array<{ dayOfWeek: number; startTime: string; endTime: string } | { DayOfWeek: number; StartTime: string; EndTime: string }> = availabilityResp.data || [];
+
+      // 2) Load existing appointments for the doctor to filter out occupied time
+      //    GET /api/appointment/appointments/doctor/{doctorId}
+      const aptResp = await api.get(`/appointment/appointments/doctor/${request.doctorId}`);
+      const appointments: any[] = Array.isArray(aptResp.data) ? aptResp.data : [];
+
+      const appts = appointments.map((a: any) => ({
+        start: this.parseBackendDate(a.scheduledAt || a.ScheduledAt),
+        end: this.parseBackendDate(a.scheduledEndAt || a.ScheduledEndAt || a.scheduledAt || a.ScheduledAt),
+      }));
+
+      // Helper to test overlap
+      const overlaps = (s: Date, e: Date) => appts.some((apt) => Math.max(apt.start.getTime(), s.getTime()) < Math.min(apt.end.getTime(), e.getTime()));
+
+      // Determine slot length: from service if provided (default 30)
+      let durationMinutes = 30;
+      try {
+        if (request.serviceId) {
+          // Fetch service for duration if catalogs carry it
+          const svcResp = await api.get("/practitioner/catalog/services", { params: { serviceId: request.serviceId } });
+          const svc = Array.isArray(svcResp.data) ? svcResp.data[0] : svcResp.data;
+          const dur = Number(svc?.durationMinutes ?? svc?.DurationMinutes);
+          if (!Number.isNaN(dur) && dur > 0 && dur <= 240) durationMinutes = dur;
+        }
+      } catch {
+        // ignore; keep default
+      }
+
+      // Normalize availability rows into simple objects
+      const availRows = availability.map((r: any) => ({
+        dayOfWeek: Number(r.dayOfWeek ?? r.DayOfWeek ?? 0),
+        start: String(r.startTime ?? r.StartTime ?? "09:00:00"),
+        end: String(r.endTime ?? r.EndTime ?? "17:00:00"),
+      }));
+
+      // Parse HH:mm or HH:mm:ss to minutes from midnight
+      const toMinutes = (t: string) => {
+        const parts = t.split(":");
+        const h = parseInt(parts[0] || "0", 10);
+        const m = parseInt(parts[1] || "0", 10);
+        return h * 60 + m;
+      };
+
+  const slots: TimeSlot[] = [];
+      const day = new Date(rangeStart);
+      while (day <= rangeEnd) {
+        const jsDow = day.getDay(); // 0=Sun .. 6=Sat
+        const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
+        const todays = availRows.filter((a) => a.dayOfWeek === jsDow);
+        for (const a of todays) {
+          const startMin = toMinutes(a.start);
+          const endMin = toMinutes(a.end);
+          for (let m = startMin; m + durationMinutes <= endMin; m += 30) {
+            const sh = Math.floor(m / 60);
+            const sm = m % 60;
+            const eh = Math.floor((m + durationMinutes) / 60);
+            const em = (m + durationMinutes) % 60;
+    // Build as local wall-clock time (no trailing Z)
+    const startLocal = new Date(`${dayStr}T${String(sh).padStart(2, "0")}:${String(sm).padStart(2, "0")}:00`);
+    const endLocal = new Date(`${dayStr}T${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}:00`);
+            // Exclude if overlapping an existing appointment
+    if (!overlaps(startLocal, endLocal)) {
+              const id = `${request.doctorId}-${dayStr}-${String(sh).padStart(2, "0")}${String(sm).padStart(2, "0")}`;
+              slots.push({
                 id,
                 doctorId: request.doctorId,
-                startDateTime: start.toISOString(),
-                endDateTime: end.toISOString(),
+        startDateTime: this.toLocalIso(startLocal),
+        endDateTime: this.toLocalIso(endLocal),
                 isAvailable: true,
-                durationMinutes: 30,
+                durationMinutes,
                 slotType: "standard",
               });
             }
           }
         }
-        // next day
-        dayCursor.setDate(dayCursor.getDate() + 1);
+        day.setDate(day.getDate() + 1);
       }
 
-      return this.timeSlots.filter((slot) => {
-        const slotDate = new Date(slot.startDateTime);
-        return (
-          slot.doctorId === request.doctorId &&
-          slotDate >= rangeStart &&
-          slotDate <= rangeEnd &&
-          slot.isAvailable
-        );
-      });
-    }
-
-    try {
-      const response = await api.get("/time-slots/available", {
-        params: request,
-      });
-      return response.data;
+      return slots;
     } catch (error) {
       console.error("Error fetching available time slots:", error);
       throw new Error("Failed to fetch available time slots");
@@ -1070,7 +1202,8 @@ export class SchedulerApiService {
     }
 
     try {
-      const response = await api.get(`/doctors/${doctorId}/schedule`);
+      // PractitionerService exposes recurring availability
+      const response = await api.get(`/practitioner/doctors/${doctorId}/availability`);
       return response.data;
     } catch (error) {
       console.error("Error fetching doctor schedule:", error);
