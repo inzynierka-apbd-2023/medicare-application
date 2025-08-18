@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Header from "../../../layout/Header";
+import { useAuth } from "../../../shared/auth/AuthContext";
 import {
   ErrorDisplay,
   LoadingOverlay,
@@ -26,6 +27,7 @@ import {
 } from "./components";
 
 export default function PatientDashboard() {
+  const { user } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -160,7 +162,7 @@ export default function PatientDashboard() {
     <div className="min-h-screen bg-gray-100 overflow-x-hidden">
       <Header />
       <LoadingOverlay isLoading={isLoading} message="Loading dashboard...">
-        <DashboardLayout title="Welcome, Patient">
+        <DashboardLayout title={user?.firstName ? `Welcome, ${user.firstName}` : "Welcome"}>
           {error ? (
             <div className="flex items-center justify-center h-64">
               <ErrorDisplay
