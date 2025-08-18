@@ -639,19 +639,34 @@ export class SchedulerApiService {
         params: { specializationId },
       });
       const rows = Array.isArray(response.data) ? response.data : [];
-      const mapped: Doctor[] = rows.map((d: any) => ({
-        id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
-        userId: String(d.userId ?? d.UserId ?? ""),
-        firstName: String(d.firstName ?? d.FirstName ?? ""),
-        lastName: String(d.lastName ?? d.LastName ?? ""),
-        specializationId: specializationId || "",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        specialization: undefined as any,
-        specializations: [],
-        isAvailable: true,
-        workingHours: { start: "08:00", end: "17:00" },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      })) as any;
+      const mapped: Doctor[] = rows.map((d: any) => {
+        const specIdsCsv = String(d.specializations ?? d.Specializations ?? specializationId ?? "");
+        const specIds = specIdsCsv
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0);
+        const specializations = specIds.map((id: string) => ({
+          id,
+          name: "",
+          description: "",
+          serviceId: "",
+          service: undefined as any,
+          isActive: true,
+        }));
+        return {
+          id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
+          userId: String(d.userId ?? d.UserId ?? ""),
+          firstName: String(d.firstName ?? d.FirstName ?? ""),
+          lastName: String(d.lastName ?? d.LastName ?? ""),
+          specializationId: specializationId || "",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          specialization: undefined as any,
+          specializations,
+          isAvailable: true,
+          workingHours: { start: "08:00", end: "17:00" },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any;
+      }) as any;
       return mapped;
     } catch (error) {
       console.error("Error fetching doctors by specialization:", error);
@@ -677,23 +692,90 @@ export class SchedulerApiService {
         params: { serviceId },
       });
       const rows = Array.isArray(response.data) ? response.data : [];
-      const mapped: Doctor[] = rows.map((d: any) => ({
-        id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
-        userId: String(d.userId ?? d.UserId ?? ""),
-        firstName: String(d.firstName ?? d.FirstName ?? ""),
-        lastName: String(d.lastName ?? d.LastName ?? ""),
-        specializationId: "",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        specialization: undefined as any,
-        specializations: [],
-        isAvailable: true,
-        workingHours: { start: "08:00", end: "17:00" },
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      })) as any;
+      const mapped: Doctor[] = rows.map((d: any) => {
+        const specIdsCsv = String(d.specializations ?? d.Specializations ?? "");
+        const specIds = specIdsCsv
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0);
+        const specializations = specIds.map((id: string) => ({
+          id,
+          name: "",
+          description: "",
+          serviceId: "",
+          service: undefined as any,
+          isActive: true,
+        }));
+        return {
+          id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
+          userId: String(d.userId ?? d.UserId ?? ""),
+          firstName: String(d.firstName ?? d.FirstName ?? ""),
+          lastName: String(d.lastName ?? d.LastName ?? ""),
+          specializationId: "",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          specialization: undefined as any,
+          specializations,
+          isAvailable: true,
+          workingHours: { start: "08:00", end: "17:00" },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any;
+      }) as any;
       return mapped;
     } catch (error) {
       console.error("Error fetching doctors by service:", error);
       throw new Error("Failed to fetch doctors for the specified service");
+    }
+  }
+
+  /**
+   * Get doctors filtered by optional specialization and/or service
+   */
+  static async getDoctorsFiltered(params: { specializationId?: string; serviceId?: string }): Promise<Doctor[]> {
+    await this.delay();
+
+    // Mock path falls back to getDoctors / getDoctorsByX where possible
+    if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
+      const { specializationId, serviceId } = params || {};
+      if (specializationId && !serviceId) return this.getDoctorsBySpecialization(specializationId);
+      if (serviceId && !specializationId) return this.getDoctorsByService(serviceId);
+      return mockDoctors;
+    }
+
+    try {
+      const response = await api.get("/practitioner/doctors", { params });
+      const rows = Array.isArray(response.data) ? response.data : [];
+      const mapped: Doctor[] = rows.map((d: any) => {
+        const specIdsCsv = String(d.specializations ?? d.Specializations ?? "");
+        const specIds = specIdsCsv
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0);
+        const specializations = specIds.map((id: string) => ({
+          id,
+          name: "",
+          description: "",
+          serviceId: "",
+          service: undefined as any,
+          isActive: true,
+        }));
+        return {
+          id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
+          userId: String(d.userId ?? d.UserId ?? ""),
+          firstName: String(d.firstName ?? d.FirstName ?? ""),
+          lastName: String(d.lastName ?? d.LastName ?? ""),
+          specializationId: "",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          specialization: undefined as any,
+          specializations,
+          isAvailable: true,
+          workingHours: { start: "08:00", end: "17:00" },
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        } as any;
+      }) as any;
+      return mapped;
+    } catch (error) {
+      console.error("Error fetching filtered doctors:", error);
+      throw new Error("Failed to fetch filtered doctors");
     }
   }
 
@@ -832,8 +914,15 @@ export class SchedulerApiService {
     }
 
     try {
-      // No direct mapping yet; return full list
-      return await this.getServices();
+      const response = await api.get("/practitioner/catalog/services", { params: { specializationId } });
+      const rows = Array.isArray(response.data) ? response.data : [];
+      return rows.map((s: any) => ({
+        id: String(s.id ?? s.Id),
+        name: String(s.name ?? s.Name ?? "Service"),
+        description: String(s.description ?? s.Description ?? ""),
+        durationMinutes: 30,
+        isActive: true,
+      })) as Service[];
     } catch (error) {
       console.error("Error fetching services by specialization:", error);
       throw new Error(
@@ -914,17 +1003,44 @@ export class SchedulerApiService {
     if (USE_MOCK_DATA) {
       const startDate = new Date(request.startDate);
       const endDate = new Date(request.endDate);
+      // Normalize comparison bounds
+      const rangeStart = new Date(startDate);
+      rangeStart.setHours(0, 0, 0, 0);
+      const rangeEnd = new Date(endDate);
+      rangeEnd.setHours(23, 59, 59, 999);
 
-      // Set time to start and end of day for proper comparison
-      startDate.setHours(0, 0, 0, 0);
-      endDate.setHours(23, 59, 59, 999);
+      // Generate 9–5 schedule with 30-minute slots for each day in range
+      const dayCursor = new Date(rangeStart);
+      while (dayCursor <= rangeEnd) {
+        const dayStr = dayCursor.toISOString().split("T")[0];
+        for (let hour = 9; hour < 17; hour++) {
+          for (let minute of [0, 30]) {
+            const start = new Date(`${dayStr}T${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}:00.000Z`);
+            const end = new Date(start.getTime() + 30 * 60000);
+            const id = `${request.doctorId}-${dayStr}-${String(hour).padStart(2, "0")}${String(minute).padStart(2, "0")}`;
+            if (!this.timeSlots.find((s) => s.id === id)) {
+              this.timeSlots.push({
+                id,
+                doctorId: request.doctorId,
+                startDateTime: start.toISOString(),
+                endDateTime: end.toISOString(),
+                isAvailable: true,
+                durationMinutes: 30,
+                slotType: "standard",
+              });
+            }
+          }
+        }
+        // next day
+        dayCursor.setDate(dayCursor.getDate() + 1);
+      }
 
       return this.timeSlots.filter((slot) => {
         const slotDate = new Date(slot.startDateTime);
         return (
           slot.doctorId === request.doctorId &&
-          slotDate >= startDate &&
-          slotDate <= endDate &&
+          slotDate >= rangeStart &&
+          slotDate <= rangeEnd &&
           slot.isAvailable
         );
       });

@@ -325,6 +325,97 @@ export const useScheduler = ({
     setState((prev: SchedulerState) => ({ ...prev, selectedDate: date }));
   }, []);
 
+  // Helpers to narrow/reload catalogs while preserving compatible selections
+  const applyNarrowBySpecialization = useCallback(async (specId: string) => {
+    try {
+      const [srv, docs] = await Promise.all([
+        SchedulerApiService.getServicesBySpecialization(specId),
+        SchedulerApiService.getDoctorsFiltered({ specializationId: specId, serviceId: state.filters.service }),
+      ]);
+      setState((prev: SchedulerState) => {
+    const selSvc = prev.filters?.service;
+    const nextService = selSvc && srv.some((s) => s.id === selSvc) ? selSvc : undefined;
+    const selDoc = prev.filters?.doctor;
+    const nextDoctor = selDoc && docs.some((d) => d.id === selDoc) ? selDoc : undefined;
+    return { ...prev, services: srv, doctors: docs, filters: { ...prev.filters, service: nextService, doctor: nextDoctor } } as SchedulerState;
+      });
+    } catch (e) {
+      console.error("Failed to narrow by specialization", e);
+    }
+  }, [state.filters.service]);
+
+  const handleClearedSpecialization = useCallback(async (serviceId?: string) => {
+    try {
+      if (serviceId) {
+        const [specs, docs] = await Promise.all([
+          SchedulerApiService.getSpecializationsByService(serviceId),
+          SchedulerApiService.getDoctorsByService(serviceId),
+        ]);
+        setState((prev: SchedulerState) => ({ ...prev, specializations: specs, doctors: docs }));
+      } else {
+        const [srv, specs, docs] = await Promise.all([
+          SchedulerApiService.getServices(),
+          SchedulerApiService.getSpecializations(),
+          SchedulerApiService.getDoctors(),
+        ]);
+        setState((prev: SchedulerState) => ({ ...prev, services: srv, specializations: specs, doctors: docs }));
+      }
+    } catch (err) {
+      console.error("Failed to reload catalogs after clearing specialization", err);
+    }
+  }, []);
+
+  const applyNarrowByService = useCallback(async (serviceId: string) => {
+    try {
+      const [specs, docs] = await Promise.all([
+        SchedulerApiService.getSpecializationsByService(serviceId),
+        SchedulerApiService.getDoctorsFiltered({ serviceId, specializationId: state.filters.specialization }),
+      ]);
+      setState((prev: SchedulerState) => {
+    const selSpec = prev.filters?.specialization;
+    const nextSpec = selSpec && specs.some((sp) => sp.id === selSpec) ? selSpec : undefined;
+    const selDoc = prev.filters?.doctor;
+    const nextDoctor = selDoc && docs.some((d) => d.id === selDoc) ? selDoc : undefined;
+    return { ...prev, specializations: specs, doctors: docs, filters: { ...prev.filters, specialization: nextSpec, doctor: nextDoctor } } as SchedulerState;
+      });
+    } catch (err) {
+      console.error("Failed to narrow by service", err);
+    }
+  }, [state.filters.specialization]);
+
+  const handleClearedService = useCallback(async (specializationId?: string) => {
+    try {
+      if (specializationId) {
+        const [srv, docs] = await Promise.all([
+          SchedulerApiService.getServicesBySpecialization(specializationId),
+          SchedulerApiService.getDoctorsBySpecialization(specializationId),
+        ]);
+        setState((prev: SchedulerState) => ({ ...prev, services: srv, doctors: docs }));
+      } else {
+        const [srv, specs, docs] = await Promise.all([
+          SchedulerApiService.getServices(),
+          SchedulerApiService.getSpecializations(),
+          SchedulerApiService.getDoctors(),
+        ]);
+        setState((prev: SchedulerState) => ({ ...prev, services: srv, specializations: specs, doctors: docs }));
+      }
+    } catch (err) {
+      console.error("Failed to reload catalogs after clearing service", err);
+    }
+  }, []);
+
+  const applyDoctorAutofill = useCallback((doctorId: string, current: SchedulerFilters) => {
+    const picked = state.doctors.find((d: Doctor) => d.id === doctorId);
+    const docSpecId = picked?.specializations?.[0]?.id;
+    if (docSpecId && current.specialization !== docSpecId) {
+      setState((prev: SchedulerState) => ({
+        ...prev,
+        filters: { ...prev.filters, specialization: docSpecId, doctor: doctorId } as SchedulerFilters,
+      }));
+      applyNarrowBySpecialization(docSpecId);
+    }
+  }, [state.doctors, applyNarrowBySpecialization]);
+
   // Update filters
   const updateFilters = useCallback((newFilters: Partial<SchedulerFilters>) => {
     // Compute next filters to decide dependent loads
@@ -334,42 +425,9 @@ export const useScheduler = ({
     if (newFilters.hasOwnProperty("specialization")) {
       const sid = nextFilters.specialization;
       if (sid) {
-        // Narrow services and doctors by specialization
-        (async () => {
-          try {
-            const [srv, docs] = await Promise.all([
-              SchedulerApiService.getServicesBySpecialization(sid),
-              SchedulerApiService.getDoctorsBySpecialization(sid),
-            ]);
-            setState((prev) => ({ ...prev, services: srv, doctors: docs }));
-          } catch (e) {
-            // ignore for now; errors handled elsewhere
-          }
-        })();
+        applyNarrowBySpecialization(sid);
       } else {
-        // Cleared specialization; if service is set, filter by service, else reload all
-        if (nextFilters.service) {
-          (async () => {
-            try {
-              const [specs, docs] = await Promise.all([
-                SchedulerApiService.getSpecializationsByService(nextFilters.service as string),
-                SchedulerApiService.getDoctorsByService(nextFilters.service as string),
-              ]);
-              setState((prev) => ({ ...prev, specializations: specs, doctors: docs }));
-            } catch {}
-          })();
-        } else {
-          (async () => {
-            try {
-              const [srv, specs, docs] = await Promise.all([
-                SchedulerApiService.getServices(),
-                SchedulerApiService.getSpecializations(),
-                SchedulerApiService.getDoctors(),
-              ]);
-              setState((prev) => ({ ...prev, services: srv, specializations: specs, doctors: docs }));
-            } catch {}
-          })();
-        }
+        handleClearedSpecialization(nextFilters.service);
       }
     }
 
@@ -377,42 +435,20 @@ export const useScheduler = ({
     if (newFilters.hasOwnProperty("service")) {
       const serviceId = nextFilters.service;
       if (serviceId) {
-        (async () => {
-          try {
-            const [specs, docs] = await Promise.all([
-              SchedulerApiService.getSpecializationsByService(serviceId as string),
-              SchedulerApiService.getDoctorsByService(serviceId as string),
-            ]);
-            setState((prev) => ({ ...prev, specializations: specs, doctors: docs }));
-          } catch {}
-        })();
+        applyNarrowByService(serviceId);
+      } else if (nextFilters.specialization) {
+        handleClearedService(nextFilters.specialization);
       } else {
-        // Cleared service; if specialization is set, filter by specialization, else reload all
-        if (nextFilters.specialization) {
-          (async () => {
-            try {
-              const [srv, docs] = await Promise.all([
-                SchedulerApiService.getServicesBySpecialization(nextFilters.specialization as string),
-                SchedulerApiService.getDoctorsBySpecialization(nextFilters.specialization as string),
-              ]);
-              setState((prev) => ({ ...prev, services: srv, doctors: docs }));
-            } catch {}
-          })();
-        } else {
-          (async () => {
-            try {
-              const [srv, specs, docs] = await Promise.all([
-                SchedulerApiService.getServices(),
-                SchedulerApiService.getSpecializations(),
-                SchedulerApiService.getDoctors(),
-              ]);
-              setState((prev) => ({ ...prev, services: srv, specializations: specs, doctors: docs }));
-            } catch {}
-          })();
-        }
+        handleClearedService(undefined);
       }
     }
-  }, []);
+
+    // Doctor change: auto-fill specialization/service based on the picked doctor
+    if (newFilters.hasOwnProperty("doctor")) {
+      const doctorId = nextFilters.doctor;
+      if (doctorId) applyDoctorAutofill(doctorId, nextFilters);
+    }
+  }, [applyNarrowByService, handleClearedService, applyNarrowBySpecialization, applyDoctorAutofill]);
 
   // Load available time slots
   const loadAvailableTimeSlots = useCallback(

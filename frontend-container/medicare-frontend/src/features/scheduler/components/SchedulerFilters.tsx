@@ -1,4 +1,4 @@
-import React from "react";
+import React, { ChangeEvent } from "react";
 import { Filter, X } from "lucide-react";
 
 import { Button } from "../../../shared/components";
@@ -27,44 +27,21 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
   isLoading = false,
 }) => {
   const handleSpecializationChange = (specializationId: string) => {
-    const updates: Partial<SchedulerFilters> = {
-      service: undefined,
-      doctor: undefined,
-    };
-
-    if (specializationId) {
-      updates.specialization = specializationId;
-    } else {
-      updates.specialization = undefined;
-    }
-
-    onFiltersChange(updates);
+    onFiltersChange({
+      specialization: specializationId || undefined,
+      // Do not clear service/doctor here; hook will clear incompatible ones after narrowing
+    });
   };
 
   const handleServiceChange = (serviceId: string) => {
-    const updates: Partial<SchedulerFilters> = {
-      doctor: undefined,
-    };
-
-    if (serviceId) {
-      updates.service = serviceId;
-    } else {
-      updates.service = undefined;
-    }
-
-    onFiltersChange(updates);
+    onFiltersChange({
+      service: serviceId || undefined,
+      // Do not clear doctor here; hook will clear incompatible one after narrowing
+    });
   };
 
   const handleDoctorChange = (doctorId: string) => {
-    const updates: Partial<SchedulerFilters> = {};
-
-    if (doctorId) {
-      updates.doctor = doctorId;
-    } else {
-      updates.doctor = undefined;
-    }
-
-    onFiltersChange(updates);
+    onFiltersChange({ doctor: doctorId || undefined });
   };
 
   const handleAppointmentTypeChange = (type: string) => {
@@ -137,7 +114,7 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
           </label>
           <select
             value={filters.specialization || ""}
-            onChange={(e) => handleSpecializationChange(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleSpecializationChange(e.target.value)}
             disabled={isLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
           >
@@ -157,7 +134,7 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
           </label>
           <select
             value={filters.service || ""}
-            onChange={(e) => handleServiceChange(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleServiceChange(e.target.value)}
             disabled={isLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
           >
@@ -177,7 +154,7 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
           </label>
           <select
             value={filters.doctor || ""}
-            onChange={(e) => handleDoctorChange(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleDoctorChange(e.target.value)}
             disabled={isLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
           >
