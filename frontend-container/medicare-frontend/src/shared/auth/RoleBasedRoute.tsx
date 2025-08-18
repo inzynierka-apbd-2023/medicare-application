@@ -30,6 +30,7 @@ export const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
       Patient: "/patient-dashboard",
       Doctor: "/doctor-dashboard",
       Owner: "/owner-dashboard",
+  Admin: "/owner-dashboard",
       Receptionist: "/receptionist-dashboard",
     };
 
