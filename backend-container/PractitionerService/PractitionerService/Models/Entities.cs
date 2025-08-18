@@ -48,6 +48,15 @@ public class Specialization
     public string Name { get; set; } = default!;
 }
 
+// Mapping between Services and Specializations (many-to-many)
+public class SpecializationService
+{
+    [MaxLength(36)]
+    public string SpecializationId { get; set; } = default!;
+    [MaxLength(36)]
+    public string ServiceId { get; set; } = default!;
+}
+
 public class DoctorSpecialization
 {
     [MaxLength(36)]

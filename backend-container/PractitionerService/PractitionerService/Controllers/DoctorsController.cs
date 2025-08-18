@@ -63,7 +63,7 @@ public class DoctorsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Search([FromQuery] Guid? specializationId, [FromQuery] Guid? serviceId, [FromQuery] string? q)
     {
-        // For now, query from projection view DoctorDirectory and filter
+        // Query from projection view DoctorDirectory and filter
         var query = _db.Set<DoctorDirectory>().AsQueryable();
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -75,7 +75,25 @@ public class DoctorsController : ControllerBase
             var specializationIdStr = specializationId.ToString();
             query = query.Where(d => d.Specializations != null && d.Specializations.Contains(specializationIdStr));
         }
-        // serviceId reserved; would require mapping services to doctors
+        if (serviceId != null && serviceId != Guid.Empty)
+        {
+            var sid = serviceId.ToString();
+            // map service -> specialization ids
+            var specIds = await _db.SpecializationServices
+                .Where(ss => ss.ServiceId == sid)
+                .Select(ss => ss.SpecializationId)
+                .ToListAsync();
+            if (specIds.Count > 0)
+            {
+                // intersect with doctor specialization CSV
+                query = query.Where(d => d.Specializations != null && specIds.Any(sid => d.Specializations!.Contains(sid)));
+            }
+            else
+            {
+                // No mapping -> empty
+                return Ok(Array.Empty<DoctorDirectory>());
+            }
+        }
         var results = await query.Take(100).ToListAsync();
         return Ok(results);
     }

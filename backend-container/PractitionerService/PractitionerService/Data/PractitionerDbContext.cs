@@ -11,6 +11,7 @@ public class PractitionerDbContext : DbContext
     public DbSet<Receptionist> Receptionists => Set<Receptionist>();
     public DbSet<MedicalService> Services => Set<MedicalService>();
     public DbSet<Specialization> Specializations => Set<Specialization>();
+    public DbSet<SpecializationService> SpecializationServices => Set<SpecializationService>();
     public DbSet<DoctorSpecialization> DoctorSpecializations => Set<DoctorSpecialization>();
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
 
@@ -49,6 +50,15 @@ public class PractitionerDbContext : DbContext
             e.HasKey(s => s.Id);
             e.Property(s => s.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
             e.Property(s => s.Name).HasMaxLength(200).IsRequired();
+        });
+        modelBuilder.Entity<SpecializationService>(e =>
+        {
+            e.ToTable("Specialization_Service", schema: "practitioner");
+            e.HasKey(ss => new { ss.SpecializationId, ss.ServiceId });
+            e.Property(ss => ss.SpecializationId).HasMaxLength(36);
+            e.Property(ss => ss.ServiceId).HasMaxLength(36);
+            e.HasOne<Specialization>().WithMany().HasForeignKey(ss => ss.SpecializationId).OnDelete(DeleteBehavior.Cascade);
+            e.HasOne<MedicalService>().WithMany().HasForeignKey(ss => ss.ServiceId).OnDelete(DeleteBehavior.Cascade);
         });
         modelBuilder.Entity<DoctorSpecialization>(e =>
         {

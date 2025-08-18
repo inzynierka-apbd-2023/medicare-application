@@ -13,17 +13,34 @@ public class CatalogController : ControllerBase
     public CatalogController(PractitionerDbContext db) => _db = db;
 
     [HttpGet("services")]
-    public async Task<IActionResult> GetServices()
+    public async Task<IActionResult> GetServices([FromQuery] Guid? specializationId)
     {
-        var items = await _db.Services.Select(s => new { s.Id, s.Name, s.Description }).ToListAsync();
+        var query = _db.Services.AsQueryable();
+        if (specializationId.HasValue && specializationId.Value != Guid.Empty)
+        {
+            var sid = specializationId.Value.ToString();
+            query = from s in _db.Services
+                    join ss in _db.SpecializationServices on s.Id equals ss.ServiceId
+                    where ss.SpecializationId == sid
+                    select s;
+        }
+        var items = await query.Select(s => new { s.Id, s.Name, s.Description }).ToListAsync();
         return Ok(items);
     }
 
     [HttpGet("specializations")]
     public async Task<IActionResult> GetSpecializations([FromQuery] Guid? serviceId)
     {
-        // For now, independent of service; extend later with mapping table
-        var items = await _db.Specializations.Select(s => new { s.Id, s.Name }).ToListAsync();
+        var query = _db.Specializations.AsQueryable();
+        if (serviceId.HasValue && serviceId.Value != Guid.Empty)
+        {
+            var sid = serviceId.Value.ToString();
+            query = from sp in _db.Specializations
+                    join ss in _db.SpecializationServices on sp.Id equals ss.SpecializationId
+                    where ss.ServiceId == sid
+                    select sp;
+        }
+        var items = await query.Select(s => new { s.Id, s.Name }).ToListAsync();
         return Ok(items);
     }
 }
