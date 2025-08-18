@@ -144,6 +144,9 @@ services:
       HOME: /home/appuser
       USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
       DOCUMENTS_BYPASS_AUTH: "true"
+      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
       AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
@@ -154,6 +157,8 @@ services:
     restart: unless-stopped
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+    depends_on:
+      - rabbitmq
 
   appointment-service:
     build:
@@ -220,6 +225,21 @@ services:
     restart: unless-stopped
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
+
+  pdf-service:
+    build:
+      context: ./backend-container/PdfService
+      dockerfile: Dockerfile
+    container_name: pdf-service
+    environment:
+      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
+      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
+      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    depends_on:
+      - rabbitmq
 
   messaging-service:
     build:

@@ -35,6 +35,13 @@ public class Document
     [MaxLength(36)]
     public string DoctorId { get; set; } = default!;
 
+    // Denormalized display names to avoid cross-service lookups at read/PDF time
+    [MaxLength(200)]
+    public string? PatientName { get; set; }
+
+    [MaxLength(200)]
+    public string? DoctorName { get; set; }
+
     [MaxLength(500)]
     public string? FilePath { get; set; }
 
