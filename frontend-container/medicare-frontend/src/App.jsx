@@ -92,7 +92,7 @@ function App() {
             <Route
               path="/owner-dashboard"
               element={
-                <RoleBasedRoute allowedRoles={["Owner"]}>
+                <RoleBasedRoute allowedRoles={["Owner", "Admin"]}>
                   <OwnerDashboard />
                 </RoleBasedRoute>
               }

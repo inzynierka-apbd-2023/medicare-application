@@ -1,8 +1,4 @@
 Registered 4 users via the UserService API:
-Patient: username=patient_a_20250818, email=patient_a_20250818@example.com
-Doctor: username=doctor_a_20250818, email=doctor_a_20250818@example.com
-Receptionist: username=reception_a_20250818, email=reception_a_20250818@example.com
-Admin: username=admin_a_20250818, email=admin_a_20250818@example.com
 patient_a_20250818 / P@ssw0rd!
 doctor_a_20250818 / P@ssw0rd!
 reception_a_20250818 / P@ssw0rd!

@@ -15,7 +15,14 @@ const Login: React.FC = () => {
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     await login(cardNumber, password);
-    if (localStorage.getItem("authToken")) navigate("/login-success");
+    // Prefer immediate redirect to default dashboard if token is present
+    const token = localStorage.getItem("authToken");
+    if (token) {
+      const user = JSON.parse(sessionStorage.getItem("authUser") || "null");
+      // Fallback to login success splash if we can't resolve user yet
+      if (!user || !user.role) return navigate("/login-success");
+    }
+    navigate("/login-success");
   };
 
   return (
