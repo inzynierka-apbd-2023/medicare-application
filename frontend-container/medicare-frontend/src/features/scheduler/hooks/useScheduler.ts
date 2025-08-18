@@ -66,7 +66,7 @@ export const useScheduler = ({
   // Load initial data
   useEffect(() => {
     const loadInitialData = async () => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const [
@@ -83,9 +83,49 @@ export const useScheduler = ({
           SchedulerApiService.getAppointmentStatuses(),
         ]);
 
-        setState((prev) => ({
+        // Join doctor details onto appointments for downstream UIs (dashboard, lists)
+        let joinedAppointments = appointments.map((apt) => {
+          const doc = doctors.find(
+            (d) => d.id === apt.doctorUserId || d.userId === apt.doctorUserId
+          );
+          return {
+            ...apt,
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            doctor: (doc as any) ?? apt.doctor,
+          };
+        });
+
+        // Fetch any missing doctors directly by id and update the appointments
+        const missing = joinedAppointments.filter((a) => !a.doctor);
+        if (missing.length > 0) {
+          const fetchedPairs = await Promise.all(
+            missing.map(async (a) => {
+              try {
+                const d = await SchedulerApiService.getDoctorById(a.doctorUserId);
+                return { id: a.doctorUserId, doctor: d };
+              } catch {
+                return { id: a.doctorUserId, doctor: undefined } as any;
+              }
+            })
+          );
+
+          const fetchedMap = new Map<string, Doctor | undefined>(
+            fetchedPairs.map((p) => [p.id, p.doctor])
+          );
+          joinedAppointments = joinedAppointments.map((a) =>
+            a.doctor
+              ? a
+              : {
+                  ...a,
+                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                  doctor: (fetchedMap.get(a.doctorUserId) as any) ?? a.doctor,
+                }
+          );
+        }
+
+  setState((prev: SchedulerState) => ({
           ...prev,
-          appointments,
+          appointments: joinedAppointments,
           doctors,
           services,
           specializations,
@@ -93,7 +133,7 @@ export const useScheduler = ({
           isLoading: false,
         }));
       } catch (error) {
-        setState((prev) => ({
+  setState((prev: SchedulerState) => ({
           ...prev,
           error:
             error instanceof Error
@@ -111,18 +151,54 @@ export const useScheduler = ({
 
   // Refresh appointments
   const refreshAppointments = useCallback(async () => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       const appointments =
         await SchedulerApiService.getPatientAppointments(patientId);
-      setState((prev) => ({
+      let joinedAppointments = appointments.map((apt) => {
+        const doc = state.doctors.find(
+          (d: Doctor) => d.id === apt.doctorUserId || d.userId === apt.doctorUserId
+        );
+        return {
+          ...apt,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          doctor: (doc as any) ?? apt.doctor,
+        };
+      });
+
+      const missing = joinedAppointments.filter((a) => !a.doctor);
+      if (missing.length > 0) {
+        const fetchedPairs = await Promise.all(
+          missing.map(async (a) => {
+            try {
+              const d = await SchedulerApiService.getDoctorById(a.doctorUserId);
+              return { id: a.doctorUserId, doctor: d };
+            } catch {
+              return { id: a.doctorUserId, doctor: undefined } as any;
+            }
+          })
+        );
+        const fetchedMap = new Map<string, Doctor | undefined>(
+          fetchedPairs.map((p) => [p.id, p.doctor])
+        );
+        joinedAppointments = joinedAppointments.map((a) =>
+          a.doctor
+            ? a
+            : {
+                ...a,
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                doctor: (fetchedMap.get(a.doctorUserId) as any) ?? a.doctor,
+              }
+        );
+      }
+      setState((prev: SchedulerState) => ({
         ...prev,
-        appointments,
+        appointments: joinedAppointments,
         isLoading: false,
       }));
     } catch (error) {
-      setState((prev) => ({
+  setState((prev: SchedulerState) => ({
         ...prev,
         error:
           error instanceof Error
@@ -136,20 +212,28 @@ export const useScheduler = ({
   // Create appointment
   const createAppointment = useCallback(
     async (appointmentData: CreateAppointmentRequest) => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
 
       try {
-        const newAppointment = await SchedulerApiService.createAppointment(
+        let newAppointment = await SchedulerApiService.createAppointment(
           patientId,
           appointmentData
         );
-        setState((prev) => ({
+        // Attach doctor if known in current state
+        const matchedDoctor = state.doctors.find(
+          (d: Doctor) => d.id === newAppointment.doctorUserId || d.userId === newAppointment.doctorUserId
+        );
+        if (matchedDoctor) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          newAppointment = { ...newAppointment, doctor: matchedDoctor as any };
+        }
+        setState((prev: SchedulerState) => ({
           ...prev,
           appointments: [...prev.appointments, newAppointment],
           isLoading: false,
         }));
       } catch (error) {
-        setState((prev) => ({
+  setState((prev: SchedulerState) => ({
           ...prev,
           error:
             error instanceof Error
@@ -166,16 +250,16 @@ export const useScheduler = ({
   // Update appointment
   const updateAppointment = useCallback(
     async (appointmentId: string, updates: UpdateAppointmentRequest) => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const updatedAppointment = await SchedulerApiService.updateAppointment(
           appointmentId,
           updates
         );
-        setState((prev) => ({
+        setState((prev: SchedulerState) => ({
           ...prev,
-          appointments: prev.appointments.map((apt) =>
+          appointments: prev.appointments.map((apt: Appointment) =>
             apt.id === appointmentId ? updatedAppointment : apt
           ),
           selectedAppointment:
@@ -185,7 +269,7 @@ export const useScheduler = ({
           isLoading: false,
         }));
       } catch (error) {
-        setState((prev) => ({
+  setState((prev: SchedulerState) => ({
           ...prev,
           error:
             error instanceof Error
@@ -201,14 +285,14 @@ export const useScheduler = ({
 
   // Cancel appointment
   const cancelAppointment = useCallback(async (appointmentId: string) => {
-    setState((prev) => ({ ...prev, isLoading: true, error: null }));
+    setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
 
     try {
       await SchedulerApiService.cancelAppointment(appointmentId);
-      setState((prev) => ({
+      setState((prev: SchedulerState) => ({
         ...prev,
         appointments: prev.appointments.filter(
-          (apt) => apt.id !== appointmentId
+          (apt: Appointment) => apt.id !== appointmentId
         ),
         selectedAppointment:
           prev.selectedAppointment?.id === appointmentId
@@ -217,7 +301,7 @@ export const useScheduler = ({
         isLoading: false,
       }));
     } catch (error) {
-      setState((prev) => ({
+  setState((prev: SchedulerState) => ({
         ...prev,
         error:
           error instanceof Error
@@ -231,17 +315,17 @@ export const useScheduler = ({
 
   // Select appointment
   const selectAppointment = useCallback((appointment: Appointment | null) => {
-    setState((prev) => ({ ...prev, selectedAppointment: appointment }));
+    setState((prev: SchedulerState) => ({ ...prev, selectedAppointment: appointment }));
   }, []);
 
   // Set selected date
   const setSelectedDate = useCallback((date: string | null) => {
-    setState((prev) => ({ ...prev, selectedDate: date }));
+    setState((prev: SchedulerState) => ({ ...prev, selectedDate: date }));
   }, []);
 
   // Update filters
   const updateFilters = useCallback((newFilters: Partial<SchedulerFilters>) => {
-    setState((prev) => ({
+    setState((prev: SchedulerState) => ({
       ...prev,
       filters: { ...prev.filters, ...newFilters },
     }));
@@ -255,7 +339,7 @@ export const useScheduler = ({
       startDate: string,
       endDate: string
     ) => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const timeSlots = await SchedulerApiService.getAvailableTimeSlots({
@@ -264,13 +348,13 @@ export const useScheduler = ({
           startDate,
           endDate,
         });
-        setState((prev) => ({
+  setState((prev: SchedulerState) => ({
           ...prev,
           timeSlots,
           isLoading: false,
         }));
       } catch (error) {
-        setState((prev) => ({
+  setState((prev: SchedulerState) => ({
           ...prev,
           error:
             error instanceof Error
@@ -286,20 +370,20 @@ export const useScheduler = ({
   // Load doctors by specialization
   const loadDoctorsBySpecialization = useCallback(
     async (specializationId: string) => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const doctors =
           await SchedulerApiService.getDoctorsBySpecialization(
             specializationId
           );
-        setState((prev) => ({
+  setState((prev: SchedulerState) => ({
           ...prev,
           doctors,
           isLoading: false,
         }));
       } catch (error) {
-        setState((prev) => ({
+  setState((prev: SchedulerState) => ({
           ...prev,
           error:
             error instanceof Error ? error.message : "Failed to load doctors",
@@ -313,20 +397,20 @@ export const useScheduler = ({
   // Load services by specialization
   const loadServicesBySpecialization = useCallback(
     async (specializationId: string) => {
-      setState((prev) => ({ ...prev, isLoading: true, error: null }));
+  setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
 
       try {
         const services =
           await SchedulerApiService.getServicesBySpecialization(
             specializationId
           );
-        setState((prev) => ({
+  setState((prev: SchedulerState) => ({
           ...prev,
           services,
           isLoading: false,
         }));
       } catch (error) {
-        setState((prev) => ({
+  setState((prev: SchedulerState) => ({
           ...prev,
           error:
             error instanceof Error ? error.message : "Failed to load services",
@@ -339,17 +423,17 @@ export const useScheduler = ({
 
   // Compute calendar events from appointments
   const calendarEvents: CalendarEvent[] = state.appointments.map(
-    (appointment) => {
-      const doctor = state.doctors.find(
-        (d) => d.id === appointment.doctorUserId
-      );
+    (appointment: Appointment) => {
+      const doctor =
+        state.doctors.find((d: Doctor) => d.id === appointment.doctorUserId) ||
+        appointment.doctor;
       const status = state.appointmentStatuses.find(
-        (s) => s.id === appointment.statusId
+        (s: { id: string }) => s.id === appointment.statusId
       );
 
       return {
         id: appointment.id,
-        title: `${doctor?.firstName} ${doctor?.lastName} - ${appointment.description || "Appointment"}`,
+        title: `${doctor?.firstName ?? ""} ${doctor?.lastName ?? ""} - ${appointment.description || "Appointment"}`.trim(),
         start: appointment.day,
         end: new Date(
           new Date(appointment.day).getTime() +
@@ -372,7 +456,7 @@ export const useScheduler = ({
   );
 
   // Apply filters to appointments
-  const filteredAppointments = state.appointments.filter((appointment) => {
+  const filteredAppointments = state.appointments.filter((appointment: Appointment) => {
     const { doctor, appointmentType, dateRange } = state.filters;
 
     // Filter by doctor
@@ -408,18 +492,18 @@ export const useScheduler = ({
 
   // Get available doctors based on filters
   const availableDoctors = state.filters.specialization
-    ? state.doctors.filter((doctor) =>
+    ? state.doctors.filter((doctor: Doctor) =>
         doctor.specializations?.some(
-          (spec) => spec.id === state.filters.specialization
+          (spec: { id: string }) => spec.id === state.filters.specialization
         )
       )
     : state.doctors;
 
   // Get available services based on filters
   const availableServices = state.filters.specialization
-    ? state.services.filter((service) =>
+    ? state.services.filter((service: Service) =>
         state.specializations.some(
-          (spec) =>
+          (spec: { id: string; serviceId: string }) =>
             spec.id === state.filters.specialization &&
             spec.serviceId === service.id
         )

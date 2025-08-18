@@ -25,7 +25,19 @@ import {
 } from "./mockData";
 
 // Configuration flag to enable/disable mock mode
-const USE_MOCK_DATA = true; // Set to false when connecting to real backend
+const USE_MOCK_DATA = true; // Keep mock by default for catalogs
+// Prefer real backend just for appointments flows
+const USE_REAL_APPOINTMENTS = true;
+// When using real appointments, also source doctors from PractitionerService
+const USE_REAL_DOCTORS = true;
+// When using real appointments but mock doctors, map to a real test doctor GUID
+const TEST_DOCTOR_ID: string = (import.meta as any).env?.VITE_TEST_DOCTOR_ID ||
+  "5a576dc0-cf45-4868-9112-9ae245461020"; // fallback known test doctor id
+
+const isGuid = (v: string): boolean =>
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(
+    v
+  );
 
 // API_BASE_URL imported from shared client; api already configured with auth & error handling.
 
@@ -33,6 +45,54 @@ export class SchedulerApiService {
   // Mock data storage for simulating state changes
   private static appointments = [...mockAppointments];
   private static timeSlots = [...mockTimeSlots];
+
+  // Map backend AppointmentService entity to UI Appointment shape
+  private static mapBackendAppointmentToUi(backend: any): Appointment {
+    const start = new Date(backend.scheduledAt);
+    const end = new Date(backend.scheduledEndAt ?? backend.scheduledAt);
+    const durationMinutes = Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000) || 30);
+
+    const status = mockAppointmentStatuses.find(
+      (s) => s.name.toLowerCase() === String(backend.status || "Scheduled").toLowerCase()
+    ) || mockAppointmentStatuses[0];
+
+    // Default to a general service
+    const service = mockServices[2] || mockServices[0];
+
+    const ui: Appointment = {
+      id: String(backend.id),
+      patientId: String(backend.patientId),
+      patient: {
+        id: String(backend.patientId),
+        userId: String(backend.patientId),
+        firstName: "",
+        lastName: "",
+        email: "",
+        phone: "",
+        dateOfBirth: new Date(0).toISOString(),
+      } as any,
+      doctorUserId: String(backend.doctorId) as any,
+      // Minimal associations; detailed doctor/timeSlot may be populated elsewhere
+      doctor: undefined as any,
+      serviceId: service.id,
+      service: service as any,
+      timeSlotId: "",
+      timeSlot: undefined as any,
+      day: new Date(start).toISOString(),
+      durationMinutes,
+      appointmentType: (backend.appointmentType) === "virtual" || (backend.appointmentType) === "phone"
+        ? backend.appointmentType
+        : ("in-person" as const),
+      appointmentCategory: undefined as unknown as string,
+      description: backend.notes || "",
+      statusId: status.id,
+      status: status as any,
+      createdAt: new Date(backend.createdAt || backend.scheduledAt).toISOString(),
+      updatedAt: new Date(backend.updatedAt || backend.scheduledAt).toISOString(),
+    };
+
+    return ui;
+  }
 
   // Helper function to simulate API delay
   private static delay(ms: number = 500): Promise<void> {
@@ -169,10 +229,10 @@ export class SchedulerApiService {
   ): Promise<Appointment[]> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
+  if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
       // Filter appointments for the specific patient and add populated fields
       const patientAppointments = this.appointments
-        .filter((apt) => apt.patientUserId === patientId)
+    .filter((apt) => (apt as any).patientUserId === patientId)
         .map((appointment) => {
           const result: Appointment = {
             ...appointment,
@@ -195,11 +255,14 @@ export class SchedulerApiService {
     }
 
     try {
-      const response = await api.get(`/patients/${patientId}/appointments`);
-      return response.data;
+      // Map to AppointmentService route via Nginx: /api/appointment/appointments/patient/{patientId}
+  const response = await api.get(`/appointment/appointments/patient/${patientId}`);
+  const items = Array.isArray(response.data) ? response.data : [];
+  return items.map((a: any) => this.mapBackendAppointmentToUi(a));
     } catch (error) {
+      // Be resilient: log and return empty list to avoid blocking the UX
       console.error("Error fetching patient appointments:", error);
-      throw new Error("Failed to fetch appointments");
+      return [];
     }
   }
 
@@ -213,7 +276,7 @@ export class SchedulerApiService {
   ): Promise<Appointment[]> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
+  if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
       const start = new Date(startDate);
       const end = new Date(endDate);
 
@@ -221,7 +284,7 @@ export class SchedulerApiService {
         .filter((apt) => {
           const aptDate = new Date(apt.day);
           return (
-            apt.patientUserId === patientId &&
+      (apt as any).patientUserId === patientId &&
             aptDate >= start &&
             aptDate <= end
           );
@@ -269,7 +332,7 @@ export class SchedulerApiService {
   ): Promise<Appointment> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
+  if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
       // Find the selected time slot
       const timeSlot = this.timeSlots.find(
         (slot) => slot.id === appointmentData.timeSlotId
@@ -281,14 +344,14 @@ export class SchedulerApiService {
       // Create new appointment
       const newAppointment: Appointment = {
         id: `appointment-new-${Date.now()}`,
-        scheduleId: `schedule-${Date.now()}`,
         timeSlotId: appointmentData.timeSlotId,
         day: timeSlot.startDateTime,
         durationMinutes: timeSlot.durationMinutes,
         description: appointmentData.description || "",
         appointmentType: appointmentData.appointmentType,
         doctorUserId: appointmentData.doctorUserId,
-        patientUserId: patientId,
+    // @ts-expect-error mock field not in type
+    patientUserId: patientId,
         statusId: "status-1", // Scheduled
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -326,12 +389,31 @@ export class SchedulerApiService {
       return result;
     }
 
-    try {
-      const response = await api.post(
-        `/patients/${patientId}/appointments`,
-        appointmentData
-      );
-      return response.data;
+  try {
+      // Translate to AppointmentService DTO
+      // Determine doctor guid
+      const doctorGuid = isGuid(appointmentData.doctorUserId)
+        ? appointmentData.doctorUserId
+        : TEST_DOCTOR_ID;
+
+      // Compute start/end: next half-hour slot from now, 30 minutes duration
+      const now = new Date();
+      const start = new Date(now);
+      const minutes = now.getMinutes();
+      const add = minutes === 0 || minutes <= 30 ? 30 - (minutes % 30 || 30) : 60 - (minutes % 30);
+      start.setMinutes(minutes + add, 0, 0);
+      const end = new Date(start.getTime() + 30 * 60000);
+
+      const payload = {
+        patientId,
+        doctorId: doctorGuid,
+        scheduledAt: start.toISOString(),
+        scheduledEndAt: end.toISOString(),
+        appointmentType: appointmentData.appointmentType,
+        notes: appointmentData.description,
+      };
+  const response = await api.post(`/appointment/appointments`, payload);
+  return this.mapBackendAppointmentToUi(response.data);
     } catch (error) {
       console.error("Error creating appointment:", error);
       throw new Error("Failed to create appointment");
@@ -400,7 +482,7 @@ export class SchedulerApiService {
   static async cancelAppointment(appointmentId: string): Promise<void> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
+    if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
       const appointmentIndex = this.appointments.findIndex(
         (apt) => apt.id === appointmentId
       );
@@ -430,7 +512,10 @@ export class SchedulerApiService {
     }
 
     try {
-      await api.patch(`/appointments/${appointmentId}/cancel`);
+      // Real backend: Update status via AppointmentService endpoint
+      await api.put(`/appointment/appointments/${appointmentId}/status`, {
+        status: "Cancelled",
+      });
     } catch (error) {
       console.error("Error cancelling appointment:", error);
       throw new Error("Failed to cancel appointment");
@@ -483,12 +568,29 @@ export class SchedulerApiService {
   static async getDoctors(): Promise<Doctor[]> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
+    if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
       return mockDoctors;
     }
     try {
-      const response = await api.get("/doctors");
-      return response.data;
+      // PractitionerService: Doctor directory search
+      const response = await api.get("/practitioner/doctors");
+      const rows = Array.isArray(response.data) ? response.data : [];
+      // Map DoctorDirectory -> UI Doctor
+      const mapped: Doctor[] = rows.map((d: any) => ({
+        id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
+        userId: String(d.userId ?? d.UserId ?? ""),
+        firstName: String(d.firstName ?? d.FirstName ?? ""),
+        lastName: String(d.lastName ?? d.LastName ?? ""),
+        specializationId: "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        specialization: undefined as any,
+        specializations: [],
+        isAvailable: true,
+        workingHours: { start: "08:00", end: "17:00" },
+        // extra field for filters compatibility in UI code
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      })) as any;
+      return mapped;
     } catch (error) {
       console.error("Error fetching doctors:", error);
       throw new Error("Failed to fetch doctors");
@@ -503,17 +605,32 @@ export class SchedulerApiService {
   ): Promise<Doctor[]> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
+    if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
       return mockDoctors.filter((doctor) =>
-        doctor.specializations.some((spec) => spec.id === specializationId)
+        (doctor as any).specializations?.some((spec: any) => spec.id === specializationId)
       );
     }
 
     try {
-      const response = await api.get(
-        `/doctors/specialization/${specializationId}`
-      );
-      return response.data;
+      // Filter via practitioner search for now (view doesn't expose specialization names)
+      const response = await api.get("/practitioner/doctors", {
+        params: { specializationId },
+      });
+      const rows = Array.isArray(response.data) ? response.data : [];
+      const mapped: Doctor[] = rows.map((d: any) => ({
+        id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
+        userId: String(d.userId ?? d.UserId ?? ""),
+        firstName: String(d.firstName ?? d.FirstName ?? ""),
+        lastName: String(d.lastName ?? d.LastName ?? ""),
+        specializationId: specializationId || "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        specialization: undefined as any,
+        specializations: [],
+        isAvailable: true,
+        workingHours: { start: "08:00", end: "17:00" },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      })) as any;
+      return mapped;
     } catch (error) {
       console.error("Error fetching doctors by specialization:", error);
       throw new Error(
@@ -526,19 +643,82 @@ export class SchedulerApiService {
    * Get doctor details by ID
    */
   static async getDoctorById(doctorId: string): Promise<Doctor> {
-    await this.delay();
-
-    if (USE_MOCK_DATA) {
-      const doctor = mockDoctors.find((d) => d.id === doctorId);
-      if (!doctor) {
-        throw new Error("Doctor not found");
-      }
-      return doctor;
-    }
-
     try {
-      const response = await api.get(`/doctors/${doctorId}`);
-      return response.data;
+      // Try directory listing and match by either DoctorId or UserId
+      const listResp = await api.get("/practitioner/doctors");
+      const rows = Array.isArray(listResp.data) ? listResp.data : [];
+      const row = rows.find(
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (d: any) =>
+          String(d.DoctorId ?? d.doctorId) === doctorId ||
+          String(d.UserId ?? d.userId) === doctorId
+      );
+      if (row) {
+        return {
+          id: String(row.DoctorId ?? row.doctorId ?? doctorId),
+          userId: String(row.UserId ?? row.userId ?? ""),
+          firstName: String(row.FirstName ?? row.firstName ?? ""),
+          lastName: String(row.LastName ?? row.lastName ?? ""),
+          specializationId: "",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          specialization: undefined as any,
+          specializations: [],
+          isAvailable: true,
+          workingHours: { start: "08:00", end: "17:00" },
+        } as any;
+      }
+
+      // Try practitioner entity by Id (doctorId)
+      try {
+        const response = await api.get(`/practitioner/doctors/${doctorId}`);
+        const d = response.data || {};
+        let firstName = "";
+        let lastName = "";
+        const userId = String(d.userId ?? d.UserId ?? "");
+        if (userId) {
+          try {
+            const userRes = await api.get(`/users/${userId}`);
+            const u = userRes.data || {};
+            firstName = String(u.firstName ?? u.FirstName ?? firstName);
+            lastName = String(u.lastName ?? u.LastName ?? lastName);
+          } catch {
+            // ignore, names remain empty
+          }
+        }
+        return {
+          id: String(d.id ?? d.Id ?? doctorId),
+          userId,
+          firstName,
+          lastName,
+          specializationId: "",
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          specialization: undefined as any,
+          specializations: [],
+          isAvailable: true,
+          workingHours: { start: "08:00", end: "17:00" },
+        } as any;
+      } catch {
+        // Not found by doctor entity; treat input as a userId and fetch names
+        try {
+          const userRes = await api.get(`/users/${doctorId}`);
+          const u = userRes.data || {};
+          return {
+            id: String(doctorId),
+            userId: String(u.id ?? u.Id ?? doctorId),
+            firstName: String(u.firstName ?? u.FirstName ?? ""),
+            lastName: String(u.lastName ?? u.LastName ?? ""),
+            specializationId: "",
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            specialization: undefined as any,
+            specializations: [],
+            isAvailable: true,
+            workingHours: { start: "08:00", end: "17:00" },
+          } as any;
+        } catch (e2) {
+          console.error("Doctor lookup failed by both doctorId and userId:", e2);
+          throw new Error("Failed to fetch doctor details");
+        }
+      }
     } catch (error) {
       console.error("Error fetching doctor details:", error);
       throw new Error("Failed to fetch doctor details");
@@ -553,13 +733,21 @@ export class SchedulerApiService {
   static async getServices(): Promise<Service[]> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
+    if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
       return mockServices;
     }
 
     try {
-      const response = await api.get("/services");
-      return response.data;
+      // Practitioner catalog services
+      const response = await api.get("/practitioner/catalog/services");
+      const rows = Array.isArray(response.data) ? response.data : [];
+      return rows.map((s: any) => ({
+        id: String(s.id ?? s.Id),
+        name: String(s.name ?? s.Name ?? "Service"),
+        description: String(s.description ?? s.Description ?? ""),
+        durationMinutes: 30,
+        isActive: true,
+      })) as Service[];
     } catch (error) {
       console.error("Error fetching services:", error);
       throw new Error("Failed to fetch services");
@@ -574,7 +762,7 @@ export class SchedulerApiService {
   ): Promise<Service[]> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
+    if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
       // Services are connected through specializations
       const specialization = mockSpecializations.find(
         (spec) => spec.id === specializationId
@@ -586,10 +774,8 @@ export class SchedulerApiService {
     }
 
     try {
-      const response = await api.get(
-        `/services/specialization/${specializationId}`
-      );
-      return response.data;
+      // No direct mapping yet; return full list
+      return await this.getServices();
     } catch (error) {
       console.error("Error fetching services by specialization:", error);
       throw new Error(
@@ -606,13 +792,22 @@ export class SchedulerApiService {
   static async getSpecializations(): Promise<Specialization[]> {
     await this.delay();
 
-    if (USE_MOCK_DATA) {
+    if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
       return mockSpecializations;
     }
 
     try {
-      const response = await api.get("/specializations");
-      return response.data;
+      const response = await api.get("/practitioner/catalog/specializations");
+      const rows = Array.isArray(response.data) ? response.data : [];
+      return rows.map((r: any) => ({
+        id: String(r.id ?? r.Id),
+        name: String(r.name ?? r.Name ?? "Specialization"),
+        description: "",
+        serviceId: "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        service: undefined as any,
+        isActive: true,
+      })) as Specialization[];
     } catch (error) {
       console.error("Error fetching specializations:", error);
       throw new Error("Failed to fetch specializations");

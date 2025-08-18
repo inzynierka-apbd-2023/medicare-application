@@ -25,6 +25,8 @@ export interface Doctor {
   lastName: string;
   specializationId: string;
   specialization: Specialization;
+  // Optional array used across UI for filtering and labels
+  specializations?: Specialization[];
   isAvailable: boolean;
   workingHours: {
     start: string;
@@ -56,6 +58,7 @@ export interface AppointmentStatus {
   id: string;
   name: string;
   description?: string;
+  colorCode?: string;
 }
 
 export interface Appointment {
@@ -70,7 +73,7 @@ export interface Appointment {
   timeSlot: TimeSlot;
   day: string;
   durationMinutes: number;
-  appointmentType: "in-person" | "virtual" | "phone";
+  appointmentType: AppointmentType;
   appointmentCategory?: string;
   description?: string;
   statusId: string;
@@ -96,13 +99,13 @@ export interface CreateAppointmentRequest {
   doctorUserId: string;
   serviceId: string;
   timeSlotId: string;
-  appointmentType: "in-person" | "virtual" | "phone";
+  appointmentType: AppointmentType;
   appointmentCategory?: string;
   description?: string;
 }
 
 export interface UpdateAppointmentRequest {
-  appointmentType?: "in-person" | "virtual" | "phone";
+  appointmentType?: AppointmentType;
   appointmentCategory?: string;
   description?: string;
   timeSlotId?: string;
@@ -110,6 +113,7 @@ export interface UpdateAppointmentRequest {
 
 export interface AvailableSlotsRequest {
   doctorId: string;
+  serviceId?: string;
   startDate: string;
   endDate: string;
 }
@@ -122,11 +126,40 @@ export interface DoctorSchedule {
 
 // Filter types
 export interface AppointmentFilters {
-  appointmentType: "all" | "in-person" | "virtual" | "phone";
+  appointmentType: "all" | AppointmentType;
   dateRange?: {
     start: string;
     end: string;
   };
+}
+
+// Scheduler filters used by patient/receptionist schedulers
+export interface SchedulerFilters {
+  specialization?: string;
+  service?: string;
+  doctor?: string;
+  appointmentType?: "all" | AppointmentType;
+  dateRange?: {
+    start: string;
+    end: string;
+  };
+}
+
+export type AppointmentType = "in-person" | "virtual" | "phone";
+
+// Internal scheduler hook state
+export interface SchedulerState {
+  appointments: Appointment[];
+  doctors: Doctor[];
+  services: Service[];
+  specializations: Specialization[];
+  timeSlots: TimeSlot[];
+  appointmentStatuses: AppointmentStatus[];
+  isLoading: boolean;
+  error: string | null;
+  selectedDate: string | null;
+  selectedAppointment: Appointment | null;
+  filters: SchedulerFilters;
 }
 
 // Component props

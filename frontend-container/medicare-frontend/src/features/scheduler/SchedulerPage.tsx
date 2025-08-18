@@ -1,4 +1,4 @@
-import React, { useCallback, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import { Calendar, Edit3, Plus, Trash2 } from "lucide-react";
 
 import Header from "../../layout/Header";
@@ -8,6 +8,7 @@ import {
   ErrorDisplay,
   LoadingOverlay,
 } from "../../shared/components";
+import { useAuth } from "../../shared/auth/AuthContext";
 
 import AppointmentModal from "./components/AppointmentModal";
 import CalendarView from "./components/CalendarView";
@@ -21,13 +22,14 @@ import type {
 } from "./types";
 
 export const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
+  const { user } = useAuth();
   const [modalState, setModalState] = useState({
     isOpen: false,
     mode: "create" as "create" | "edit" | "view",
   });
 
-  // Get current patient ID (this would come from auth context in real app)
-  const currentPatientId = patientId || "current-patient-id"; // Replace with actual patient ID
+  // Resolve patient id: prefer prop, else currently logged-in user id
+  const currentPatientId = useMemo(() => patientId || user?.id || "", [patientId, user]);
 
   const {
     appointments,
@@ -113,6 +115,17 @@ export const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
     setModalState({ isOpen: false, mode: "create" });
     selectAppointment(null);
   }, [selectAppointment]);
+
+  if (!currentPatientId) {
+    return (
+      <div className="min-h-screen bg-gray-100 pt-16">
+        <Header />
+        <div className="max-w-7xl mx-auto px-4 py-8">
+          <LoadingOverlay isLoading message="Loading your profile..." />
+        </div>
+      </div>
+    );
+  }
 
   if (error) {
     return (
