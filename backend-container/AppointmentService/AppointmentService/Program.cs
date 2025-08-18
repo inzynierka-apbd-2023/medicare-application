@@ -187,15 +187,37 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
     try
     {
         Console.WriteLine("[Startup] Applying EF Core migrations (Appointment)...");
-        var all = db.GetService<IMigrationsAssembly>().Migrations.Keys;
+        var all = db.GetService<IMigrationsAssembly>().Migrations.Keys.ToArray();
         Console.WriteLine($"[Startup] Appointment migrations in assembly: {string.Join(",", all)}");
-        await db.Database.MigrateAsync();
-        var applied = await db.Database.GetAppliedMigrationsAsync();
-        Console.WriteLine($"[Startup] Appointment applied migrations: {string.Join(",", applied)} (history: appointment.__EFMigrationsHistory)");
-        var pendingAfter = all.Except(applied);
-        Console.WriteLine($"[Startup] Appointment pending AFTER apply: {string.Join(",", pendingAfter)}");
+
+        // Ensure schema exists before migrations/ensure-created
+        const string ensureSchemaSql = "IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'appointment') EXEC('CREATE SCHEMA [appointment]');";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(ensureSchemaSql);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Startup] Warning ensuring schema [appointment]: {ex.Message}");
+        }
+
+        if (all.Length > 0)
+        {
+            await db.Database.MigrateAsync();
+            var applied = (await db.Database.GetAppliedMigrationsAsync()).ToArray();
+            Console.WriteLine($"[Startup] Appointment applied migrations: {string.Join(",", applied)} (history: appointment.__EFMigrationsHistory)");
+            var pendingAfter = all.Except(applied);
+            Console.WriteLine($"[Startup] Appointment pending AFTER apply: {string.Join(",", pendingAfter)}");
+        }
+        else
+        {
+            // No migrations found in assembly. Fall back to EnsureCreated to materialize the model.
+            Console.WriteLine("[Startup] No migrations found. Falling back to Database.EnsureCreated for Appointment DB.");
+            await db.Database.EnsureCreatedAsync();
+        }
+
         await SeedCatalogAsync(db);
-        Console.WriteLine("[Startup] Appointment migrations & seeding complete.");
+        Console.WriteLine("[Startup] Appointment DB initialization complete.");
     }
     catch (Exception ex)
     {
