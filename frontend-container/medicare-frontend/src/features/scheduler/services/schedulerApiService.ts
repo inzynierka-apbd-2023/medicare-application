@@ -1,4 +1,5 @@
 import { apiClient as api } from "../../../shared/services/apiClient";
+import { getStatusColors } from "../utils/statusColors";
 import type {
   Appointment,
   AppointmentStatus,
@@ -80,13 +81,24 @@ export class SchedulerApiService {
 
   // Map backend AppointmentService entity to UI Appointment shape
   private static mapBackendAppointmentToUi(backend: any): Appointment {
-  const start = this.parseBackendDate(backend.scheduledAt);
-  const end = this.parseBackendDate(backend.scheduledEndAt ?? backend.scheduledAt);
+    const start = this.parseBackendDate(backend.scheduledAt);
+    const end = this.parseBackendDate(backend.scheduledEndAt ?? backend.scheduledAt);
     const durationMinutes = Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000) || 30);
 
-    const status = mockAppointmentStatuses.find(
-      (s) => s.name.toLowerCase() === String(backend.status || "Scheduled").toLowerCase()
-    ) || mockAppointmentStatuses[0];
+    const backendStatusName = String(backend.status || "Scheduled");
+    const matchedStatus =
+      mockAppointmentStatuses.find(
+        (s) => s.name.toLowerCase() === backendStatusName.toLowerCase()
+      ) || null;
+    const colors = getStatusColors(backendStatusName);
+    const status: AppointmentStatus =
+      matchedStatus ||
+      ({
+        id: `status-${backendStatusName.toLowerCase().replace(/\s+/g, "-")}`,
+        name: backendStatusName,
+        description: backendStatusName,
+        colorCode: colors.bg,
+      } as AppointmentStatus);
 
     // Default to a general service
     const service = mockServices[2] || mockServices[0];

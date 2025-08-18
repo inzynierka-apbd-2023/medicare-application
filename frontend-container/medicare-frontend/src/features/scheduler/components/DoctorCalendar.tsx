@@ -16,6 +16,7 @@ import timeGridPlugin from "@fullcalendar/timegrid";
 import { MapPin, Phone, User, Video } from "lucide-react";
 
 import type { Appointment } from "../types";
+import { getStatusColors } from "../utils/statusColors";
 
 export interface DoctorCalendarEvent {
   id: string;
@@ -59,24 +60,7 @@ export const DoctorCalendar: React.FC<DoctorCalendarProps> = ({
   // Convert appointments to calendar events
   const calendarEvents: DoctorCalendarEvent[] = appointments.map(
     (appointment) => {
-      const getEventColor = (status: string) => {
-        switch (status.toLowerCase()) {
-          case "confirmed":
-            return { bg: "#10B981", border: "#059669" }; // Green
-          case "pending":
-            return { bg: "#F59E0B", border: "#D97706" }; // Yellow
-          case "completed":
-            return { bg: "#6366F1", border: "#4F46E5" }; // Blue
-          case "cancelled":
-            return { bg: "#EF4444", border: "#DC2626" }; // Red
-          case "no-show":
-            return { bg: "#6B7280", border: "#4B5563" }; // Gray
-          default:
-            return { bg: "#8B5CF6", border: "#7C3AED" }; // Purple
-        }
-      };
-
-      const colors = getEventColor(appointment.status?.name || "pending");
+  const colors = getStatusColors(appointment.status?.name || "pending");
       const patientName = appointment.patient
         ? `${appointment.patient.firstName} ${appointment.patient.lastName}`
         : "Unknown Patient";

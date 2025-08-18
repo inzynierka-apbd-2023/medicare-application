@@ -89,6 +89,9 @@ export interface CalendarEvent {
   start: string;
   end: string;
   color?: string;
+  backgroundColor?: string;
+  borderColor?: string;
+  textColor?: string;
   extendedProps?: {
     appointment: Appointment;
   };

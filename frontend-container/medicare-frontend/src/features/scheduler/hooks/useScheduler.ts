@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { getStatusColors } from "../utils/statusColors";
 
 import SchedulerApiService from "../services/schedulerApiService";
 import type {
@@ -598,6 +599,7 @@ export const useScheduler = ({
       const status = state.appointmentStatuses.find(
         (s: { id: string }) => s.id === appointment.statusId
       );
+      const colors = getStatusColors(status?.name);
 
       return {
         id: appointment.id,
@@ -608,9 +610,9 @@ export const useScheduler = ({
           const e = new Date(s.getTime() + appointment.durationMinutes * 60000);
           return toLocalIso(e);
         })(),
-        backgroundColor: status?.colorCode || "#3b82f6",
-        borderColor: status?.colorCode || "#3b82f6",
-        textColor: "#ffffff",
+  backgroundColor: status?.colorCode || colors.bg,
+  borderColor: status?.colorCode || colors.border,
+  textColor: colors.text || "#ffffff",
         extendedProps: {
           appointment,
           doctorName:
