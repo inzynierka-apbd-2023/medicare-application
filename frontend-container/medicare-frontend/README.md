@@ -35,6 +35,15 @@ npm run dev
 - JWT is persisted in `localStorage` as `authToken` and attached in the `Authorization` header.
 - The Register page enforces password strength and checks for duplicate emails via `/api/users/availability` with debouncing.
 
+## Scheduler and calendars
+
+* Availability is sourced from PractitionerService weekly schedules; the UI computes 30-minute slots and subtracts booked appointments from AppointmentService.
+* Appointment times are treated as local wall-clock in both UI and API payloads to avoid timezone drift. Naive datetimes from the backend are parsed as local.
+* Status-based colors are centralized in `src/features/scheduler/utils/statusColors.ts` and applied to:
+	* `appointment-scheduler` views
+	* Patient dashboard calendar
+	The mapping includes Scheduled, Confirmed, InProgress, Completed, Cancelled, Overdue, and No-Show (with aliases like Pending).
+
 # Git Hooks & Commit Convention Documentation
 
 This project uses automated Git hooks to enforce code quality and commit message standards.

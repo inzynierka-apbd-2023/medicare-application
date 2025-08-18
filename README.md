@@ -7,6 +7,13 @@ Monorepo containing:
 * PatientService (ASP.NET Core 8 Web API + EF Core, isolated patient schema and migrations)
 * Frontend (Vite + React + TypeScript, served via Nginx container)
 
+## Release highlights (Aug 2025)
+
+* Appointments: automatic Overdue processing via a background job in AppointmentService; reads also surface an effective Overdue status immediately; composite index added for performance.
+* Scheduler: availability now comes from PractitionerService weekly schedules; frontend computes 30-min slots and excludes booked times from AppointmentService.
+* Time handling: frontend and APIs use local wall-clock for appointment times to avoid drift; naive datetimes are parsed as local on read.
+* UI: unified status colors across /appointment-scheduler and /patient-dashboard (including Overdue). See `frontend-container/medicare-frontend/src/features/scheduler/utils/statusColors.ts`.
+
 ## Quick Start (Docker)
 
 ```bash
