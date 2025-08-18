@@ -7,10 +7,6 @@ import React, {
 } from "react";
 
 import { AuthResponse, authService, AuthUser } from "../services/authService";
-import { mockAuthService } from "../services/mockAuthService";
-
-// Set to true to use mock authentication for testing
-const USE_MOCK_AUTH = true;
 
 interface AuthState {
   user: AuthUser | null;
@@ -34,9 +30,8 @@ interface AuthState {
 const Ctx = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const service = USE_MOCK_AUTH ? mockAuthService : authService;
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [token, setToken] = useState<string | null>(service.getToken());
+  const [token, setToken] = useState<string | null>(authService.getToken());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,8 +44,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     try {
-      const service = USE_MOCK_AUTH ? mockAuthService : authService;
-      const resp = await service.login(username, password);
+      const resp = await authService.login(username, password);
       applyAuth(resp);
     } catch (e: unknown) {
       const error = e as { response?: { data?: { message?: string } } };
@@ -73,8 +67,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     try {
-      const service = USE_MOCK_AUTH ? mockAuthService : authService;
-      const resp = await service.register(data);
+      const resp = await authService.register(data);
       applyAuth(resp);
     } catch (e: unknown) {
       const error = e as { response?: { data?: { message?: string } } };
@@ -85,8 +78,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-    const service = USE_MOCK_AUTH ? mockAuthService : authService;
-    service.logout();
+    authService.logout();
     setUser(null);
     setToken(null);
   };

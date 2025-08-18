@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 
 import { useAuth } from "../../shared/auth/AuthContext";
-import { MOCK_CREDENTIALS } from "../../shared/services/mockAuthService";
 
 const Login: React.FC = () => {
   const [cardNumber, setCardNumber] = useState<string>("");
@@ -19,13 +18,6 @@ const Login: React.FC = () => {
     if (localStorage.getItem("authToken")) navigate("/login-success");
   };
 
-  // Quick login function for testing
-  const quickLogin = (role: keyof typeof MOCK_CREDENTIALS) => {
-    const creds = MOCK_CREDENTIALS[role];
-    setCardNumber(creds.username);
-    setPassword(creds.password);
-  };
-
   return (
     <div className="auth-container">
       <div className="auth-card">
@@ -39,46 +31,6 @@ const Login: React.FC = () => {
 
         {/* Tabs */}
         <div className="flex justify-center space-x-4 mb-6 border-b pb-2"></div>
-
-        {/* Mock Credentials Section for Testing */}
-        <div className="mb-6 p-4 bg-blue-50 rounded-lg border-2 border-blue-200">
-          <h3 className="text-sm font-semibold text-blue-800 mb-3">
-            🧪 Quick Login (Testing)
-          </h3>
-          <div className="grid grid-cols-2 gap-2">
-            <button
-              type="button"
-              onClick={() => quickLogin("patient")}
-              className="px-3 py-2 text-xs bg-green-100 text-green-800 rounded hover:bg-green-200 transition"
-            >
-              Patient
-            </button>
-            <button
-              type="button"
-              onClick={() => quickLogin("doctor")}
-              className="px-3 py-2 text-xs bg-blue-100 text-blue-800 rounded hover:bg-blue-200 transition"
-            >
-              Doctor
-            </button>
-            <button
-              type="button"
-              onClick={() => quickLogin("owner")}
-              className="px-3 py-2 text-xs bg-purple-100 text-purple-800 rounded hover:bg-purple-200 transition"
-            >
-              Owner
-            </button>
-            <button
-              type="button"
-              onClick={() => quickLogin("receptionist")}
-              className="px-3 py-2 text-xs bg-orange-100 text-orange-800 rounded hover:bg-orange-200 transition"
-            >
-              Receptionist
-            </button>
-          </div>
-          <p className="text-xs text-blue-600 mt-2">
-            All credentials: username/password = role name / "test"
-          </p>
-        </div>
 
         <form onSubmit={handleSubmit} className="auth-form">
           {/* Card Number */}
@@ -138,7 +90,7 @@ const Login: React.FC = () => {
           <Link to="/choose-plan" className="text-link">
             Choose your plan
           </Link>
-          <p className="auth-cta-text">Skip queues with us!</p>
+          <p className="auth-cta-text">Skip queues with us!!!!!</p>
         </div>
       </div>
     </div>
