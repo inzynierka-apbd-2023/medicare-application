@@ -228,7 +228,8 @@ export const documentsApi = {
     documentId: string
   ): Promise<ApiResponse<{ downloadUrl: string }>> => {
     try {
-      const url = `${location.origin}/api/documents/${documentId}`;
+  // Use server-side generated PDF endpoint
+  const url = `${location.origin}/api/documents/${documentId}/pdf`;
       return { data: { downloadUrl: url }, success: true };
     } catch (error) {
       console.error("Failed to prepare document download", error);

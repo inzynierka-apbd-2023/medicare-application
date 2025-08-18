@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./styles/App.css";
 import "./styles/styles.css";
 import "./styles/dashboard.css";
@@ -151,7 +151,7 @@ function App() {
               path="/my-prescriptions"
               element={
                 <RoleBasedRoute allowedRoles={["Patient"]}>
-                  <PrescriptionsPage />
+                  <Navigate to="/my-documents?filter=prescriptions" replace />
                 </RoleBasedRoute>
               }
             />

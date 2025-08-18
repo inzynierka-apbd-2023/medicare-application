@@ -40,6 +40,15 @@ public class DoctorsController : ControllerBase
         return Ok(doctor);
     }
 
+    // Lightweight directory projection for a single doctor
+    [HttpGet("{id}/directory")]
+    public async Task<IActionResult> GetDoctorDirectoryById(string id)
+    {
+        var item = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
+        if (item == null) return NotFound();
+        return Ok(item);
+    }
+
     // Update specializations for a doctor
     [HttpPut("{id}/specializations")]
     [Authorize]
