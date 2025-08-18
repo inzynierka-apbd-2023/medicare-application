@@ -37,6 +37,8 @@ interface UseSchedulerReturn extends SchedulerState {
   ) => Promise<void>;
   loadDoctorsBySpecialization: (specializationId: string) => Promise<void>;
   loadServicesBySpecialization: (specializationId: string) => Promise<void>;
+  loadDoctorsByService: (serviceId: string) => Promise<void>;
+  loadSpecializationsByService: (serviceId: string) => Promise<void>;
 
   // Computed values
   calendarEvents: CalendarEvent[];
@@ -325,10 +327,91 @@ export const useScheduler = ({
 
   // Update filters
   const updateFilters = useCallback((newFilters: Partial<SchedulerFilters>) => {
-    setState((prev: SchedulerState) => ({
-      ...prev,
-      filters: { ...prev.filters, ...newFilters },
-    }));
+    // Compute next filters to decide dependent loads
+    const nextFilters: SchedulerFilters = { ...state.filters, ...newFilters } as SchedulerFilters;
+    setState((prev: SchedulerState) => ({ ...prev, filters: nextFilters }));
+    // Specialization change
+    if (newFilters.hasOwnProperty("specialization")) {
+      const sid = nextFilters.specialization;
+      if (sid) {
+        // Narrow services and doctors by specialization
+        (async () => {
+          try {
+            const [srv, docs] = await Promise.all([
+              SchedulerApiService.getServicesBySpecialization(sid),
+              SchedulerApiService.getDoctorsBySpecialization(sid),
+            ]);
+            setState((prev) => ({ ...prev, services: srv, doctors: docs }));
+          } catch (e) {
+            // ignore for now; errors handled elsewhere
+          }
+        })();
+      } else {
+        // Cleared specialization; if service is set, filter by service, else reload all
+        if (nextFilters.service) {
+          (async () => {
+            try {
+              const [specs, docs] = await Promise.all([
+                SchedulerApiService.getSpecializationsByService(nextFilters.service as string),
+                SchedulerApiService.getDoctorsByService(nextFilters.service as string),
+              ]);
+              setState((prev) => ({ ...prev, specializations: specs, doctors: docs }));
+            } catch {}
+          })();
+        } else {
+          (async () => {
+            try {
+              const [srv, specs, docs] = await Promise.all([
+                SchedulerApiService.getServices(),
+                SchedulerApiService.getSpecializations(),
+                SchedulerApiService.getDoctors(),
+              ]);
+              setState((prev) => ({ ...prev, services: srv, specializations: specs, doctors: docs }));
+            } catch {}
+          })();
+        }
+      }
+    }
+
+    // Service change
+    if (newFilters.hasOwnProperty("service")) {
+      const serviceId = nextFilters.service;
+      if (serviceId) {
+        (async () => {
+          try {
+            const [specs, docs] = await Promise.all([
+              SchedulerApiService.getSpecializationsByService(serviceId as string),
+              SchedulerApiService.getDoctorsByService(serviceId as string),
+            ]);
+            setState((prev) => ({ ...prev, specializations: specs, doctors: docs }));
+          } catch {}
+        })();
+      } else {
+        // Cleared service; if specialization is set, filter by specialization, else reload all
+        if (nextFilters.specialization) {
+          (async () => {
+            try {
+              const [srv, docs] = await Promise.all([
+                SchedulerApiService.getServicesBySpecialization(nextFilters.specialization as string),
+                SchedulerApiService.getDoctorsBySpecialization(nextFilters.specialization as string),
+              ]);
+              setState((prev) => ({ ...prev, services: srv, doctors: docs }));
+            } catch {}
+          })();
+        } else {
+          (async () => {
+            try {
+              const [srv, specs, docs] = await Promise.all([
+                SchedulerApiService.getServices(),
+                SchedulerApiService.getSpecializations(),
+                SchedulerApiService.getDoctors(),
+              ]);
+              setState((prev) => ({ ...prev, services: srv, specializations: specs, doctors: docs }));
+            } catch {}
+          })();
+        }
+      }
+    }
   }, []);
 
   // Load available time slots
@@ -420,6 +503,36 @@ export const useScheduler = ({
     },
     []
   );
+
+  // Load doctors by service
+  const loadDoctorsByService = useCallback(async (serviceId: string) => {
+    setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const doctors = await SchedulerApiService.getDoctorsByService(serviceId);
+      setState((prev: SchedulerState) => ({ ...prev, doctors, isLoading: false }));
+    } catch (error) {
+      setState((prev: SchedulerState) => ({
+        ...prev,
+        error: error instanceof Error ? error.message : "Failed to load doctors",
+        isLoading: false,
+      }));
+    }
+  }, []);
+
+  // Load specializations by service
+  const loadSpecializationsByService = useCallback(async (serviceId: string) => {
+    setState((prev: SchedulerState) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const specs = await SchedulerApiService.getSpecializationsByService(serviceId);
+      setState((prev: SchedulerState) => ({ ...prev, specializations: specs, isLoading: false }));
+    } catch (error) {
+      setState((prev: SchedulerState) => ({
+        ...prev,
+        error: error instanceof Error ? error.message : "Failed to load specializations",
+        isLoading: false,
+      }));
+    }
+  }, []);
 
   // Compute calendar events from appointments
   const calendarEvents: CalendarEvent[] = state.appointments.map(
@@ -522,6 +635,8 @@ export const useScheduler = ({
     loadAvailableTimeSlots,
     loadDoctorsBySpecialization,
     loadServicesBySpecialization,
+  loadDoctorsByService,
+  loadSpecializationsByService,
     calendarEvents,
     filteredAppointments,
     availableDoctors,

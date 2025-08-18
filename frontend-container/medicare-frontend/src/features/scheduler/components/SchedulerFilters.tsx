@@ -104,24 +104,9 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
     (filters.appointmentType && filters.appointmentType !== "all") ||
     filters.dateRange;
 
-  // Filter services based on selected specialization
-  const filteredServices = filters.specialization
-    ? services.filter((service) =>
-        specializations.some(
-          (spec) =>
-            spec.id === filters.specialization && spec.serviceId === service.id
-        )
-      )
-    : services;
-
-  // Filter doctors based on selected specialization
-  const filteredDoctors = filters.specialization
-    ? doctors.filter((doctor) =>
-        doctor.specializations?.some(
-          (spec) => spec.id === filters.specialization
-        )
-      )
-    : doctors;
+  // Lists are already filtered by the hook based on current filters
+  const filteredServices = services;
+  const filteredDoctors = doctors;
 
   return (
     <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-4">

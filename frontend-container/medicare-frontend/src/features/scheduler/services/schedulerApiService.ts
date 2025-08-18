@@ -395,14 +395,21 @@ export class SchedulerApiService {
       const doctorGuid = isGuid(appointmentData.doctorUserId)
         ? appointmentData.doctorUserId
         : TEST_DOCTOR_ID;
-
-      // Compute start/end: next half-hour slot from now, 30 minutes duration
-      const now = new Date();
-      const start = new Date(now);
-      const minutes = now.getMinutes();
-      const add = minutes === 0 || minutes <= 30 ? 30 - (minutes % 30 || 30) : 60 - (minutes % 30);
-      start.setMinutes(minutes + add, 0, 0);
-      const end = new Date(start.getTime() + 30 * 60000);
+      // If a timeSlotId was selected and exists in local cache, honor its window; else next half-hour
+      let start: Date;
+      let end: Date;
+      const selectedSlot = this.timeSlots.find((s) => s.id === appointmentData.timeSlotId);
+      if (selectedSlot) {
+        start = new Date(selectedSlot.startDateTime);
+        end = new Date(selectedSlot.endDateTime);
+      } else {
+        const now = new Date();
+        start = new Date(now);
+        const minutes = now.getMinutes();
+        const add = minutes === 0 || minutes <= 30 ? 30 - (minutes % 30 || 30) : 60 - (minutes % 30);
+        start.setMinutes(minutes + add, 0, 0);
+        end = new Date(start.getTime() + 30 * 60000);
+      }
 
       const payload = {
         patientId,
@@ -576,7 +583,21 @@ export class SchedulerApiService {
       const response = await api.get("/practitioner/doctors");
       const rows = Array.isArray(response.data) ? response.data : [];
       // Map DoctorDirectory -> UI Doctor
-      const mapped: Doctor[] = rows.map((d: any) => ({
+      const mapped: Doctor[] = rows.map((d: any) => {
+        const specIdsCsv = String(d.specializations ?? d.Specializations ?? "");
+        const specIds = specIdsCsv
+          .split(",")
+          .map((s: string) => s.trim())
+          .filter((s: string) => s.length > 0);
+        const specializations = specIds.map((id: string) => ({
+          id,
+          name: "",
+          description: "",
+          serviceId: "",
+          service: undefined as any,
+          isActive: true,
+        }));
+        return {
         id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
         userId: String(d.userId ?? d.UserId ?? ""),
         firstName: String(d.firstName ?? d.FirstName ?? ""),
@@ -584,12 +605,13 @@ export class SchedulerApiService {
         specializationId: "",
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         specialization: undefined as any,
-        specializations: [],
+        specializations,
         isAvailable: true,
         workingHours: { start: "08:00", end: "17:00" },
         // extra field for filters compatibility in UI code
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      })) as any;
+        } as any;
+      }) as any;
       return mapped;
     } catch (error) {
       console.error("Error fetching doctors:", error);
@@ -636,6 +658,42 @@ export class SchedulerApiService {
       throw new Error(
         "Failed to fetch doctors for the specified specialization"
       );
+    }
+  }
+
+  /**
+   * Get doctors by service
+   */
+  static async getDoctorsByService(serviceId: string): Promise<Doctor[]> {
+    await this.delay();
+
+    if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
+      // Mock does not model services->doctors; return all
+      return mockDoctors;
+    }
+
+    try {
+      const response = await api.get("/practitioner/doctors", {
+        params: { serviceId },
+      });
+      const rows = Array.isArray(response.data) ? response.data : [];
+      const mapped: Doctor[] = rows.map((d: any) => ({
+        id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
+        userId: String(d.userId ?? d.UserId ?? ""),
+        firstName: String(d.firstName ?? d.FirstName ?? ""),
+        lastName: String(d.lastName ?? d.LastName ?? ""),
+        specializationId: "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        specialization: undefined as any,
+        specializations: [],
+        isAvailable: true,
+        workingHours: { start: "08:00", end: "17:00" },
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      })) as any;
+      return mapped;
+    } catch (error) {
+      console.error("Error fetching doctors by service:", error);
+      throw new Error("Failed to fetch doctors for the specified service");
     }
   }
 
@@ -781,6 +839,35 @@ export class SchedulerApiService {
       throw new Error(
         "Failed to fetch services for the specified specialization"
       );
+    }
+  }
+
+  /**
+   * Get specializations by service
+   */
+  static async getSpecializationsByService(serviceId: string): Promise<Specialization[]> {
+    await this.delay();
+
+    if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
+      // Return all in mock
+      return mockSpecializations;
+    }
+
+    try {
+      const response = await api.get("/practitioner/catalog/specializations", { params: { serviceId } });
+      const rows = Array.isArray(response.data) ? response.data : [];
+      return rows.map((r: any) => ({
+        id: String(r.id ?? r.Id),
+        name: String(r.name ?? r.Name ?? "Specialization"),
+        description: "",
+        serviceId: "",
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        service: undefined as any,
+        isActive: true,
+      })) as Specialization[];
+    } catch (error) {
+      console.error("Error fetching specializations by service:", error);
+      throw new Error("Failed to fetch specializations for the specified service");
     }
   }
 
