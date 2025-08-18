@@ -4,6 +4,7 @@ import { MessageCircle } from "lucide-react";
 
 import Header from "../../../layout/Header";
 import { Card, Modal } from "../../../shared/components";
+import { useAuth } from "../../../shared/auth/AuthContext";
 import {
   DashboardCard,
   DashboardLayout,
@@ -27,6 +28,8 @@ interface PatientMessage {
 export default function DoctorDashboard() {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+  const { user } = useAuth();
+  const doctorLastName = (user?.lastName || "").trim() || user?.username || "Doctor";
 
   // Sample data - in real app this would come from API/props
   const notifications: Notification[] = [
@@ -104,7 +107,7 @@ export default function DoctorDashboard() {
   return (
     <div className="min-h-screen bg-gray-100 overflow-x-hidden">
       <Header />
-      <DashboardLayout title="Welcome, Dr. Heart">
+  <DashboardLayout title={`Welcome, Dr. ${doctorLastName}`}>
         <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
           {/* Left Column - Schedule and Recent Messages */}
           <div className="w-full md:w-3/4 space-y-6">

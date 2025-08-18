@@ -52,7 +52,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setLoading(true);
     setError(null);
     try {
-  const resp = await authService.login(username, password);
+  // Trim inputs to avoid accidental whitespace issues from paste/typing
+  const resp = await authService.login(username.trim(), password.trim());
       applyAuth(resp);
     } catch (e: unknown) {
       const error = e as { response?: { data?: { message?: string } } };

@@ -37,19 +37,19 @@ const Login: React.FC = () => {
         <div className="flex justify-center space-x-4 mb-6 border-b pb-2"></div>
 
         <form onSubmit={handleSubmit} className="auth-form">
-          {/* Card Number */}
+          {/* Username (was: Card Number) */}
           <div className="form-group">
             <div className="field-row">
-              <label className="field-label" htmlFor="cardNumber">Card number</label>
+              <label className="field-label" htmlFor="cardNumber">Username</label>
               <Link to="/forgot-card" className="field-link">
-                I forgot the card number
+                I forgot the username
               </Link>
             </div>
             <input
               type="text"
               id="cardNumber"
               className="auth-input"
-              placeholder="Enter card number"
+              placeholder="Enter username"
               value={cardNumber}
               onChange={(e) => setCardNumber(e.target.value)}
               required

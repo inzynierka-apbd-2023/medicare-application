@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { useAuth } from "../../shared/auth/AuthContext";
+import { getDefaultDashboard } from "../../shared/constants/routes";
 
 interface CompleteProfileForm {
   phone?: string;
@@ -65,7 +66,12 @@ const CompleteProfile: React.FC = () => {
         }, reg.user.id);
       }
 
-      navigate("/registration-success");
+      // Redirect: Admins go straight to their dashboard, others see success page
+      if (reg.user.role === "Admin") {
+        navigate(getDefaultDashboard("Admin"));
+      } else {
+        navigate("/registration-success");
+      }
     } catch (err) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       setError((err as any)?.message || "Failed to save profile");

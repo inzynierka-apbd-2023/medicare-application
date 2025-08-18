@@ -238,6 +238,8 @@ export const getDefaultDashboard = (role: string): string => {
     Patient: ROUTES.DASHBOARDS.PATIENT,
     Doctor: ROUTES.DASHBOARDS.DOCTOR,
     Owner: ROUTES.DASHBOARDS.OWNER,
+  // Map Admins to the Owner dashboard for now
+  Admin: ROUTES.DASHBOARDS.OWNER,
     Receptionist: ROUTES.DASHBOARDS.RECEPTIONIST,
   };
 
