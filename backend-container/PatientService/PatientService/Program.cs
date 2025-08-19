@@ -9,6 +9,7 @@ using PatientService.Data;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using PatientService.Infrastructure.Messaging;
+using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,6 +20,7 @@ var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeC
 LogConnectionInfo(connectionString, connectionSource);
 
 builder.Services.AddControllers();
+builder.Services.AddMediatR(typeof(Program).Assembly);
 
 if (useAzureDefaultCredential)
 {
@@ -109,6 +111,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddHealthChecks().AddDbContextCheck<PatientDbContext>();
 builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("RABBITMQ"));
 builder.Services.AddHostedService<UserRegisteredConsumer>();
+builder.Services.AddScoped<PatientService.Features.Metrics.Services.IPatientMetricsService, PatientService.Features.Metrics.Services.PatientMetricsService>();
 
 var app = builder.Build();
 

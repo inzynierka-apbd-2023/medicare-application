@@ -22,6 +22,7 @@ import {
 import { useLoadingService } from "../../../shared/hooks/useLoadingService";
 import { DashboardLayout } from "../shared/components";
 import { analyticsApi } from "../../../shared/services/analyticsApi";
+import { patientMetricsApi, PatientMetricsResponse } from "../../../shared/services/patientMetricsApi";
 
 // Database-aligned types based on your actual schema
 interface RevenueMetrics {
@@ -81,62 +82,86 @@ const OwnerDashboard: React.FC = () => {
   useEffect(() => {
     const fetchOwnerDashboardData = async () => {
       try {
-        // Get comprehensive analytics data from the backend
-        const analyticsResponse = await analyticsApi.getDashboardData({
-          startDate: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // Last 30 days
-          endDate: new Date().toISOString().split('T')[0]
-        });
+        const startDate = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000)
+          .toISOString()
+          .split("T")[0];
+        const endDate = new Date().toISOString().split("T")[0];
+
+        const [analyticsResponse, patientMetricsResponse] = await Promise.all([
+          analyticsApi.getDashboardData({ startDate, endDate }),
+          patientMetricsApi.getPatientMetrics({ startDate, endDate }),
+        ]);
 
         if (!analyticsResponse.success) {
-          throw new Error(analyticsResponse.error || 'Failed to fetch analytics data');
+          throw new Error(analyticsResponse.error || "Failed to fetch analytics data");
+        }
+
+        if (!patientMetricsResponse.success) {
+          throw new Error(patientMetricsResponse.error || "Failed to fetch patient metrics");
         }
 
         const analytics = analyticsResponse.data;
+        const patientMetrics: PatientMetricsResponse = patientMetricsResponse.data!;
 
-        // Transform analytics data to match OwnerDashboard structure
-        const totalRevenue = analytics.metrics.find(m => m.title === 'Total Revenue')?.value || 0;
-        const totalAppointments = analytics.metrics.find(m => m.title === 'Total Appointments')?.value || 0;
-        const completedAppointments = analytics.metrics.find(m => m.title === 'Completed')?.value || 0;
-        const activePatients = analytics.metrics.find(m => m.title === 'Active Patients')?.value || 0;
-        const avgRating = analytics.metrics.find(m => m.title === 'Avg Rating')?.value || 0;
+        const totalRevenue =
+          analytics.metrics.find((m) => m.title === "Total Revenue")?.value || 0;
+        const totalAppointments =
+          analytics.metrics.find((m) => m.title === "Total Appointments")?.value || 0;
+        const completedAppointments =
+          analytics.metrics.find((m) => m.title === "Completed")?.value || 0;
 
         const transformedData: OwnerDashboardData = {
           revenue: {
-            dailyRevenue: totalRevenue,
+            dailyRevenue: totalRevenue, // refine later with dedicated endpoint
             monthlyRevenue: totalRevenue,
             yearlyRevenue: totalRevenue * 12,
-            revenueGrowth: analytics.metrics.find(m => m.title === 'Total Revenue')?.change || 0,
+            revenueGrowth:
+              analytics.metrics.find((m) => m.title === "Total Revenue")?.change || 0,
             totalAppointmentPayments: totalRevenue,
-            totalSubscriptionPayments: 0, // This would come from a separate API
+            totalSubscriptionPayments: 0, // TODO: replace once subscription metrics available
           },
           patients: {
-            totalActivePatients: activePatients,
-            newPatientsThisMonth: Math.floor(activePatients * 0.1), // Estimated
-            patientRetentionRate: 89.2, // This would need a separate calculation
-            averageRating: avgRating,
-            totalRatings: Math.floor(avgRating * 100), // Estimated
+            totalActivePatients: patientMetrics.totalActivePatients,
+            newPatientsThisMonth: patientMetrics.newPatients,
+            patientRetentionRate: patientMetrics.retentionRate,
+            averageRating: patientMetrics.averageRating,
+            totalRatings: patientMetrics.totalRatings,
           },
-          appointments: {
+            appointments: {
             totalAppointments: totalAppointments,
-            appointmentsThisMonth: totalAppointments,
+            appointmentsThisMonth: totalAppointments, // TODO: refine using date filter
             completedAppointments: completedAppointments,
-            cancelledAppointments: Math.floor(totalAppointments * 0.05), // Estimated
-            noShowAppointments: Math.floor(totalAppointments * 0.03), // Estimated
-            appointmentCompletionRate: totalAppointments > 0 ? (completedAppointments / totalAppointments) * 100 : 0,
+            cancelledAppointments: 0, // TODO: expose in analytics metrics or new endpoint
+            noShowAppointments: 0, // TODO: expose in analytics metrics or new endpoint
+            appointmentCompletionRate:
+              totalAppointments > 0
+                ? (completedAppointments / totalAppointments) * 100
+                : 0,
           },
           doctors: {
             totalDoctors: analytics.doctorPerformance.length,
-            averageAppointmentsPerDoctor: analytics.doctorPerformance.length > 0 
-              ? Math.floor(analytics.doctorPerformance.reduce((sum, doc) => sum + doc.totalAppointments, 0) / analytics.doctorPerformance.length)
-              : 0,
-            topRatedDoctor: analytics.doctorPerformance.length > 0 
-              ? analytics.doctorPerformance.reduce((prev, current) => 
-                  (prev.averageRating > current.averageRating) ? prev : current
-                ).name
-              : "No data",
-            doctorAverageRating: analytics.doctorPerformance.length > 0 
-              ? analytics.doctorPerformance.reduce((sum, doc) => sum + doc.averageRating, 0) / analytics.doctorPerformance.length
-              : 0,
+            averageAppointmentsPerDoctor:
+              analytics.doctorPerformance.length > 0
+                ? Math.floor(
+                    analytics.doctorPerformance.reduce(
+                      (sum, doc) => sum + doc.totalAppointments,
+                      0
+                    ) / analytics.doctorPerformance.length
+                  )
+                : 0,
+            topRatedDoctor:
+              analytics.doctorPerformance.length > 0
+                ? analytics.doctorPerformance.reduce((prev, current) =>
+                    prev.averageRating > current.averageRating ? prev : current
+                  ).name
+                : "No data",
+            doctorAverageRating:
+              analytics.doctorPerformance.length > 0
+                ? analytics.doctorPerformance.reduce(
+                    (sum, doc) => sum + doc.averageRating,
+                    0
+                  ) / analytics.doctorPerformance.length
+                : 0,
           },
           recentActivities: [
             {
@@ -154,13 +179,13 @@ const OwnerDashboard: React.FC = () => {
             {
               id: "3",
               type: "patient",
-              description: `${activePatients} active patients in system`,
+              description: `${patientMetrics.totalActivePatients} active patients in system`,
               timestamp: new Date(),
             },
             {
               id: "4",
               type: "rating",
-              description: `Average rating: ${avgRating.toFixed(1)}/5`,
+              description: `Average rating: ${patientMetrics.averageRating.toFixed(1)}/5`,
               timestamp: new Date(),
             },
           ],
@@ -168,13 +193,37 @@ const OwnerDashboard: React.FC = () => {
 
         setDashboardData(transformedData);
       } catch (error) {
-        console.error('Failed to fetch owner dashboard data:', error);
-        // Fallback to basic structure in case of error
+        console.error("Failed to fetch owner dashboard data:", error);
         setDashboardData({
-          revenue: { dailyRevenue: 0, monthlyRevenue: 0, yearlyRevenue: 0, revenueGrowth: 0, totalAppointmentPayments: 0, totalSubscriptionPayments: 0 },
-          patients: { totalActivePatients: 0, newPatientsThisMonth: 0, patientRetentionRate: 0, averageRating: 0, totalRatings: 0 },
-          appointments: { totalAppointments: 0, appointmentsThisMonth: 0, completedAppointments: 0, cancelledAppointments: 0, noShowAppointments: 0, appointmentCompletionRate: 0 },
-          doctors: { totalDoctors: 0, averageAppointmentsPerDoctor: 0, topRatedDoctor: "No data", doctorAverageRating: 0 },
+          revenue: {
+            dailyRevenue: 0,
+            monthlyRevenue: 0,
+            yearlyRevenue: 0,
+            revenueGrowth: 0,
+            totalAppointmentPayments: 0,
+            totalSubscriptionPayments: 0,
+          },
+          patients: {
+            totalActivePatients: 0,
+            newPatientsThisMonth: 0,
+            patientRetentionRate: 0,
+            averageRating: 0,
+            totalRatings: 0,
+          },
+          appointments: {
+            totalAppointments: 0,
+            appointmentsThisMonth: 0,
+            completedAppointments: 0,
+            cancelledAppointments: 0,
+            noShowAppointments: 0,
+            appointmentCompletionRate: 0,
+          },
+          doctors: {
+            totalDoctors: 0,
+            averageAppointmentsPerDoctor: 0,
+            topRatedDoctor: "No data",
+            doctorAverageRating: 0,
+          },
           recentActivities: [],
         });
       }
