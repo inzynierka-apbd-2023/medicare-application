@@ -18,6 +18,7 @@ interface UserResponseDto {
   phoneNumber?: string;
   role: string;
   dateOfBirth?: string;
+  address?: string | null;
 }
 
 function mapToAuthUser(u: UserResponseDto): AuthUser {
@@ -30,6 +31,7 @@ function mapToAuthUser(u: UserResponseDto): AuthUser {
     lastName: u.lastName,
     ...(u.phoneNumber ? { phoneNumber: u.phoneNumber } : {}),
     ...(u.dateOfBirth ? { dateOfBirth: u.dateOfBirth } : {}),
+    ...(u.address ? { address: u.address } : {}),
   } as AuthUser;
 }
 
