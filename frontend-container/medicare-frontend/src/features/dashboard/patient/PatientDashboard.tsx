@@ -10,6 +10,7 @@ import {
 } from "../../../shared/components";
 import { useLoadingService } from "../../../shared/hooks/useLoadingService";
 import { patientDashboardApi } from "../../../shared/services/dashboardApi";
+import { notificationsApi } from "../../../shared/services/notificationsApi";
 import useScheduler from "../../scheduler/hooks/useScheduler";
 import {
   DashboardCard,
@@ -84,12 +85,12 @@ export default function PatientDashboard() {
       try {
         // Fetch notifications and documents in parallel
         const [notificationsResponse, documentsResponse] = await Promise.all([
-          patientDashboardApi.getNotifications(),
+          notificationsApi.getForRecipient(currentPatientId, false),
           patientDashboardApi.getDocuments(),
         ]);
 
         if (notificationsResponse.success) {
-          setNotifications(notificationsResponse.data);
+          setNotifications(notificationsResponse.data as any);
         } else {
           throw new Error(
             notificationsResponse.error || "Failed to fetch notifications"
@@ -147,8 +148,7 @@ export default function PatientDashboard() {
 
   const handleMarkNotificationAsRead = async (notificationId: string) => {
     try {
-      const response =
-        await patientDashboardApi.markNotificationAsRead(notificationId);
+  const response = await notificationsApi.markAsRead(notificationId);
       if (response.success) {
         setNotifications((prev: Notification[]) => {
           const updated = prev.map((notif: Notification) =>
