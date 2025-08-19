@@ -202,8 +202,9 @@ IF OBJECT_ID('[dbo].[User_Profile]', 'U') IS NOT NULL AND OBJECT_ID('[user].[Use
             Console.WriteLine($"[Startup] Pre-migration transfer warning: {ex.Message}");
         }
         await db.Database.MigrateAsync();
-        await SeedRolesAsync(db);
-        if (isDev) await SeedAdminUserIfNoneAsync(db);
+    await SeedRolesAsync(db);
+    if (isDev) await SeedAdminUserIfNoneAsync(db);
+    await SeedTestPatientAsync(db);
         Console.WriteLine("[Startup] Migrations & seeding complete.");
     }
     catch (Exception ex)
@@ -253,4 +254,26 @@ static async Task SeedAdminUserIfNoneAsync(UserDbContext db)
     });
     await db.SaveChangesAsync();
     Console.WriteLine($"[Startup] Seeded admin user. Username: {AdminSeedUsername} TempPassword: {tempPassword}");
+}
+
+static async Task SeedTestPatientAsync(UserDbContext db)
+{
+    // Username from test-users.txt (example). Only seed details if user already exists.
+    const string testUsername = "patient_a_20250818"; // adjust if date pattern changes
+    var user = await db.Users.Include(u => u.Profile).FirstOrDefaultAsync(u => u.Username == testUsername);
+    if (user == null || user.Profile == null) return; // don't create; only enrich existing test user
+    bool changed = false;
+    if (string.IsNullOrWhiteSpace(user.Profile.Phone)) { user.Profile.Phone = "+1-555-0100"; changed = true; }
+    if (string.IsNullOrWhiteSpace(user.Profile.AddressLine1)) { user.Profile.AddressLine1 = "123 Test Street"; changed = true; }
+    if (string.IsNullOrWhiteSpace(user.Profile.AddressLine2)) { user.Profile.AddressLine2 = "Apt 4B"; changed = true; }
+    if (string.IsNullOrWhiteSpace(user.Profile.City)) { user.Profile.City = "Testville"; changed = true; }
+    if (string.IsNullOrWhiteSpace(user.Profile.State)) { user.Profile.State = "TS"; changed = true; }
+    if (string.IsNullOrWhiteSpace(user.Profile.ZipCode)) { user.Profile.ZipCode = "12345"; changed = true; }
+    if (string.IsNullOrWhiteSpace(user.Profile.Country)) { user.Profile.Country = "Testland"; changed = true; }
+    if (changed)
+    {
+        user.Profile.UpdatedAt = DateTime.UtcNow;
+        await db.SaveChangesAsync();
+        Console.WriteLine($"[Startup] Enriched test patient '{testUsername}' with phone/address.");
+    }
 }
