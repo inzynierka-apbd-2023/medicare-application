@@ -10,8 +10,8 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
   isLoading = false,
 }) => {
   const [formData, setFormData] = useState<Partial<ProfileData>>({
-    name: profileData.name,
-    email: profileData.email,
+    name: profileData.name, // read-only for now (backend splits first/last)
+    email: profileData.email, // read-only
     phone: profileData.phone,
     address: profileData.address,
     dateOfBirth: profileData.dateOfBirth,
@@ -30,23 +30,13 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name?.trim()) {
-      newErrors.name = "Name is required";
-    }
-
-    if (!formData.email?.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
+    // Name & email currently read-only -> skip validation
 
     if (!formData.phone?.trim()) {
       newErrors.phone = "Phone number is required";
     }
 
-    if (!formData.address?.trim()) {
-      newErrors.address = "Address is required";
-    }
+    // Address optional (not persisted yet)
 
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Date of birth is required";
@@ -81,20 +71,16 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
         <Input
           label="Full Name"
           value={formData.name || ""}
-          onChange={(e) => handleInputChange("name", e.target.value)}
-          error={errors.name}
-          placeholder="Enter your full name"
-          required
+          disabled
+          helperText="Name editing not yet supported"
         />
 
         <Input
           label="Email Address"
           type="email"
           value={formData.email || ""}
-          onChange={(e) => handleInputChange("email", e.target.value)}
-          error={errors.email}
-          placeholder="Enter your email address"
-          required
+          disabled
+          helperText="Email editing not yet supported"
         />
 
         <Input
@@ -107,13 +93,12 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
           required
         />
 
+        {/* Address not persisted yet */}
         <Input
-          label="Address"
+          label="Address (not saved yet)"
           value={formData.address || ""}
           onChange={(e) => handleInputChange("address", e.target.value)}
-          error={errors.address}
           placeholder="Enter your address"
-          required
         />
 
         <Input

@@ -7,6 +7,7 @@ export interface ProfileData {
   dateOfBirth: string;
   membershipLevel: string;
   membershipName: string;
+  // May be empty string if no avatar yet
   profilePicture?: string;
 }
 
