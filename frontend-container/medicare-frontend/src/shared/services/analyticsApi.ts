@@ -1,37 +1,7 @@
 // Analytics API service aligned with Medicare database schema
 // Based on actual tables: Schedule_Appointment, Appointment_Payment, Rate, Doctor_Specialization, etc.
 
-import axios from "axios";
-
-// Create a separate API client for AppointmentService analytics endpoints
-const APPOINTMENT_SERVICE_URL = import.meta.env.VITE_APPOINTMENT_SERVICE_URL || "http://localhost:8087";
-
-const analyticsApiClient = axios.create({
-  baseURL: APPOINTMENT_SERVICE_URL,
-  timeout: 10000,
-  headers: { "Content-Type": "application/json" },
-});
-
-// Add authentication interceptor
-analyticsApiClient.interceptors.request.use((cfg) => {
-  const token = localStorage.getItem("authToken");
-  if (token && cfg.headers) {
-    cfg.headers.Authorization = `Bearer ${token}`;
-  }
-  return cfg;
-});
-
-// Add response interceptor for error handling
-analyticsApiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized access
-      console.warn("Analytics API: Unauthorized access. Please check authentication.");
-    }
-    return Promise.reject(error);
-  }
-);
+import { apiClient } from "./apiClient";
 
 // Base API Response interface
 interface ApiResponse<T> {
@@ -179,7 +149,7 @@ const analyticsApi = {
   ): Promise<ApiResponse<AppointmentMetric[]>> => {
     try {
       const queryParams = buildQueryParams(filters);
-      const response = await analyticsApiClient.get(`/api/appointment/analytics/metrics${queryParams}`);
+      const response = await apiClient.get(`/appointment/analytics/metrics${queryParams}`);
       return handleApiResponse<AppointmentMetric[]>(response);
     } catch (error) {
       return handleApiError<AppointmentMetric[]>(error);
@@ -192,7 +162,7 @@ const analyticsApi = {
   ): Promise<ApiResponse<TrendData[]>> => {
     try {
       const queryParams = buildQueryParams(filters);
-      const response = await analyticsApiClient.get(`/api/appointment/analytics/trends${queryParams}`);
+      const response = await apiClient.get(`/appointment/analytics/trends${queryParams}`);
       return handleApiResponse<TrendData[]>(response);
     } catch (error) {
       return handleApiError<TrendData[]>(error);
@@ -205,7 +175,7 @@ const analyticsApi = {
   ): Promise<ApiResponse<DoctorPerformance[]>> => {
     try {
       const queryParams = buildQueryParams(filters);
-      const response = await analyticsApiClient.get(`/api/appointment/analytics/doctor-performance${queryParams}`);
+      const response = await apiClient.get(`/appointment/analytics/doctor-performance${queryParams}`);
       return handleApiResponse<DoctorPerformance[]>(response);
     } catch (error) {
       return handleApiError<DoctorPerformance[]>(error);
@@ -218,7 +188,7 @@ const analyticsApi = {
   ): Promise<ApiResponse<SpecializationStats[]>> => {
     try {
       const queryParams = buildQueryParams(filters);
-      const response = await analyticsApiClient.get(`/api/appointment/analytics/specialization-stats${queryParams}`);
+      const response = await apiClient.get(`/appointment/analytics/specialization-stats${queryParams}`);
       return handleApiResponse<SpecializationStats[]>(response);
     } catch (error) {
       return handleApiError<SpecializationStats[]>(error);
@@ -236,7 +206,7 @@ const analyticsApi = {
   > => {
     try {
       const queryParams = buildQueryParams(filters);
-      const response = await analyticsApiClient.get(`/api/appointment/analytics/time-slot-analysis${queryParams}`);
+      const response = await apiClient.get(`/appointment/analytics/time-slot-analysis${queryParams}`);
       return handleApiResponse<{ timeSlots: TimeSlotData[]; weeklyData: DayData[] }>(response);
     } catch (error) {
       return handleApiError<{ timeSlots: TimeSlotData[]; weeklyData: DayData[] }>(error);
@@ -260,7 +230,7 @@ const analyticsApi = {
   > => {
     try {
       const queryParams = buildQueryParams(filters);
-      const response = await analyticsApiClient.get(`/api/appointment/analytics/dashboard${queryParams}`);
+      const response = await apiClient.get(`/appointment/analytics/dashboard${queryParams}`);
       return handleApiResponse<{
         metrics: AppointmentMetric[];
         trends: TrendData[];
