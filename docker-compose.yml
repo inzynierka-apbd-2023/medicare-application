@@ -2,6 +2,9 @@ services:
   rabbitmq:
     image: rabbitmq:3-management
     container_name: rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: "${RABBITMQ_DEFAULT_USER:-medicare}"
+      RABBITMQ_DEFAULT_PASS: "${RABBITMQ_DEFAULT_PASS:-medicare}"
     ports:
       - "5672:5672"
       - "15672:15672"
@@ -23,9 +26,9 @@ services:
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
       AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
-      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
-      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ__HOST: "${RABBITMQ_HOST:-rabbitmq}"
+      RABBITMQ__USERNAME: "${RABBITMQ_USERNAME:-medicare}"
+      RABBITMQ__PASSWORD: "${RABBITMQ_PASSWORD:-medicare}"
     ports:
       - "8080:8080"
     networks:
@@ -72,9 +75,9 @@ services:
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
       AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
-      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
-      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ__HOST: "${RABBITMQ_HOST:-rabbitmq}"
+      RABBITMQ__USERNAME: "${RABBITMQ_USERNAME:-medicare}"
+      RABBITMQ__PASSWORD: "${RABBITMQ_PASSWORD:-medicare}"
     ports:
       - "8082:8082"
     networks:
@@ -142,9 +145,9 @@ services:
       HOME: /home/appuser
       USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
       DOCUMENTS_BYPASS_AUTH: "true"
-      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
-      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ__HOST: "${RABBITMQ_HOST:-rabbitmq}"
+      RABBITMQ__USERNAME: "${RABBITMQ_USERNAME:-medicare}"
+      RABBITMQ__PASSWORD: "${RABBITMQ_PASSWORD:-medicare}"
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
       AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
@@ -172,9 +175,9 @@ services:
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
       AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
-      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
-      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ__HOST: "${RABBITMQ_HOST:-rabbitmq}"
+      RABBITMQ__USERNAME: "${RABBITMQ_USERNAME:-medicare}"
+      RABBITMQ__PASSWORD: "${RABBITMQ_PASSWORD:-medicare}"
     ports:
       - "8087:8087"
     networks:
@@ -241,9 +244,9 @@ services:
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
       AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
-      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
-      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ__HOST: "${RABBITMQ_HOST:-rabbitmq}"
+      RABBITMQ__USERNAME: "${RABBITMQ_USERNAME:-medicare}"
+      RABBITMQ__PASSWORD: "${RABBITMQ_PASSWORD:-medicare}"
     ports:
       - "8090:8090"
     networks:
@@ -260,9 +263,9 @@ services:
       dockerfile: Dockerfile
     container_name: pdf-service
     environment:
-      RABBITMQ__HOST: ${RABBITMQ_HOST:-rabbitmq}
-      RABBITMQ__USERNAME: ${RABBITMQ_USERNAME:-guest}
-      RABBITMQ__PASSWORD: ${RABBITMQ_PASSWORD:-guest}
+      RABBITMQ__HOST: "${RABBITMQ_HOST:-rabbitmq}"
+      RABBITMQ__USERNAME: "${RABBITMQ_USERNAME:-medicare}"
+      RABBITMQ__PASSWORD: "${RABBITMQ_PASSWORD:-medicare}"
     networks:
       - medicare-network
     restart: unless-stopped
