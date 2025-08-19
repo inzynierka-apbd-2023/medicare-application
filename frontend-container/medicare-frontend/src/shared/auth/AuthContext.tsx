@@ -116,7 +116,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = () => {
-  authService.logout();
+    // Clear persisted token and any user state
+    authService.logout();
+    try {
+      sessionStorage.clear();
+      localStorage.removeItem("authToken");
+    } catch {}
     setUser(null);
     setToken(null);
   };

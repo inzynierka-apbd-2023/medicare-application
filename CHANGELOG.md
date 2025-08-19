@@ -2,6 +2,19 @@
 
 All notable changes to this project will be documented in this file.
 
+## 2025-08-18
+
+- feat(appointments): automatic Overdue status via background job and effective mapping on reads
+  - AppointmentService adds a hosted job that marks Scheduled/Confirmed appointments as Overdue once `ScheduledEndAt` has passed.
+  - GET endpoints surface an effective Overdue immediately without waiting for the background tick.
+  - Composite index `IX_Appointment_Status_ScheduledEndAt` added to optimize sweeps.
+- feat(scheduler,dashboard): unified status-based colors (including Overdue)
+  - Central mapping in frontend at `src/features/scheduler/utils/statusColors.ts`.
+  - Applied to patient dashboard and appointment scheduler calendars.
+- fix(scheduler): align UI with local wall-clock time and preserve exact booking slot
+  - Frontend normalizes naive datetimes as local on reads and sends local times on create.
+  - Eliminates time drift (e.g., 12:30 -> 10:30) after refresh and avoids wrong-date bookings.
+
 ## 2025-08-17
 
 - feat(messaging): add RabbitMQ to docker-compose with management UI; wire UserService publisher and PatientService consumer

@@ -40,6 +40,15 @@ public class DoctorsController : ControllerBase
         return Ok(doctor);
     }
 
+    // Lightweight directory projection for a single doctor
+    [HttpGet("{id}/directory")]
+    public async Task<IActionResult> GetDoctorDirectoryById(string id)
+    {
+        var item = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
+        if (item == null) return NotFound();
+        return Ok(item);
+    }
+
     // Update specializations for a doctor
     [HttpPut("{id}/specializations")]
     [Authorize]
@@ -63,7 +72,7 @@ public class DoctorsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Search([FromQuery] Guid? specializationId, [FromQuery] Guid? serviceId, [FromQuery] string? q)
     {
-        // For now, query from projection view DoctorDirectory and filter
+        // Query from projection view DoctorDirectory and filter
         var query = _db.Set<DoctorDirectory>().AsQueryable();
         if (!string.IsNullOrWhiteSpace(q))
         {
@@ -75,7 +84,25 @@ public class DoctorsController : ControllerBase
             var specializationIdStr = specializationId.ToString();
             query = query.Where(d => d.Specializations != null && d.Specializations.Contains(specializationIdStr));
         }
-        // serviceId reserved; would require mapping services to doctors
+        if (serviceId != null && serviceId != Guid.Empty)
+        {
+            var sid = serviceId.ToString();
+            // map service -> specialization ids
+            var specIds = await _db.SpecializationServices
+                .Where(ss => ss.ServiceId == sid)
+                .Select(ss => ss.SpecializationId)
+                .ToListAsync();
+            if (specIds.Count > 0)
+            {
+                // intersect with doctor specialization CSV
+                query = query.Where(d => d.Specializations != null && specIds.Any(sid => d.Specializations!.Contains(sid)));
+            }
+            else
+            {
+                // No mapping -> empty
+                return Ok(Array.Empty<DoctorDirectory>());
+            }
+        }
         var results = await query.Take(100).ToListAsync();
         return Ok(results);
     }
@@ -101,6 +128,19 @@ public class DoctorsController : ControllerBase
         await _db.SaveChangesAsync();
         // TODO: publish DoctorAvailabilityChanged event
         return NoContent();
+    }
+
+    // Read recurring availability
+    [HttpGet("{id}/availability")]
+    public async Task<IActionResult> GetAvailability(string id)
+    {
+        if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound("Doctor not found");
+        var schedules = await _db.DoctorSchedules
+            .Where(s => s.DoctorId == id)
+            .OrderBy(s => s.DayOfWeek)
+            .ThenBy(s => s.StartTime)
+            .ToListAsync();
+        return Ok(schedules);
     }
 }
 

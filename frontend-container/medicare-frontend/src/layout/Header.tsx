@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useLocation } from "react-router-dom";
 import { Menu, User, X } from "lucide-react";
 
 import { DropdownMenu } from "../features/profile/components";
 import { useAuth } from "../shared/auth/AuthContext";
+import { notificationsApi } from "../shared/services/notificationsApi";
 import {
   getDefaultDashboard,
   getNavigationForRole,
@@ -14,6 +15,7 @@ export default function Header() {
   const [isMobile, setIsMobile] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
+  const [unreadCount, setUnreadCount] = useState(0);
   const profileRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -35,6 +37,46 @@ export default function Header() {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Poll unread notifications lightly when header is mounted and user changes
+  // Pull in location to refresh on route changes
+  const location = useLocation();
+
+  useEffect(() => {
+    let timer: number | undefined;
+    const fetchUnread = async () => {
+      if (!user?.id) {
+        setUnreadCount(0);
+        return;
+      }
+      const res = await notificationsApi.getForRecipient(user.id, true);
+      if (res.success) setUnreadCount(res.data.length);
+    };
+
+    // Initial fetch on mount
+    fetchUnread();
+
+    // Live-refresh on app-wide notification updates (e.g., mark-as-read)
+    const onUpdated = () => { fetchUnread(); };
+    window.addEventListener("notifications:updated", onUpdated as EventListener);
+
+    // Refresh when window regains focus or tab becomes visible (handles navigation races)
+    const onFocus = () => { fetchUnread(); };
+    const onVisibility = () => { if (document.visibilityState === "visible") fetchUnread(); };
+    window.addEventListener("focus", onFocus);
+    document.addEventListener("visibilitychange", onVisibility);
+
+    // Periodic lightweight refresh
+    timer = window.setInterval(fetchUnread, 60000);
+
+    return () => {
+      if (timer) window.clearInterval(timer);
+      window.removeEventListener("notifications:updated", onUpdated as EventListener);
+      window.removeEventListener("focus", onFocus);
+      document.removeEventListener("visibilitychange", onVisibility);
+    };
+  // Also re-run when user changes or route changes
+  }, [user?.id, location?.pathname]);
 
   // Get navigation items based on user role
   const navItems = user ? getNavigationForRole(user.role) : [];
@@ -80,6 +122,14 @@ export default function Header() {
                 aria-label="Profile"
               >
                 <User size={20} className="text-blue-400" />
+                {unreadCount > 0 && (
+                  <span
+                    className="absolute -top-1 -right-1 inline-flex items-center justify-center rounded-full bg-red-500 text-white text-[10px] leading-none h-4 min-w-[16px] px-1 shadow"
+                    aria-label={`${unreadCount} unread notifications`}
+                  >
+                    {unreadCount > 9 ? "9+" : unreadCount}
+                  </span>
+                )}
               </button>
               {profileOpen && <DropdownMenu />}
             </div>
@@ -103,10 +153,12 @@ export default function Header() {
 
       {/* Mobile backdrop */}
       {isMobile && (
-        <div
+        <button
+          type="button"
           className={`fixed inset-0 bg-blue-50 bg-opacity-80 z-40 transition-opacity duration-300 ease-in-out ${
             drawerOpen ? "opacity-100" : "opacity-0 pointer-events-none"
           }`}
+          aria-label="Close menu"
           onClick={() => setDrawerOpen(false)}
         />
       )}

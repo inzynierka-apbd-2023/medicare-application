@@ -10,6 +10,7 @@ import {
 } from "../../../shared/components";
 import { useLoadingService } from "../../../shared/hooks/useLoadingService";
 import { patientDashboardApi } from "../../../shared/services/dashboardApi";
+import { notificationsApi } from "../../../shared/services/notificationsApi";
 import useScheduler from "../../scheduler/hooks/useScheduler";
 import {
   DashboardCard,
@@ -33,11 +34,11 @@ export default function PatientDashboard() {
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
 
-  const { isLoading, error, clearError, executeInitialLoad, executeQuietly } =
+  const { isLoading, error, clearError, executeInitialLoad } =
     useLoadingService();
 
-  // Get current patient ID (this would come from auth context in real app)
-  const currentPatientId = "current-patient-id"; // Replace with actual patient ID
+  // Use the logged-in user's id as the patient id for scheduler calls
+  const currentPatientId = user?.id ?? "";
 
   // Initialize scheduler for read-only dashboard view
   const { appointments } = useScheduler({
@@ -45,30 +46,38 @@ export default function PatientDashboard() {
   });
 
   // Convert scheduler appointments to dashboard format for compatibility
-  const dashboardAppointments = appointments.map((apt) => ({
-    id: apt.id,
-    doctorName: apt.doctor
-      ? `${apt.doctor.firstName} ${apt.doctor.lastName}`
-      : "Unknown Doctor",
-    specialty: apt.doctor?.specializations[0]?.name || "General",
-    date: new Date(apt.day),
-    time: apt.timeSlot?.startDateTime
-      ? new Date(apt.timeSlot.startDateTime).toLocaleTimeString([], {
-          hour: "2-digit",
-          minute: "2-digit",
-        })
-      : "Time TBD",
-    type: (apt.appointmentType === "virtual"
-      ? "phone"
-      : apt.appointmentType) as "in-person" | "phone",
-    ...(apt.room && { location: apt.room }),
-    status:
-      apt.status?.name === "Cancelled"
-        ? ("cancelled" as const)
-        : apt.status?.name === "Completed"
-          ? ("completed" as const)
-          : ("upcoming" as const),
-  }));
+  const dashboardAppointments = appointments.map((apt) => {
+    const cardType: "in-person" | "phone" =
+      apt.appointmentType === "in-person" ? "in-person" : "phone";
+
+    // Derive start/end to detect overdue
+    const startTime = apt.timeSlot?.startDateTime
+      ? new Date(apt.timeSlot.startDateTime)
+      : new Date(apt.day);
+    const endTime = apt.timeSlot?.endDateTime
+      ? new Date(apt.timeSlot.endDateTime as unknown as string)
+      : new Date(startTime.getTime() + (apt.durationMinutes || 30) * 60000);
+    const isOverdue = endTime.getTime() < Date.now();
+
+    let cardStatus: "upcoming" | "completed" | "cancelled" = "upcoming";
+    if (apt.status?.name === "Cancelled") cardStatus = "cancelled";
+    else if (apt.status?.name === "Completed" || isOverdue) cardStatus = "completed";
+
+    return {
+      id: apt.id,
+      doctorName: apt.doctor
+        ? `${apt.doctor.firstName} ${apt.doctor.lastName}`
+        : "Unknown Doctor",
+      specialty: apt.doctor?.specializations?.[0]?.name || "General",
+      date: startTime,
+      time: startTime.toLocaleTimeString([], {
+        hour: "2-digit",
+        minute: "2-digit",
+      }),
+      type: cardType,
+      status: cardStatus,
+    };
+  });
 
   // Fetch dashboard data on component mount
   useEffect(() => {
@@ -76,12 +85,12 @@ export default function PatientDashboard() {
       try {
         // Fetch notifications and documents in parallel
         const [notificationsResponse, documentsResponse] = await Promise.all([
-          patientDashboardApi.getNotifications(),
+          notificationsApi.getForRecipient(currentPatientId, false),
           patientDashboardApi.getDocuments(),
         ]);
 
         if (notificationsResponse.success) {
-          setNotifications(notificationsResponse.data);
+          setNotifications(notificationsResponse.data as any);
         } else {
           throw new Error(
             notificationsResponse.error || "Failed to fetch notifications"
@@ -139,20 +148,21 @@ export default function PatientDashboard() {
 
   const handleMarkNotificationAsRead = async (notificationId: string) => {
     try {
-      // Use executeQuietly to avoid showing loading state for this quick operation
-      await executeQuietly(async () => {
-        const response =
-          await patientDashboardApi.markNotificationAsRead(notificationId);
-        if (response.success) {
-          setNotifications((prev) =>
-            prev.map((notif) =>
-              notif.id === notificationId ? { ...notif, read: true } : notif
-            )
+  const response = await notificationsApi.markAsRead(notificationId);
+      if (response.success) {
+        setNotifications((prev: Notification[]) => {
+          const updated = prev.map((notif: Notification) =>
+            notif.id === notificationId ? { ...notif, read: true } : notif
           );
-        } else {
-          throw new Error("Failed to mark notification as read");
-        }
-      });
+          return updated;
+        });
+        // Best-effort broadcast (Header listens and will refresh unread badge)
+        try {
+          window.dispatchEvent(new CustomEvent("notifications:updated", { detail: { kind: "read", id: notificationId } }));
+        } catch {}
+      } else {
+        throw new Error("Failed to mark notification as read");
+      }
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
     }

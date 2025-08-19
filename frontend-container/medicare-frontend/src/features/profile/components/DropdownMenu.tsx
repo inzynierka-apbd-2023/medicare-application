@@ -1,7 +1,25 @@
 import React from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "../../../shared/auth/AuthContext";
 
 export const DropdownMenu: React.FC = () => {
+  const navigate = useNavigate();
+  const { logout } = useAuth();
+
+  const handleLogout: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
+    e.preventDefault();
+    try {
+      // Clear auth state and tokens
+      logout();
+      // Best-effort cleanup of any cached session data
+      sessionStorage.clear();
+      localStorage.removeItem("authToken");
+    } finally {
+      // Navigate to login
+      navigate("/login", { replace: true });
+    }
+  };
+
   return (
     <div
       className="absolute right-0 mt-2 w-40 bg-white rounded-lg shadow-lg py-2 z-50"
@@ -25,7 +43,7 @@ export const DropdownMenu: React.FC = () => {
       </Link>
       <Link
         to="/login"
-        onClick={() => {}}
+        onClick={handleLogout}
         className="block px-4 py-2 text-gray-700 hover:bg-blue-50"
         role="menuitem"
       >

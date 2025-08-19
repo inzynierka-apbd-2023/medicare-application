@@ -309,10 +309,6 @@ const MOCK_PATIENT_MESSAGES: PatientMessage[] = [
 
 // API functions for Patient Dashboard
 export const patientDashboardApi = {
-  getNotifications: (): Promise<ApiResponse<Notification[]>> => {
-    return createMockResponse(MOCK_PATIENT_NOTIFICATIONS, 300);
-  },
-
   getDocuments: (): Promise<ApiResponse<Document[]>> => {
     return createMockResponse(MOCK_PATIENT_DOCUMENTS, 200);
   },

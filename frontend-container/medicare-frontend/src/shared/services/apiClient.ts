@@ -1,7 +1,17 @@
 import axios, { AxiosResponse } from "axios";
 
-// Derive API base URL from Vite env (injected at build) or fallback to same-origin proxy or localhost.
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "/api";
+// Resolve API base URL ensuring we keep the current origin (with port) to avoid connection issues.
+function resolveBaseUrl(): string {
+  const path = (import.meta as any).env?.VITE_API_BASE_URL || "/api";
+  // If an absolute URL is provided, use it as-is
+  if (/^https?:\/\//i.test(path)) return path;
+  // Otherwise, prefix with current origin, preserving the port
+  const origin = typeof window !== "undefined" && window.location?.origin ? window.location.origin : "";
+  const normalizedPath = path.startsWith("/") ? path : `/${path}`;
+  return `${origin}${normalizedPath}`;
+}
+
+export const API_BASE_URL = resolveBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

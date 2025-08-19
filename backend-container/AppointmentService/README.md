@@ -10,9 +10,17 @@ This service manages appointments, scheduling, and appointment-related analytics
 - Appointment categories
 - Analytics and reporting
 
+### Automatic Overdue processing (new)
+
+- A hosted background service runs every minute and automatically marks appointments as Overdue when their scheduled end time has passed and status is Scheduled or Confirmed.
+- Reads also surface an “effective” Overdue status immediately (without waiting for the background tick) if an appointment has passed its end time and is still Scheduled/Confirmed.
+- A composite index on `(Status, ScheduledEndAt)` is ensured at startup to keep the background job fast at scale.
+- Time comparison uses local wall-clock to align with the frontend’s local time handling.
+
 ## API Endpoints
 
 ### Appointments
+
 - `POST /api/appointment/appointments` - Create appointment
 - `GET /api/appointment/appointments/{id}` - Get appointment by ID
 - `GET /api/appointment/appointments/patient/{patientId}` - Get patient appointments
@@ -20,7 +28,12 @@ This service manages appointments, scheduling, and appointment-related analytics
 - `PUT /api/appointment/appointments/{id}/status` - Update appointment status
 - `GET /api/appointment/appointments/analytics/today` - Get today's analytics
 
+Notes:
+
+- GET endpoints may return status Overdue effectively for appointments whose `ScheduledEndAt` has passed even if the stored status hasn’t flipped yet.
+
 ### Schedules
+
 - `POST /api/appointment/schedules` - Create doctor schedule
 - `GET /api/appointment/schedules/doctor/{doctorId}` - Get doctor schedules
 - `GET /api/appointment/schedules/slots/{doctorId}` - Get available slots
@@ -31,6 +44,10 @@ This service manages appointments, scheduling, and appointment-related analytics
 - `appointment.Appointment_Slot` - Available time slots
 - `appointment.Schedule` - Doctor working schedules
 - `appointment.Appointment_Category` - Appointment types
+
+Indexes:
+
+- `IX_Appointment_Status_ScheduledEndAt` composite index to accelerate Overdue transitions.
 
 ## Port
 

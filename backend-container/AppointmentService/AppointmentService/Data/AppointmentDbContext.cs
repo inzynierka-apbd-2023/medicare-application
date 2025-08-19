@@ -40,9 +40,13 @@ public class AppointmentDbContext : DbContext
             e.Property(a => a.RoomId).HasMaxLength(36);
             e.Property(a => a.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(a => a.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(a => a.UpcomingNotificationSentAt).HasColumnType("datetime2");
+            e.Property(a => a.ThirtyMinNotificationSentAt).HasColumnType("datetime2");
             e.HasIndex(a => a.PatientId);
             e.HasIndex(a => a.DoctorId);
             e.HasIndex(a => a.ScheduledAt);
+            // Composite index to support fast lookup for overdue transitions
+            e.HasIndex(a => new { a.Status, a.ScheduledEndAt });
         });
 
         modelBuilder.Entity<AppointmentSlot>(e =>
@@ -89,6 +93,8 @@ public class AppointmentDbContext : DbContext
             e.Property(u => u.Id).HasMaxLength(36);
             e.Property(u => u.Role_Id).HasMaxLength(36);
             e.Property(u => u.Schedule_Id).HasMaxLength(36);
+            // Do not let EF migrations manage this table (exists in main DB)
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<UserProfile>(e =>
@@ -98,18 +104,21 @@ public class AppointmentDbContext : DbContext
             e.Property(up => up.FirstName).HasMaxLength(100);
             e.Property(up => up.LastName).HasMaxLength(100);
             e.Property(up => up.Email).HasMaxLength(255);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Doctor>(e =>
         {
             e.HasKey(d => d.Id);
             e.Property(d => d.Id).HasMaxLength(36);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Patient>(e =>
         {
             e.HasKey(p => p.Id);
             e.Property(p => p.Id).HasMaxLength(36);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Specialization>(e =>
@@ -117,42 +126,49 @@ public class AppointmentDbContext : DbContext
             e.HasKey(s => s.Id);
             e.Property(s => s.Id).HasMaxLength(36);
             e.Property(s => s.Name).HasMaxLength(200);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<DoctorSpecialization>(e =>
         {
             e.HasKey(ds => ds.Id);
             e.Property(ds => ds.Id).HasMaxLength(36);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<ScheduleAppointment>(e =>
         {
             e.HasKey(sa => sa.Id);
             e.Property(sa => sa.Id).HasMaxLength(36);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<ScheduleAppointmentStatus>(e =>
         {
             e.HasKey(sas => sas.Id);
             e.Property(sas => sas.Id).HasMaxLength(36);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<AppointmentPayment>(e =>
         {
             e.HasKey(ap => ap.Id);
             e.Property(ap => ap.Id).HasMaxLength(36);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Rate>(e =>
         {
             e.HasKey(r => r.Id);
             e.Property(r => r.Id).HasMaxLength(36);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Notification>(e =>
         {
             e.HasKey(n => n.Id);
             e.Property(n => n.Id).HasMaxLength(36);
+            e.ToTable(tb => tb.ExcludeFromMigrations());
         });
     }
 }

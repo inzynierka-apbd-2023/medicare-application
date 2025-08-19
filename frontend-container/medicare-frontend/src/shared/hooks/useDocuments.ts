@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useToastContext } from "../ui/toast";
 
 import type { Appointment, Document } from "../../features/documents/types";
 import { documentsApi } from "../services/documentsApi";
+import { useAuth } from "../auth/AuthContext";
 
 interface UseDocumentsParams {
   appointmentId?: string;
@@ -20,26 +22,28 @@ interface UseDocumentsResult {
 export const useDocuments = (
   params?: UseDocumentsParams
 ): UseDocumentsResult => {
+  const { user } = useAuth();
   const [documents, setDocuments] = useState<Document[]>([]);
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { showToast } = useToastContext();
+
+  const effectiveFilters = useMemo(() => {
+    const filters: { appointmentId?: string; patientId?: string } = {};
+    if (params?.appointmentId) filters.appointmentId = params.appointmentId;
+    // Default to current user id when patientId not explicitly passed
+    const pid = params?.patientId ?? user?.id;
+    if (pid) filters.patientId = pid;
+    return filters;
+  }, [params?.appointmentId, params?.patientId, user?.id]);
 
   const fetchData = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
     try {
-      const filters: { appointmentId?: string; patientId?: string } = {};
-
-      if (params?.appointmentId) {
-        filters.appointmentId = params.appointmentId;
-      }
-      if (params?.patientId) {
-        filters.patientId = params.patientId;
-      }
-
-      const response = await documentsApi.getDocumentsWithAppointments(filters);
+  const response = await documentsApi.getDocumentsWithAppointments(effectiveFilters);
 
       if (response.success) {
         setDocuments(response.data.documents);
@@ -53,22 +57,43 @@ export const useDocuments = (
     } finally {
       setIsLoading(false);
     }
-  }, [params?.appointmentId, params?.patientId]);
+  }, [effectiveFilters]);
 
-  const downloadDocument = async (document: Document): Promise<void> => {
+  const downloadDocument = async (doc: Document): Promise<void> => {
+    const url = `${location.origin}/api/documents/${doc.id}/pdf`;
     try {
-      const response = await documentsApi.downloadDocument(document.id);
+      const token = localStorage.getItem("authToken");
+      const headers: Record<string, string> = {};
+      if (token) headers["Authorization"] = `Bearer ${token}`;
+      const res = await fetch(url, {
+        method: "GET",
+        headers,
+      });
 
-      if (response.success) {
-        // In a real app, this would trigger the actual download
-        console.log("Download URL:", response.data.downloadUrl);
-        alert(`Document "${document.type.replace("_", " ")}" download started`);
-      } else {
-        alert(response.error || "Failed to download document");
+      if (!res.ok) {
+        if (res.status === 504) {
+          showToast("The PDF generator took too long. Please try again in a moment.", { type: "warning" });
+        } else if (res.status === 400) {
+          const msg = await res.text();
+          showToast(msg || "This document type cannot be exported as PDF yet.", { type: "warning" });
+        } else {
+          showToast(`Failed to download document (HTTP ${res.status})`, { type: "error" });
+        }
+        return;
       }
+
+      const blob = await res.blob();
+      const dlUrl = URL.createObjectURL(blob);
+      const link = window.document.createElement("a");
+      link.href = dlUrl;
+      link.download = `${doc.type.replace("_", "-")}-${doc.id}.pdf`;
+      window.document.body.appendChild(link);
+      link.click();
+      window.document.body.removeChild(link);
+      URL.revokeObjectURL(dlUrl);
     } catch (err) {
       console.error("Error downloading document:", err);
-      alert("An error occurred while downloading the document");
+      showToast("An error occurred while downloading the document", { type: "error" });
     }
   };
 

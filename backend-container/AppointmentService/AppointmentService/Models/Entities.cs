@@ -25,6 +25,10 @@ public class Appointment
     public string? RoomId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
+    // Tracks when an upcoming notification was sent to avoid duplicate MQ messages
+    public DateTime? UpcomingNotificationSentAt { get; set; }
+    // Tracks when the 30-minute reminder was sent
+    public DateTime? ThirtyMinNotificationSentAt { get; set; }
 }
 
 public class AppointmentSlot

@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { getStatusColors } from "../../../scheduler/utils/statusColors";
 import type { EventContentArg } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
@@ -66,32 +67,9 @@ export default function DashboardScheduleView({
         const endDate = new Date(startDate);
         endDate.setMinutes(endDate.getMinutes() + appointment.durationMinutes);
 
-        let backgroundColor = "#3b82f6"; // Default blue
-        let borderColor = "#2563eb";
-
-        // Color code based on appointment type
-        switch (appointment.appointmentType) {
-          case "virtual":
-            backgroundColor = "#10b981";
-            borderColor = "#059669";
-            break;
-          case "phone":
-            backgroundColor = "#f59e0b";
-            borderColor = "#d97706";
-            break;
-          case "in-person":
-            backgroundColor = "#3b82f6";
-            borderColor = "#2563eb";
-            break;
-        }
-
-        // Adjust color based on status
-        if (appointment.status?.name === "Completed") {
-          backgroundColor = "#6b7280";
-          borderColor = "#4b5563";
-        } else if (appointment.status?.name === "Confirmed") {
-          // Keep original colors but maybe slightly brighter
-        }
+  const statusColors = getStatusColors(appointment.status?.name);
+  const backgroundColor = statusColors.bg;
+  const borderColor = statusColors.border;
 
         return {
           id: appointment.id,
