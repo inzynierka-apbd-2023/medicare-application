@@ -26,6 +26,7 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.Get
 
 // Add notification service
 builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<AppointmentService.Features.Metrics.Services.IAppointmentMetricsService, AppointmentService.Features.Metrics.Services.AppointmentMetricsService>();
 
 if (useAzureDefaultCredential)
 {
