@@ -68,9 +68,12 @@ public class UserDbContext : DbContext
 
         modelBuilder.Entity<RefreshToken>(entity =>
         {
+            // Explicit mapping (also present via DataAnnotations) to avoid any ambiguity
+            entity.ToTable("Refresh_Token", schema: "user");
             entity.HasKey(e => e.Id);
             entity.Property(e => e.CreatedAt).HasDefaultValueSql(SysUtc);
             entity.Property(e => e.ExpiresAt).HasDefaultValueSql("DATEADD(day,7,SYSUTCDATETIME())");
+            entity.Property(e => e.TokenHash).HasMaxLength(128).IsRequired();
             entity.HasIndex(e => new { e.UserId, e.ExpiresAt });
         });
     }
