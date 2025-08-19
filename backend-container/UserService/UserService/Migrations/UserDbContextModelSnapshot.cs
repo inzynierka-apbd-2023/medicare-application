@@ -101,6 +101,69 @@ namespace UserService.Migrations
                     b.ToTable("User", "user");
                 });
 
+            modelBuilder.Entity("UserService.Models.RefreshToken", b =>
+                {
+                    b.Property<string>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("Id")
+                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("Created_At")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<string>("CreatedByIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)")
+                        .HasColumnName("Created_By_Ip");
+
+                    b.Property<DateTime>("ExpiresAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasColumnName("Expires_At")
+                        .HasDefaultValueSql("DATEADD(day,7,SYSUTCDATETIME())");
+
+                    b.Property<string>("ReplacedByTokenHash")
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("Replaced_By_Hash");
+
+                    b.Property<DateTime?>("RevokedAt")
+                        .HasColumnType("datetime2")
+                        .HasColumnName("Revoked_At");
+
+                    b.Property<string>("RevokedByIp")
+                        .HasMaxLength(45)
+                        .HasColumnType("nvarchar(45)")
+                        .HasColumnName("Revoked_By_Ip");
+
+                    b.Property<string>("TokenHash")
+                        .IsRequired()
+                        .HasMaxLength(128)
+                        .HasColumnType("nvarchar(128)")
+                        .HasColumnName("Token_Hash");
+
+                    b.Property<string>("UserAgent")
+                        .HasMaxLength(512)
+                        .HasColumnType("nvarchar(512)")
+                        .HasColumnName("User_Agent");
+
+                    b.Property<string>("UserId")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(450)")
+                        .HasColumnName("User_Id");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId", "ExpiresAt")
+                        .HasDatabaseName("IX_Refresh_Token_User_Id_Expires_At");
+
+                    b.ToTable("Refresh_Token", "user");
+                });
+
             modelBuilder.Entity("UserService.Models.UserProfile", b =>
                 {
                     b.Property<string>("UserId")
@@ -192,6 +255,17 @@ namespace UserService.Migrations
                         .IsUnique();
 
                     b.ToTable("User_Profile", "user");
+                });
+
+            modelBuilder.Entity("UserService.Models.RefreshToken", b =>
+                {
+                    b.HasOne("UserService.Models.User", "User")
+                        .WithMany()
+                        .HasForeignKey("UserId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+
+                    b.Navigation("User");
                 });
 
             modelBuilder.Entity("UserService.Models.User", b =>

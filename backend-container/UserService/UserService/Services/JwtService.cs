@@ -11,6 +11,8 @@ public interface IJwtService
     string GenerateToken(string userId, string username, string role);
     string GenerateToken(UserResponseDto user);
     TokenResponseDto GenerateTokenResponse(UserResponseDto user);
+    (string token, DateTime expiresAt) GenerateAccessToken(UserResponseDto user);
+    (string refreshToken, DateTime expiresAt, string hash) GenerateRefreshToken();
 }
 
 public class JwtService : IJwtService
@@ -61,14 +63,37 @@ public class JwtService : IJwtService
 
     public TokenResponseDto GenerateTokenResponse(UserResponseDto user)
     {
-        var token = GenerateToken(user);
-        var expiryHours = int.Parse(_configuration.GetSection("Jwt")["ExpiryInHours"] ?? "24");
-
+        var (token, expiresAt) = GenerateAccessToken(user);
         return new TokenResponseDto
         {
             Token = token,
-            ExpiresAt = DateTime.UtcNow.AddHours(expiryHours),
+            ExpiresAt = expiresAt,
             User = user
         };
+    }
+
+    public (string token, DateTime expiresAt) GenerateAccessToken(UserResponseDto user)
+    {
+        var token = GenerateToken(user);
+        var expiryHours = int.Parse(_configuration.GetSection("Jwt")["ExpiryInHours"] ?? "24");
+        return (token, DateTime.UtcNow.AddHours(expiryHours));
+    }
+
+    public (string refreshToken, DateTime expiresAt, string hash) GenerateRefreshToken()
+    {
+        var refreshSettings = _configuration.GetSection("RefreshToken");
+        var days = int.Parse(refreshSettings["ExpiryInDays"] ?? "7");
+        var secureBytes = new byte[64];
+        System.Security.Cryptography.RandomNumberGenerator.Fill(secureBytes);
+        var token = Convert.ToBase64String(secureBytes);
+        var hash = ComputeSha256(token);
+        return (token, DateTime.UtcNow.AddDays(days), hash);
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
+        return Convert.ToBase64String(bytes); // 44 chars
     }
 }

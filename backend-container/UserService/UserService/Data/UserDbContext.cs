@@ -11,6 +11,7 @@ public class UserDbContext : DbContext
     public DbSet<User> Users { get; set; }
     public DbSet<UserProfile> UserProfiles { get; set; }
     public DbSet<OutboxEvent> OutboxEvents { get; set; }
+    public DbSet<RefreshToken> RefreshTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -63,6 +64,17 @@ public class UserDbContext : DbContext
             entity.Property(e => e.Id).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
             entity.Property(e => e.OccurredAt).HasDefaultValueSql(SysUtc);
             entity.HasIndex(e => e.PublishedAt);
+        });
+
+        modelBuilder.Entity<RefreshToken>(entity =>
+        {
+            // Explicit mapping (also present via DataAnnotations) to avoid any ambiguity
+            entity.ToTable("Refresh_Token", schema: "user");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql(SysUtc);
+            entity.Property(e => e.ExpiresAt).HasDefaultValueSql("DATEADD(day,7,SYSUTCDATETIME())");
+            entity.Property(e => e.TokenHash).HasMaxLength(128).IsRequired();
+            entity.HasIndex(e => new { e.UserId, e.ExpiresAt });
         });
     }
 }

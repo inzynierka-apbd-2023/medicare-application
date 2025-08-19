@@ -120,3 +120,17 @@ public class TokenResponseDto
     public DateTime ExpiresAt { get; set; }
     public UserResponseDto User { get; set; } = new();
 }
+
+public class RefreshTokenResponseDto
+{
+    public string AccessToken { get; set; } = string.Empty;
+    public DateTime AccessTokenExpiresAt { get; set; }
+    public string RefreshToken { get; set; } = string.Empty;
+    public DateTime RefreshTokenExpiresAt { get; set; }
+    public UserResponseDto User { get; set; } = new();
+}
+
+public class RefreshRequestDto
+{
+    public string RefreshToken { get; set; } = string.Empty;
+}
