@@ -168,6 +168,20 @@ public class UserServiceImpl : IUserService
             if (updateUserDto.AvatarUrl != null)
                 user.Profile.AvatarUrl = string.IsNullOrWhiteSpace(updateUserDto.AvatarUrl) ? null : updateUserDto.AvatarUrl;
 
+            // Address fields (partial updates allowed)
+            if (!string.IsNullOrWhiteSpace(updateUserDto.AddressLine1))
+                user.Profile.AddressLine1 = updateUserDto.AddressLine1;
+            if (!string.IsNullOrWhiteSpace(updateUserDto.AddressLine2))
+                user.Profile.AddressLine2 = updateUserDto.AddressLine2;
+            if (!string.IsNullOrWhiteSpace(updateUserDto.City))
+                user.Profile.City = updateUserDto.City;
+            if (!string.IsNullOrWhiteSpace(updateUserDto.State))
+                user.Profile.State = updateUserDto.State;
+            if (!string.IsNullOrWhiteSpace(updateUserDto.ZipCode))
+                user.Profile.ZipCode = updateUserDto.ZipCode;
+            if (!string.IsNullOrWhiteSpace(updateUserDto.Country))
+                user.Profile.Country = updateUserDto.Country;
+
             user.Profile.UpdatedAt = DateTime.UtcNow;
         }
 
@@ -235,9 +249,27 @@ public class UserServiceImpl : IUserService
             PhoneNumber = user.Profile?.Phone,
             Role = user.Role?.Name ?? "",
             DateOfBirth = user.Profile?.DateOfBirth,
+            Address = user.Profile == null ? null : BuildAddress(user.Profile),
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             IsActive = user.IsActive
         };
+    }
+
+    private static string? BuildAddress(UserProfile profile)
+    {
+        var parts = new List<string?>
+        {
+            profile.AddressLine1,
+            profile.AddressLine2,
+            profile.City,
+            profile.State,
+            profile.ZipCode,
+            profile.Country
+        }
+        .Where(p => !string.IsNullOrWhiteSpace(p))
+        .ToList();
+
+        return parts.Count == 0 ? null : string.Join(", ", parts);
     }
 }

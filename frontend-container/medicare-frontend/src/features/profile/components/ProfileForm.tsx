@@ -9,7 +9,16 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
   onCancel,
   isLoading = false,
 }) => {
+  // Derive split names if available
+  const initialFirst =
+    profileData.firstName || profileData.name.split(" ")[0] || "";
+  const initialLast =
+    profileData.lastName ||
+    profileData.name.split(" ").slice(1).join(" ") ||
+    "";
   const [formData, setFormData] = useState<Partial<ProfileData>>({
+    firstName: initialFirst,
+    lastName: initialLast,
     name: profileData.name,
     email: profileData.email,
     phone: profileData.phone,
@@ -30,23 +39,17 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    if (!formData.name?.trim()) {
-      newErrors.name = "Name is required";
-    }
-
-    if (!formData.email?.trim()) {
-      newErrors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
+    if (!formData.firstName?.trim())
+      newErrors.firstName = "First name is required";
+    if (!formData.lastName?.trim())
+      newErrors.lastName = "Last name is required";
+    if (!formData.email?.trim()) newErrors.email = "Email is required";
 
     if (!formData.phone?.trim()) {
       newErrors.phone = "Phone number is required";
     }
 
-    if (!formData.address?.trim()) {
-      newErrors.address = "Address is required";
-    }
+    // Address optional (not persisted yet)
 
     if (!formData.dateOfBirth) {
       newErrors.dateOfBirth = "Date of birth is required";
@@ -78,14 +81,22 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Full Name"
-          value={formData.name || ""}
-          onChange={(e) => handleInputChange("name", e.target.value)}
-          error={errors.name}
-          placeholder="Enter your full name"
-          required
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="First Name"
+            value={formData.firstName || ""}
+            onChange={(e) => handleInputChange("firstName", e.target.value)}
+            error={errors.firstName}
+            required
+          />
+          <Input
+            label="Last Name"
+            value={formData.lastName || ""}
+            onChange={(e) => handleInputChange("lastName", e.target.value)}
+            error={errors.lastName}
+            required
+          />
+        </div>
 
         <Input
           label="Email Address"
@@ -93,7 +104,6 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
           value={formData.email || ""}
           onChange={(e) => handleInputChange("email", e.target.value)}
           error={errors.email}
-          placeholder="Enter your email address"
           required
         />
 
@@ -107,13 +117,12 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
           required
         />
 
+        {/* Address not persisted yet */}
         <Input
-          label="Address"
+          label="Address (not saved yet)"
           value={formData.address || ""}
           onChange={(e) => handleInputChange("address", e.target.value)}
-          error={errors.address}
           placeholder="Enter your address"
-          required
         />
 
         <Input

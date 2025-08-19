@@ -1,12 +1,15 @@
 export interface ProfileData {
   id: string;
   name: string;
+  firstName?: string;
+  lastName?: string;
   email: string;
   phone: string;
   address: string;
   dateOfBirth: string;
   membershipLevel: string;
   membershipName: string;
+  // May be empty string if no avatar yet
   profilePicture?: string;
 }
 

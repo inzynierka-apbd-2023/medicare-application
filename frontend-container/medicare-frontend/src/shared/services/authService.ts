@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient } from "./apiClient";
 
 export interface AuthUser {
   id: string;
@@ -10,6 +10,7 @@ export interface AuthUser {
   phoneNumber?: string;
   dateOfBirth?: string;
   avatarUrl?: string | null;
+  address?: string | null;
 }
 
 export interface AuthResponse {
@@ -28,24 +29,27 @@ export interface RegisterRequest {
   dateOfBirth?: string;
 }
 
-const TOKEN_KEY = 'authToken';
+const TOKEN_KEY = "authToken";
 
 export const authService = {
   async login(username: string, password: string): Promise<AuthResponse> {
-    const res = await apiClient.post<AuthResponse>('/auth/login', { username, password });
+    const res = await apiClient.post<AuthResponse>("/auth/login", {
+      username,
+      password,
+    });
     persistToken(res.data.token);
     return res.data;
   },
   async register(req: RegisterRequest): Promise<AuthResponse> {
-    const res = await apiClient.post<AuthResponse>('/auth/register', {
+    const res = await apiClient.post<AuthResponse>("/auth/register", {
       username: req.username,
       email: req.email,
       password: req.password,
       firstName: req.firstName,
       lastName: req.lastName,
       phoneNumber: req.phoneNumber,
-      role: req.role ?? 'Patient',
-      dateOfBirth: req.dateOfBirth || null
+      role: req.role ?? "Patient",
+      dateOfBirth: req.dateOfBirth || null,
     });
     persistToken(res.data.token);
     return res.data;
@@ -53,7 +57,9 @@ export const authService = {
   logout() {
     localStorage.removeItem(TOKEN_KEY);
   },
-  getToken() { return localStorage.getItem(TOKEN_KEY); },
+  getToken() {
+    return localStorage.getItem(TOKEN_KEY);
+  },
 };
 
 function persistToken(token: string) {

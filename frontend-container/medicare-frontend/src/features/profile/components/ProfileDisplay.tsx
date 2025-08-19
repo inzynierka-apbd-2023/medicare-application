@@ -9,7 +9,12 @@ export const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
   onEdit,
   onPasswordChange,
 }) => {
-  const profileFields = [
+  const profileFields: {
+    icon: React.ReactNode;
+    label: string;
+    value: string;
+  }[] = [];
+  profileFields.push(
     {
       icon: <Mail className="w-4 h-4" />,
       label: "Email",
@@ -24,18 +29,22 @@ export const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
       icon: <MapPin className="w-4 h-4" />,
       label: "Address",
       value: profileData.address,
-    },
-    {
+    }
+  );
+  if (profileData.dateOfBirth) {
+    profileFields.push({
       icon: <Calendar className="w-4 h-4" />,
       label: "Date of Birth",
       value: new Date(profileData.dateOfBirth).toLocaleDateString(),
-    },
-    {
+    });
+  }
+  if (profileData.membershipName) {
+    profileFields.push({
       icon: <CreditCard className="w-4 h-4" />,
-      label: "Membership",
+      label: "Role",
       value: profileData.membershipName,
-    },
-  ];
+    });
+  }
 
   return (
     <div className="space-y-6">
@@ -57,7 +66,9 @@ export const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
             <h2 className="text-2xl font-bold text-gray-900">
               {profileData.name}
             </h2>
-            <p className="text-gray-600">{profileData.membershipName}</p>
+            {profileData.membershipName && (
+              <p className="text-gray-600">{profileData.membershipName}</p>
+            )}
           </div>
           <Button variant="secondary" onClick={onEdit} className="mt-4">
             Edit Profile
