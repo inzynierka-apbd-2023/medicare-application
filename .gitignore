@@ -73,3 +73,4 @@ tmp-rx4.pdf
 .tmp-doctor-id.txt
 .tmp-pat-jwt.txt
 .tmp-patient-id.txt
+backend-container/UserService/scripts/seed-test-patient.sql
