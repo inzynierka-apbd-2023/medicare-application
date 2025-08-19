@@ -23,6 +23,7 @@ import { useLoadingService } from "../../../shared/hooks/useLoadingService";
 import { DashboardLayout } from "../shared/components";
 import { analyticsApi } from "../../../shared/services/analyticsApi";
 import { patientMetricsApi, PatientMetricsResponse } from "../../../shared/services/patientMetricsApi";
+import { appointmentMetricsApi, AppointmentMetricsResponse as ApptMetrics } from "../../../shared/services/appointmentMetricsApi";
 
 // Database-aligned types based on your actual schema
 interface RevenueMetrics {
@@ -87,38 +88,30 @@ const OwnerDashboard: React.FC = () => {
           .split("T")[0];
         const endDate = new Date().toISOString().split("T")[0];
 
-        const [analyticsResponse, patientMetricsResponse] = await Promise.all([
+        const [analyticsResponse, patientMetricsResponse, appointmentMetricsResponse] = await Promise.all([
           analyticsApi.getDashboardData({ startDate, endDate }),
           patientMetricsApi.getPatientMetrics({ startDate, endDate }),
+          appointmentMetricsApi.getAppointmentMetrics({ startDate, endDate })
         ]);
 
-        if (!analyticsResponse.success) {
-          throw new Error(analyticsResponse.error || "Failed to fetch analytics data");
-        }
-
-        if (!patientMetricsResponse.success) {
-          throw new Error(patientMetricsResponse.error || "Failed to fetch patient metrics");
-        }
+        if (!analyticsResponse.success) throw new Error(analyticsResponse.error || "Failed to fetch analytics data");
+        if (!patientMetricsResponse.success) throw new Error(patientMetricsResponse.error || "Failed to fetch patient metrics");
+        if (!appointmentMetricsResponse.success) throw new Error(appointmentMetricsResponse.error || "Failed to fetch appointment metrics");
 
         const analytics = analyticsResponse.data;
         const patientMetrics: PatientMetricsResponse = patientMetricsResponse.data!;
+        const apptMetrics: ApptMetrics = appointmentMetricsResponse.data!;
 
-        const totalRevenue =
-          analytics.metrics.find((m) => m.title === "Total Revenue")?.value || 0;
-        const totalAppointments =
-          analytics.metrics.find((m) => m.title === "Total Appointments")?.value || 0;
-        const completedAppointments =
-          analytics.metrics.find((m) => m.title === "Completed")?.value || 0;
+        const totalRevenue = analytics.metrics.find((m) => m.title === "Total Revenue")?.value || 0;
 
         const transformedData: OwnerDashboardData = {
           revenue: {
-            dailyRevenue: totalRevenue, // refine later with dedicated endpoint
+            dailyRevenue: totalRevenue,
             monthlyRevenue: totalRevenue,
             yearlyRevenue: totalRevenue * 12,
-            revenueGrowth:
-              analytics.metrics.find((m) => m.title === "Total Revenue")?.change || 0,
+            revenueGrowth: analytics.metrics.find((m) => m.title === "Total Revenue")?.change || 0,
             totalAppointmentPayments: totalRevenue,
-            totalSubscriptionPayments: 0, // TODO: replace once subscription metrics available
+            totalSubscriptionPayments: 0,
           },
           patients: {
             totalActivePatients: patientMetrics.totalActivePatients,
@@ -127,16 +120,13 @@ const OwnerDashboard: React.FC = () => {
             averageRating: patientMetrics.averageRating,
             totalRatings: patientMetrics.totalRatings,
           },
-            appointments: {
-            totalAppointments: totalAppointments,
-            appointmentsThisMonth: totalAppointments, // TODO: refine using date filter
-            completedAppointments: completedAppointments,
-            cancelledAppointments: 0, // TODO: expose in analytics metrics or new endpoint
-            noShowAppointments: 0, // TODO: expose in analytics metrics or new endpoint
-            appointmentCompletionRate:
-              totalAppointments > 0
-                ? (completedAppointments / totalAppointments) * 100
-                : 0,
+          appointments: {
+            totalAppointments: apptMetrics.totalAppointments,
+            appointmentsThisMonth: apptMetrics.appointmentsThisMonth,
+            completedAppointments: apptMetrics.completedAppointments,
+            cancelledAppointments: apptMetrics.cancelledAppointments,
+            noShowAppointments: apptMetrics.noShowAppointments,
+            appointmentCompletionRate: apptMetrics.completionRate,
           },
           doctors: {
             totalDoctors: analytics.doctorPerformance.length,
@@ -164,33 +154,12 @@ const OwnerDashboard: React.FC = () => {
                 : 0,
           },
           recentActivities: [
-            {
-              id: "1",
-              type: "payment",
-              description: `Received $${totalRevenue.toLocaleString()} in total revenue`,
-              timestamp: new Date(),
-            },
-            {
-              id: "2",
-              type: "appointment",
-              description: `${completedAppointments} appointments completed`,
-              timestamp: new Date(),
-            },
-            {
-              id: "3",
-              type: "patient",
-              description: `${patientMetrics.totalActivePatients} active patients in system`,
-              timestamp: new Date(),
-            },
-            {
-              id: "4",
-              type: "rating",
-              description: `Average rating: ${patientMetrics.averageRating.toFixed(1)}/5`,
-              timestamp: new Date(),
-            },
+            { id: "1", type: "payment", description: `Received $${totalRevenue.toLocaleString()} in total revenue`, timestamp: new Date() },
+            { id: "2", type: "appointment", description: `${apptMetrics.completedAppointments} appointments completed`, timestamp: new Date() },
+            { id: "3", type: "patient", description: `${patientMetrics.totalActivePatients} active patients in system`, timestamp: new Date() },
+            { id: "4", type: "rating", description: `Average rating: ${patientMetrics.averageRating.toFixed(1)}/5`, timestamp: new Date() },
           ],
         };
-
         setDashboardData(transformedData);
       } catch (error) {
         console.error("Failed to fetch owner dashboard data:", error);
