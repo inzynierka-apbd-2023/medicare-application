@@ -9,9 +9,18 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
   onCancel,
   isLoading = false,
 }) => {
+  // Derive split names if available
+  const initialFirst =
+    profileData.firstName || profileData.name.split(" ")[0] || "";
+  const initialLast =
+    profileData.lastName ||
+    profileData.name.split(" ").slice(1).join(" ") ||
+    "";
   const [formData, setFormData] = useState<Partial<ProfileData>>({
-    name: profileData.name, // read-only for now (backend splits first/last)
-    email: profileData.email, // read-only
+    firstName: initialFirst,
+    lastName: initialLast,
+    name: profileData.name,
+    email: profileData.email,
     phone: profileData.phone,
     address: profileData.address,
     dateOfBirth: profileData.dateOfBirth,
@@ -30,7 +39,11 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
   const validateForm = (): boolean => {
     const newErrors: Record<string, string> = {};
 
-    // Name & email currently read-only -> skip validation
+    if (!formData.firstName?.trim())
+      newErrors.firstName = "First name is required";
+    if (!formData.lastName?.trim())
+      newErrors.lastName = "Last name is required";
+    if (!formData.email?.trim()) newErrors.email = "Email is required";
 
     if (!formData.phone?.trim()) {
       newErrors.phone = "Phone number is required";
@@ -68,19 +81,30 @@ export const ProfileForm: React.FC<ProfileFormProps> = ({
       }
     >
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input
-          label="Full Name"
-          value={formData.name || ""}
-          disabled
-          helperText="Name editing not yet supported"
-        />
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <Input
+            label="First Name"
+            value={formData.firstName || ""}
+            onChange={(e) => handleInputChange("firstName", e.target.value)}
+            error={errors.firstName}
+            required
+          />
+          <Input
+            label="Last Name"
+            value={formData.lastName || ""}
+            onChange={(e) => handleInputChange("lastName", e.target.value)}
+            error={errors.lastName}
+            required
+          />
+        </div>
 
         <Input
           label="Email Address"
           type="email"
           value={formData.email || ""}
-          disabled
-          helperText="Email editing not yet supported"
+          onChange={(e) => handleInputChange("email", e.target.value)}
+          error={errors.email}
+          required
         />
 
         <Input
