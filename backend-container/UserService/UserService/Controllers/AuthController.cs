@@ -168,14 +168,15 @@ public class AuthController : ControllerBase
     public async Task<ActionResult<RefreshTokenResponseDto>> RefreshToken(RefreshRequestDto req)
     {
         if (string.IsNullOrWhiteSpace(req.RefreshToken)) return BadRequest(new { message = "Missing refresh token" });
-        // find active token
-        var tokens = _db.RefreshTokens.Where(rt => rt.RevokedAt == null && rt.ExpiresAt >= DateTime.UtcNow);
-        var list = await tokens.Include(r=>r.User).ThenInclude(u=>u.Profile).Include(r=>r.User).ThenInclude(u=>u.Role).ToListAsync();
-        var match = list.FirstOrDefault(rt => BCrypt.Net.BCrypt.Verify(req.RefreshToken, rt.TokenHash));
+        var hash = ComputeSha256(req.RefreshToken);
+        var match = await _db.RefreshTokens
+            .Include(r => r.User)!.ThenInclude(u => u.Profile)
+            .Include(r => r.User)!.ThenInclude(u => u.Role)
+            .FirstOrDefaultAsync(r => r.TokenHash == hash && r.RevokedAt == null && r.ExpiresAt >= DateTime.UtcNow);
         if (match == null) return Unauthorized(new { message = "Invalid refresh token" });
         if (match.User == null || !match.User.IsActive) return Unauthorized(new { message = "User inactive" });
-        var userDto = new UserServiceImpl(_db).GetUserByIdAsync(match.UserId); // Not optimal; could refactor
-        var user = await userDto; if (user == null) return Unauthorized(new { message = "User not found" });
+        var user = await new UserServiceImpl(_db).GetUserByIdAsync(match.UserId);
+        if (user == null) return Unauthorized(new { message = "User not found" });
 
         // rotate
         match.RevokedAt = DateTime.UtcNow;
@@ -207,8 +208,29 @@ public class AuthController : ControllerBase
     /// Logout (placeholder for future implementation with token blacklisting)
     /// </summary>
     [HttpPost("logout")]
-    public IActionResult Logout()
+    public async Task<IActionResult> Logout([FromBody] RefreshRequestDto? req)
     {
+        string? refresh = req?.RefreshToken;
+        if (string.IsNullOrWhiteSpace(refresh) && Request.Headers.TryGetValue("X-Refresh-Token", out var headerVal))
+        {
+            refresh = headerVal.FirstOrDefault();
+        }
+        if (string.IsNullOrWhiteSpace(refresh)) return Ok(new { message = "No refresh token provided" });
+        var hash = ComputeSha256(refresh);
+        var token = await _db.RefreshTokens.FirstOrDefaultAsync(r => r.TokenHash == hash && r.RevokedAt == null);
+        if (token != null)
+        {
+            token.RevokedAt = DateTime.UtcNow;
+            token.RevokedByIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+            await _db.SaveChangesAsync();
+        }
         return Ok(new { message = "Logout successful" });
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
+        return Convert.ToBase64String(bytes);
     }
 }

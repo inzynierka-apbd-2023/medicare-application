@@ -86,7 +86,14 @@ public class JwtService : IJwtService
         var secureBytes = new byte[64];
         System.Security.Cryptography.RandomNumberGenerator.Fill(secureBytes);
         var token = Convert.ToBase64String(secureBytes);
-        var hash = BCrypt.Net.BCrypt.HashPassword(token);
+        var hash = ComputeSha256(token);
         return (token, DateTime.UtcNow.AddDays(days), hash);
+    }
+
+    private static string ComputeSha256(string input)
+    {
+        using var sha = System.Security.Cryptography.SHA256.Create();
+        var bytes = sha.ComputeHash(Encoding.UTF8.GetBytes(input));
+        return Convert.ToBase64String(bytes); // 44 chars
     }
 }
