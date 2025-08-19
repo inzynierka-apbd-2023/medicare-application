@@ -116,6 +116,7 @@ builder.Services.AddSwaggerGen(c =>
 builder.Services.AddHealthChecks().AddDbContextCheck<AppointmentDbContext>();
 // Background services
 builder.Services.AddHostedService<OverdueStatusUpdater>();
+builder.Services.AddHostedService<UpcomingAppointmentNotifier>();
 
 var app = builder.Build();
 

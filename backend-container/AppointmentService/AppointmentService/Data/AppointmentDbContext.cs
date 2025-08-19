@@ -40,6 +40,8 @@ public class AppointmentDbContext : DbContext
             e.Property(a => a.RoomId).HasMaxLength(36);
             e.Property(a => a.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(a => a.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(a => a.UpcomingNotificationSentAt).HasColumnType("datetime2");
+            e.Property(a => a.ThirtyMinNotificationSentAt).HasColumnType("datetime2");
             e.HasIndex(a => a.PatientId);
             e.HasIndex(a => a.DoctorId);
             e.HasIndex(a => a.ScheduledAt);
