@@ -4,6 +4,7 @@ using UserService.Services;
 using UserService.Infrastructure.Messaging;
 using UserService.Data;
 using UserService.Models;
+using Microsoft.EntityFrameworkCore;
 
 namespace UserService.Controllers;
 
@@ -49,15 +50,28 @@ public class AuthController : ControllerBase
             }
 
             // Generate JWT token response
-            var tokenResponse = _jwtService.GenerateTokenResponse(user);
-
-            var response = new AuthResponseDto
+            // access + refresh
+            var (accessToken, accessExpires) = _jwtService.GenerateAccessToken(user);
+            var (refreshToken, refreshExpires, refreshHash) = _jwtService.GenerateRefreshToken();
+            _db.RefreshTokens.Add(new RefreshToken
             {
-                Token = tokenResponse.Token,
-                User = user
-            };
+                UserId = user.Id,
+                TokenHash = refreshHash,
+                ExpiresAt = refreshExpires,
+                CreatedAt = DateTime.UtcNow,
+                CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = Request.Headers.UserAgent.ToString()
+            });
+            await _db.SaveChangesAsync();
 
-            return Ok(response);
+            return Ok(new RefreshTokenResponseDto
+            {
+                AccessToken = accessToken,
+                AccessTokenExpiresAt = accessExpires,
+                RefreshToken = refreshToken,
+                RefreshTokenExpiresAt = refreshExpires,
+                User = user
+            });
         }
         catch (Exception ex)
         {
@@ -89,15 +103,26 @@ public class AuthController : ControllerBase
             await _db.SaveChangesAsync();
             
             // Generate JWT token response for the new user
-            var tokenResponse = _jwtService.GenerateTokenResponse(user);
-
-            var response = new AuthResponseDto
+            var (accessToken, accessExpires) = _jwtService.GenerateAccessToken(user);
+            var (refreshToken, refreshExpires, refreshHash) = _jwtService.GenerateRefreshToken();
+            _db.RefreshTokens.Add(new RefreshToken
             {
-                Token = tokenResponse.Token,
+                UserId = user.Id,
+                TokenHash = refreshHash,
+                ExpiresAt = refreshExpires,
+                CreatedAt = DateTime.UtcNow,
+                CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+                UserAgent = Request.Headers.UserAgent.ToString()
+            });
+            await _db.SaveChangesAsync();
+            return Created(string.Empty, new RefreshTokenResponseDto
+            {
+                AccessToken = accessToken,
+                AccessTokenExpiresAt = accessExpires,
+                RefreshToken = refreshToken,
+                RefreshTokenExpiresAt = refreshExpires,
                 User = user
-            };
-
-            return CreatedAtAction("Login", response);
+            });
         }
         catch (InvalidOperationException ex)
         {
@@ -140,9 +165,42 @@ public class AuthController : ControllerBase
     /// Refresh token (placeholder for future implementation)
     /// </summary>
     [HttpPost("refresh")]
-    public IActionResult RefreshToken()
+    public async Task<ActionResult<RefreshTokenResponseDto>> RefreshToken(RefreshRequestDto req)
     {
-        return Ok(new { message = "Refresh token endpoint - not yet implemented" });
+        if (string.IsNullOrWhiteSpace(req.RefreshToken)) return BadRequest(new { message = "Missing refresh token" });
+        // find active token
+        var tokens = _db.RefreshTokens.Where(rt => rt.RevokedAt == null && rt.ExpiresAt >= DateTime.UtcNow);
+        var list = await tokens.Include(r=>r.User).ThenInclude(u=>u.Profile).Include(r=>r.User).ThenInclude(u=>u.Role).ToListAsync();
+        var match = list.FirstOrDefault(rt => BCrypt.Net.BCrypt.Verify(req.RefreshToken, rt.TokenHash));
+        if (match == null) return Unauthorized(new { message = "Invalid refresh token" });
+        if (match.User == null || !match.User.IsActive) return Unauthorized(new { message = "User inactive" });
+        var userDto = new UserServiceImpl(_db).GetUserByIdAsync(match.UserId); // Not optimal; could refactor
+        var user = await userDto; if (user == null) return Unauthorized(new { message = "User not found" });
+
+        // rotate
+        match.RevokedAt = DateTime.UtcNow;
+        match.RevokedByIp = HttpContext.Connection.RemoteIpAddress?.ToString();
+        var (newAccess, accessExp) = _jwtService.GenerateAccessToken(user);
+        var (newRefresh, refreshExp, refreshHash) = _jwtService.GenerateRefreshToken();
+        _db.RefreshTokens.Add(new RefreshToken
+        {
+            UserId = user.Id,
+            TokenHash = refreshHash,
+            ExpiresAt = refreshExp,
+            CreatedAt = DateTime.UtcNow,
+            CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = Request.Headers.UserAgent.ToString(),
+            ReplacedByTokenHash = match.TokenHash
+        });
+        await _db.SaveChangesAsync();
+        return Ok(new RefreshTokenResponseDto
+        {
+            AccessToken = newAccess,
+            AccessTokenExpiresAt = accessExp,
+            RefreshToken = newRefresh,
+            RefreshTokenExpiresAt = refreshExp,
+            User = user
+        });
     }
 
     /// <summary>
