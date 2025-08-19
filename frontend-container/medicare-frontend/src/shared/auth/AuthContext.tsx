@@ -1,4 +1,4 @@
-import React, {
+import {
   createContext,
   ReactNode,
   useContext,
@@ -9,7 +9,6 @@ import React, {
 
 import { AuthResponse, authService, AuthUser } from "../services/authService";
 import { usersApi } from "../services/usersApi";
-
 
 interface AuthState {
   user: AuthUser | null;
@@ -26,11 +25,14 @@ interface AuthState {
     dateOfBirth?: string;
     role?: string;
   }) => Promise<AuthResponse>;
-  updateProfile: (data: {
-    phoneNumber?: string;
-    dateOfBirth?: string;
-    avatarUrl?: string | null;
-  }, userIdOverride?: string) => Promise<void>;
+  updateProfile: (
+    data: {
+      phoneNumber?: string;
+      dateOfBirth?: string;
+      avatarUrl?: string | null;
+    },
+    userIdOverride?: string
+  ) => Promise<void>;
   logout: () => void;
   error: string | null;
 }
@@ -44,16 +46,22 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [error, setError] = useState<string | null>(null);
 
   const applyAuth = (resp: AuthResponse) => {
-    setToken(resp.token);
+    const at = resp.accessToken || resp.token || null;
+    setToken(at);
     setUser(resp.user);
+    try {
+      sessionStorage.setItem("authUser", JSON.stringify(resp.user));
+    } catch {
+      /* ignore storage errors */
+    }
   };
 
   const login = async (username: string, password: string) => {
     setLoading(true);
     setError(null);
     try {
-  // Trim inputs to avoid accidental whitespace issues from paste/typing
-  const resp = await authService.login(username.trim(), password.trim());
+      // Trim inputs to avoid accidental whitespace issues from paste/typing
+      const resp = await authService.login(username.trim(), password.trim());
       applyAuth(resp);
     } catch (e: unknown) {
       const error = e as { response?: { data?: { message?: string } } };
@@ -88,24 +96,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const updateProfile = async (data: {
-    phoneNumber?: string;
-    dateOfBirth?: string;
-    avatarUrl?: string | null;
-  }, userIdOverride?: string) => {
+  const updateProfile = async (
+    data: {
+      phoneNumber?: string;
+      dateOfBirth?: string;
+      avatarUrl?: string | null;
+    },
+    userIdOverride?: string
+  ) => {
     setLoading(true);
     setError(null);
     try {
       // Real API: persist and refresh
       const targetUserId = userIdOverride ?? user?.id;
       if (!targetUserId) throw new Error("Missing user id");
-      const dto: { phoneNumber?: string; dateOfBirth?: string; avatarUrl?: string | null } = {};
+      const dto: {
+        phoneNumber?: string;
+        dateOfBirth?: string;
+        avatarUrl?: string | null;
+      } = {};
       if (data.phoneNumber !== undefined) dto.phoneNumber = data.phoneNumber;
       if (data.dateOfBirth !== undefined) dto.dateOfBirth = data.dateOfBirth;
       if (data.avatarUrl !== undefined) dto.avatarUrl = data.avatarUrl ?? null;
       await usersApi.updateProfile(targetUserId, dto);
       const fresh = await usersApi.getUser(targetUserId);
-      setUser((prev: AuthUser | null) => (prev ? { ...prev, ...fresh } : fresh));
+      setUser((prev: AuthUser | null) =>
+        prev ? { ...prev, ...fresh } : fresh
+      );
     } catch (e: unknown) {
       const error = e as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || "Failed to update profile");
@@ -121,25 +138,51 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     try {
       sessionStorage.clear();
       localStorage.removeItem("authToken");
-    } catch {}
+    } catch {
+      /* ignore */
+    }
     setUser(null);
     setToken(null);
   };
 
   useEffect(() => {
-    /* placeholder for future token decode */
+    // Hydrate from storage on mount if available
+    if (!user) {
+      try {
+        const raw = sessionStorage.getItem("authUser");
+        if (raw) {
+          const parsed: AuthUser = JSON.parse(raw);
+          setUser(parsed);
+        }
+      } catch {
+        /* ignore parse */
+      }
+    }
+    if (!token) {
+      const existing = authService.getToken();
+      if (existing) setToken(existing);
+    }
+    // We intentionally run only once on mount for initial hydration.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const ctxValue = useMemo(
-    () => ({ user, token, loading, login, register, updateProfile, logout, error }),
+    () => ({
+      user,
+      token,
+      loading,
+      login,
+      register,
+      updateProfile,
+      logout,
+      error,
+    }),
+    // Functions are stable enough; we knowingly exclude them.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     [user, token, loading, error]
   );
 
-  return (
-    <Ctx.Provider value={ctxValue}>
-      {children}
-    </Ctx.Provider>
-  );
+  return <Ctx.Provider value={ctxValue}>{children}</Ctx.Provider>;
 };
 
 export const useAuth = () => {
