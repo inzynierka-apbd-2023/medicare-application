@@ -175,6 +175,7 @@ public class DocumentsController : ControllerBase
         payload.DocumentId = id;
         _db.Referrals.Add(payload);
         await _db.SaveChangesAsync();
+    await _events.PublishAsync(new ReferralAdded(id));
         return NoContent();
     }
 
@@ -187,6 +188,7 @@ public class DocumentsController : ControllerBase
         payload.DocumentId = id;
         _db.SickLeaves.Add(payload);
         await _db.SaveChangesAsync();
+    await _events.PublishAsync(new SickLeaveAdded(id));
         return NoContent();
     }
 

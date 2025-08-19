@@ -64,6 +64,14 @@ export const notificationsApi = {
   async markAsRead(notificationId: string): Promise<ApiResponse<boolean>> {
     try {
       await api.post(`/notifications/${notificationId}/read`);
+      // Broadcast a lightweight global event so UI (e.g., Header badge) can refresh immediately
+      try {
+        if (typeof window !== "undefined" && typeof window.dispatchEvent === "function") {
+          window.dispatchEvent(
+            new CustomEvent("notifications:updated", { detail: { kind: "read", id: notificationId } })
+          );
+        }
+      } catch { /* best-effort */ }
       return { data: true, success: true };
     } catch (err) {
       return { data: false as any, success: false, error: err instanceof Error ? err.message : "Failed to mark read" };

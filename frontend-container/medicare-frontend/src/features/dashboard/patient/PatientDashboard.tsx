@@ -156,6 +156,10 @@ export default function PatientDashboard() {
           );
           return updated;
         });
+        // Best-effort broadcast (Header listens and will refresh unread badge)
+        try {
+          window.dispatchEvent(new CustomEvent("notifications:updated", { detail: { kind: "read", id: notificationId } }));
+        } catch {}
       } else {
         throw new Error("Failed to mark notification as read");
       }

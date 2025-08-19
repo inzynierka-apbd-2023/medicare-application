@@ -20,7 +20,7 @@ var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeC
 LogConnectionInfo(connectionString, connectionSource);
 
 builder.Services.AddControllers();
-builder.Services.AddSingleton<IEventPublisher, LoggingEventPublisher>();
+builder.Services.AddSingleton<IEventPublisher, RabbitMqEventPublisher>();
 
 if (useAzureDefaultCredential)
 {

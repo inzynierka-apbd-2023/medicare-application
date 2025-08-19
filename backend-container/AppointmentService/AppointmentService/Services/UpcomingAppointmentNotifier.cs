@@ -15,24 +15,34 @@ public class UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> lo
     private IConnection? _conn;
     private IModel? _ch;
     private readonly string _queue = "notifications.events";
+    private readonly IConfiguration _config = config;
 
-    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    private void EnsureRabbitChannel()
     {
-        var host = config["RABBITMQ__HOST"] ?? "rabbitmq";
-        var user = config["RABBITMQ__USERNAME"] ?? "guest";
-        var pass = config["RABBITMQ__PASSWORD"] ?? "guest";
-        var factory = new ConnectionFactory { HostName = host, UserName = user, Password = pass };
+        if (_ch != null && _ch.IsOpen) return;
         try
         {
+            var host = _config["RABBITMQ__HOST"] ?? "rabbitmq";
+            var user = _config["RABBITMQ__USERNAME"] ?? "guest";
+            var pass = _config["RABBITMQ__PASSWORD"] ?? "guest";
+            var factory = new ConnectionFactory { HostName = host, UserName = user, Password = pass };
+            _conn?.Dispose();
             _conn = factory.CreateConnection();
             _ch = _conn.CreateModel();
             _ch.QueueDeclare(_queue, durable: true, exclusive: false, autoDelete: false);
-            _logger.LogInformation("UpcomingAppointmentNotifier connected to RabbitMQ host={Host}", host);
+            _logger.LogInformation("UpcomingAppointmentNotifier connected/reconnected to RabbitMQ host={Host}", host);
         }
         catch (Exception ex)
         {
+            _ch = null;
             _logger.LogError(ex, "Failed to connect to RabbitMQ");
         }
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+    // Initial connect (will also be retried each tick)
+    EnsureRabbitChannel();
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -77,9 +87,10 @@ public class UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> lo
 
                     try
                     {
+                        EnsureRabbitChannel();
                         if (_ch == null)
                         {
-                            _logger.LogWarning("RabbitMQ channel not available; skipping publish for appointment {Id}", appt.Id);
+                            _logger.LogWarning("RabbitMQ channel not available; will retry next tick for appointment {Id}", appt.Id);
                         }
                         else
                         {
@@ -88,10 +99,10 @@ public class UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> lo
                             props.ContentType = "application/json";
                             props.DeliveryMode = 2;
                             _ch.BasicPublish(exchange: "", routingKey: _queue, basicProperties: props, body: body);
-                        }
 
-                        appt.UpcomingNotificationSentAt = DateTime.UtcNow;
-                        await db.SaveChangesAsync(stoppingToken);
+                            appt.UpcomingNotificationSentAt = DateTime.UtcNow;
+                            await db.SaveChangesAsync(stoppingToken);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -135,9 +146,10 @@ public class UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> lo
 
                     try
                     {
+                        EnsureRabbitChannel();
                         if (_ch == null)
                         {
-                            _logger.LogWarning("RabbitMQ channel not available; skipping 30-min publish for appointment {Id}", appt.Id);
+                            _logger.LogWarning("RabbitMQ channel not available; will retry next tick for 30-min reminder appointment {Id}", appt.Id);
                         }
                         else
                         {
@@ -146,10 +158,10 @@ public class UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> lo
                             props.ContentType = "application/json";
                             props.DeliveryMode = 2;
                             _ch.BasicPublish(exchange: "", routingKey: _queue, basicProperties: props, body: body);
-                        }
 
-                        appt.ThirtyMinNotificationSentAt = DateTime.UtcNow;
-                        await db.SaveChangesAsync(stoppingToken);
+                            appt.ThirtyMinNotificationSentAt = DateTime.UtcNow;
+                            await db.SaveChangesAsync(stoppingToken);
+                        }
                     }
                     catch (Exception ex)
                     {
@@ -162,7 +174,7 @@ public class UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> lo
                 _logger.LogError(ex, "UpcomingAppointmentNotifier tick failed");
             }
 
-            await Task.Delay(TimeSpan.FromMinutes(5), stoppingToken);
+            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
     }
 

@@ -278,7 +278,8 @@ static void StartRabbitConsumer(IServiceProvider services)
                 await Task.CompletedTask;
             }
         };
-        channel.BasicConsume(consumer, queue: queue, autoAck: true);
+    // Subscribe consumer to the queue (use correct overload/argument order)
+    channel.BasicConsume(queue: queue, autoAck: true, consumer: consumer);
         Console.WriteLine("[Notifications MQ] Consumer started on queue 'notifications.events'");
     }
     catch (Exception ex)
