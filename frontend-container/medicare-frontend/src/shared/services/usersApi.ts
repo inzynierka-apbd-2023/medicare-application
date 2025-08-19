@@ -6,6 +6,10 @@ export interface UpdateUserDto {
   phoneNumber?: string;
   dateOfBirth?: string; // ISO date string (YYYY-MM-DD)
   avatarUrl?: string | null; // null clears avatar
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  addressLine1?: string;
 }
 
 // Backend response shape (subset mapped to AuthUser)

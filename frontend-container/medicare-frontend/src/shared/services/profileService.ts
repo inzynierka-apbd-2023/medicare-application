@@ -19,6 +19,8 @@ function mapToProfileData(user: BasicUserDto): ProfileData {
   const base: ProfileData = {
     id: user.id,
     name: `${user.firstName} ${user.lastName}`.trim(),
+    firstName: user.firstName,
+    lastName: user.lastName,
     email: user.email,
     phone: user.phoneNumber || "",
     address: user.address || "",
@@ -43,9 +45,23 @@ export const profileService = {
     userId: string,
     data: Partial<ProfileData>
   ): Promise<ProfileData> {
-    const dto: { phoneNumber?: string; dateOfBirth?: string } = {};
+    const dto: {
+      phoneNumber?: string;
+      dateOfBirth?: string;
+      firstName?: string;
+      lastName?: string;
+      email?: string;
+      addressLine1?: string;
+    } = {};
     if (data.phone !== undefined) dto.phoneNumber = data.phone;
     if (data.dateOfBirth) dto.dateOfBirth = data.dateOfBirth;
+    if (data.firstName) dto.firstName = data.firstName;
+    if (data.lastName) dto.lastName = data.lastName;
+    if (data.email) dto.email = data.email;
+    if (data.address) dto.addressLine1 = data.address; // simple mapping
+    if (data.firstName !== undefined) dto.firstName = data.firstName;
+    if (data.lastName !== undefined) dto.lastName = data.lastName;
+    if (data.email !== undefined) dto.email = data.email;
     await usersApi.updateProfile(userId, dto);
     const fresh = (await usersApi.getUser(userId)) as BasicUserDto;
     return mapToProfileData(fresh);
