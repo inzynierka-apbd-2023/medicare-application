@@ -202,6 +202,35 @@ IF OBJECT_ID('[dbo].[User_Profile]', 'U') IS NOT NULL AND OBJECT_ID('[user].[Use
             Console.WriteLine($"[Startup] Pre-migration transfer warning: {ex.Message}");
         }
         await db.Database.MigrateAsync();
+
+        // Post-migration fallback: create Refresh_Token table if migration was recorded but table missing (observed prod drift scenario)
+        var createRefreshSql = @"IF OBJECT_ID('[user].[Refresh_Token]', 'U') IS NULL
+BEGIN
+    PRINT('[Startup] Refresh_Token table missing; creating fallback table.');
+    CREATE TABLE [user].[Refresh_Token](
+        [Id] nvarchar(450) NOT NULL CONSTRAINT DF_RefreshToken_Id DEFAULT CONVERT(VARCHAR(36), NEWID()),
+        [User_Id] nvarchar(450) NOT NULL,
+        [Token_Hash] nvarchar(128) NOT NULL,
+        [Expires_At] datetime2 NOT NULL CONSTRAINT DF_RefreshToken_Expires DEFAULT DATEADD(day,7,SYSUTCDATETIME()),
+        [Created_At] datetime2 NOT NULL CONSTRAINT DF_RefreshToken_Created DEFAULT SYSUTCDATETIME(),
+        [Revoked_At] datetime2 NULL,
+        [Replaced_By_Hash] nvarchar(128) NULL,
+        [Created_By_Ip] nvarchar(45) NULL,
+        [Revoked_By_Ip] nvarchar(45) NULL,
+        [User_Agent] nvarchar(512) NULL,
+        CONSTRAINT [PK_Refresh_Token] PRIMARY KEY ([Id]),
+        CONSTRAINT [FK_Refresh_Token_User_User_Id] FOREIGN KEY ([User_Id]) REFERENCES [user].[User]([Id]) ON DELETE CASCADE
+    );
+    CREATE INDEX [IX_Refresh_Token_User_Id_Expires_At] ON [user].[Refresh_Token]([User_Id],[Expires_At]);
+END";
+        try
+        {
+            await db.Database.ExecuteSqlRawAsync(createRefreshSql);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Startup] Fallback Refresh_Token create failed: {ex.Message}");
+        }
     await SeedRolesAsync(db);
     if (isDev) await SeedAdminUserIfNoneAsync(db);
     await SeedTestPatientAsync(db);
