@@ -4,6 +4,7 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
 } from "react";
 
@@ -40,14 +41,24 @@ interface AuthState {
 const Ctx = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
-  const [user, setUser] = useState<AuthUser | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(() => {
+    try {
+      const raw = sessionStorage.getItem("authUser");
+      if (raw) return JSON.parse(raw) as AuthUser;
+    } catch {
+      /* ignore */
+    }
+    return null;
+  });
   const [token, setToken] = useState<string | null>(authService.getToken());
+  const memAccessRef = useRef<string | null>(authService.getToken());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const applyAuth = (resp: AuthResponse) => {
     const at = resp.accessToken || resp.token || null;
     setToken(at);
+    memAccessRef.current = at;
     setUser(resp.user);
     try {
       sessionStorage.setItem("authUser", JSON.stringify(resp.user));
@@ -160,7 +171,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     if (!token) {
       const existing = authService.getToken();
-      if (existing) setToken(existing);
+      if (existing) {
+        setToken(existing);
+        memAccessRef.current = existing;
+      }
     }
     // We intentionally run only once on mount for initial hydration.
     // eslint-disable-next-line react-hooks/exhaustive-deps
