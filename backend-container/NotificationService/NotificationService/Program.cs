@@ -58,6 +58,11 @@ builder.Services.AddHealthChecks().AddDbContextCheck<NotificationsDbContext>();
 
 var app = builder.Build();
 
+// Keep a reference to MQ connection/channel so the consumer is not GC'd
+// and dispose them gracefully on shutdown.
+RabbitMQ.Client.IConnection? _mqConn = null;
+RabbitMQ.Client.IModel? _mqChannel = null;
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -81,6 +86,13 @@ app.MapHealthChecks("/health");
 // MQ bootstrap (minimal; will evolve). Starts a consumer that writes inbound notifications to DB.
 _ = Task.Run(() => StartRabbitConsumer(app.Services));
 _ = Task.Run(() => StartCleanupLoop(app.Services));
+
+// Dispose MQ resources on shutdown
+app.Lifetime.ApplicationStopping.Register(() =>
+{
+    try { _mqChannel?.Close(); _mqChannel?.Dispose(); } catch { }
+    try { _mqConn?.Close(); _mqConn?.Dispose(); } catch { }
+});
 
 await app.RunAsync();
 
@@ -231,19 +243,22 @@ static SqlConnection CreateTokenSqlConnection(string connectionString)
     return conn;
 }
 
-static void StartRabbitConsumer(IServiceProvider services)
+void StartRabbitConsumer(IServiceProvider services)
 {
     try
     {
         var host = Environment.GetEnvironmentVariable("RABBITMQ__HOST") ?? "rabbitmq";
         var user = Environment.GetEnvironmentVariable("RABBITMQ__USERNAME") ?? "guest";
         var pass = Environment.GetEnvironmentVariable("RABBITMQ__PASSWORD") ?? "guest";
-        var factory = new ConnectionFactory { HostName = host, UserName = user, Password = pass, DispatchConsumersAsync = true };
-        var conn = factory.CreateConnection();
-        var channel = conn.CreateModel();
+    var factory = new ConnectionFactory { HostName = host, UserName = user, Password = pass, DispatchConsumersAsync = true };
+    // Keep these references alive for the app lifetime
+    _mqConn?.Dispose();
+    _mqChannel?.Dispose();
+    _mqConn = factory.CreateConnection();
+    _mqChannel = _mqConn.CreateModel();
         var queue = "notifications.events";
-        channel.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false);
-        var consumer = new AsyncEventingBasicConsumer(channel);
+    _mqChannel.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false);
+    var consumer = new AsyncEventingBasicConsumer(_mqChannel);
         consumer.Received += async (model, ea) =>
         {
             try
@@ -252,6 +267,7 @@ static void StartRabbitConsumer(IServiceProvider services)
                 var evt = JsonSerializer.Deserialize<NotificationEvent>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
                 if (evt != null)
                 {
+                    Console.WriteLine($"[Notifications MQ] Received notification: recipient={evt.RecipientUserId}, type={evt.Type}, src={evt.SourceService}, action={evt.ActionUrl}");
                     using var scope = services.CreateScope();
                     var db = scope.ServiceProvider.GetRequiredService<NotificationsDbContext>();
                     db.Notifications.Add(new NotificationService.Models.Notification
@@ -279,8 +295,8 @@ static void StartRabbitConsumer(IServiceProvider services)
             }
         };
     // Subscribe consumer to the queue (use correct overload/argument order)
-    channel.BasicConsume(queue: queue, autoAck: true, consumer: consumer);
-        Console.WriteLine("[Notifications MQ] Consumer started on queue 'notifications.events'");
+    _mqChannel.BasicConsume(queue: queue, autoAck: true, consumer: consumer);
+    Console.WriteLine("[Notifications MQ] Consumer started on queue 'notifications.events'");
     }
     catch (Exception ex)
     {

@@ -67,3 +67,9 @@ tmp-check.pdf
 tmp-check2.pdf
 tmp-visit.pdf
 tmp-rx4.pdf
+.tmp-rx-docid.txt
+.gitignore
+.tmp-doc-jwt.txt
+.tmp-doctor-id.txt
+.tmp-pat-jwt.txt
+.tmp-patient-id.txt

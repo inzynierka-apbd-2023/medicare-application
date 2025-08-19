@@ -43,4 +43,17 @@ END
         await _db.Database.MigrateAsync();
         return Ok(new { status = "purged" });
     }
+
+    // Debug: list latest notifications (no auth here since service is internal behind nginx in dev)
+    [HttpGet("last")] 
+    public async Task<ActionResult<IEnumerable<object>>> Last([FromQuery] int take = 20)
+    {
+        if (take < 1) take = 1; if (take > 100) take = 100;
+        var list = await _db.Notifications
+            .OrderByDescending(n => n.Creation_Date)
+            .Take(take)
+            .Select(n => new { n.Id, n.Recipient_User_Id, n.Description, n.Type, n.Creation_Date, n.Is_Read, n.Action_Url })
+            .ToListAsync();
+        return Ok(list);
+    }
 }

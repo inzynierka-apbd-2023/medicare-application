@@ -52,23 +52,24 @@ public sealed class RabbitMqEventPublisher(ILogger<RabbitMqEventPublisher> logge
         try
         {
             var (recipientUserId, description, type, actionUrl) = MapToNotification(@event);
-            if (recipientUserId is null)
+            var docId = ExtractDocumentId(@event);
+            if (recipientUserId is null && !string.IsNullOrWhiteSpace(docId))
             {
                 // Try to resolve from DocumentId -> Document.PatientId
-                var docId = ExtractDocumentId(@event);
-                if (!string.IsNullOrWhiteSpace(docId))
+                try
                 {
-                    try
-                    {
-                        using var scope = _services.CreateScope();
-                        var db = scope.ServiceProvider.GetRequiredService<DocumentsDbContext>();
-                        var doc = db.Documents.Find(docId!);
-                        if (doc != null) recipientUserId = doc.PatientId;
-                    }
-                    catch { /* best-effort only */ }
+                    using var scope = _services.CreateScope();
+                    var db = scope.ServiceProvider.GetRequiredService<DocumentsDbContext>();
+                    var doc = db.Documents.Find(docId!);
+                    if (doc != null) recipientUserId = doc.PatientId;
                 }
+                catch { /* best-effort only */ }
             }
-            if (recipientUserId is null || description is null) return;
+            if (recipientUserId is null || description is null)
+            {
+                _logger.LogDebug("[Docs->Notif] Skipping notification publish for event {EventType} (docId={DocumentId}): recipient or description missing.", typeof(TEvent).Name, docId);
+                return;
+            }
 
             var queue = "notifications.events";
             channel.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false);
@@ -83,6 +84,8 @@ public sealed class RabbitMqEventPublisher(ILogger<RabbitMqEventPublisher> logge
                 ExpiresAt = (DateTime?)null,
             };
             var json = JsonSerializer.Serialize(payload);
+            _logger.LogInformation("[Docs->Notif] Publishing notification: recipient={RecipientUserId}, type={Type}, docId={DocumentId}, action={ActionUrl}, desc='{Description}'",
+                recipientUserId, type, docId, actionUrl, description);
             channel.BasicPublish(exchange: string.Empty, routingKey: queue, basicProperties: null, body: Encoding.UTF8.GetBytes(json));
         }
         catch (Exception ex)
