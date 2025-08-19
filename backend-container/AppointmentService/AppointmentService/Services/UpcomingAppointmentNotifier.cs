@@ -22,9 +22,10 @@ public class UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> lo
         if (_ch != null && _ch.IsOpen) return;
         try
         {
-            var host = _config["RABBITMQ__HOST"] ?? "rabbitmq";
-            var user = _config["RABBITMQ__USERNAME"] ?? "guest";
-            var pass = _config["RABBITMQ__PASSWORD"] ?? "guest";
+            // Read RabbitMQ settings from IConfiguration (env vars map __ -> :) 
+            var host = _config["RABBITMQ:HOST"] ?? "rabbitmq";
+            var user = _config["RABBITMQ:USERNAME"] ?? "guest";
+            var pass = _config["RABBITMQ:PASSWORD"] ?? "guest";
             var factory = new ConnectionFactory { HostName = host, UserName = user, Password = pass };
             _conn?.Dispose();
             _conn = factory.CreateConnection();
