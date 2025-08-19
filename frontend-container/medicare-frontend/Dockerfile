@@ -1,13 +1,15 @@
 # Build stage: compile the Vite React app
-FROM node:20-alpine AS build
+FROM node:20 AS build
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=${VITE_API_BASE_URL}
 WORKDIR /app
 
 # Install dependencies
 COPY package*.json ./
-# No lockfile in repo, use npm install
-RUN npm install --no-audit --no-fund
+# Clean install with specific platform support
+RUN rm -rf node_modules package-lock.json
+RUN npm install --no-audit --no-fund --ignore-scripts
+RUN npm rebuild
 
 # Copy source and build
 COPY . .
