@@ -1016,60 +1016,6 @@ const MOCK_DOCTOR_PRODUCTIVITY: DoctorProductivityData[] = [
   },
 ];
 
-const MOCK_DOCTOR_PERFORMANCE: DoctorPerformance[] = [
-  {
-    doctorId: "doc1",
-    doctorName: "Dr. Alice Heart",
-    specialization: "Cardiology",
-    totalAppointments: 187,
-    completedAppointments: 178,
-    cancelledAppointments: 5,
-    noShowAppointments: 4,
-    completionRate: 95.2,
-    averageRevenue: 185,
-    patientSatisfaction: 4.9,
-    busyHours: ["09:00", "10:00", "14:00", "15:00"],
-  },
-  {
-    doctorId: "doc2",
-    doctorName: "Dr. Bob Vessel",
-    specialization: "Neurology",
-    totalAppointments: 156,
-    completedAppointments: 142,
-    cancelledAppointments: 8,
-    noShowAppointments: 6,
-    completionRate: 91.0,
-    averageRevenue: 198,
-    patientSatisfaction: 4.7,
-    busyHours: ["10:00", "11:00", "15:00", "16:00"],
-  },
-  {
-    doctorId: "doc3",
-    doctorName: "Dr. Carol Bones",
-    specialization: "Orthopedics",
-    totalAppointments: 142,
-    completedAppointments: 131,
-    cancelledAppointments: 6,
-    noShowAppointments: 5,
-    completionRate: 92.3,
-    averageRevenue: 165,
-    patientSatisfaction: 4.8,
-    busyHours: ["08:00", "09:00", "13:00", "14:00"],
-  },
-  {
-    doctorId: "doc4",
-    doctorName: "Dr. David Skin",
-    specialization: "Dermatology",
-    totalAppointments: 201,
-    completedAppointments: 186,
-    cancelledAppointments: 9,
-    noShowAppointments: 6,
-    completionRate: 92.5,
-    averageRevenue: 142,
-    patientSatisfaction: 4.6,
-    busyHours: ["09:00", "10:00", "11:00", "14:00"],
-  },
-];
 
 // API functions for Appointment Analytics
 export const appointmentAnalyticsApi = {
@@ -1091,7 +1037,5 @@ export const appointmentAnalyticsApi = {
     return createMockResponse(MOCK_DOCTOR_PRODUCTIVITY, 300);
   },
 
-  getDoctorPerformance: (): Promise<ApiResponse<DoctorPerformance[]>> => {
-    return createMockResponse(MOCK_DOCTOR_PERFORMANCE, 300);
-  },
+  // getDoctorPerformance removed: now provided by dedicated practitioner service endpoint.
 };

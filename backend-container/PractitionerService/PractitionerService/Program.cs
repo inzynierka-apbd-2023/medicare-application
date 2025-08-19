@@ -8,6 +8,7 @@ using Azure.Identity;
 using PractitionerService.Data;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
+using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -18,6 +19,8 @@ var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeC
 LogConnectionInfo(connectionString, connectionSource);
 
 builder.Services.AddControllers();
+
+builder.Services.AddMediatR(typeof(Program).Assembly);
 
 if (useAzureDefaultCredential)
 {

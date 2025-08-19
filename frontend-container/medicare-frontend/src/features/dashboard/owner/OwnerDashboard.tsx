@@ -24,6 +24,7 @@ import { DashboardLayout } from "../shared/components";
 import { analyticsApi } from "../../../shared/services/analyticsApi";
 import { patientMetricsApi, PatientMetricsResponse } from "../../../shared/services/patientMetricsApi";
 import { appointmentMetricsApi, AppointmentMetricsResponse as ApptMetrics } from "../../../shared/services/appointmentMetricsApi";
+import { doctorPerformanceApi, DoctorPerformanceSummaryResponse } from "../../../shared/services/doctorPerformanceApi";
 
 // Database-aligned types based on your actual schema
 interface RevenueMetrics {
@@ -88,19 +89,22 @@ const OwnerDashboard: React.FC = () => {
           .split("T")[0];
         const endDate = new Date().toISOString().split("T")[0];
 
-        const [analyticsResponse, patientMetricsResponse, appointmentMetricsResponse] = await Promise.all([
+        const [analyticsResponse, patientMetricsResponse, appointmentMetricsResponse, doctorPerformanceSummaryResponse] = await Promise.all([
           analyticsApi.getDashboardData({ startDate, endDate }),
           patientMetricsApi.getPatientMetrics({ startDate, endDate }),
-          appointmentMetricsApi.getAppointmentMetrics({ startDate, endDate })
+          appointmentMetricsApi.getAppointmentMetrics({ startDate, endDate }),
+          doctorPerformanceApi.getSummary({ startDate, endDate })
         ]);
 
         if (!analyticsResponse.success) throw new Error(analyticsResponse.error || "Failed to fetch analytics data");
-        if (!patientMetricsResponse.success) throw new Error(patientMetricsResponse.error || "Failed to fetch patient metrics");
-        if (!appointmentMetricsResponse.success) throw new Error(appointmentMetricsResponse.error || "Failed to fetch appointment metrics");
+  if (!patientMetricsResponse.success) throw new Error(patientMetricsResponse.error || "Failed to fetch patient metrics");
+  if (!appointmentMetricsResponse.success) throw new Error(appointmentMetricsResponse.error || "Failed to fetch appointment metrics");
+  if (!doctorPerformanceSummaryResponse.success) throw new Error(doctorPerformanceSummaryResponse.error || "Failed to fetch doctor performance summary");
 
         const analytics = analyticsResponse.data;
-        const patientMetrics: PatientMetricsResponse = patientMetricsResponse.data!;
-        const apptMetrics: ApptMetrics = appointmentMetricsResponse.data!;
+  const patientMetrics: PatientMetricsResponse = patientMetricsResponse.data!;
+  const apptMetrics: ApptMetrics = appointmentMetricsResponse.data!;
+  const doctorPerfSummary: DoctorPerformanceSummaryResponse = doctorPerformanceSummaryResponse.data!;
 
         const totalRevenue = analytics.metrics.find((m) => m.title === "Total Revenue")?.value || 0;
 
@@ -129,29 +133,10 @@ const OwnerDashboard: React.FC = () => {
             appointmentCompletionRate: apptMetrics.completionRate,
           },
           doctors: {
-            totalDoctors: analytics.doctorPerformance.length,
-            averageAppointmentsPerDoctor:
-              analytics.doctorPerformance.length > 0
-                ? Math.floor(
-                    analytics.doctorPerformance.reduce(
-                      (sum, doc) => sum + doc.totalAppointments,
-                      0
-                    ) / analytics.doctorPerformance.length
-                  )
-                : 0,
-            topRatedDoctor:
-              analytics.doctorPerformance.length > 0
-                ? analytics.doctorPerformance.reduce((prev, current) =>
-                    prev.averageRating > current.averageRating ? prev : current
-                  ).name
-                : "No data",
-            doctorAverageRating:
-              analytics.doctorPerformance.length > 0
-                ? analytics.doctorPerformance.reduce(
-                    (sum, doc) => sum + doc.averageRating,
-                    0
-                  ) / analytics.doctorPerformance.length
-                : 0,
+            totalDoctors: doctorPerfSummary.totalDoctors,
+            averageAppointmentsPerDoctor: doctorPerfSummary.averageAppointmentsPerDoctor,
+            topRatedDoctor: doctorPerfSummary.topRatedDoctor || "No data",
+            doctorAverageRating: doctorPerfSummary.doctorAverageRating,
           },
           recentActivities: [
             { id: "1", type: "payment", description: `Received $${totalRevenue.toLocaleString()} in total revenue`, timestamp: new Date() },

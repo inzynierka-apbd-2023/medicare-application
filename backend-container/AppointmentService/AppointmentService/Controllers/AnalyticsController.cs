@@ -23,6 +23,38 @@ public class AnalyticsController : ControllerBase
     }
 
     /// <summary>
+    /// Get aggregated doctor performance summary (for Owner dashboard)
+    /// </summary>
+    [HttpGet("doctor-performance/summary")]
+    public async Task<ActionResult<DoctorPerformanceSummaryDto>> GetDoctorPerformanceSummary(
+        [FromQuery] DateTime? startDate = null,
+        [FromQuery] DateTime? endDate = null)
+    {
+        try
+        {
+            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            if (userRole != "Owner" && userRole != "Admin")
+            {
+                return Forbid("Insufficient permissions to access doctor performance summary");
+            }
+
+            var query = new GetDoctorPerformanceSummaryQuery
+            {
+                StartDate = startDate,
+                EndDate = endDate
+            };
+
+            var result = await _mediator.Send(query);
+            return Ok(result);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error retrieving doctor performance summary");
+            return StatusCode(500, "An error occurred while retrieving doctor performance summary");
+        }
+    }
+
+    /// <summary>
     /// Get comprehensive appointment analytics dashboard data
     /// </summary>
     /// <param name="startDate">Start date for analytics period (optional, defaults to 30 days ago)</param>
@@ -245,7 +277,6 @@ public class AnalyticsController : ControllerBase
         {
             var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
 
-            // Only admins and managers can see specialization-wide stats
             if (!IsAuthorizedForSpecializationStats(userRole))
             {
                 return Forbid("Insufficient permissions to access specialization statistics");
@@ -318,7 +349,7 @@ public class AnalyticsController : ControllerBase
             "Doctor" => true,
             "Receptionist" => true,
             "Admin" => true,
-            "Manager" => true,
+            "Owner" => true,
             _ => false
         };
     }
@@ -328,7 +359,7 @@ public class AnalyticsController : ControllerBase
         return userRole switch
         {
             "Admin" => true,
-            "Manager" => true,
+            "Owner" => true,
             _ => false
         };
     }
