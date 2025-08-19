@@ -14,8 +14,12 @@ export interface AuthUser {
 }
 
 export interface AuthResponse {
-  token: string;
+  accessToken: string; // adapted for backward compatibility mapping
+  token?: string; // legacy field from older responses (still accept)
   user: AuthUser;
+  refreshToken?: string;
+  accessTokenExpiresAt?: string;
+  refreshTokenExpiresAt?: string;
 }
 
 export interface RegisterRequest {
@@ -30,6 +34,9 @@ export interface RegisterRequest {
 }
 
 const TOKEN_KEY = "authToken";
+const REFRESH_KEY = "refreshToken";
+const ACCESS_EXP_KEY = "accessTokenExpires";
+const REFRESH_EXP_KEY = "refreshTokenExpires";
 
 export const authService = {
   async login(username: string, password: string): Promise<AuthResponse> {
@@ -37,7 +44,7 @@ export const authService = {
       username,
       password,
     });
-    persistToken(res.data.token);
+    persistTokens(res.data);
     return res.data;
   },
   async register(req: RegisterRequest): Promise<AuthResponse> {
@@ -51,17 +58,43 @@ export const authService = {
       role: req.role ?? "Patient",
       dateOfBirth: req.dateOfBirth || null,
     });
-    persistToken(res.data.token);
+    persistTokens(res.data);
     return res.data;
   },
   logout() {
     localStorage.removeItem(TOKEN_KEY);
+    localStorage.removeItem(REFRESH_KEY);
+    localStorage.removeItem(ACCESS_EXP_KEY);
+    localStorage.removeItem(REFRESH_EXP_KEY);
   },
   getToken() {
     return localStorage.getItem(TOKEN_KEY);
   },
+  getRefreshToken() {
+    return localStorage.getItem(REFRESH_KEY);
+  },
+  async refresh(): Promise<string | null> {
+    const existing = localStorage.getItem(REFRESH_KEY);
+    if (!existing) return null;
+    try {
+      const res = await apiClient.post<AuthResponse>("/auth/refresh", {
+        refreshToken: existing,
+      });
+      persistTokens(res.data);
+      return res.data.accessToken || res.data.token || null;
+    } catch {
+      this.logout();
+      return null;
+    }
+  },
 };
 
-function persistToken(token: string) {
-  localStorage.setItem(TOKEN_KEY, token);
+function persistTokens(r: AuthResponse) {
+  const access = r.accessToken || r.token || "";
+  if (access) localStorage.setItem(TOKEN_KEY, access);
+  if (r.refreshToken) localStorage.setItem(REFRESH_KEY, r.refreshToken);
+  if (r.accessTokenExpiresAt)
+    localStorage.setItem(ACCESS_EXP_KEY, r.accessTokenExpiresAt);
+  if (r.refreshTokenExpiresAt)
+    localStorage.setItem(REFRESH_EXP_KEY, r.refreshTokenExpiresAt);
 }
