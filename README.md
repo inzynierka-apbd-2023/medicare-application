@@ -179,3 +179,15 @@ For further database seed scripts see `docs/sql-seed/`.
 Events (stored in Outbox for future dispatch): `DoctorRegistered`, `DoctorSpecializationUpdated`, `DoctorAvailabilityChanged`, `ReceptionistRegistered`.
 
 The initial migration also creates a simple `practitioner.DoctorDirectory` view (placeholder for a richer projection joining user profile data once cross-service integration is implemented). Each service uses isolated migrations (different schema) to avoid conflicts while sharing the physical Azure SQL database.
+
+## Archive Service
+
+`ArchiveService` (under `backend-container/ArchiveService`) stores archived doctors for historical lookups when a doctor is removed. It listens to `practitioner.events` and, on `doctor.remove.requested`, creates an archive record then emits `doctor.archived`. It exposes `GET /archive/doctors/{doctorId}` to retrieve archived identity data. The container is included in `docker-compose.yml` as `archive-service` on port 8091.
+
+### Doctor Deletion Flow (initial version)
+
+1. Client calls `DELETE /api/practitioner/doctors/{id}`.
+2. PractitionerService publishes `doctor.remove.requested` and deletes doctor records.
+3. ArchiveService consumes and persists minimal archive, then publishes `doctor.archived`.
+4. AppointmentService consumes `doctor.archived` and purges appointments for that doctor.
+5. Other services can optionally query ArchiveService for historical identity when a doctor reference is missing.

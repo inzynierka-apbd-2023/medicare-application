@@ -118,6 +118,7 @@ builder.Services.AddHealthChecks().AddDbContextCheck<AppointmentDbContext>();
 // Background services
 builder.Services.AddHostedService<OverdueStatusUpdater>();
 builder.Services.AddHostedService<UpcomingAppointmentNotifier>();
+builder.Services.AddHostedService<AppointmentService.Services.DoctorArchivedConsumer>();
 
 var app = builder.Build();
 
