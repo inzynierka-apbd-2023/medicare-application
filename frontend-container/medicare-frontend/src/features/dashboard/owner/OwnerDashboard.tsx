@@ -25,6 +25,7 @@ import { analyticsApi } from "../../../shared/services/analyticsApi";
 import { patientMetricsApi, PatientMetricsResponse } from "../../../shared/services/patientMetricsApi";
 import { appointmentMetricsApi, AppointmentMetricsResponse as ApptMetrics } from "../../../shared/services/appointmentMetricsApi";
 import { doctorPerformanceApi, DoctorPerformanceSummaryResponse } from "../../../shared/services/doctorPerformanceApi";
+import { revenueMetricsApi } from "../../../shared/services/revenueMetricsApi";
 
 // Database-aligned types based on your actual schema
 interface RevenueMetrics {
@@ -89,32 +90,35 @@ const OwnerDashboard: React.FC = () => {
           .split("T")[0];
         const endDate = new Date().toISOString().split("T")[0];
 
-        const [analyticsResponse, patientMetricsResponse, appointmentMetricsResponse, doctorPerformanceSummaryResponse] = await Promise.all([
+        const [analyticsResponse, patientMetricsResponse, appointmentMetricsResponse, doctorPerformanceSummaryResponse, dailyRevenueResponse, monthlyRevenueResponse, yearlyRevenueResponse] = await Promise.all([
           analyticsApi.getDashboardData({ startDate, endDate }),
           patientMetricsApi.getPatientMetrics({ startDate, endDate }),
           appointmentMetricsApi.getAppointmentMetrics({ startDate, endDate }),
-          doctorPerformanceApi.getSummary({ startDate, endDate })
+          doctorPerformanceApi.getSummary({ startDate, endDate }),
+          revenueMetricsApi.getDailyRevenue(endDate),
+          revenueMetricsApi.getMonthlyRevenue(new Date().getFullYear(), new Date().getMonth() + 1),
+          revenueMetricsApi.getYearlyRevenue(new Date().getFullYear())
         ]);
 
         if (!analyticsResponse.success) throw new Error(analyticsResponse.error || "Failed to fetch analytics data");
-  if (!patientMetricsResponse.success) throw new Error(patientMetricsResponse.error || "Failed to fetch patient metrics");
-  if (!appointmentMetricsResponse.success) throw new Error(appointmentMetricsResponse.error || "Failed to fetch appointment metrics");
-  if (!doctorPerformanceSummaryResponse.success) throw new Error(doctorPerformanceSummaryResponse.error || "Failed to fetch doctor performance summary");
+        if (!patientMetricsResponse.success) throw new Error(patientMetricsResponse.error || "Failed to fetch patient metrics");
+        if (!appointmentMetricsResponse.success) throw new Error(appointmentMetricsResponse.error || "Failed to fetch appointment metrics");
+        if (!doctorPerformanceSummaryResponse.success) throw new Error(doctorPerformanceSummaryResponse.error || "Failed to fetch doctor performance summary");
 
-        const analytics = analyticsResponse.data;
-  const patientMetrics: PatientMetricsResponse = patientMetricsResponse.data!;
-  const apptMetrics: ApptMetrics = appointmentMetricsResponse.data!;
-  const doctorPerfSummary: DoctorPerformanceSummaryResponse = doctorPerformanceSummaryResponse.data!;
-
-        const totalRevenue = analytics.metrics.find((m) => m.title === "Total Revenue")?.value || 0;
+        const patientMetrics: PatientMetricsResponse = patientMetricsResponse.data!;
+        const apptMetrics: ApptMetrics = appointmentMetricsResponse.data!;
+        const doctorPerfSummary: DoctorPerformanceSummaryResponse = doctorPerformanceSummaryResponse.data!;
+        const dailyRevenue = dailyRevenueResponse;
+        const monthlyRevenue = monthlyRevenueResponse;
+        const yearlyRevenue = yearlyRevenueResponse;
 
         const transformedData: OwnerDashboardData = {
           revenue: {
-            dailyRevenue: totalRevenue,
-            monthlyRevenue: totalRevenue,
-            yearlyRevenue: totalRevenue * 12,
-            revenueGrowth: analytics.metrics.find((m) => m.title === "Total Revenue")?.change || 0,
-            totalAppointmentPayments: totalRevenue,
+            dailyRevenue: dailyRevenue.totalRevenue,
+            monthlyRevenue: monthlyRevenue.totalRevenue,
+            yearlyRevenue: yearlyRevenue.totalRevenue,
+            revenueGrowth: monthlyRevenue.growthPercentage,
+            totalAppointmentPayments: monthlyRevenue.totalRevenue,
             totalSubscriptionPayments: 0,
           },
           patients: {
@@ -139,7 +143,7 @@ const OwnerDashboard: React.FC = () => {
             doctorAverageRating: doctorPerfSummary.doctorAverageRating,
           },
           recentActivities: [
-            { id: "1", type: "payment", description: `Received $${totalRevenue.toLocaleString()} in total revenue`, timestamp: new Date() },
+            { id: "1", type: "payment", description: `Received $${monthlyRevenue.totalRevenue.toLocaleString()} in monthly revenue`, timestamp: new Date() },
             { id: "2", type: "appointment", description: `${apptMetrics.completedAppointments} appointments completed`, timestamp: new Date() },
             { id: "3", type: "patient", description: `${patientMetrics.totalActivePatients} active patients in system`, timestamp: new Date() },
             { id: "4", type: "rating", description: `Average rating: ${patientMetrics.averageRating.toFixed(1)}/5`, timestamp: new Date() },
