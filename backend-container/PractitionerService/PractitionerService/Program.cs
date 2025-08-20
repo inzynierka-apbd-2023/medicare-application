@@ -25,10 +25,21 @@ builder.Services.AddMediatR(typeof(Program).Assembly);
 // Register HttpClient for UserService communication
 builder.Services.AddHttpClient<PractitionerService.Services.IStaffService, PractitionerService.Services.StaffService>(client =>
 {
-    var userServiceUrl = builder.Configuration["Services:UserService:BaseUrl"] ?? "http://localhost:8080";
+    // Use docker-compose service DNS by default; override via Services:UserService:BaseUrl when needed.
+    var userServiceUrl = builder.Configuration["Services:UserService:BaseUrl"] ?? "http://user-service:8080";
     client.BaseAddress = new Uri(userServiceUrl);
     client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
+
+// Named client used by controllers for direct calls to UserService
+builder.Services.AddHttpClient("UserService", client =>
+{
+    var userServiceUrl = builder.Configuration["Services:UserService:BaseUrl"] ?? "http://user-service:8080";
+    client.BaseAddress = new Uri(userServiceUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+// Remove duplicate named client registration
 
 // Register Staff Service
 builder.Services.AddScoped<PractitionerService.Services.IStaffService, PractitionerService.Services.StaffService>();
@@ -320,4 +331,4 @@ IF OBJECT_ID('practitioner.DoctorDirectory','V') IS NOT NULL EXEC sp_refreshview
 }
 
 // Make Program class accessible for testing
-public partial class Program { }
+public static partial class Program { }

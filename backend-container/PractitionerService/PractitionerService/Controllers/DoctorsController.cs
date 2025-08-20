@@ -3,6 +3,13 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PractitionerService.Data;
 using PractitionerService.Models;
+using RabbitMQ.Client;
+using Microsoft.Extensions.Configuration;
+using System.Net.Http;
+using System.Text;
+using System.Text.Json;
+using System.Text.RegularExpressions;
+using System.Net.Http.Headers;
 
 namespace PractitionerService.Controllers;
 
@@ -11,10 +18,198 @@ namespace PractitionerService.Controllers;
 public class DoctorsController : ControllerBase
 {
     private readonly PractitionerDbContext _db;
+    private readonly IHttpClientFactory _httpFactory;
+    private const string DoctorNotFound = "Doctor not found";
 
-    public DoctorsController(PractitionerDbContext db)
+    public DoctorsController(PractitionerDbContext db, IHttpClientFactory httpFactory)
     {
         _db = db;
+        _httpFactory = httpFactory;
+    }
+
+    public record CreateDoctorFullRequest(
+        UserProfileDto Profile,
+        string? Biography,
+        List<Guid>? SpecializationIds
+    );
+
+    public record UserProfileDto(
+        string FirstName,
+        string LastName,
+        string Email,
+        string? Phone,
+        DateTime? DateOfBirth,
+        string? Gender,
+        string? AddressLine1,
+        string? AddressLine2,
+        string? City,
+        string? State,
+        string? ZipCode,
+        string? Country
+    );
+
+
+    private static string GenerateUsername(UserProfileDto p)
+    {
+        var date = DateTime.UtcNow.ToString("yyyyMMdd");
+        var lastInitial = string.IsNullOrWhiteSpace(p.LastName) ? "x" : p.LastName.Trim().Substring(0,1).ToLowerInvariant();
+        var baseName = $"doctor_{lastInitial}_{date}"; // e.g., doctor_a_20250818
+        return baseName;
+    }
+
+    private static string GenerateStrongPassword()
+    {
+        const string lower = "abcdefghijklmnopqrstuvwxyz";
+        const string upper = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const string digits = "0123456789";
+        const string symbols = "!@#$%^&*()_+[]{}-=";
+        var rnd = Random.Shared;
+        string Pick(string chars, int n) => new string(Enumerable.Range(0, n).Select(_ => chars[rnd.Next(chars.Length)]).ToArray());
+        // Ensure mix
+        var parts = new[] { Pick(upper,2), Pick(lower,4), Pick(digits,2), Pick(symbols,2), Pick(lower+upper+digits+symbols,2) };
+        var all = string.Concat(parts).ToCharArray();
+        // shuffle
+        for (int i=0;i<all.Length;i++){ int j=rnd.Next(all.Length); (all[i],all[j])=(all[j],all[i]); }
+        return new string(all);
+    }
+
+    private static async Task<string> EnsureUniqueUsernameAsync(HttpClient client, string desired)
+    {
+        var tryName = desired;
+        int suffix = 1;
+        while (true)
+        {
+            var resp = await client.GetAsync($"/api/users/availability?username={Uri.EscapeDataString(tryName)}");
+            if (!resp.IsSuccessStatusCode)
+            {
+                // best effort: break and use current tryName
+                return tryName;
+            }
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
+            var exists = doc.RootElement.TryGetProperty("usernameExists", out var val) && val.GetBoolean();
+            if (!exists) return tryName;
+            suffix++;
+            tryName = $"{desired}_{suffix}";
+        }
+    }
+
+    /// <summary>
+    /// Create a new Doctor along with a new User account (auto-generated username/password), set full profile and specializations.
+    /// </summary>
+    [HttpPost("register-full")]
+    [Authorize]
+    public async Task<IActionResult> RegisterDoctorWithUser([FromBody] CreateDoctorFullRequest req)
+    {
+        static bool Missing(params string?[] vals) => vals.Any(v => string.IsNullOrWhiteSpace(v));
+        if (req?.Profile == null) return BadRequest("Profile is required");
+        if (Missing(req.Profile.FirstName, req.Profile.LastName, req.Profile.Email))
+            return BadRequest("FirstName, LastName, and Email are required");
+
+    // Create UserService HttpClient
+    var http = _httpFactory.CreateClient("UserService");
+
+        // Preflight: check email availability to provide a friendly error before attempting registration
+        try
+        {
+            var emailAvailability = await http.GetAsync($"/api/users/availability?email={Uri.EscapeDataString(req.Profile.Email)}");
+            if (emailAvailability.IsSuccessStatusCode)
+            {
+                using var doc = JsonDocument.Parse(await emailAvailability.Content.ReadAsStringAsync());
+                if (doc.RootElement.TryGetProperty("emailExists", out var emailExistsEl) && emailExistsEl.GetBoolean())
+                {
+                    return Conflict(new { message = "A user with this email already exists. Please use a different email." });
+                }
+            }
+        }
+        catch
+        {
+            // best-effort; proceed if availability check fails
+        }
+
+        // Generate credentials
+        var desired = GenerateUsername(req.Profile);
+    var username = await EnsureUniqueUsernameAsync(http, desired);
+        var password = GenerateStrongPassword();
+
+        // Register user
+        var createUserPayload = new
+        {
+            username,
+            password,
+            email = req.Profile.Email,
+            firstName = req.Profile.FirstName,
+            lastName = req.Profile.LastName,
+            role = "Doctor",
+            phoneNumber = req.Profile.Phone,
+            dateOfBirth = req.Profile.DateOfBirth
+        };
+    var regResp = await http.PostAsync("/api/auth/register",
+            new StringContent(JsonSerializer.Serialize(createUserPayload), Encoding.UTF8, "application/json"));
+        if (!regResp.IsSuccessStatusCode)
+        {
+            var body = await regResp.Content.ReadAsStringAsync();
+            return StatusCode((int)regResp.StatusCode, new { message = "User registration failed", details = body });
+        }
+    var regText = await regResp.Content.ReadAsStringAsync();
+    using var regDoc = JsonDocument.Parse(regText);
+    var root = regDoc.RootElement;
+    string? userId = ExtractString(root, "user", "id") ?? ExtractString(root, "user", "Id");
+    string? accessToken = ExtractString(root, null, "accessToken") ?? ExtractString(root, null, "AccessToken");
+        if (string.IsNullOrWhiteSpace(userId)) return StatusCode(500, new { message = "User registration response missing Id" });
+        if (string.IsNullOrWhiteSpace(accessToken)) return StatusCode(500, new { message = "User registration response missing access token" });
+
+        // Update extended profile fields
+        var updatePayload = new
+        {
+            addressLine1 = req.Profile.AddressLine1,
+            addressLine2 = req.Profile.AddressLine2,
+            city = req.Profile.City,
+            state = req.Profile.State,
+            zipCode = req.Profile.ZipCode,
+            country = req.Profile.Country,
+            isActive = true
+        };
+        using var updateReq = new HttpRequestMessage(HttpMethod.Put, $"/api/users/{userId}")
+        {
+            Content = new StringContent(JsonSerializer.Serialize(updatePayload), Encoding.UTF8, "application/json")
+        };
+        updateReq.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        var updResp = await http.SendAsync(updateReq);
+        if (!updResp.IsSuccessStatusCode)
+        {
+            var body = await updResp.Content.ReadAsStringAsync();
+            return StatusCode((int)updResp.StatusCode, new { message = "User profile update failed", details = body });
+        }
+
+        // Create doctor and specializations (active by default)
+        var now = DateTime.UtcNow;
+        var doctor = new Doctor { Id = Guid.NewGuid().ToString(), UserId = userId!, Bio = req.Biography, IsActive = true, CreatedAt = now, UpdatedAt = now };
+        _db.Doctors.Add(doctor);
+        await _db.SaveChangesAsync();
+        if (req.SpecializationIds != null && req.SpecializationIds.Count > 0)
+        {
+            var ids = req.SpecializationIds.Select(g => g.ToString()).ToList();
+            _db.DoctorSpecializations.AddRange(ids.Select(sid => new DoctorSpecialization { DoctorId = doctor.Id, SpecializationId = sid }));
+            await _db.SaveChangesAsync();
+        }
+
+        // Fetch directory projection for result
+        var dir = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == doctor.Id);
+        return CreatedAtAction(nameof(GetDoctorDirectoryById), new { id = doctor.Id }, new
+        {
+            directory = dir,
+            credentials = new { username, password }
+        });
+    }
+
+    private static string? ExtractString(JsonElement root, string? parent, string child)
+    {
+        if (parent == null)
+        {
+            return root.TryGetProperty(child, out var node) ? node.GetString() : null;
+        }
+        if (!root.TryGetProperty(parent, out var p)) return null;
+        return p.TryGetProperty(child, out var c) ? c.GetString() : null;
     }
 
     // Register doctor (link to existing userId)
@@ -37,7 +232,7 @@ public class DoctorsController : ControllerBase
         
         _db.Doctors.Add(doctor);
         await _db.SaveChangesAsync();
-        // TODO: publish DoctorRegistered event
+    // Event publication omitted in this version
         return CreatedAtAction(nameof(GetDoctorById), new { id = doctor.Id }, new { doctor.Id, doctor.UserId });
     }
 
@@ -53,7 +248,7 @@ public class DoctorsController : ControllerBase
     [HttpGet("{id}/directory")]
     public async Task<IActionResult> GetDoctorDirectoryById(string id)
     {
-        var item = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
+    var item = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
         if (item == null) return NotFound();
         return Ok(item);
     }
@@ -63,7 +258,7 @@ public class DoctorsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> UpdateSpecializations(string id, [FromBody] UpdateSpecializationsRequest req)
     {
-        if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound("Doctor not found");
+    if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound(DoctorNotFound);
         // Ensure all provided specialization IDs exist
         var specIds = req.SpecializationIds?.Distinct().Select(g => g.ToString()).ToList() ?? new();
         var existing = await _db.Specializations.Where(s => specIds.Contains(s.Id)).Select(s => s.Id).ToListAsync();
@@ -73,16 +268,20 @@ public class DoctorsController : ControllerBase
         _db.DoctorSpecializations.RemoveRange(current);
         _db.DoctorSpecializations.AddRange(specIds.Select(sid => new DoctorSpecialization { DoctorId = id, SpecializationId = sid }));
         await _db.SaveChangesAsync();
-        // TODO: publish DoctorSpecializationUpdated event
+    // Event publication omitted in this version
         return NoContent();
     }
 
     // Catalog/search endpoint
     [HttpGet]
-    public async Task<IActionResult> Search([FromQuery] Guid? specializationId, [FromQuery] Guid? serviceId, [FromQuery] string? q)
+    public async Task<IActionResult> Search([FromQuery] Guid? specializationId, [FromQuery] Guid? serviceId, [FromQuery] string? q, [FromQuery] bool? isActive)
     {
         // Query from projection view DoctorDirectory and filter
         var query = _db.Set<DoctorDirectory>().AsQueryable();
+        if (isActive.HasValue)
+        {
+            query = query.Where(d => d.IsActive == isActive.Value);
+        }
         if (!string.IsNullOrWhiteSpace(q))
         {
             var ql = q.ToLowerInvariant();
@@ -121,21 +320,21 @@ public class DoctorsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> SetAvailability(string id, [FromBody] List<ScheduleEntry> entries)
     {
-        if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound("Doctor not found");
+    if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound(DoctorNotFound);
         var current = _db.DoctorSchedules.Where(s => s.DoctorId == id);
         _db.DoctorSchedules.RemoveRange(current);
         var toAdd = entries.Select(e => new DoctorSchedule
         {
             DoctorId = id,
             DayOfWeek = e.DayOfWeek,
-            StartTime = TimeSpan.Parse(e.Start),
-            EndTime = TimeSpan.Parse(e.End),
+            StartTime = TimeSpan.Parse(e.Start, System.Globalization.CultureInfo.InvariantCulture),
+            EndTime = TimeSpan.Parse(e.End, System.Globalization.CultureInfo.InvariantCulture),
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         }).ToList();
         _db.DoctorSchedules.AddRange(toAdd);
         await _db.SaveChangesAsync();
-        // TODO: publish DoctorAvailabilityChanged event
+    // Event publication omitted in this version
         return NoContent();
     }
 
@@ -150,6 +349,85 @@ public class DoctorsController : ControllerBase
             .ThenBy(s => s.StartTime)
             .ToListAsync();
         return Ok(schedules);
+    }
+
+    // Request doctor removal: emit event and remove from local tables
+    [HttpDelete("{id}")]
+    [Authorize]
+    public async Task<IActionResult> DeleteDoctor(string id)
+    {
+        var doctor = await _db.Doctors.FindAsync(id);
+        if (doctor == null) return NotFound("Doctor not found");
+
+        // Fetch lightweight directory info to enrich archival
+        var dir = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
+        List<object>? schedules = null;
+        try
+        {
+            var schedList = await _db.DoctorSchedules.Where(s => s.DoctorId == id)
+                .Select(s => new { s.DayOfWeek, Start = s.StartTime.ToString(), End = s.EndTime.ToString() })
+                .ToListAsync();
+            schedules = schedList.Cast<object>().ToList();
+        }
+        catch { /* best-effort */ }
+
+        var snapshot = new
+        {
+            Directory = dir == null ? null : new
+            {
+                dir.DoctorId,
+                dir.UserId,
+                dir.FirstName,
+                dir.LastName,
+                dir.Email,
+                dir.Phone,
+                dir.Specializations,
+                dir.Services
+            },
+            Schedules = schedules
+        };
+        var snapshotJson = System.Text.Json.JsonSerializer.Serialize(snapshot);
+
+        // Compose enriched event
+        Guid? userGuid = null;
+        if (Guid.TryParse(doctor.UserId, out var ug)) userGuid = ug;
+        var evt = new
+        {
+            DoctorId = Guid.Parse(doctor.Id),
+            DoctorUserId = userGuid,
+            Type = "DoctorRemovalRequested",
+            At = DateTime.UtcNow,
+            FullName = dir == null ? null : ($"{dir.FirstName} {dir.LastName}").Trim(),
+            Email = dir?.Email,
+            Phone = dir?.Phone,
+            SnapshotJson = snapshotJson
+        };
+
+        // Publish to RabbitMQ (best-effort)
+        try
+        {
+            var host = HttpContext.RequestServices.GetService<IConfiguration>()?["RABBITMQ:HOST"] ?? "rabbitmq";
+            var user = HttpContext.RequestServices.GetService<IConfiguration>()?["RABBITMQ:USERNAME"] ?? "medicare";
+            var pass = HttpContext.RequestServices.GetService<IConfiguration>()?["RABBITMQ:PASSWORD"] ?? "medicare";
+            var factory = new RabbitMQ.Client.ConnectionFactory { HostName = host, UserName = user, Password = pass };
+            using var conn = factory.CreateConnection();
+            using var ch = conn.CreateModel();
+            ch.ExchangeDeclare(exchange: "practitioner.events", type: RabbitMQ.Client.ExchangeType.Topic, durable: true);
+            var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(evt));
+            ch.BasicPublish(exchange: "practitioner.events", routingKey: "doctor.remove.requested", basicProperties: null, body: body);
+        }
+        catch { /* swallow to not block deletion */ }
+
+    // Remove related records then soft-delete doctor (keep row, mark inactive)
+        var specs = _db.DoctorSpecializations.Where(x => x.DoctorId == id);
+        _db.DoctorSpecializations.RemoveRange(specs);
+        var scheds = _db.DoctorSchedules.Where(x => x.DoctorId == id);
+        _db.DoctorSchedules.RemoveRange(scheds);
+    doctor.IsActive = false;
+    doctor.UpdatedAt = DateTime.UtcNow;
+    _db.Doctors.Update(doctor);
+        await _db.SaveChangesAsync();
+        return NoContent();
     }
 }
 
