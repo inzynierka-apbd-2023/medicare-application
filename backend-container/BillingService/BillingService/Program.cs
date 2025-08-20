@@ -18,6 +18,12 @@ LogConnectionInfo(connectionString, connectionSource);
 
 builder.Services.AddControllers();
 
+// Add MediatR
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
+// Add services
+builder.Services.AddScoped<BillingService.Services.IRevenueMetricsService, BillingService.Services.RevenueMetricsService>();
+
 if (useAzureDefaultCredential)
 {
     builder.Services.AddScoped(_ => CreateTokenSqlConnection(connectionString));
