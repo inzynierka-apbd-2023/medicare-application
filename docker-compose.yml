@@ -48,11 +48,18 @@ services:
       ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
       ASPNETCORE_URLS: http://+:8081
       ConnectionStrings__DefaultConnection: ${USER_SERVICE_CONNECTION}
+  # Align JWT config with UserService so issued tokens validate here
+      Jwt__SecretKey: "DevelopmentOnly_DefaultJwtSecret_DoNotUseInProd_ChangeMe123456789"
+      Jwt__Issuer: "MedicareApp"
+      Jwt__Audience: "MedicareUsers"
       HOME: /home/appuser
       USE_AZURE_DEFAULT_CREDENTIAL: ${USE_AZURE_DEFAULT_CREDENTIAL:-false}
       AZURE_TENANT_ID: "${AZURE_TENANT_ID:-}"
       AZURE_CLIENT_ID: "${AZURE_CLIENT_ID:-}"
       AZURE_CLIENT_SECRET: "${AZURE_CLIENT_SECRET:-}"
+      RABBITMQ__HOST: "${RABBITMQ_HOST:-rabbitmq}"
+      RABBITMQ__USERNAME: "${RABBITMQ_USERNAME:-medicare}"
+      RABBITMQ__PASSWORD: "${RABBITMQ_PASSWORD:-medicare}"
     ports:
       - "8081:8081"
     networks:
@@ -230,6 +237,28 @@ services:
     volumes:
       - ${HOST_AZURE_DIR:-${HOME}/.azure}:/home/appuser/.azure:ro
 
+  archive-service:
+    build:
+      context: ./backend-container/ArchiveService
+      dockerfile: Dockerfile
+    container_name: archive-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: ${ASPNETCORE_ENVIRONMENT:-Test}
+      ASPNETCORE_URLS: http://+:8091
+      ConnectionStrings__ArchiveDb: Data Source=/data/archive.db
+      RABBITMQ__HOST: "${RABBITMQ_HOST:-rabbitmq}"
+      RABBITMQ__USERNAME: "${RABBITMQ_USERNAME:-medicare}"
+      RABBITMQ__PASSWORD: "${RABBITMQ_PASSWORD:-medicare}"
+    ports:
+      - "8091:8091"
+    networks:
+      - medicare-network
+    restart: unless-stopped
+    volumes:
+      - archive_data:/data
+    depends_on:
+      - rabbitmq
+
   notification-service:
     build:
       context: ./backend-container/NotificationService
@@ -342,4 +371,5 @@ networks:
   medicare-network:
     driver: bridge
 
-volumes: {}
+volumes:
+  archive_data: {}
