@@ -575,6 +575,9 @@ public class DocumentsController : ControllerBase
     private static string PractitionerBase(HttpContext ctx)
         => ctx.RequestServices.GetService<IConfiguration>()?["PRACTITIONER_SERVICE_BASE_URL"]
            ?? "http://practitioner-service:8081";
+    private static string ArchiveBase(HttpContext ctx)
+        => ctx.RequestServices.GetService<IConfiguration>()?["ARCHIVE_SERVICE_BASE_URL"]
+           ?? "http://archive-service:8091";
 
     private static string PatientBase(HttpContext ctx)
         => ctx.RequestServices.GetService<IConfiguration>()?["PATIENT_SERVICE_BASE_URL"]
@@ -609,6 +612,7 @@ public class DocumentsController : ControllerBase
 
     // Name resolution helpers
     private sealed record DoctorDirectoryDto(string DoctorId, string UserId, string FirstName, string LastName);
+    private sealed record ArchivedDoctorDto(Guid DoctorId, string? FullName);
     private sealed record PatientOverviewDto(string PatientId, string UserId, string? FirstName, string? LastName);
 
     private async Task<string?> ResolveDoctorNameAsync(string doctorId)
@@ -621,7 +625,19 @@ public class DocumentsController : ControllerBase
             var full = ($"{dto.FirstName} {dto.LastName}").Trim();
             return string.IsNullOrWhiteSpace(full) ? null : full;
         }
-        catch { return null; }
+        catch
+        {
+            // Fallback to ArchiveService
+            try
+            {
+                using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)) };
+                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId)}");
+                if (dto2 == null) return null;
+                var full = ($"{dto2.FullName}").Trim();
+                return string.IsNullOrWhiteSpace(full) ? null : full;
+            }
+            catch { return null; }
+        }
     }
 
     private async Task<string?> ResolvePatientNameAsync(string patientId)
@@ -648,7 +664,19 @@ public class DocumentsController : ControllerBase
             var full = ($"{dto.FirstName} {dto.LastName}").Trim();
             return string.IsNullOrWhiteSpace(full) ? null : full;
         }
-        catch { return null; }
+        catch
+        {
+            // Fallback to ArchiveService (best-effort, short timeout)
+            try
+            {
+                using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
+                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId)}", ct);
+                if (dto2 == null) return null;
+                var full = ($"{dto2.FullName}").Trim();
+                return string.IsNullOrWhiteSpace(full) ? null : full;
+            }
+            catch { return null; }
+        }
     }
 
     private async Task<string?> ResolvePatientNameQuickAsync(string patientId, CancellationToken ct)

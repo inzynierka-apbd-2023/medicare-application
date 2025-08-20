@@ -18,3 +18,7 @@ Environment:
 - ConnectionStrings__DefaultConnection (Azure SQL)
 - USE_AZURE_DEFAULT_CREDENTIAL=true to use DefaultAzureCredential
 - ASPNETCORE_URLS=http://+:8084
+
+Fallbacks:
+
+- If a referenced doctor was deleted from PractitionerService, query ArchiveService at <http://archive-service:8091/archive/doctors/{doctorId}> to hydrate basic identity for rendering historical documents.
