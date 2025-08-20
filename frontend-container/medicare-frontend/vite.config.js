@@ -13,6 +13,12 @@ export default defineConfig({
         changeOrigin: true,
         secure: false,
       },
+      // Route appointment analytics to the appointment-service
+      "/api/appointment/analytics": {
+        target: "http://localhost:8082",
+        changeOrigin: true,
+        secure: false,
+      },
       // Fallback default: other /api requests go to the user-service (acts as API gateway in dev)
       "/api": {
         target: "http://localhost:8080",
