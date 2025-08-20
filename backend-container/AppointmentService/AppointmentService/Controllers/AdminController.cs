@@ -26,4 +26,14 @@ public class AdminController : ControllerBase
             );
         return Ok(new { reset = affected });
     }
+    
+    // Defensive cleanup to purge appointments by doctor id (supports either entity or user id)
+    [HttpDelete("purge-appointments/{doctorId}")]
+    public async Task<IActionResult> PurgeAppointments(string doctorId)
+    {
+        var q = _db.Appointments.Where(a => a.DoctorId == doctorId);
+        _db.Appointments.RemoveRange(q);
+        var deleted = await _db.SaveChangesAsync();
+        return Ok(new { deleted });
+    }
 }
