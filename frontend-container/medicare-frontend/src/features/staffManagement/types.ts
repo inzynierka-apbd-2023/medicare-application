@@ -1,4 +1,5 @@
 export type StaffRole = "Doctor" | "Receptionist";
+export type StaffStatusFilter = "All" | "Active" | "Archived";
 
 export interface UserProfile {
   firstName: string;
@@ -28,6 +29,8 @@ export interface Doctor {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  // One-time credentials returned only immediately after creation
+  credentials?: { username: string; password: string };
 }
 
 export interface Receptionist {
@@ -55,6 +58,12 @@ export interface Service {
   description?: string;
   durationMinutes: number;
   isActive: boolean;
+}
+
+export interface ScheduleEntry {
+  dayOfWeek: number; // 0-6 (Sun-Sat) or 1-7 depending on backend; UI will handle labels
+  start: string; // HH:mm
+  end: string;   // HH:mm
 }
 
 export type StaffMember = Doctor | Receptionist;
@@ -110,6 +119,8 @@ export interface StaffFilterProps {
   onSearchChange: (term: string) => void;
   roleFilter: StaffRole | "All";
   onRoleFilterChange: (role: StaffRole | "All") => void;
+  statusFilter: StaffStatusFilter;
+  onStatusFilterChange: (status: StaffStatusFilter) => void;
 }
 
 export interface StaffManagementProps {
@@ -119,6 +130,8 @@ export interface StaffManagementProps {
   onSearchChange: (term: string) => void;
   roleFilter: StaffRole | "All";
   onRoleFilterChange: (role: StaffRole | "All") => void;
+  statusFilter: StaffStatusFilter;
+  onStatusFilterChange: (status: StaffStatusFilter) => void;
   selectedStaff: StaffMember | null;
   onStaffSelect: (staff: StaffMember) => void;
   onStaffDeselect: () => void;

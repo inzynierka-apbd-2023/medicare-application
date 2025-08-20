@@ -1,7 +1,5 @@
 import React, { useState } from "react";
-import { Plus } from "lucide-react";
-
-import { Button } from "../../shared/components";
+import { useToastContext } from "../../shared/ui/toast";
 
 import {
   StaffDetailsModal,
@@ -22,6 +20,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
   onSearchChange,
   roleFilter,
   onRoleFilterChange,
+  statusFilter,
+  onStatusFilterChange,
   selectedStaff,
   onStaffSelect,
   onStaffDeselect,
@@ -29,27 +29,16 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
   onStaffUpdate,
   onStaffDelete,
 }) => {
-  const [showCreateModal, setShowCreateModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-
-  const handleCreateClick = () => {
-    setShowCreateModal(true);
-  };
+  const { showToast } = useToastContext();
 
   const handleEditClick = () => {
     setShowEditModal(true);
   };
 
-  const handleDeleteClick = async () => {
-    if (
-      selectedStaff &&
-      window.confirm(
-        `Are you sure you want to delete ${selectedStaff.profile.firstName} ${selectedStaff.profile.lastName}?`
-      )
-    ) {
-      await onStaffDelete(selectedStaff.id);
-      onStaffDeselect();
-    }
+  // Show create modal
+  const handleCreateClick = () => {
+    setShowEditModal(true);
   };
 
   const handleFormSave = async (
@@ -63,7 +52,10 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
     }
 
     if (success) {
-      setShowCreateModal(false);
+      if (!("id" in data)) {
+        // We can't directly access credentials here; user will see them on the new card/details if present
+        showToast("Doctor created. Username/password will be shown on the card.", { type: "success" });
+      }
       setShowEditModal(false);
     }
   };
@@ -74,18 +66,14 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
       <div className="flex justify-between items-center">
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Staff Management</h1>
-          <p className="text-gray-600 mt-1">
-            Manage doctors and receptionists in your healthcare facility
-          </p>
+          <p className="text-gray-600 mt-1">Manage doctors and their specializations</p>
         </div>
-        <Button
-          variant="primary"
+        <button
           onClick={handleCreateClick}
-          className="flex items-center gap-2"
+          className="inline-flex items-center bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition duration-150 text-sm font-medium"
         >
-          <Plus size={20} />
-          Add Staff Member
-        </Button>
+          + Add Doctor
+        </button>
       </div>
 
       {/* Filter Controls */}
@@ -94,6 +82,8 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
         onSearchChange={onSearchChange}
         roleFilter={roleFilter}
         onRoleFilterChange={onRoleFilterChange}
+  statusFilter={statusFilter}
+  onStatusFilterChange={onStatusFilterChange}
       />
 
       {/* Staff List */}
@@ -103,7 +93,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
         searchTerm={searchTerm}
         roleFilter={roleFilter}
         emptyMessage={
-          searchTerm || roleFilter !== "All"
+          searchTerm || roleFilter !== "All" || statusFilter !== "All"
             ? "No staff members found matching your criteria"
             : "No staff members added yet"
         }
@@ -115,19 +105,23 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
         isOpen={!!selectedStaff}
         onClose={onStaffDeselect}
         onEdit={handleEditClick}
-        onDelete={handleDeleteClick}
+        onDelete={async () => {
+          if (selectedStaff && window.confirm(`Delete ${selectedStaff.profile.firstName} ${selectedStaff.profile.lastName}? This will archive the doctor and remove their appointments.`)) {
+            const ok = await onStaffDelete(selectedStaff.id);
+            if (ok) {
+              showToast("Doctor removed and archived; their appointments were purged.", { type: "success" });
+            } else {
+              showToast("Failed to remove doctor.", { type: "error" });
+            }
+            onStaffDeselect();
+          }
+        }}
       />
 
-      {/* Create Staff Modal */}
-      <StaffFormModal
-        isOpen={showCreateModal}
-        onClose={() => setShowCreateModal(false)}
-        onSave={handleFormSave}
-        availableSpecializations={specializations}
-      />
+      {/* Creation modal disabled */}
 
       {/* Edit Staff Modal */}
-      <StaffFormModal
+  <StaffFormModal
         isOpen={showEditModal}
         onClose={() => setShowEditModal(false)}
         onSave={handleFormSave}

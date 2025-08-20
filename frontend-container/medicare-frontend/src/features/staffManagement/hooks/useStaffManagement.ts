@@ -7,6 +7,7 @@ import type {
   StaffMember,
   StaffRole,
   UpdateStaffRequest,
+  StaffStatusFilter,
 } from "../types";
 
 interface UseStaffManagementReturn {
@@ -20,6 +21,8 @@ interface UseStaffManagementReturn {
   filteredStaff: StaffMember[];
   setSearchTerm: (term: string) => void;
   setRoleFilter: (role: StaffRole | "All") => void;
+  statusFilter: StaffStatusFilter;
+  setStatusFilter: (status: StaffStatusFilter) => void;
   selectStaff: (staff: StaffMember | null) => void;
   createStaff: (data: CreateStaffRequest) => Promise<boolean>;
   updateStaff: (data: UpdateStaffRequest) => Promise<boolean>;
@@ -34,14 +37,11 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
   const [error, setError] = useState<string | null>(null);
   const [selectedStaff, setSelectedStaff] = useState<StaffMember | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
-  const [roleFilter, setRoleFilter] = useState<StaffRole | "All">("All");
+  const [roleFilter, setRoleFilter] = useState<StaffRole | "All">("Doctor");
+  const [statusFilter, setStatusFilter] = useState<StaffStatusFilter>("All");
 
   // Filter staff based on search term and role filter
   const filteredStaff = staff.filter((staffMember) => {
-    // Only show active staff members
-    if (!staffMember.isActive) {
-      return false;
-    }
 
     const matchesSearch =
       `${staffMember.profile.firstName} ${staffMember.profile.lastName}`
@@ -60,8 +60,11 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
           .includes(searchTerm.toLowerCase()));
 
     const matchesRole = roleFilter === "All" || staffMember.role === roleFilter;
-
-    return matchesSearch && matchesRole;
+    const matchesStatus =
+      statusFilter === "All" ||
+      (statusFilter === "Active" && staffMember.isActive) ||
+      (statusFilter === "Archived" && !staffMember.isActive);
+    return matchesSearch && matchesRole && matchesStatus;
   });
 
   const fetchStaff = useCallback(async () => {
@@ -69,13 +72,16 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
       setLoading(true);
       setError(null);
 
+      const req: { isActive?: boolean } = {};
+      if (statusFilter !== "All") req.isActive = statusFilter === "Active";
       const [staffResponse, specializationsResponse] = await Promise.all([
-        staffApi.getStaff(),
+        staffApi.getStaff(req as any),
         staffApi.getSpecializations(),
       ]);
 
       if (staffResponse.success) {
-        setStaff(staffResponse.data);
+        // Only doctors are supported; drop any non-doctor entries if present
+        setStaff(staffResponse.data.filter((s) => s.role === "Doctor"));
       } else {
         setError(staffResponse.errors?.[0] || "Failed to fetch staff");
       }
@@ -95,7 +101,7 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [statusFilter]);
 
   const selectStaff = useCallback((staff: StaffMember | null) => {
     setSelectedStaff(staff);
@@ -108,10 +114,20 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
         const response = await staffApi.createStaff(data);
 
         if (response.success) {
-          await fetchStaff(); // Refresh the list
+          const created = response.data;
+          // Optimistically add created (with credentials) to top of list
+          setStaff((prev) => [created as StaffMember, ...prev.filter((s) => s.id !== created.id)]);
+          // Refresh the list from server, then re-attach credentials to the created doctor (one-time)
+          await fetchStaff();
+          setStaff((prev) => prev.map((s) =>
+            s.id === created.id && (created as any).credentials
+              ? ({ ...s, credentials: (created as any).credentials } as any)
+              : s
+          ));
+          // Best-effort toast is handled by caller
           return true;
         } else {
-          setError(response.errors?.[0] || "Failed to create staff member");
+          setError(response.errors?.[0] || response.message || "Failed to create staff member");
           return false;
         }
       } catch (err) {
@@ -132,7 +148,7 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
           ...data,
           role: data.role!
         };
-        const response = await staffApi.updateStaff(data.id!, updateRequest);
+  const response = await staffApi.updateStaff(data.id, updateRequest);
 
         if (response.success) {
           await fetchStaff(); // Refresh the list
@@ -165,7 +181,7 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
           }
           return true;
         } else {
-          setError(response.errors?.[0] || "Failed to delete staff member");
+          setError(response.errors?.[0] || "Deleting staff is not supported");
           return false;
         }
       } catch (err) {
@@ -195,9 +211,11 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
     selectedStaff,
     searchTerm,
     roleFilter,
+  statusFilter,
     filteredStaff,
     setSearchTerm,
     setRoleFilter,
+  setStatusFilter,
     selectStaff,
     createStaff,
     updateStaff,

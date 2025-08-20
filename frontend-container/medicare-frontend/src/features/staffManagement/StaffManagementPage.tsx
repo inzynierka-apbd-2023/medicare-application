@@ -17,9 +17,11 @@ export const StaffManagementPage: React.FC<StaffManagementPageProps> = ({
     selectedStaff,
     searchTerm,
     roleFilter,
+  statusFilter,
     filteredStaff,
     setSearchTerm,
     setRoleFilter,
+  setStatusFilter,
     selectStaff,
     createStaff,
     updateStaff,
@@ -69,6 +71,8 @@ export const StaffManagementPage: React.FC<StaffManagementPageProps> = ({
             onSearchChange={setSearchTerm}
             roleFilter={roleFilter}
             onRoleFilterChange={setRoleFilter}
+            statusFilter={statusFilter}
+            onStatusFilterChange={setStatusFilter}
             selectedStaff={selectedStaff}
             onStaffSelect={selectStaff}
             onStaffDeselect={() => selectStaff(null)}

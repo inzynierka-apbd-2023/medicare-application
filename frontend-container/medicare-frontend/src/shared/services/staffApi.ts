@@ -97,6 +97,11 @@ export interface ApiResponse<T> {
   errors?: string[];
 }
 
+export interface CreateDoctorResponse {
+  directory: any;
+  credentials?: { username: string; password: string };
+}
+
 export interface Service {
   id: string;
   name: string;
@@ -105,81 +110,33 @@ export interface Service {
   isActive: boolean;
 }
 
-// Helper function to map backend DTO to frontend types
-const mapBackendStaffToFrontend = (backendStaff: any): StaffMember => {
-  const baseStaff = {
-    id: backendStaff.id,
-    profile: {
-      firstName: backendStaff.profile?.firstName || "",
-      lastName: backendStaff.profile?.lastName || "",
-      email: backendStaff.profile?.email || "",
-      phone: backendStaff.profile?.phone,
-      dateOfBirth: backendStaff.profile?.dateOfBirth,
-      gender: backendStaff.profile?.gender as "Male" | "Female" | "Other" | undefined,
-      avatarUrl: backendStaff.profile?.avatarUrl,
-      addressLine1: backendStaff.profile?.addressLine1,
-      addressLine2: backendStaff.profile?.addressLine2,
-      city: backendStaff.profile?.city,
-      state: backendStaff.profile?.state,
-      zipCode: backendStaff.profile?.zipCode,
-      country: backendStaff.profile?.country,
-    },
-    isActive: backendStaff.isActive ?? true,
-    createdAt: backendStaff.createdAt || new Date().toISOString(),
-    updatedAt: backendStaff.updatedAt || new Date().toISOString(),
-  };
-
-  if (backendStaff.role === "Doctor") {
-    return {
-      ...baseStaff,
-      role: "Doctor" as const,
-      licenseNumber: backendStaff.licenseNumber,
-      yearsExperience: backendStaff.yearsExperience,
-      biography: backendStaff.biography,
-      officeAddress: backendStaff.officeAddress,
-      specializations: backendStaff.specializations || [],
-    } as Doctor;
-  } else {
-    return {
-      ...baseStaff,
-      role: "Receptionist" as const,
-      department: backendStaff.department,
-    } as Receptionist;
-  }
-};
-
-// Helper function to map frontend create request to backend format
-const mapCreateRequestToBackend = (request: CreateStaffRequest): any => {
+// Map PractitionerService DoctorsController directory row -> StaffMember (Doctor)
+const mapDoctorDirectoryToStaff = (row: any): StaffMember => {
+  const specIds = (row.specializations as string | null | undefined)?.split(",").map((s) => s.trim()).filter(Boolean) || [];
   return {
-    role: request.role,
+    id: row.doctorId || row.id,
+    role: "Doctor",
     profile: {
-      firstName: request.profile.firstName,
-      lastName: request.profile.lastName,
-      email: request.profile.email,
-      phone: request.profile.phone,
-      dateOfBirth: request.profile.dateOfBirth || new Date().toISOString(),
-      gender: request.profile.gender || "Other",
-      addressLine1: request.profile.addressLine1 || "",
-      addressLine2: request.profile.addressLine2,
-      city: request.profile.city || "",
-      state: request.profile.state || "",
-      zipCode: request.profile.zipCode || "",
-      country: request.profile.country || "USA",
+      firstName: row.firstName || "",
+      lastName: row.lastName || "",
+      email: row.email || "",
+      phone: row.phone,
     },
-    licenseNumber: request.licenseNumber,
-    yearsExperience: request.yearsExperience,
-    biography: request.biography,
-    officeAddress: request.officeAddress,
-    specializations: request.specializations,
-    department: request.department,
-  };
+    // We only have specialization IDs from the directory; names can be joined in the UI using the catalog if needed.
+    specializations: specIds.map((id: string) => ({ id, name: "", serviceName: "" })),
+  isActive: row.isActive !== undefined ? !!row.isActive : true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  } as Doctor;
 };
+
+// (No-op) Previously mapped staff create requests; creation is no longer supported via staff API.
 
 // Helper function to handle API responses
 const handleApiResponse = <T>(response: any, mapper?: (data: any) => T): ApiResponse<T> => {
-  if (response.data) {
+  if (response?.data !== undefined) {
     const backendResponse = response.data;
-    if (backendResponse.success !== undefined) {
+  if (backendResponse && backendResponse.success !== undefined) {
       // Backend returns ApiResponse format
       return {
         success: backendResponse.success,
@@ -191,7 +148,7 @@ const handleApiResponse = <T>(response: any, mapper?: (data: any) => T): ApiResp
       // Direct data response
       return {
         success: true,
-        data: mapper ? mapper(response.data) : response.data,
+  data: mapper ? mapper(response.data) : response.data,
         message: "Success",
       };
     }
@@ -238,8 +195,8 @@ const handleApiError = <T>(error: any, fallbackData: T): ApiResponse<T> => {
   return {
     success: false,
     data: fallbackData,
-    message: errorMessage,
-    errors,
+  message: errorMessage,
+  errors: errors.length ? errors : [errorMessage],
   };
 };
 
@@ -248,24 +205,17 @@ export const staffApi = {
   // Get all staff members with optional search parameters
   getStaff: async (searchRequest?: StaffSearchRequest): Promise<ApiResponse<StaffMember[]>> => {
     try {
-      const params = new URLSearchParams();
-      
-      if (searchRequest?.role) params.append("role", searchRequest.role);
-      if (searchRequest?.searchQuery) params.append("searchQuery", searchRequest.searchQuery);
-      if (searchRequest?.isActive !== undefined) params.append("isActive", searchRequest.isActive.toString());
-      if (searchRequest?.page) params.append("page", searchRequest.page.toString());
-      if (searchRequest?.pageSize) params.append("pageSize", searchRequest.pageSize.toString());
-      if (searchRequest?.specializationIds?.length) {
-        searchRequest.specializationIds.forEach(id => params.append("specializationIds", id));
-      }
-
-      const queryString = params.toString();
-      const url = `/practitioner/staff${queryString ? `?${queryString}` : ""}`;
-      
-      const response = await apiClient.get(url);
-      return handleApiResponse<StaffMember[]>(response, (data: any[]) => 
-        data.map(mapBackendStaffToFrontend)
-      );
+  const params = new URLSearchParams();
+  const role = searchRequest?.role;
+  // Only Doctors are supported now
+  if (searchRequest?.searchQuery) params.append("q", searchRequest.searchQuery);
+  if (searchRequest?.specializationIds?.length) params.append("specializationId", searchRequest.specializationIds[0]);
+  if (typeof searchRequest?.isActive === "boolean") params.append("isActive", String(searchRequest.isActive));
+  const query = params.toString();
+  const url = `/practitioner/doctors${query ? "?" + query : ""}`;
+  const response = await apiClient.get(url);
+  // Response is DoctorDirectory[]
+  return handleApiResponse<StaffMember[]>(response, (data: any[]) => (role && role !== "Doctor" ? [] : data.map(mapDoctorDirectoryToStaff)));
     } catch (error) {
       return handleApiError<StaffMember[]>(error, []);
     }
@@ -279,10 +229,8 @@ export const staffApi = {
   // Get a single staff member by ID
   getStaffById: async (id: string): Promise<ApiResponse<StaffMember | null>> => {
     try {
-      const response = await apiClient.get(`/practitioner/staff/${id}`);
-      return handleApiResponse<StaffMember | null>(response, (data: any) => 
-        data ? mapBackendStaffToFrontend(data) : null
-      );
+  const response = await apiClient.get(`/practitioner/doctors/${id}/directory`);
+  return handleApiResponse<StaffMember | null>(response, (data: any) => (data ? mapDoctorDirectoryToStaff(data) : null));
     } catch (error) {
       return handleApiError<StaffMember | null>(error, null);
     }
@@ -296,21 +244,48 @@ export const staffApi = {
   // Get staff members by role
   getStaffByRole: async (role: StaffRole): Promise<ApiResponse<StaffMember[]>> => {
     try {
-      const response = await apiClient.get(`/practitioner/staff/role/${role}`);
-      return handleApiResponse<StaffMember[]>(response, (data: any[]) => 
-        data.map(mapBackendStaffToFrontend)
-      );
+      if (role !== "Doctor") {
+        return { success: true, data: [], message: "Only doctors supported" };
+      }
+      const response = await apiClient.get(`/practitioner/doctors`);
+      return handleApiResponse<StaffMember[]>(response, (data: any[]) => data.map(mapDoctorDirectoryToStaff));
     } catch (error) {
       return handleApiError<StaffMember[]>(error, []);
     }
   },
 
   // Create a new staff member
-  createStaff: async (request: CreateStaffRequest): Promise<ApiResponse<StaffMember>> => {
+  createStaff: async (_request: CreateStaffRequest): Promise<ApiResponse<StaffMember>> => {
     try {
-      const backendRequest = mapCreateRequestToBackend(request);
-      const response = await apiClient.post(`/practitioner/staff`, backendRequest);
-      return handleApiResponse<StaffMember>(response, mapBackendStaffToFrontend);
+      if (_request.role !== "Doctor") {
+        return { success: false, data: {} as StaffMember, message: "Only creating doctors is supported." };
+      }
+      // Call new practitioner endpoint to create user+doctor
+      const payload = {
+        profile: {
+          firstName: _request.profile.firstName,
+          lastName: _request.profile.lastName,
+          email: _request.profile.email,
+          phone: _request.profile.phone,
+          dateOfBirth: _request.profile.dateOfBirth,
+          gender: _request.profile.gender,
+          addressLine1: _request.profile.addressLine1,
+          addressLine2: _request.profile.addressLine2,
+          city: _request.profile.city,
+          state: _request.profile.state,
+          zipCode: _request.profile.zipCode,
+          country: _request.profile.country,
+        },
+        biography: _request.biography,
+        specializationIds: _request.specializations,
+      };
+      const res = await apiClient.post(`/practitioner/doctors/register-full`, payload);
+      const out = res.data as CreateDoctorResponse;
+      const staff = mapDoctorDirectoryToStaff(out.directory) as Doctor;
+      if (out.credentials) {
+        (staff as any).credentials = out.credentials;
+      }
+      return { success: true, data: staff, message: out.credentials ? `Created. Username: ${out.credentials.username} Password: ${out.credentials.password}` : "Created" };
     } catch (error) {
       return handleApiError<StaffMember>(error, {} as StaffMember);
     }
@@ -324,10 +299,14 @@ export const staffApi = {
   // Update an existing staff member
   updateStaff: async (id: string, request: UpdateStaffRequest): Promise<ApiResponse<StaffMember>> => {
     try {
-      // Ensure the ID is set in the request
-      const updateRequest = { ...request, id };
-      const response = await apiClient.put(`/practitioner/staff/${id}`, updateRequest);
-      return handleApiResponse<StaffMember>(response, mapBackendStaffToFrontend);
+      // Support updating doctor specializations only
+      if (request.role === "Doctor" && request.specializations?.length) {
+        const specIds = request.specializations;
+        await apiClient.put(`/practitioner/doctors/${id}/specializations`, { specializationIds: specIds });
+      }
+      // Fetch latest directory row
+      const refreshed = await apiClient.get(`/practitioner/doctors/${id}/directory`);
+      return handleApiResponse<StaffMember>(refreshed, mapDoctorDirectoryToStaff);
     } catch (error) {
       return handleApiError<StaffMember>(error, {} as StaffMember);
     }
@@ -341,8 +320,9 @@ export const staffApi = {
   // Delete a staff member (soft delete)
   deleteStaff: async (id: string): Promise<ApiResponse<boolean>> => {
     try {
-      const response = await apiClient.delete(`/practitioner/staff/${id}`);
-      return handleApiResponse<boolean>(response);
+      const res = await apiClient.delete(`/practitioner/doctors/${id}`);
+      // Expect 204 No Content
+      return { success: res.status >= 200 && res.status < 300, data: true };
     } catch (error) {
       return handleApiError<boolean>(error, false);
     }
@@ -356,8 +336,8 @@ export const staffApi = {
   // Get available specializations
   getSpecializations: async (): Promise<ApiResponse<Specialization[]>> => {
     try {
-      const response = await apiClient.get(`/practitioner/staff/specializations`);
-      return handleApiResponse<Specialization[]>(response);
+  const response = await apiClient.get(`/practitioner/catalog/specializations`);
+  return handleApiResponse<Specialization[]>(response, (items: any[]) => items.map((s) => ({ id: s.id, name: s.name, serviceName: "" })));
     } catch (error) {
       return handleApiError<Specialization[]>(error, []);
     }
@@ -366,10 +346,29 @@ export const staffApi = {
   // Get available services
   getServices: async (): Promise<ApiResponse<Service[]>> => {
     try {
-      const response = await apiClient.get(`/practitioner/staff/services`);
-      return handleApiResponse<Service[]>(response);
+  const response = await apiClient.get(`/practitioner/catalog/services`);
+  return handleApiResponse<Service[]>(response);
     } catch (error) {
       return handleApiError<Service[]>(error, []);
+    }
+  },
+
+  // Availability (schedules)
+  getAvailability: async (doctorId: string): Promise<ApiResponse<any[]>> => {
+    try {
+      const res = await apiClient.get(`/practitioner/doctors/${doctorId}/availability`);
+      return handleApiResponse<any[]>(res);
+    } catch (error) {
+      return handleApiError<any[]>(error, []);
+    }
+  },
+
+  setAvailability: async (doctorId: string, entries: { dayOfWeek: number; start: string; end: string }[]): Promise<ApiResponse<boolean>> => {
+    try {
+      const res = await apiClient.put(`/practitioner/doctors/${doctorId}/availability`, entries);
+      return { success: res.status >= 200 && res.status < 300, data: true };
+    } catch (error) {
+      return handleApiError<boolean>(error, false);
     }
   },
 };

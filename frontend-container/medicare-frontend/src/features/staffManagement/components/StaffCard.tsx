@@ -1,10 +1,12 @@
-import React from "react";
-import { Mail, MapPin, Phone, Stethoscope, User, Users } from "lucide-react";
+import React, { useState } from "react";
+import { Calendar, KeyRound, Mail, MapPin, Phone, Stethoscope, User, Users } from "lucide-react";
 
 import { Badge, Card } from "../../../shared/components";
 import type { StaffCardProps } from "../types";
+import { ScheduleEditor } from "./ScheduleEditor";
 
 export const StaffCard: React.FC<StaffCardProps> = ({ staff, onClick }) => {
+  const [showSchedule, setShowSchedule] = useState(false);
   const handleClick = () => {
     onClick(staff);
   };
@@ -15,8 +17,8 @@ export const StaffCard: React.FC<StaffCardProps> = ({ staff, onClick }) => {
         Active
       </Badge>
     ) : (
-      <Badge variant="error" size="sm">
-        Inactive
+      <Badge variant="default" size="sm">
+        Archived
       </Badge>
     );
   };
@@ -53,7 +55,7 @@ export const StaffCard: React.FC<StaffCardProps> = ({ staff, onClick }) => {
             <div className="flex flex-wrap gap-1 mt-2">
               {staff.specializations.slice(0, 2).map((spec) => (
                 <Badge key={spec.id} variant="default" size="sm">
-                  {spec.name}
+                  {spec.name || spec.id}
                 </Badge>
               ))}
               {staff.specializations.length > 2 && (
@@ -83,8 +85,7 @@ export const StaffCard: React.FC<StaffCardProps> = ({ staff, onClick }) => {
     <Card
       variant="default"
       padding="md"
-      className="cursor-pointer hover:shadow-lg transition-shadow duration-200"
-      onClick={handleClick}
+      className="hover:shadow-lg transition-shadow duration-200"
     >
       <div className="flex flex-col gap-3">
         {/* Header with name and status */}
@@ -107,6 +108,7 @@ export const StaffCard: React.FC<StaffCardProps> = ({ staff, onClick }) => {
 
         {/* Contact Information */}
         <div className="space-y-1">
+          <div className="text-xs text-gray-500">UID: {staff.id}</div>
           <div className="flex items-center gap-2 text-sm text-gray-600">
             <Mail size={14} />
             <span>{staff.profile.email}</span>
@@ -130,13 +132,33 @@ export const StaffCard: React.FC<StaffCardProps> = ({ staff, onClick }) => {
         {/* Role-specific information */}
         {renderRoleSpecificInfo()}
 
+        {/* One-time credentials display if present */}
+        {staff.role === "Doctor" && (staff as any).credentials && (
+          <div className="mt-2 p-2 rounded-md bg-amber-50 text-amber-800 text-sm flex items-center gap-2">
+            <KeyRound size={16} />
+            <span>
+              Username: {(staff as any).credentials.username} | Password: {(staff as any).credentials.password}
+            </span>
+          </div>
+        )}
+
         {/* Action button */}
-        <button
-          onClick={handleClick}
-          className="mt-2 bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition duration-150 w-fit text-sm font-medium"
-        >
-          View Details
-        </button>
+        <div className="mt-2 flex gap-2">
+          <button
+            onClick={handleClick}
+            className="bg-blue-100 text-blue-700 px-4 py-2 rounded-lg hover:bg-blue-200 transition duration-150 w-fit text-sm font-medium"
+          >
+            View Details
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); setShowSchedule(true); }}
+            className="bg-green-100 text-green-700 px-3 py-2 rounded-lg hover:bg-green-200 transition duration-150 w-fit text-sm font-medium inline-flex items-center gap-1"
+          >
+            <Calendar size={14} /> Schedule
+          </button>
+        </div>
+
+        <ScheduleEditor doctor={staff} isOpen={showSchedule} onClose={() => setShowSchedule(false)} />
       </div>
     </Card>
   );
