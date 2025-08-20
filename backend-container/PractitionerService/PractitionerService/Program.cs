@@ -22,6 +22,17 @@ builder.Services.AddControllers();
 
 builder.Services.AddMediatR(typeof(Program).Assembly);
 
+// Register HttpClient for UserService communication
+builder.Services.AddHttpClient<PractitionerService.Services.IStaffService, PractitionerService.Services.StaffService>(client =>
+{
+    var userServiceUrl = builder.Configuration["Services:UserService:BaseUrl"] ?? "http://localhost:8080";
+    client.BaseAddress = new Uri(userServiceUrl);
+    client.DefaultRequestHeaders.Add("Accept", "application/json");
+});
+
+// Register Staff Service
+builder.Services.AddScoped<PractitionerService.Services.IStaffService, PractitionerService.Services.StaffService>();
+
 if (useAzureDefaultCredential)
 {
     builder.Services.AddScoped(_ => CreateTokenSqlConnection(connectionString));
@@ -307,3 +318,6 @@ IF OBJECT_ID('practitioner.DoctorDirectory','V') IS NOT NULL EXEC sp_refreshview
         Console.WriteLine($"[Startup] Test data seed warning: {ex.Message}");
     }
 }
+
+// Make Program class accessible for testing
+public partial class Program { }

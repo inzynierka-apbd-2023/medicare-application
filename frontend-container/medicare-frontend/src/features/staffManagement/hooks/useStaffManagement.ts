@@ -77,7 +77,7 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
       if (staffResponse.success) {
         setStaff(staffResponse.data);
       } else {
-        setError(staffResponse.error || "Failed to fetch staff");
+        setError(staffResponse.errors?.[0] || "Failed to fetch staff");
       }
 
       if (specializationsResponse.success) {
@@ -85,7 +85,7 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
       } else {
         console.warn(
           "Failed to fetch specializations:",
-          specializationsResponse.error
+          specializationsResponse.errors?.[0]
         );
       }
     } catch (err) {
@@ -111,7 +111,7 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
           await fetchStaff(); // Refresh the list
           return true;
         } else {
-          setError(response.error || "Failed to create staff member");
+          setError(response.errors?.[0] || "Failed to create staff member");
           return false;
         }
       } catch (err) {
@@ -128,14 +128,18 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
     async (data: UpdateStaffRequest): Promise<boolean> => {
       try {
         setError(null);
-        const response = await staffApi.updateStaff(data);
+        const updateRequest = {
+          ...data,
+          role: data.role!
+        };
+        const response = await staffApi.updateStaff(data.id!, updateRequest);
 
         if (response.success) {
           await fetchStaff(); // Refresh the list
           setSelectedStaff(response.data); // Update selected staff if it was the updated one
           return true;
         } else {
-          setError(response.error || "Failed to update staff member");
+          setError(response.errors?.[0] || "Failed to update staff member");
           return false;
         }
       } catch (err) {
@@ -161,7 +165,7 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
           }
           return true;
         } else {
-          setError(response.error || "Failed to delete staff member");
+          setError(response.errors?.[0] || "Failed to delete staff member");
           return false;
         }
       } catch (err) {

@@ -11,6 +11,22 @@ import {
 import { AuthResponse, authService, AuthUser } from "../services/authService";
 import { usersApi } from "../services/usersApi";
 
+// ===== DEVELOPMENT MOCK =====
+const DEV_MOCK_OWNER = true; // Set to false to disable mock
+const MOCK_OWNER_USER: AuthUser = {
+  id: "mock-owner-id",
+  username: "owner-dev",
+  email: "owner@dev.com",
+  firstName: "Dev",
+  lastName: "Owner",
+  role: "Owner",
+  phoneNumber: "+1234567890",
+  dateOfBirth: "1980-01-01",
+  avatarUrl: null,
+  address: "123 Dev Street",
+};
+const MOCK_TOKEN = "mock-owner-token-for-development";
+
 interface AuthState {
   user: AuthUser | null;
   token: string | null;
@@ -41,7 +57,13 @@ interface AuthState {
 const Ctx = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  // === DEVELOPMENT MOCK SETUP ===
   const [user, setUser] = useState<AuthUser | null>(() => {
+    if (DEV_MOCK_OWNER) {
+      console.log("🚧 DEV MODE: Using mock owner user");
+      return MOCK_OWNER_USER;
+    }
+    
     try {
       const raw = sessionStorage.getItem("authUser");
       if (raw) return JSON.parse(raw) as AuthUser;
@@ -50,8 +72,15 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     return null;
   });
-  const [token, setToken] = useState<string | null>(authService.getToken());
-  const memAccessRef = useRef<string | null>(authService.getToken());
+  
+  const [token, setToken] = useState<string | null>(() => {
+    if (DEV_MOCK_OWNER) {
+      return MOCK_TOKEN;
+    }
+    return authService.getToken();
+  });
+  
+  const memAccessRef = useRef<string | null>(DEV_MOCK_OWNER ? MOCK_TOKEN : authService.getToken());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -68,6 +97,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const login = async (username: string, password: string) => {
+    if (DEV_MOCK_OWNER) {
+      console.log("🚧 DEV MODE: Mock login as owner");
+      setUser(MOCK_OWNER_USER);
+      setToken(MOCK_TOKEN);
+      memAccessRef.current = MOCK_TOKEN;
+      return;
+    }
+    
     setLoading(true);
     setError(null);
     try {
@@ -157,6 +194,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   useEffect(() => {
+    // Skip storage hydration in dev mock mode
+    if (DEV_MOCK_OWNER) {
+      console.log("🚧 DEV MODE: Skipping storage hydration, using mock data");
+      return;
+    }
+    
     // Hydrate from storage on mount if available
     if (!user) {
       try {

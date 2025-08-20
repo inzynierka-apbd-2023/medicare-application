@@ -25,7 +25,16 @@ public class DoctorsController : ControllerBase
         if (req.UserId == Guid.Empty) return BadRequest("UserId is required");
         var userIdStr = req.UserId.ToString();
         if (await _db.Doctors.AnyAsync(d => d.UserId == userIdStr)) return Conflict("Doctor already registered for this user");
-        var doctor = new Doctor { UserId = userIdStr, CreatedAt = DateTime.UtcNow, UpdatedAt = DateTime.UtcNow, Bio = req.Bio };
+        
+        var doctor = new Doctor 
+        { 
+            Id = Guid.NewGuid().ToString(), // Generate ID manually for compatibility
+            UserId = userIdStr, 
+            CreatedAt = DateTime.UtcNow, 
+            UpdatedAt = DateTime.UtcNow, 
+            Bio = req.Bio 
+        };
+        
         _db.Doctors.Add(doctor);
         await _db.SaveChangesAsync();
         // TODO: publish DoctorRegistered event

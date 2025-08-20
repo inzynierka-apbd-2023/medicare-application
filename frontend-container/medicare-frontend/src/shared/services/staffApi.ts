@@ -1,423 +1,375 @@
-import type {
-  CreateStaffRequest,
-  Doctor,
-  Receptionist,
-  Service,
-  Specialization,
-  StaffMember,
-  UpdateStaffRequest,
-} from "../../features/staffManagement/types";
+import { apiClient } from "./apiClient";
 
-import {
-  type ApiResponse,
-  createErrorResponse,
-  createMockResponse,
-} from "./api";
+// Import types from the existing staff management feature
+export type StaffRole = "Doctor" | "Receptionist";
 
-// Mock specializations data
-const mockSpecializations: Specialization[] = [
-  {
-    id: "spec1",
-    name: "Cardiology",
-    description: "Heart and cardiovascular system",
-    serviceName: "Cardiac Care",
-    isPrimary: true,
-  },
-  {
-    id: "spec2",
-    name: "Neurology",
-    description: "Brain and nervous system",
-    serviceName: "Neurological Care",
-  },
-  {
-    id: "spec3",
-    name: "Dermatology",
-    description: "Skin conditions and diseases",
-    serviceName: "Skin Care",
-  },
-  {
-    id: "spec4",
-    name: "Orthopedics",
-    description: "Bones, joints, and muscles",
-    serviceName: "Orthopedic Care",
-  },
-  {
-    id: "spec5",
-    name: "Internal Medicine",
-    description: "General internal medicine",
-    serviceName: "General Medicine",
-    isPrimary: true,
-  },
-];
+export interface UserProfile {
+  firstName: string;
+  lastName: string;
+  email: string;
+  phone?: string;
+  dateOfBirth?: string;
+  gender?: "Male" | "Female" | "Other";
+  avatarUrl?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+}
 
-// Mock services data
-const mockServices: Service[] = [
-  {
-    id: "svc1",
-    name: "Cardiac Care",
-    description: "Comprehensive heart care services",
-    durationMinutes: 60,
-    isActive: true,
-  },
-  {
-    id: "svc2",
-    name: "Neurological Care",
-    description: "Brain and nervous system treatment",
-    durationMinutes: 45,
-    isActive: true,
-  },
-  {
-    id: "svc3",
-    name: "Skin Care",
-    description: "Dermatological treatments",
-    durationMinutes: 30,
-    isActive: true,
-  },
-  {
-    id: "svc4",
-    name: "Orthopedic Care",
-    description: "Bone and joint treatments",
-    durationMinutes: 45,
-    isActive: true,
-  },
-  {
-    id: "svc5",
-    name: "General Medicine",
-    description: "Primary care services",
-    durationMinutes: 30,
-    isActive: true,
-  },
-];
+export interface Doctor {
+  id: string;
+  profile: UserProfile;
+  role: "Doctor";
+  licenseNumber?: string;
+  yearsExperience?: number;
+  biography?: string;
+  officeAddress?: string;
+  specializations: Specialization[];
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
 
-// Mock staff data
-const mockDoctors: Doctor[] = [
-  {
-    id: "dr1",
-    role: "Doctor",
+export interface Receptionist {
+  id: string;
+  profile: UserProfile;
+  role: "Receptionist";
+  department?: string;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type StaffMember = Doctor | Receptionist;
+
+export interface Specialization {
+  id: string;
+  name: string;
+  description?: string;
+  serviceName: string;
+  isPrimary?: boolean;
+  certifiedDate?: string;
+}
+
+export interface CreateStaffRequest {
+  role: StaffRole;
+  profile: UserProfile;
+  // Doctor-specific fields
+  licenseNumber?: string;
+  yearsExperience?: number;
+  biography?: string;
+  officeAddress?: string;
+  specializations?: string[];
+  // Receptionist-specific fields
+  department?: string;
+}
+
+export interface UpdateStaffRequest {
+  id: string;
+  role: StaffRole;
+  profile?: Partial<UserProfile>;
+  // Doctor-specific fields
+  licenseNumber?: string;
+  yearsExperience?: number;
+  biography?: string;
+  officeAddress?: string;
+  specializations?: string[];
+  // Receptionist-specific fields
+  department?: string;
+}
+
+export interface StaffSearchRequest {
+  role?: StaffRole;
+  searchQuery?: string;
+  isActive?: boolean;
+  specializationIds?: string[];
+  page?: number;
+  pageSize?: number;
+}
+
+export interface ApiResponse<T> {
+  success: boolean;
+  data: T;
+  message?: string;
+  errors?: string[];
+}
+
+export interface Service {
+  id: string;
+  name: string;
+  description?: string;
+  durationMinutes: number;
+  isActive: boolean;
+}
+
+// Helper function to map backend DTO to frontend types
+const mapBackendStaffToFrontend = (backendStaff: any): StaffMember => {
+  const baseStaff = {
+    id: backendStaff.id,
     profile: {
-      firstName: "Sarah",
-      lastName: "Johnson",
-      email: "sarah.johnson@imup.com",
-      phone: "+1-555-0101",
-      dateOfBirth: "1978-03-15",
-      gender: "Female",
-      addressLine1: "123 Medical Center Dr",
-      city: "Boston",
-      state: "MA",
-      zipCode: "02115",
-      country: "USA",
+      firstName: backendStaff.profile?.firstName || "",
+      lastName: backendStaff.profile?.lastName || "",
+      email: backendStaff.profile?.email || "",
+      phone: backendStaff.profile?.phone,
+      dateOfBirth: backendStaff.profile?.dateOfBirth,
+      gender: backendStaff.profile?.gender as "Male" | "Female" | "Other" | undefined,
+      avatarUrl: backendStaff.profile?.avatarUrl,
+      addressLine1: backendStaff.profile?.addressLine1,
+      addressLine2: backendStaff.profile?.addressLine2,
+      city: backendStaff.profile?.city,
+      state: backendStaff.profile?.state,
+      zipCode: backendStaff.profile?.zipCode,
+      country: backendStaff.profile?.country,
     },
-    licenseNumber: "MD-123456",
-    yearsExperience: 15,
-    biography:
-      "Dr. Sarah Johnson is a board-certified cardiologist with over 15 years of experience in treating cardiovascular diseases. She specializes in interventional cardiology and has published numerous research papers.",
-    officeAddress: "Room 301, Cardiology Wing",
-    specializations: [
-      {
-        id: "spec1",
-        name: "Cardiology",
-        description: "Heart and cardiovascular system",
-        serviceName: "Cardiac Care",
-        isPrimary: true,
-        certifiedDate: "2010-05-20",
-      },
-    ],
-    isActive: true,
-    createdAt: "2023-01-15T08:00:00Z",
-    updatedAt: "2025-08-10T14:30:00Z",
-  },
-  {
-    id: "dr2",
-    role: "Doctor",
+    isActive: backendStaff.isActive ?? true,
+    createdAt: backendStaff.createdAt || new Date().toISOString(),
+    updatedAt: backendStaff.updatedAt || new Date().toISOString(),
+  };
+
+  if (backendStaff.role === "Doctor") {
+    return {
+      ...baseStaff,
+      role: "Doctor" as const,
+      licenseNumber: backendStaff.licenseNumber,
+      yearsExperience: backendStaff.yearsExperience,
+      biography: backendStaff.biography,
+      officeAddress: backendStaff.officeAddress,
+      specializations: backendStaff.specializations || [],
+    } as Doctor;
+  } else {
+    return {
+      ...baseStaff,
+      role: "Receptionist" as const,
+      department: backendStaff.department,
+    } as Receptionist;
+  }
+};
+
+// Helper function to map frontend create request to backend format
+const mapCreateRequestToBackend = (request: CreateStaffRequest): any => {
+  return {
+    role: request.role,
     profile: {
-      firstName: "Michael",
-      lastName: "Chen",
-      email: "michael.chen@imup.com",
-      phone: "+1-555-0102",
-      dateOfBirth: "1985-07-22",
-      gender: "Male",
-      addressLine1: "456 Healthcare Blvd",
-      city: "Boston",
-      state: "MA",
-      zipCode: "02115",
-      country: "USA",
+      firstName: request.profile.firstName,
+      lastName: request.profile.lastName,
+      email: request.profile.email,
+      phone: request.profile.phone,
+      dateOfBirth: request.profile.dateOfBirth || new Date().toISOString(),
+      gender: request.profile.gender || "Other",
+      addressLine1: request.profile.addressLine1 || "",
+      addressLine2: request.profile.addressLine2,
+      city: request.profile.city || "",
+      state: request.profile.state || "",
+      zipCode: request.profile.zipCode || "",
+      country: request.profile.country || "USA",
     },
-    licenseNumber: "MD-789012",
-    yearsExperience: 8,
-    biography:
-      "Dr. Michael Chen is a neurologist specializing in movement disorders and epilepsy. He completed his fellowship at Massachusetts General Hospital and is actively involved in clinical research.",
-    officeAddress: "Room 205, Neurology Department",
-    specializations: [
-      {
-        id: "spec2",
-        name: "Neurology",
-        description: "Brain and nervous system",
-        serviceName: "Neurological Care",
-        isPrimary: true,
-        certifiedDate: "2017-09-15",
-      },
-    ],
-    isActive: true,
-    createdAt: "2023-03-10T09:15:00Z",
-    updatedAt: "2025-08-10T16:45:00Z",
-  },
-  {
-    id: "dr3",
-    role: "Doctor",
-    profile: {
-      firstName: "Emily",
-      lastName: "Rodriguez",
-      email: "emily.rodriguez@imup.com",
-      phone: "+1-555-0103",
-      dateOfBirth: "1982-11-08",
-      gender: "Female",
-      addressLine1: "789 Medical Plaza",
-      city: "Boston",
-      state: "MA",
-      zipCode: "02115",
-      country: "USA",
-    },
-    licenseNumber: "MD-345678",
-    yearsExperience: 12,
-    biography:
-      "Dr. Emily Rodriguez is a family medicine physician with expertise in preventive care and chronic disease management. She is passionate about patient education and community health.",
-    officeAddress: "Room 150, Family Medicine",
-    specializations: [
-      {
-        id: "spec5",
-        name: "Internal Medicine",
-        description: "General internal medicine",
-        serviceName: "General Medicine",
-        isPrimary: true,
-        certifiedDate: "2013-06-30",
-      },
-    ],
-    isActive: true,
-    createdAt: "2023-02-20T10:30:00Z",
-    updatedAt: "2025-08-09T11:20:00Z",
-  },
-];
+    licenseNumber: request.licenseNumber,
+    yearsExperience: request.yearsExperience,
+    biography: request.biography,
+    officeAddress: request.officeAddress,
+    specializations: request.specializations,
+    department: request.department,
+  };
+};
 
-const mockReceptionists: Receptionist[] = [
-  {
-    id: "rec1",
-    role: "Receptionist",
-    profile: {
-      firstName: "Jessica",
-      lastName: "Williams",
-      email: "jessica.williams@imup.com",
-      phone: "+1-555-0201",
-      dateOfBirth: "1990-05-12",
-      gender: "Female",
-      addressLine1: "101 Admin St",
-      city: "Boston",
-      state: "MA",
-      zipCode: "02115",
-      country: "USA",
-    },
-    department: "Front Desk - Main Lobby",
-    isActive: true,
-    createdAt: "2023-01-20T08:00:00Z",
-    updatedAt: "2025-08-08T15:00:00Z",
-  },
-  {
-    id: "rec2",
-    role: "Receptionist",
-    profile: {
-      firstName: "David",
-      lastName: "Thompson",
-      email: "david.thompson@imup.com",
-      phone: "+1-555-0202",
-      dateOfBirth: "1988-09-30",
-      gender: "Male",
-      addressLine1: "202 Staff Ave",
-      city: "Boston",
-      state: "MA",
-      zipCode: "02115",
-      country: "USA",
-    },
-    department: "Appointment Scheduling",
-    isActive: true,
-    createdAt: "2023-04-05T09:30:00Z",
-    updatedAt: "2025-08-07T12:15:00Z",
-  },
-  {
-    id: "rec3",
-    role: "Receptionist",
-    profile: {
-      firstName: "Maria",
-      lastName: "Garcia",
-      email: "maria.garcia@imup.com",
-      phone: "+1-555-0203",
-      dateOfBirth: "1992-12-03",
-      gender: "Female",
-      addressLine1: "303 Office Dr",
-      city: "Boston",
-      state: "MA",
-      zipCode: "02115",
-      country: "USA",
-    },
-    department: "Patient Registration",
-    isActive: false, // Inactive staff member for testing
-    createdAt: "2023-06-15T11:00:00Z",
-    updatedAt: "2025-07-20T16:30:00Z",
-  },
-];
-
-const mockStaff: StaffMember[] = [...mockDoctors, ...mockReceptionists];
-
-// API Functions
-export const staffApi = {
-  // Get all staff members
-  async getStaff(): Promise<ApiResponse<StaffMember[]>> {
-    return createMockResponse(mockStaff);
-  },
-
-  // Get staff member by ID
-  async getStaffById(id: string): Promise<ApiResponse<StaffMember>> {
-    const staff = mockStaff.find((s) => s.id === id);
-    if (!staff) {
-      return createErrorResponse("Staff member not found");
-    }
-    return createMockResponse(staff);
-  },
-
-  // Get staff by role
-  async getStaffByRole(
-    role: "Doctor" | "Receptionist"
-  ): Promise<ApiResponse<StaffMember[]>> {
-    const filteredStaff = mockStaff.filter((s) => s.role === role);
-    return createMockResponse(filteredStaff);
-  },
-
-  // Create new staff member
-  async createStaff(
-    data: CreateStaffRequest
-  ): Promise<ApiResponse<StaffMember>> {
-    const newId = `${data.role.toLowerCase()}${Date.now()}`;
-    const now = new Date().toISOString();
-
-    let newStaff: StaffMember;
-
-    if (data.role === "Doctor") {
-      // Find specializations by IDs
-      const selectedSpecializations = (data.specializations || [])
-        .map((specId: string) =>
-          mockSpecializations.find((s) => s.id === specId)
-        )
-        .filter((spec): spec is Specialization => spec !== undefined);
-
-      newStaff = {
-        id: newId,
-        role: "Doctor",
-        profile: data.profile,
-        licenseNumber: data.licenseNumber,
-        yearsExperience: data.yearsExperience,
-        biography: data.biography,
-        officeAddress: data.officeAddress,
-        specializations: selectedSpecializations,
-        isActive: true,
-        createdAt: now,
-        updatedAt: now,
-      } as Doctor;
+// Helper function to handle API responses
+const handleApiResponse = <T>(response: any, mapper?: (data: any) => T): ApiResponse<T> => {
+  if (response.data) {
+    const backendResponse = response.data;
+    if (backendResponse.success !== undefined) {
+      // Backend returns ApiResponse format
+      return {
+        success: backendResponse.success,
+        data: mapper && backendResponse.data ? mapper(backendResponse.data) : backendResponse.data,
+        message: backendResponse.message,
+        errors: backendResponse.errors,
+      };
     } else {
-      newStaff = {
-        id: newId,
-        role: "Receptionist",
-        profile: data.profile,
-        department: data.department,
-        isActive: true,
-        createdAt: now,
-        updatedAt: now,
-      } as Receptionist;
+      // Direct data response
+      return {
+        success: true,
+        data: mapper ? mapper(response.data) : response.data,
+        message: "Success",
+      };
     }
+  }
+  return {
+    success: true,
+    data: mapper ? mapper(response) : response,
+    message: "Success",
+  };
+};
 
-    // Add to mock data
-    mockStaff.push(newStaff);
-
-    return createMockResponse(newStaff);
-  },
-
-  // Update staff member
-  async updateStaff(
-    data: UpdateStaffRequest
-  ): Promise<ApiResponse<StaffMember>> {
-    const index = mockStaff.findIndex((s) => s.id === data.id);
-    if (index === -1) {
-      return createErrorResponse("Staff member not found");
+// Helper function to handle API errors
+const handleApiError = <T>(error: any, fallbackData: T): ApiResponse<T> => {
+  console.error("Staff API Error:", error);
+  
+  let errorMessage = "An unexpected error occurred";
+  let errors: string[] = [];
+  
+  if (error.response?.data) {
+    const errorData = error.response.data;
+    if (errorData.message) {
+      errorMessage = errorData.message;
     }
+    if (errorData.errors) {
+      errors = Array.isArray(errorData.errors) ? errorData.errors : [errorData.errors];
+    }
+  } else if (error.message) {
+    errorMessage = error.message;
+    errors = [error.message];
+  } else if (error.response?.status === 401) {
+    errorMessage = "Unauthorized. Please check your permissions.";
+    errors = [errorMessage];
+  } else if (error.response?.status === 403) {
+    errorMessage = "Forbidden. You don't have access to this resource.";
+    errors = [errorMessage];
+  } else if (error.response?.status === 404) {
+    errorMessage = "Staff member not found.";
+    errors = [errorMessage];
+  } else if (error.response?.status >= 500) {
+    errorMessage = "Server error. Please try again later.";
+    errors = [errorMessage];
+  }
 
-    const existingStaff = mockStaff[index];
-    const now = new Date().toISOString();
+  return {
+    success: false,
+    data: fallbackData,
+    message: errorMessage,
+    errors,
+  };
+};
 
-    // Update common fields
-    const updatedStaff: StaffMember = {
-      ...existingStaff,
-      profile: {
-        ...existingStaff.profile,
-        ...data.profile,
-      },
-      updatedAt: now,
-    };
-
-    // Update role-specific fields
-    if (updatedStaff.role === "Doctor" && data.role === "Doctor") {
-      const doctorStaff = updatedStaff as Doctor;
-
-      if (data.licenseNumber !== undefined)
-        doctorStaff.licenseNumber = data.licenseNumber;
-      if (data.yearsExperience !== undefined)
-        doctorStaff.yearsExperience = data.yearsExperience;
-      if (data.biography !== undefined) doctorStaff.biography = data.biography;
-      if (data.officeAddress !== undefined)
-        doctorStaff.officeAddress = data.officeAddress;
-
-      if (data.specializations) {
-        const selectedSpecializations = data.specializations
-          .map((specId: string) =>
-            mockSpecializations.find((s) => s.id === specId)
-          )
-          .filter((spec): spec is Specialization => spec !== undefined);
-        doctorStaff.specializations = selectedSpecializations;
+// Real API implementation using apiClient
+export const staffApi = {
+  // Get all staff members with optional search parameters
+  getStaff: async (searchRequest?: StaffSearchRequest): Promise<ApiResponse<StaffMember[]>> => {
+    try {
+      const params = new URLSearchParams();
+      
+      if (searchRequest?.role) params.append("role", searchRequest.role);
+      if (searchRequest?.searchQuery) params.append("searchQuery", searchRequest.searchQuery);
+      if (searchRequest?.isActive !== undefined) params.append("isActive", searchRequest.isActive.toString());
+      if (searchRequest?.page) params.append("page", searchRequest.page.toString());
+      if (searchRequest?.pageSize) params.append("pageSize", searchRequest.pageSize.toString());
+      if (searchRequest?.specializationIds?.length) {
+        searchRequest.specializationIds.forEach(id => params.append("specializationIds", id));
       }
-    } else if (
-      updatedStaff.role === "Receptionist" &&
-      data.role === "Receptionist"
-    ) {
-      const receptionistStaff = updatedStaff as Receptionist;
-      if (data.department !== undefined)
-        receptionistStaff.department = data.department;
+
+      const queryString = params.toString();
+      const url = `/practitioner/staff${queryString ? `?${queryString}` : ""}`;
+      
+      const response = await apiClient.get(url);
+      return handleApiResponse<StaffMember[]>(response, (data: any[]) => 
+        data.map(mapBackendStaffToFrontend)
+      );
+    } catch (error) {
+      return handleApiError<StaffMember[]>(error, []);
     }
-
-    // Update in mock data
-    mockStaff[index] = updatedStaff;
-
-    return createMockResponse(updatedStaff);
   },
 
-  // Delete staff member (soft delete - set isActive to false)
-  async deleteStaff(id: string): Promise<ApiResponse<boolean>> {
-    const index = mockStaff.findIndex((s) => s.id === id);
-    if (index === -1) {
-      return createErrorResponse("Staff member not found");
+  // Get staff members - alias for compatibility
+  getStaffMembers: async (searchRequest?: StaffSearchRequest): Promise<ApiResponse<StaffMember[]>> => {
+    return staffApi.getStaff(searchRequest);
+  },
+
+  // Get a single staff member by ID
+  getStaffById: async (id: string): Promise<ApiResponse<StaffMember | null>> => {
+    try {
+      const response = await apiClient.get(`/practitioner/staff/${id}`);
+      return handleApiResponse<StaffMember | null>(response, (data: any) => 
+        data ? mapBackendStaffToFrontend(data) : null
+      );
+    } catch (error) {
+      return handleApiError<StaffMember | null>(error, null);
     }
+  },
 
-    mockStaff[index] = {
-      ...mockStaff[index],
-      isActive: false,
-      updatedAt: new Date().toISOString(),
-    };
+  // Get staff member - alias for compatibility
+  getStaffMember: async (id: string): Promise<ApiResponse<StaffMember | null>> => {
+    return staffApi.getStaffById(id);
+  },
 
-    return createMockResponse(true);
+  // Get staff members by role
+  getStaffByRole: async (role: StaffRole): Promise<ApiResponse<StaffMember[]>> => {
+    try {
+      const response = await apiClient.get(`/practitioner/staff/role/${role}`);
+      return handleApiResponse<StaffMember[]>(response, (data: any[]) => 
+        data.map(mapBackendStaffToFrontend)
+      );
+    } catch (error) {
+      return handleApiError<StaffMember[]>(error, []);
+    }
+  },
+
+  // Create a new staff member
+  createStaff: async (request: CreateStaffRequest): Promise<ApiResponse<StaffMember>> => {
+    try {
+      const backendRequest = mapCreateRequestToBackend(request);
+      const response = await apiClient.post(`/practitioner/staff`, backendRequest);
+      return handleApiResponse<StaffMember>(response, mapBackendStaffToFrontend);
+    } catch (error) {
+      return handleApiError<StaffMember>(error, {} as StaffMember);
+    }
+  },
+
+  // Create staff member - alias for compatibility
+  createStaffMember: async (request: CreateStaffRequest): Promise<ApiResponse<StaffMember>> => {
+    return staffApi.createStaff(request);
+  },
+
+  // Update an existing staff member
+  updateStaff: async (id: string, request: UpdateStaffRequest): Promise<ApiResponse<StaffMember>> => {
+    try {
+      // Ensure the ID is set in the request
+      const updateRequest = { ...request, id };
+      const response = await apiClient.put(`/practitioner/staff/${id}`, updateRequest);
+      return handleApiResponse<StaffMember>(response, mapBackendStaffToFrontend);
+    } catch (error) {
+      return handleApiError<StaffMember>(error, {} as StaffMember);
+    }
+  },
+
+  // Update staff member - alias for compatibility
+  updateStaffMember: async (id: string, request: UpdateStaffRequest): Promise<ApiResponse<StaffMember>> => {
+    return staffApi.updateStaff(id, request);
+  },
+
+  // Delete a staff member (soft delete)
+  deleteStaff: async (id: string): Promise<ApiResponse<boolean>> => {
+    try {
+      const response = await apiClient.delete(`/practitioner/staff/${id}`);
+      return handleApiResponse<boolean>(response);
+    } catch (error) {
+      return handleApiError<boolean>(error, false);
+    }
+  },
+
+  // Delete staff member - alias for compatibility
+  deleteStaffMember: async (id: string): Promise<ApiResponse<boolean>> => {
+    return staffApi.deleteStaff(id);
   },
 
   // Get available specializations
-  async getSpecializations(): Promise<ApiResponse<Specialization[]>> {
-    return createMockResponse(mockSpecializations);
+  getSpecializations: async (): Promise<ApiResponse<Specialization[]>> => {
+    try {
+      const response = await apiClient.get(`/practitioner/staff/specializations`);
+      return handleApiResponse<Specialization[]>(response);
+    } catch (error) {
+      return handleApiError<Specialization[]>(error, []);
+    }
   },
 
   // Get available services
-  async getServices(): Promise<ApiResponse<Service[]>> {
-    return createMockResponse(mockServices);
+  getServices: async (): Promise<ApiResponse<Service[]>> => {
+    try {
+      const response = await apiClient.get(`/practitioner/staff/services`);
+      return handleApiResponse<Service[]>(response);
+    } catch (error) {
+      return handleApiError<Service[]>(error, []);
+    }
   },
 };
