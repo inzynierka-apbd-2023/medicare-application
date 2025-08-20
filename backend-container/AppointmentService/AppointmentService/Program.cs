@@ -7,6 +7,8 @@ using Microsoft.Data.SqlClient;
 using Azure.Identity;
 using AppointmentService.Data;
 using AppointmentService.Services;
+using AppointmentService.Features.DoctorSchedule.Services;
+using AppointmentService.Features.DoctorDashboard.Services;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using System.Reflection;
@@ -27,6 +29,16 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.Get
 // Add notification service
 builder.Services.AddScoped<INotificationService, NotificationService>();
 builder.Services.AddScoped<AppointmentService.Features.Metrics.Services.IAppointmentMetricsService, AppointmentService.Features.Metrics.Services.AppointmentMetricsService>();
+
+// Add doctor schedule service
+builder.Services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
+
+// Add doctor dashboard service
+builder.Services.AddScoped<IDoctorDashboardService, DoctorDashboardService>();
+
+// Add HTTP clients for external services
+builder.Services.AddHttpClient<IPatientService, PatientService>();
+builder.Services.AddHttpClient<IMedicalRecordsService, MedicalRecordsService>();
 
 if (useAzureDefaultCredential)
 {

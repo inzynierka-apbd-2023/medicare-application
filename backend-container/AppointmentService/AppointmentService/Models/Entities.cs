@@ -19,6 +19,8 @@ public class Appointment
     public string Status { get; set; } = "Scheduled"; // Scheduled, Confirmed, InProgress, Completed, Cancelled
     [MaxLength(100)]
     public string? AppointmentType { get; set; }
+    [MaxLength(1000)]
+    public string? ChiefComplaint { get; set; }
     [MaxLength(500)]
     public string? Notes { get; set; }
     [MaxLength(36)]

@@ -1,10 +1,11 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
 
 import Header from "../../../layout/Header";
 import { Card, Modal } from "../../../shared/components";
 import { useAuth } from "../../../shared/auth/AuthContext";
+import doctorDashboardApiService, { DoctorQuickStat } from "../../../shared/services/doctorDashboardApi";
 import {
   DashboardCard,
   DashboardLayout,
@@ -13,11 +14,6 @@ import {
 } from "../shared/components";
 
 import { DashboardScheduler } from "./components";
-
-interface QuickStat {
-  label: string;
-  value: number;
-}
 
 interface PatientMessage {
   id: number;
@@ -28,8 +24,37 @@ interface PatientMessage {
 export default function DoctorDashboard() {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [quickStats, setQuickStats] = useState<DoctorQuickStat[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const doctorLastName = (user?.lastName || "").trim() || user?.username || "Doctor";
+
+  useEffect(() => {
+    const loadQuickStats = async () => {
+      if (!user?.id) {
+        setLoading(false);
+        return;
+      }
+
+      try {
+        setLoading(true);
+        const response = await doctorDashboardApiService.getQuickStats(user.id);
+        if (response.success) {
+          setQuickStats(response.data);
+        } else {
+          setError("Failed to load quick stats");
+        }
+      } catch (err) {
+        setError("Failed to load quick stats");
+        console.error("Error loading quick stats:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadQuickStats();
+  }, [user?.id]);
 
   // Sample data - in real app this would come from API/props
   const notifications: Notification[] = [
@@ -67,13 +92,6 @@ export default function DoctorDashboard() {
       patient: "John Doe",
       text: "Thank you for the prescription.",
     },
-  ];
-
-  const quickStats: QuickStat[] = [
-    { label: "Patients Today", value: 7 },
-    { label: "Total Patients", value: 234 },
-    { label: "Visits this Month", value: 49 },
-    { label: "Unread Messages", value: 3 },
   ];
 
   const handleViewAllNotifications = () => {
@@ -142,21 +160,31 @@ export default function DoctorDashboard() {
           {/* Right Column - Stats, Notifications, and Quick Access */}
           <div className="w-full md:w-1/4 flex flex-col items-center space-y-6">
             <DashboardCard title="Quick Stats">
-              <ul className="w-full grid grid-cols-2 gap-4">
-                {quickStats.map((stat, idx) => (
-                  <li
-                    key={idx}
-                    className="bg-blue-50 rounded-xl px-2 py-3 text-center"
-                  >
-                    <span className="block text-2xl font-bold text-blue-700">
-                      {stat.value}
-                    </span>
-                    <span className="block text-xs text-gray-600">
-                      {stat.label}
-                    </span>
-                  </li>
-                ))}
-              </ul>
+              {loading ? (
+                <div className="w-full flex justify-center items-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+                </div>
+              ) : error ? (
+                <div className="w-full text-center py-4 text-red-600">
+                  {error}
+                </div>
+              ) : (
+                <ul className="w-full grid grid-cols-2 gap-4">
+                  {quickStats.map((stat, idx) => (
+                    <li
+                      key={idx}
+                      className="bg-blue-50 rounded-xl px-2 py-3 text-center"
+                    >
+                      <span className="block text-2xl font-bold text-blue-700">
+                        {stat.value}
+                      </span>
+                      <span className="block text-xs text-gray-600">
+                        {stat.label}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </DashboardCard>
 
             <DashboardCard

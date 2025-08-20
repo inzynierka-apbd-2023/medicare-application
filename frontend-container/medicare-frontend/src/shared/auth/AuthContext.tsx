@@ -19,7 +19,7 @@ const MOCK_OWNER_USER: AuthUser = {
   email: "owner@dev.com",
   firstName: "Dev",
   lastName: "Owner",
-  role: "Owner",
+  role: "Doctor",
   phoneNumber: "+1234567890",
   dateOfBirth: "1980-01-01",
   avatarUrl: null,
