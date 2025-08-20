@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Calendar, Clock, FileText, Phone, User } from "lucide-react";
 
 import { Card } from "../../../../shared/components";
+import { useAuth } from "../../../../shared/auth/AuthContext";
 import { DoctorScheduleModal } from "../../../scheduler/components/DoctorScheduleModal";
 import { useDoctorSchedule } from "../../../scheduler/hooks/useDoctorSchedule";
 import type { DoctorScheduleEvent } from "../../../scheduler/types/doctorScheduler";
@@ -11,8 +12,11 @@ interface DashboardSchedulerProps {
 }
 
 export const DashboardScheduler: React.FC<DashboardSchedulerProps> = ({
-  doctorId = "current-doctor-id",
+  doctorId,
 }) => {
+  const { user } = useAuth();
+  const actualDoctorId = doctorId || user?.id || "mock-doctor-id";
+  
   const [selectedAppointment, setSelectedAppointment] =
     useState<DoctorScheduleEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -25,7 +29,7 @@ export const DashboardScheduler: React.FC<DashboardSchedulerProps> = ({
     markAppointmentNoShow,
     addAppointmentNotes,
   } = useDoctorSchedule({
-    doctorId,
+    doctorId: actualDoctorId,
     autoRefresh: true,
     refreshInterval: 60000, // Refresh every minute
   });
