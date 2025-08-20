@@ -113,8 +113,12 @@ export const StaffDetailsModal: React.FC<StaffDetailsModalProps> = ({
       value: staff.role,
     },
     {
+      label: "UID",
+      value: staff.id,
+    },
+    {
       label: "Status",
-      value: staff.isActive ? "Active" : "Inactive",
+  value: staff.isActive ? "Active" : "Archived",
     },
     {
       label: "Created",
@@ -139,7 +143,7 @@ export const StaffDetailsModal: React.FC<StaffDetailsModalProps> = ({
               <h2 className="text-2xl font-bold text-gray-900">
                 {staff.profile.firstName} {staff.profile.lastName}
               </h2>
-              <div className="flex gap-2 mt-1">
+      <div className="flex gap-2 mt-1">
                 <Badge
                   variant={staff.role === "Doctor" ? "info" : "default"}
                   size="md"
@@ -147,7 +151,7 @@ export const StaffDetailsModal: React.FC<StaffDetailsModalProps> = ({
                   {staff.role}
                 </Badge>
                 <Badge variant={staff.isActive ? "success" : "error"} size="md">
-                  {staff.isActive ? "Active" : "Inactive"}
+        {staff.isActive ? "Active" : "Archived"}
                 </Badge>
               </div>
             </div>
@@ -188,11 +192,16 @@ export const StaffDetailsModal: React.FC<StaffDetailsModalProps> = ({
         {/* System Information */}
         <InfoCard title="System Information" variant="bordered">
           <DefinitionList variant="bordered" items={getSystemInfo()} />
+          {staff.role === "Doctor" && (staff as any).credentials && (
+            <div className="mt-3 p-3 rounded-md bg-amber-50 text-amber-800 text-sm">
+              Credentials (copy now; shown only once): Username {(staff as any).credentials.username}, Password {(staff as any).credentials.password}
+            </div>
+          )}
         </InfoCard>
 
         {/* Actions */}
         <div className="flex justify-end gap-3 pt-4 border-t border-gray-200">
-          {onDelete && (
+                {onDelete && (
             <Button
               variant="outline"
               onClick={handleDelete}

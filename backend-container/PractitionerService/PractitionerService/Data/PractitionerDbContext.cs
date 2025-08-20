@@ -23,6 +23,7 @@ public class PractitionerDbContext : DbContext
             e.HasKey(d => d.Id);
             e.Property(d => d.Id).HasColumnName("Id").HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
             e.Property(d => d.UserId).HasMaxLength(36).IsRequired();
+            e.Property(d => d.IsActive).HasDefaultValue(true);
             e.Property(d => d.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(d => d.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasIndex(d => d.UserId).IsUnique();
@@ -83,7 +84,7 @@ public class PractitionerDbContext : DbContext
             e.HasOne<Doctor>().WithMany(d => d.Schedules).HasForeignKey(s => s.DoctorId).OnDelete(DeleteBehavior.Cascade);
         });
 
-        // Projection view: DoctorDirectory joining user profile
+    // Projection view: DoctorDirectory joining user profile
         modelBuilder.Entity<DoctorDirectory>().HasNoKey().ToView("DoctorDirectory", schema: "practitioner");
     }
 }
