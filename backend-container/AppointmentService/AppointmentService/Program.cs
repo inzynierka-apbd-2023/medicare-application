@@ -8,6 +8,7 @@ using Azure.Identity;
 using AppointmentService.Data;
 using AppointmentService.Services;
 using AppointmentService.Features.DoctorSchedule.Services;
+using AppointmentService.Features.DoctorDashboard.Services;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using System.Reflection;
@@ -31,6 +32,9 @@ builder.Services.AddScoped<AppointmentService.Features.Metrics.Services.IAppoint
 
 // Add doctor schedule service
 builder.Services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
+
+// Add doctor dashboard service
+builder.Services.AddScoped<IDoctorDashboardService, DoctorDashboardService>();
 
 // Add HTTP clients for external services
 builder.Services.AddHttpClient<IPatientService, PatientService>();

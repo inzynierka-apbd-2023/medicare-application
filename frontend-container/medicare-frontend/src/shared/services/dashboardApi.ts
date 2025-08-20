@@ -245,68 +245,6 @@ const MOCK_PATIENT_DOCUMENTS: Document[] = [
   },
 ];
 
-const MOCK_DOCTOR_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    message: "Appointment with John Doe at 10:30 AM today.",
-    type: "warning",
-    timestamp: "2025-05-14T09:00:00Z",
-    read: false,
-  },
-  {
-    id: "2",
-    message: "Lab result for Maria Smith is now available.",
-    type: "success",
-    timestamp: "2025-05-13T14:00:00Z",
-    read: false,
-  },
-  {
-    id: "3",
-    message: "Patient Adam Nowak sent a new message.",
-    type: "info",
-    timestamp: "2025-05-13T11:30:00Z",
-    read: true,
-  },
-  {
-    id: "4",
-    message: "Follow-up reminder: 2 patients need summary reports.",
-    type: "warning",
-    timestamp: "2025-05-12T16:00:00Z",
-    read: false,
-  },
-];
-
-const MOCK_DOCTOR_STATS: QuickStat[] = [
-  { label: "Patients Today", value: 7, change: "+2", trend: "up" },
-  { label: "Total Patients", value: 234, change: "+12", trend: "up" },
-  { label: "Visits this Month", value: 49, change: "+5", trend: "up" },
-  { label: "Unread Messages", value: 3, change: "-1", trend: "down" },
-];
-
-const MOCK_PATIENT_MESSAGES: PatientMessage[] = [
-  {
-    id: 2,
-    patient: "Maria Smith",
-    text: "Can I move my appointment to Friday?",
-    timestamp: "2025-05-13T15:30:00Z",
-    unread: true,
-  },
-  {
-    id: 3,
-    patient: "Adam Nowak",
-    text: "Uploaded my recent blood test results.",
-    timestamp: "2025-05-13T10:15:00Z",
-    unread: true,
-  },
-  {
-    id: 1,
-    patient: "John Doe",
-    text: "Thank you for the prescription.",
-    timestamp: "2025-05-12T14:20:00Z",
-    unread: false,
-  },
-];
-
 // API functions for Patient Dashboard
 export const patientDashboardApi = {
   getDocuments: (): Promise<ApiResponse<Document[]>> => {
@@ -317,33 +255,6 @@ export const patientDashboardApi = {
     notificationId: string
   ): Promise<ApiResponse<boolean>> => {
     const notification = MOCK_PATIENT_NOTIFICATIONS.find(
-      (n) => n.id === notificationId
-    );
-    if (notification) {
-      notification.read = true;
-    }
-    return createMockResponse(true, 100);
-  },
-};
-
-// API functions for Doctor Dashboard
-export const doctorDashboardApi = {
-  getNotifications: (): Promise<ApiResponse<Notification[]>> => {
-    return createMockResponse(MOCK_DOCTOR_NOTIFICATIONS, 300);
-  },
-
-  getQuickStats: (): Promise<ApiResponse<QuickStat[]>> => {
-    return createMockResponse(MOCK_DOCTOR_STATS, 250);
-  },
-
-  getPatientMessages: (): Promise<ApiResponse<PatientMessage[]>> => {
-    return createMockResponse(MOCK_PATIENT_MESSAGES, 200);
-  },
-
-  markNotificationAsRead: (
-    notificationId: string
-  ): Promise<ApiResponse<boolean>> => {
-    const notification = MOCK_DOCTOR_NOTIFICATIONS.find(
       (n) => n.id === notificationId
     );
     if (notification) {
