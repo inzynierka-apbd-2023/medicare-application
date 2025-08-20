@@ -47,26 +47,14 @@ import { PatientRegistryPage } from "./features/patientRegistry";
 import { AuthProvider } from "./shared/auth/AuthContext";
 import { RoleBasedRoute } from "./shared/auth/RoleBasedRoute";
 
-// Development Mock Banner Component
-const DevMockBanner = () => {
-  // This should match the DEV_MOCK_OWNER flag in AuthContext
-  const DEV_MOCK_ENABLED = true; // Set to false to hide banner
-  
-  if (!DEV_MOCK_ENABLED) return null;
-  
-  return (
-    <div className="bg-yellow-500 text-black text-center py-2 px-4 font-semibold">
-      🚧 DEVELOPMENT MODE: Auto-logged in as Mock Owner
-    </div>
-  );
-};
+// DevMockBanner removed (mock login disabled)
 
 function App() {
   return (
     <div className="min-h-screen bg-gray-100">
       <BrowserRouter>
         <AuthProvider>
-          <DevMockBanner />
+          {/* Mock banner removed */}
           <Routes>
             {/* ===== PUBLIC ROUTES ===== */}
             <Route path="/" element={<Login />} />

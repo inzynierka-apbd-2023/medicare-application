@@ -12,7 +12,7 @@ import { AuthResponse, authService, AuthUser } from "../services/authService";
 import { usersApi } from "../services/usersApi";
 
 // ===== DEVELOPMENT MOCK =====
-const DEV_MOCK_OWNER = true; // Set to false to disable mock
+const DEV_MOCK_OWNER = false; // Disabled
 const MOCK_OWNER_USER: AuthUser = {
   id: "mock-owner-id",
   username: "owner-dev",
