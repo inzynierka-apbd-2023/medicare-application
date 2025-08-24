@@ -30,7 +30,7 @@ class DoctorScheduleApiService {
       if (status) params.append("status", status);
 
       const response = await fetch(
-        `${API_BASE_URL}/api/appointment/doctor-schedule/${doctorId}?${params}`,
+        `${API_BASE_URL}/appointment/doctor-schedule/${doctorId}?${params}`,
         {
           method: "GET",
           headers: this.getAuthHeaders(),
@@ -54,7 +54,7 @@ class DoctorScheduleApiService {
   ): Promise<ApiResponse<DoctorScheduleEvent[]>> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/appointment/doctor-schedule/${doctorId}/today`,
+        `${API_BASE_URL}/appointment/doctor-schedule/${doctorId}/today`,
         {
           method: "GET",
           headers: this.getAuthHeaders(),
@@ -78,7 +78,7 @@ class DoctorScheduleApiService {
   ): Promise<ApiResponse<DoctorScheduleEvent>> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/appointment/doctor-schedule/appointment/${appointmentId}`,
+        `${API_BASE_URL}/appointment/doctor-schedule/appointment/${appointmentId}`,
         {
           method: "GET",
           headers: this.getAuthHeaders(),
@@ -102,7 +102,7 @@ class DoctorScheduleApiService {
   ): Promise<ApiResponse<boolean>> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/appointment/doctor-schedule/appointment/${appointmentId}/status`,
+        `${API_BASE_URL}/appointment/doctor-schedule/appointment/${appointmentId}/status`,
         {
           method: "PUT",
           headers: this.getAuthHeaders(),
@@ -126,7 +126,7 @@ class DoctorScheduleApiService {
   ): Promise<ApiResponse<boolean>> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/appointment/doctor-schedule/appointment/${appointmentId}/status`,
+        `${API_BASE_URL}/appointment/doctor-schedule/appointment/${appointmentId}/status`,
         {
           method: "PUT",
           headers: this.getAuthHeaders(),
@@ -151,7 +151,7 @@ class DoctorScheduleApiService {
   ): Promise<ApiResponse<boolean>> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/appointment/doctor-schedule/appointment/${appointmentId}/notes`,
+        `${API_BASE_URL}/appointment/doctor-schedule/appointment/${appointmentId}/notes`,
         {
           method: "PUT",
           headers: this.getAuthHeaders(),

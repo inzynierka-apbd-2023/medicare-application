@@ -27,7 +27,7 @@ class DoctorDashboardApiService {
   ): Promise<ApiResponse<DoctorQuickStat[]>> {
     try {
       const response = await fetch(
-        `${API_BASE_URL}/api/appointment/doctor-dashboard/${doctorId}/quick-stats`,
+        `${API_BASE_URL}/appointment/doctor-dashboard/${doctorId}/quick-stats`,
         {
           method: "GET",
           headers: this.getAuthHeaders(),
