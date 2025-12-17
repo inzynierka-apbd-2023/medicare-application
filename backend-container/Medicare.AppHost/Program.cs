@@ -1,7 +1,9 @@
 var builder = DistributedApplication.CreateBuilder(args);
 
 // External resources
+// Uses local SQL Server container for development, Azure SQL Database for production
 var sql = builder.AddSqlServer("sql")
+                 .PublishAsAzureSqlDatabase()
                  .AddDatabase("DefaultConnection");
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
