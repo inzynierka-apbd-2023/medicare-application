@@ -7,6 +7,8 @@ using ArchiveService.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 // Services
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -14,7 +16,7 @@ builder.Services.AddSwaggerGen();
 var connString = builder.Configuration.GetConnectionString("ArchiveDb") ?? "Data Source=archive.db";
 builder.Services.AddDbContext<ArchiveDbContext>(o => o.UseSqlite(connString));
 
-builder.Services.AddRabbit(builder.Configuration);
+builder.AddRabbitMQClient("rabbitmq");
 
 builder.Services.AddHostedService<DoctorArchiveConsumer>();
 
@@ -204,5 +206,7 @@ app.MapGet("/archive/doctors/{doctorId}", async (Guid doctorId, ArchiveDbContext
 });
 
 app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
+
+app.MapDefaultEndpoints();
 
 app.Run();

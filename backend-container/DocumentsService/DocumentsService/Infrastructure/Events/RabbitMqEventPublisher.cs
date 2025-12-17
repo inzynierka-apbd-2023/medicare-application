@@ -10,17 +10,26 @@ namespace DocumentsService.Infrastructure.Events;
 /// Publishes document domain events to RabbitMQ and also emits user-facing notifications
 /// into the shared notifications.events queue (consumed by NotificationService).
 /// </summary>
-public sealed class RabbitMqEventPublisher(ILogger<RabbitMqEventPublisher> logger, IServiceProvider services) : IEventPublisher
+public sealed class RabbitMqEventPublisher : IEventPublisher
 {
-    private readonly ILogger<RabbitMqEventPublisher> _logger = logger;
-    private readonly IServiceProvider _services = services;
+    private readonly ILogger<RabbitMqEventPublisher> _logger;
+    private readonly IServiceProvider _services;
+    private readonly IConnection _connection;
+
+    public RabbitMqEventPublisher(ILogger<RabbitMqEventPublisher> logger, IServiceProvider services, IConnection connection)
+    {
+        _logger = logger;
+        _services = services;
+        _connection = connection;
+    }
 
     public Task PublishAsync<TEvent>(TEvent @event, CancellationToken ct = default)
     {
         try
         {
-            using var conn = CreateConnection();
-            using var channel = conn.CreateModel();
+            // Use injected connection; CreateModel is cheap enough to do per publish or we could pool channels.
+            // For now, using per-publish channel is standard enough unless high throughput is needed.
+            using var channel = _connection.CreateModel();
 
             // Publish the raw domain event to an events exchange (fanout for now)
             const string domainExchange = "documents.events";
@@ -36,15 +45,6 @@ public sealed class RabbitMqEventPublisher(ILogger<RabbitMqEventPublisher> logge
             _logger.LogError(ex, "Failed to publish event {EventType}", typeof(TEvent).Name);
         }
         return Task.CompletedTask;
-    }
-
-    private static IConnection CreateConnection()
-    {
-        var host = Environment.GetEnvironmentVariable("RABBITMQ__HOST") ?? "rabbitmq";
-        var user = Environment.GetEnvironmentVariable("RABBITMQ__USERNAME") ?? "guest";
-        var pass = Environment.GetEnvironmentVariable("RABBITMQ__PASSWORD") ?? "guest";
-        var factory = new ConnectionFactory { HostName = host, UserName = user, Password = pass };
-        return factory.CreateConnection();
     }
 
     private void TryPublishNotificationIfApplicable<TEvent>(IModel channel, TEvent @event)

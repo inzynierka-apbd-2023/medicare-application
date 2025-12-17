@@ -12,6 +12,8 @@ using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 const string UseAzureDefaultCredentialKey = "USE_AZURE_DEFAULT_CREDENTIAL";
 const string AuthenticationKeyword = "Authentication";
 
@@ -19,6 +21,7 @@ var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeC
 LogConnectionInfo(connectionString, connectionSource);
 
 builder.Services.AddControllers();
+builder.AddRabbitMQClient("rabbitmq");
 
 builder.Services.AddMediatR(typeof(Program).Assembly);
 
@@ -151,6 +154,8 @@ if (!app.Environment.IsProduction())
 {
     await ApplyMigrationsAsync(app.Services);
 }
+
+app.MapDefaultEndpoints();
 
 await app.RunAsync();
 

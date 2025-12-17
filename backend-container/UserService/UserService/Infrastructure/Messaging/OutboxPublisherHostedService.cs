@@ -20,27 +20,44 @@ public class OutboxPublisherHostedService : BackgroundService
 {
     private readonly IServiceProvider _sp;
     private readonly RabbitOptions _opt;
-    private IConnection? _conn;
+    private readonly IConnection _conn;
     private IModel? _ch;
 
-    public OutboxPublisherHostedService(IServiceProvider sp, IOptions<RabbitOptions> options)
+    private readonly IConfiguration _config;
+
+    public OutboxPublisherHostedService(IServiceProvider sp, IOptions<RabbitOptions> options, IConfiguration config, IConnection conn)
     {
         _sp = sp;
         _opt = options.Value;
-    }
-
-    public override Task StartAsync(CancellationToken cancellationToken)
-    {
-        var f = new ConnectionFactory { HostName = _opt.Host, UserName = _opt.Username, Password = _opt.Password };
-        _conn = f.CreateConnection();
-        _ch = _conn.CreateModel();
-        _ch.ExchangeDeclare(_opt.Exchange, ExchangeType.Topic, durable: true);
-    Console.WriteLine($"[OutboxPublisher] Connected to RabbitMQ host='{_opt.Host}', user='{_opt.Username}', exchange='{_opt.Exchange}'");
-        return base.StartAsync(cancellationToken);
+        _config = config;
+        _conn = conn;
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
+        try
+        {
+            _ch = _conn.CreateModel();
+            _ch.ExchangeDeclare(_opt.Exchange, ExchangeType.Topic, durable: true);
+            Console.WriteLine($"[OutboxPublisher] Connected to RabbitMQ exchange='{_opt.Exchange}'");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[OutboxPublisher] Failed to setup RabbitMQ channel: {ex.Message}");
+            // Simple retry loop for channel creation
+             while (!stoppingToken.IsCancellationRequested && _ch == null)
+            {
+                try
+                {
+                     await Task.Delay(5000, stoppingToken);
+                     _ch = _conn.CreateModel();
+                     _ch.ExchangeDeclare(_opt.Exchange, ExchangeType.Topic, durable: true);
+                }
+                catch { }
+            }
+        }
+
+
         while (!stoppingToken.IsCancellationRequested)
         {
             try

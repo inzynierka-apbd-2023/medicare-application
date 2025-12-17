@@ -15,6 +15,8 @@ using System.Reflection;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 const string UseAzureDefaultCredentialKey = "USE_AZURE_DEFAULT_CREDENTIAL";
 const string AuthenticationKeyword = "Authentication";
 
@@ -22,6 +24,7 @@ var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeC
 LogConnectionInfo(connectionString, connectionSource);
 
 builder.Services.AddControllers();
+builder.AddRabbitMQClient("rabbitmq");
 
 // Add MediatR for CQRS
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
@@ -151,6 +154,8 @@ if (!app.Environment.IsProduction())
 {
     await ApplyMigrationsAsync(app.Services);
 }
+
+app.MapDefaultEndpoints();
 
 await app.RunAsync();
 

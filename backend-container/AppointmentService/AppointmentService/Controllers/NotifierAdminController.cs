@@ -38,10 +38,15 @@ public class NotifierAdminController : ControllerBase
                 .ToListAsync();
 
             // Read RabbitMQ settings from configuration (env vars map __ -> :) 
-            var host = _config["RABBITMQ:HOST"] ?? "rabbitmq";
-            var user = _config["RABBITMQ:USERNAME"] ?? "guest";
-            var pass = _config["RABBITMQ:PASSWORD"] ?? "guest";
-            var factory = new ConnectionFactory { HostName = host, UserName = user, Password = pass };
+            var factory = new ConnectionFactory();
+            var cs = _config.GetConnectionString("rabbitmq");
+            if (!string.IsNullOrEmpty(cs)) { factory.Uri = new Uri(cs); }
+            else 
+            {
+                factory.HostName = _config["RABBITMQ:HOST"] ?? "rabbitmq";
+                factory.UserName = _config["RABBITMQ:USERNAME"] ?? "guest";
+                factory.Password = _config["RABBITMQ:PASSWORD"] ?? "guest";
+            }
             using var conn = factory.CreateConnection();
             using var ch = conn.CreateModel();
             var queue = "notifications.events";

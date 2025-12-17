@@ -14,19 +14,18 @@ public class Program
 {
     public static async Task Main(string[] args)
     {
-        var host = Host.CreateDefaultBuilder(args)
-            .ConfigureLogging(b => b.AddConsole())
-            .Build();
+        var builder = Host.CreateApplicationBuilder(args);
+        builder.Logging.AddConsole();
+        builder.AddRabbitMQClient("rabbitmq");
+
+        var host = builder.Build();
 
         var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("PdfService");
 
-        var rabbitHost = Environment.GetEnvironmentVariable("RABBITMQ__HOST") ?? "rabbitmq";
-        var rabbitUser = Environment.GetEnvironmentVariable("RABBITMQ__USERNAME") ?? "guest";
-        var rabbitPass = Environment.GetEnvironmentVariable("RABBITMQ__PASSWORD") ?? "guest";
+        // Use Aspire-injected connection
+        IConnection conn = host.Services.GetRequiredService<IConnection>();
+        IModel channel = conn.CreateModel();
 
-        var factory = new ConnectionFactory { HostName = rabbitHost, UserName = rabbitUser, Password = rabbitPass, DispatchConsumersAsync = true };
-        using var conn = factory.CreateConnection();
-        using var channel = conn.CreateModel();
         var queue = "pdf.generate.document";
         channel.QueueDeclare(queue, durable: false, exclusive: false, autoDelete: false);
         channel.BasicQos(0, 1, false);
@@ -101,7 +100,7 @@ public class Program
                              r.RelativeItem().PaddingLeft(10).Column(col =>
                              {
                                  col.Item().Text("Medicare Clinic").Bold().FontSize(18);
-                                 col.Item().Text("123 Health St, Wellness City • (555) 123-4567").FontSize(10).FontColor(Colors.Grey.Darken1);
+                                 col.Item().Text("123 Health St, Wellness City ï¿½ (555) 123-4567").FontSize(10).FontColor(Colors.Grey.Darken1);
                              });
                              r.AutoItem().AlignRight().Text(type.Replace('_',' ')).Bold().FontSize(14).FontColor(accent);
                          })
@@ -318,10 +317,10 @@ public class Program
                 p.Footer().AlignCenter().Text(x =>
                 {
                     x.DefaultTextStyle(s => s.FontSize(9).FontColor(Colors.Grey.Darken1));
-                    x.Span("Medicare Clinic • ");
-                    x.Span("Confidential Medical Document • ");
+                    x.Span("Medicare Clinic ï¿½ ");
+                    x.Span("Confidential Medical Document ï¿½ ");
                     x.Span(DateTime.UtcNow.ToString("u"));
-                    x.Span(" • Page ");
+                    x.Span(" ï¿½ Page ");
                     x.CurrentPageNumber();
                     x.Span(" of ");
                     x.TotalPages();

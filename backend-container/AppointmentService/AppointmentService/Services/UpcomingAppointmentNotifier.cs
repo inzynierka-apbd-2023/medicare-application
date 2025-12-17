@@ -9,47 +9,47 @@ using RabbitMQ.Client;
 
 namespace AppointmentService.Services;
 
-public class UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> logger, IServiceProvider sp, IConfiguration config) : BackgroundService
+public class UpcomingAppointmentNotifier : BackgroundService
 {
-    private readonly ILogger<UpcomingAppointmentNotifier> _logger = logger;
-    private IConnection? _conn;
+    private readonly ILogger<UpcomingAppointmentNotifier> _logger;
+    private readonly IServiceProvider _sp;
+    private readonly IConnection _conn;
     private IModel? _ch;
     private readonly string _queue = "notifications.events";
-    private readonly IConfiguration _config = config;
+
+    public UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> logger, IServiceProvider sp, IConnection conn)
+    {
+        _logger = logger;
+        _sp = sp;
+        _conn = conn;
+    }
 
     private void EnsureRabbitChannel()
     {
         if (_ch != null && _ch.IsOpen) return;
         try
         {
-            // Read RabbitMQ settings from IConfiguration (env vars map __ -> :) 
-            var host = _config["RABBITMQ:HOST"] ?? "rabbitmq";
-            var user = _config["RABBITMQ:USERNAME"] ?? "guest";
-            var pass = _config["RABBITMQ:PASSWORD"] ?? "guest";
-            var factory = new ConnectionFactory { HostName = host, UserName = user, Password = pass };
-            _conn?.Dispose();
-            _conn = factory.CreateConnection();
             _ch = _conn.CreateModel();
             _ch.QueueDeclare(_queue, durable: true, exclusive: false, autoDelete: false);
-            _logger.LogInformation("UpcomingAppointmentNotifier connected/reconnected to RabbitMQ host={Host}", host);
+            _logger.LogInformation("UpcomingAppointmentNotifier channel created for queue {Queue}", _queue);
         }
         catch (Exception ex)
         {
             _ch = null;
-            _logger.LogError(ex, "Failed to connect to RabbitMQ");
+            _logger.LogError(ex, "Failed to create RabbitMQ channel");
         }
     }
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
     // Initial connect (will also be retried each tick)
-    EnsureRabbitChannel();
+        try { EnsureRabbitChannel(); } catch (Exception ex) { _logger.LogError(ex, "Initial RabbitMQ connection failed; will retry."); }
 
         while (!stoppingToken.IsCancellationRequested)
         {
             try
             {
-                using var scope = sp.CreateScope();
+                using var scope = _sp.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<AppointmentDbContext>();
                 var now = DateTime.UtcNow;
                 var windowStart = now;
@@ -183,6 +183,6 @@ public class UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> lo
     {
         base.Dispose();
         try { _ch?.Close(); _ch?.Dispose(); } catch { }
-        try { _conn?.Close(); _conn?.Dispose(); } catch { }
+        // Do not dispose injected _conn!
     }
 }

@@ -9,141 +9,173 @@ using MedicalRecordsService.Data;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-var builder = WebApplication.CreateBuilder(args);
 
+
+// Constants (Must be top-level for static local functions to see them if they are const)
 const string UseAzureDefaultCredentialKey = "USE_AZURE_DEFAULT_CREDENTIAL";
 const string AuthenticationKeyword = "Authentication";
 
-var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeConnectionString(builder.Configuration);
-LogConnectionInfo(connectionString, connectionSource);
-
-builder.Services.AddControllers();
-
-if (useAzureDefaultCredential)
+try
 {
-    builder.Services.AddScoped(_ => CreateTokenSqlConnection(connectionString));
-}
+    var builder = WebApplication.CreateBuilder(args);
 
-builder.Services.AddDbContext<MedicalRecordsDbContext>((sp, options) =>
-{
+    builder.AddServiceDefaults();
+
+    var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeConnectionString(builder.Configuration);
+    LogConnectionInfo(connectionString, connectionSource);
+
+    builder.Services.AddControllers();
+
     if (useAzureDefaultCredential)
     {
-        var sqlConn = sp.GetRequiredService<SqlConnection>();
-        options.UseSqlServer(sqlConn, sql =>
-        {
-            sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-            sql.MigrationsHistoryTable("__EFMigrationsHistory", "medical");
-            sql.MigrationsAssembly(typeof(MedicalRecordsDbContext).Assembly.GetName().Name);
-        });
+        builder.Services.AddScoped(_ => CreateTokenSqlConnection(connectionString));
     }
-    else
-    {
-        options.UseSqlServer(connectionString, sql =>
-        {
-            sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-            sql.MigrationsHistoryTable("__EFMigrationsHistory", "medical");
-            sql.MigrationsAssembly(typeof(MedicalRecordsDbContext).Assembly.GetName().Name);
-        });
-    }
-});
 
-var jwt = builder.Configuration.GetSection("Jwt");
-var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
-var issuer = jwt["Issuer"] ?? "MedicareApp";
-var audience = jwt["Audience"] ?? "MedicareUsers";
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
+    builder.Services.AddDbContext<MedicalRecordsDbContext>((sp, options) =>
     {
-        o.TokenValidationParameters = new TokenValidationParameters
+        if (useAzureDefaultCredential)
         {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = issuer,
-            ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
-        };
-    });
-
-builder.Services.AddCors(o =>
-{
-    o.AddPolicy("DefaultPolicy", p =>
-    {
-        var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
-        if (allowed.Length == 0 || allowed.Contains("*"))
-        {
-            p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+            var sqlConn = sp.GetRequiredService<SqlConnection>();
+            options.UseSqlServer(sqlConn, sql =>
+            {
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                sql.MigrationsHistoryTable("__EFMigrationsHistory", "medical");
+                sql.MigrationsAssembly(typeof(MedicalRecordsDbContext).Assembly.GetName().Name);
+            });
         }
         else
         {
-            p.WithOrigins(allowed).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-        }
-    });
-});
-
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Medicare Medical Records Service API", Version = "v1", Description = "Medical Records domain API" });
-    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
-    {
-        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer 12345abcdef'",
-        Name = "Authorization",
-        In = ParameterLocation.Header,
-        Type = SecuritySchemeType.ApiKey,
-        Scheme = "Bearer"
-    });
-    c.AddSecurityRequirement(new OpenApiSecurityRequirement
-    {
-        {
-            new OpenApiSecurityScheme
+            options.UseSqlServer(connectionString, sql =>
             {
-                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
-            }, Array.Empty<string>()
+                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+                sql.MigrationsHistoryTable("__EFMigrationsHistory", "medical");
+                sql.MigrationsAssembly(typeof(MedicalRecordsDbContext).Assembly.GetName().Name);
+            });
         }
     });
-});
 
-builder.Services.AddHealthChecks().AddDbContextCheck<MedicalRecordsDbContext>();
+    var jwt = builder.Configuration.GetSection("Jwt");
+    var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
+    var issuer = jwt["Issuer"] ?? "MedicareApp";
+    var audience = jwt["Audience"] ?? "MedicareUsers";
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(o =>
+        {
+            o.TokenValidationParameters = new TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = issuer,
+                ValidAudience = audience,
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            };
+        });
 
-var app = builder.Build();
+    builder.Services.AddCors(o =>
+    {
+        o.AddPolicy("DefaultPolicy", p =>
+        {
+            var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
+            if (allowed.Length == 0 || allowed.Contains("*"))
+            {
+                p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+            }
+            else
+            {
+                p.WithOrigins(allowed).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+            }
+        });
+    });
 
-if (app.Environment.IsDevelopment())
-{
-    app.UseSwagger();
-    app.UseSwaggerUI();
+    builder.Services.AddEndpointsApiExplorer();
+    builder.Services.AddSwaggerGen(c =>
+    {
+        c.SwaggerDoc("v1", new OpenApiInfo { Title = "Medicare Medical Records Service API", Version = "v1", Description = "Medical Records domain API" });
+        c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
+        {
+            Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer 12345abcdef'",
+            Name = "Authorization",
+            In = ParameterLocation.Header,
+            Type = SecuritySchemeType.ApiKey,
+            Scheme = "Bearer"
+        });
+        c.AddSecurityRequirement(new OpenApiSecurityRequirement
+        {
+            {
+                new OpenApiSecurityScheme
+                {
+                    Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+                }, Array.Empty<string>()
+            }
+        });
+    });
+
+    builder.Services.AddHealthChecks().AddDbContextCheck<MedicalRecordsDbContext>();
+
+    var app = builder.Build();
+
+    if (app.Environment.IsDevelopment())
+    {
+        app.UseSwagger();
+        app.UseSwaggerUI();
+    }
+
+    app.UseHttpsRedirection();
+    app.UseCors("DefaultPolicy");
+    app.UseAuthentication();
+    app.UseAuthorization();
+    app.MapControllers();
+    app.MapHealthChecks("/health");
+
+    if (!app.Environment.IsProduction())
+    {
+        await ApplyMigrationsAsync(app.Services);
+    }
+
+    app.MapDefaultEndpoints();
+
+    await app.RunAsync();
 }
-
-app.UseHttpsRedirection();
-app.UseCors("DefaultPolicy");
-app.UseAuthentication();
-app.UseAuthorization();
-app.MapControllers();
-app.MapHealthChecks("/health");
-
-if (!app.Environment.IsProduction())
+catch (Exception ex)
 {
-    await ApplyMigrationsAsync(app.Services);
+    Console.WriteLine($"[CRITICAL] Application terminated unexpectedly: {ex}");
+    await Task.Delay(10000); // Wait 10s to ensure logs are flushed/read
+    throw;
 }
-
-await app.RunAsync();
 
 static (string ConnectionString, string Source, bool UseAzureDefaultCredential) NormalizeConnectionString(IConfiguration config)
 {
     string? src; string? cs;
+    // Constants for lookup
+    const string UseAzureDefaultCredentialKey = "USE_AZURE_DEFAULT_CREDENTIAL";
+    const string AuthenticationKeyword = "Authentication";
+
     if (!string.IsNullOrWhiteSpace(config["AZURE_SQL_CONNECTIONSTRING"])) { cs = config["AZURE_SQL_CONNECTIONSTRING"]; src = "AZURE_SQL_CONNECTIONSTRING"; }
     else if (!string.IsNullOrWhiteSpace(config["ConnectionStrings__DefaultConnection"])) { cs = config["ConnectionStrings__DefaultConnection"]; src = "ConnectionStrings__DefaultConnection env var"; }
     else { cs = config.GetConnectionString("DefaultConnection"); src = "appsettings"; }
+    
     if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException("No SQL connection string configured.");
+    
     var useAzure = string.Equals(config[UseAzureDefaultCredentialKey], "true", StringComparison.OrdinalIgnoreCase);
     var csb = new SqlConnectionStringBuilder(cs);
+    
     if (useAzure)
     {
         bool modified = false;
         void R(string k){ if (csb.ContainsKey(k)){ csb.Remove(k); modified = true; } }
         R("User ID"); R("User"); R("UID"); R("Password"); R("Pwd"); R(AuthenticationKeyword);
         if (modified) Console.WriteLine("[Startup] Normalized connection string for AAD token (removed credentials / Authentication).");
+    }
+    else
+    {
+        // Enforce TrustServerCertificate for local non-Azure connections to avoid SSL handshake errors
+        if (!csb.TrustServerCertificate)
+        {
+            csb.TrustServerCertificate = true;
+            Console.WriteLine("[Startup] Enforced TrustServerCertificate=True for local connection.");
+        }
     }
     return (csb.ConnectionString, src!, useAzure);
 }

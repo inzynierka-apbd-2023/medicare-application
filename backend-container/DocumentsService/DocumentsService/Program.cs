@@ -13,6 +13,8 @@ using System.Security.Claims;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 const string UseAzureDefaultCredentialKey = "USE_AZURE_DEFAULT_CREDENTIAL";
 const string AuthenticationKeyword = "Authentication";
 
@@ -20,6 +22,7 @@ var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeC
 LogConnectionInfo(connectionString, connectionSource);
 
 builder.Services.AddControllers();
+builder.AddRabbitMQClient("rabbitmq");
 builder.Services.AddSingleton<IEventPublisher, RabbitMqEventPublisher>();
 
 if (useAzureDefaultCredential)
@@ -149,6 +152,8 @@ if (!app.Environment.IsProduction())
     await SeedTestDataAsync(app.Services);
 }
 
+app.MapDefaultEndpoints();
+
 await app.RunAsync();
 
 static (string ConnectionString, string Source, bool UseAzureDefaultCredential) NormalizeConnectionString(IConfiguration config)
@@ -166,6 +171,15 @@ static (string ConnectionString, string Source, bool UseAzureDefaultCredential) 
         void R(string k){ if (csb.ContainsKey(k)){ csb.Remove(k); modified = true; } }
         R("User ID"); R("User"); R("UID"); R("Password"); R("Pwd"); R(AuthenticationKeyword);
         if (modified) Console.WriteLine("[Startup] Normalized connection string for AAD token (removed credentials / Authentication).");
+    }
+    else
+    {
+        // For local SQL containers, trust the self-signed certificate
+        if (!csb.TrustServerCertificate)
+        {
+            csb.TrustServerCertificate = true;
+            Console.WriteLine("[Startup] Enforcing TrustServerCertificate=True for non-Azure connection.");
+        }
     }
     return (csb.ConnectionString, src!, useAzure);
 }

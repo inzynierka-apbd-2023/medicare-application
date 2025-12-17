@@ -21,6 +21,7 @@ namespace MedicalCatalogService.Migrations
             migrationBuilder.Sql("IF OBJECT_ID('catalog.Medical_Condition','U') IS NOT NULL DROP TABLE catalog.Medical_Condition;");
             migrationBuilder.Sql("IF OBJECT_ID('catalog.Lab_Test_Type','U') IS NOT NULL DROP TABLE catalog.Lab_Test_Type;");
 
+
             // Create new LOINC-focused tables (if not exists)
             migrationBuilder.Sql(@"
 IF OBJECT_ID('catalog.loinc','U') IS NULL
@@ -116,20 +117,13 @@ BEGIN
     CREATE UNIQUE INDEX [IX_loinc_consumer_name_key] ON [catalog].[loinc_consumer_name]([LoincNum],[ConsumerName],[Language]);
 END
 
--- Optional: Full-text index for search
-IF NOT EXISTS (SELECT 1 FROM sys.fulltext_catalogs WHERE name = 'ftCatalog')
+-- Ensure release table has Description column (if release table exists)
+IF OBJECT_ID('catalog.release','U') IS NOT NULL
 BEGIN
-    CREATE FULLTEXT CATALOG ftCatalog AS DEFAULT;
-END
-IF NOT EXISTS (SELECT 1 FROM sys.fulltext_indexes WHERE object_id = OBJECT_ID('catalog.loinc'))
-BEGIN
-    CREATE FULLTEXT INDEX ON [catalog].[loinc]([LongCommonName] LANGUAGE 1033, [Component] LANGUAGE 1033, [ShortName] LANGUAGE 1033) KEY INDEX [PK_loinc];
-END
-
--- Ensure release table has Description column
-IF COL_LENGTH('catalog.release','Description') IS NULL
-BEGIN
-    ALTER TABLE [catalog].[release] ADD [Description] NVARCHAR(200) NULL;
+    IF COL_LENGTH('catalog.release','Description') IS NULL
+    BEGIN
+        ALTER TABLE [catalog].[release] ADD [Description] NVARCHAR(200) NULL;
+    END
 END
 ");
         }

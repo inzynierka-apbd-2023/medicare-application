@@ -11,8 +11,11 @@ namespace UserService.Migrations
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.EnsureSchema(name: "user");
+
             migrationBuilder.CreateTable(
                 name: "Role",
+                schema: "user",
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
@@ -26,6 +29,7 @@ namespace UserService.Migrations
 
             migrationBuilder.CreateTable(
                 name: "User",
+                schema: "user",
                 columns: table => new
                 {
                     Id = table.Column<string>(type: "nvarchar(450)", nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
@@ -43,12 +47,14 @@ namespace UserService.Migrations
                     table.ForeignKey(
                         name: "FK_User_Role_Role_Id",
                         column: x => x.Role_Id,
+                        principalSchema: "user",
                         principalTable: "Role",
                         principalColumn: "Id");
                 });
 
             migrationBuilder.CreateTable(
                 name: "User_Profile",
+                schema: "user",
                 columns: table => new
                 {
                     User_Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
@@ -74,6 +80,7 @@ namespace UserService.Migrations
                     table.ForeignKey(
                         name: "FK_User_Profile_User_User_Id",
                         column: x => x.User_Id,
+                        principalSchema: "user",
                         principalTable: "User",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
@@ -81,11 +88,13 @@ namespace UserService.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_User_Role_Id",
+                schema: "user",
                 table: "User",
                 column: "Role_Id");
 
             migrationBuilder.CreateIndex(
                 name: "IX_User_Username",
+                schema: "user",
                 table: "User",
                 column: "Username",
                 unique: true,
@@ -93,6 +102,7 @@ namespace UserService.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_User_Profile_Email",
+                schema: "user",
                 table: "User_Profile",
                 column: "Email",
                 unique: true);
@@ -102,13 +112,16 @@ namespace UserService.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "User_Profile");
+                name: "User_Profile",
+                schema: "user");
 
             migrationBuilder.DropTable(
-                name: "User");
+                name: "User",
+                schema: "user");
 
             migrationBuilder.DropTable(
-                name: "Role");
+                name: "Role",
+                schema: "user");
         }
     }
 }

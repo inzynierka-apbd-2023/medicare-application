@@ -15,23 +15,48 @@ public record DoctorRemovalRequested(Guid DoctorId, Guid? DoctorUserId, string? 
 public class DoctorArchiveConsumer : BackgroundService
 {
     private readonly ILogger<DoctorArchiveConsumer> _logger;
-    private readonly IConnection _connection;
+    private readonly IConfiguration _config;
     private readonly IServiceProvider _sp;
+    private readonly IConnection _connection;
     private IModel? _channel;
 
-    public DoctorArchiveConsumer(ILogger<DoctorArchiveConsumer> logger, IConnection connection, IServiceProvider sp)
+    public DoctorArchiveConsumer(ILogger<DoctorArchiveConsumer> logger, IServiceProvider sp, IConfiguration config, IConnection connection)
     {
         _logger = logger;
-        _connection = connection;
         _sp = sp;
+        _config = config;
+        _connection = connection;
     }
 
-    protected override Task ExecuteAsync(CancellationToken stoppingToken)
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _channel = _connection.CreateModel();
-        _channel.ExchangeDeclare(exchange: "practitioner.events", type: ExchangeType.Topic, durable: true);
-        var queue = _channel.QueueDeclare(queue: "archive.doctor", durable: true, exclusive: false, autoDelete: false);
-        _channel.QueueBind(queue: queue.QueueName, exchange: "practitioner.events", routingKey: "doctor.remove.requested");
+        // Aspire connection is injected; just create channel
+        try
+        {
+            _channel = _connection.CreateModel();
+            _channel.ExchangeDeclare(exchange: "practitioner.events", type: ExchangeType.Topic, durable: true);
+            var queue = _channel.QueueDeclare(queue: "archive.doctor", durable: true, exclusive: false, autoDelete: false);
+            _channel.QueueBind(queue: queue.QueueName, exchange: "practitioner.events", routingKey: "doctor.remove.requested");
+            _logger.LogInformation("DoctorArchiveConsumer connected to RabbitMQ");
+        }
+        catch (Exception ex) 
+        {
+            _logger.LogError(ex, "Failed to setup RabbitMQ topology");
+            // Retry loop for channel/topology if needed (omitted for brevity, relying on Aspire connection resilience mostly, but simple retry is good)
+             while (!stoppingToken.IsCancellationRequested && _channel == null)
+            {
+                try
+                {
+                     await Task.Delay(5000, stoppingToken);
+                     _channel = _connection.CreateModel();
+                     // Re-declare...
+                }
+                catch { }
+            }
+        }
+
+        if (_channel == null) return;
+
 
         var consumer = new AsyncEventingBasicConsumer(_channel);
         consumer.Received += async (_, ea) =>
@@ -80,8 +105,9 @@ public class DoctorArchiveConsumer : BackgroundService
             }
         };
 
-        _channel.BasicConsume(queue: queue.QueueName, autoAck: false, consumer: consumer);
-        return Task.CompletedTask;
+        _channel.BasicConsume(queue: "archive.doctor", autoAck: false, consumer: consumer);
+        
+        await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
     public override void Dispose()

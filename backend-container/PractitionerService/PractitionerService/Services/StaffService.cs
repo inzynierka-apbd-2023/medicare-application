@@ -293,10 +293,13 @@ namespace PractitionerService.Services
                 
                 foreach (var doctor in doctors)
                 {
-                    var staffMember = await GetStaffMemberByUserIdAsync(doctor.UserId, cancellationToken);
-                    if (staffMember != null)
+                    if (doctor.UserId != null)
                     {
-                        staffMembers.Add(staffMember);
+                        var staffMember = await GetStaffMemberByUserIdAsync(doctor.UserId, cancellationToken);
+                        if (staffMember != null)
+                        {
+                            staffMembers.Add(staffMember);
+                        }
                     }
                 }
             }

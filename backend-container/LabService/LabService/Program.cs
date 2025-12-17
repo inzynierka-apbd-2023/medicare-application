@@ -11,6 +11,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 var builder = WebApplication.CreateBuilder(args);
 
+builder.AddServiceDefaults();
+
 const string UseAzureDefaultCredentialKey = "USE_AZURE_DEFAULT_CREDENTIAL";
 const string AuthenticationKeyword = "Authentication";
 
@@ -126,6 +128,8 @@ if (!app.Environment.IsProduction())
 {
     await ApplyMigrationsAsync(app.Services);
 }
+
+app.MapDefaultEndpoints();
 
 await app.RunAsync();
 

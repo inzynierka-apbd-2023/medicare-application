@@ -2,7 +2,7 @@ using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using NotificationService.Data;
-using Microsoft.EntityFrameworkCore.Migrations;
+
 
 namespace NotificationService.Migrations
 {

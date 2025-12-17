@@ -406,10 +406,16 @@ public class DoctorsController : ControllerBase
         // Publish to RabbitMQ (best-effort)
         try
         {
-            var host = HttpContext.RequestServices.GetService<IConfiguration>()?["RABBITMQ:HOST"] ?? "rabbitmq";
-            var user = HttpContext.RequestServices.GetService<IConfiguration>()?["RABBITMQ:USERNAME"] ?? "medicare";
-            var pass = HttpContext.RequestServices.GetService<IConfiguration>()?["RABBITMQ:PASSWORD"] ?? "medicare";
-            var factory = new RabbitMQ.Client.ConnectionFactory { HostName = host, UserName = user, Password = pass };
+            var config = HttpContext.RequestServices.GetService<IConfiguration>();
+            var factory = new RabbitMQ.Client.ConnectionFactory();
+            var cs = config?.GetConnectionString("rabbitmq");
+            if (!string.IsNullOrEmpty(cs)) { factory.Uri = new Uri(cs); }
+            else
+            {
+                factory.HostName = config?["RABBITMQ:HOST"] ?? "rabbitmq";
+                factory.UserName = config?["RABBITMQ:USERNAME"] ?? "medicare";
+                factory.Password = config?["RABBITMQ:PASSWORD"] ?? "medicare";
+            }
             using var conn = factory.CreateConnection();
             using var ch = conn.CreateModel();
             ch.ExchangeDeclare(exchange: "practitioner.events", type: RabbitMQ.Client.ExchangeType.Topic, durable: true);

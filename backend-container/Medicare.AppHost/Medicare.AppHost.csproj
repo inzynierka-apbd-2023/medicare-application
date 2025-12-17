@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Sdk Name="Aspire.AppHost.Sdk" Version="9.0.0" />
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net9.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsAspireHost>true</IsAspireHost>
+    <UserSecretsId>medicare-apphost-853707b2-da2c-40fd-9965-eaddddd7be52</UserSecretsId>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Aspire.Hosting.AppHost" Version="9.0.0" />
+    <PackageReference Include="Aspire.Hosting.RabbitMQ" Version="9.0.0" />
+    <PackageReference Include="Aspire.Hosting.SqlServer" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\Medicare.ServiceDefaults\Medicare.ServiceDefaults.csproj" IsAspireProjectResource="false" />
+    <!-- References to services will be added here automatically or manually -->
+    <ProjectReference Include="..\UserService\UserService\UserService.csproj" />
+    <ProjectReference Include="..\PractitionerService\PractitionerService\PractitionerService.csproj" />
+    <ProjectReference Include="..\PatientService\PatientService\PatientService.csproj" />
+    <ProjectReference Include="..\MedicalCatalogService\MedicalCatalogService\MedicalCatalogService.csproj" />
+    <ProjectReference Include="..\BillingService\BillingService\BillingService.csproj" />
+    <ProjectReference Include="..\DocumentsService\DocumentsService\DocumentsService.csproj" />
+    <ProjectReference Include="..\AppointmentService\AppointmentService\AppointmentService.csproj" />
+    <ProjectReference Include="..\MedicalRecordsService\MedicalRecordsService\MedicalRecordsService.csproj" />
+    <ProjectReference Include="..\LabService\LabService\LabService.csproj" />
+    <ProjectReference Include="..\ArchiveService\ArchiveService\ArchiveService.csproj" />
+    <ProjectReference Include="..\NotificationService\NotificationService\NotificationService.csproj" />
+    <ProjectReference Include="..\MessagingService\MessagingService\MessagingService.csproj" />
+    <ProjectReference Include="..\PdfService\PdfService\PdfService.csproj" />
+    <ProjectReference Include="..\..\frontend-container\medicare-frontend\medicare-frontend.csproj" Condition="Exists('..\..\frontend-container\medicare-frontend\medicare-frontend.csproj')" />
+  </ItemGroup>
+
+</Project>

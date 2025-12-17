@@ -524,12 +524,19 @@ public class DocumentsController : ControllerBase
         return baseObj;
     }
 
-    private static async Task<byte[]?> RequestPdfOverRabbitAsync(object payload, string corrId, CancellationToken ct)
+    private async Task<byte[]?> RequestPdfOverRabbitAsync(object payload, string corrId, CancellationToken ct)
     {
-        var host = Environment.GetEnvironmentVariable("RABBITMQ__HOST") ?? "rabbitmq";
-        var user = Environment.GetEnvironmentVariable("RABBITMQ__USERNAME") ?? "guest";
-        var pass = Environment.GetEnvironmentVariable("RABBITMQ__PASSWORD") ?? "guest";
-        var factory = new ConnectionFactory { HostName = host, UserName = user, Password = pass, DispatchConsumersAsync = true };
+        var config = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
+        var factory = new ConnectionFactory();
+        var cs = config.GetConnectionString("rabbitmq");
+        if (!string.IsNullOrEmpty(cs)) { factory.Uri = new Uri(cs); }
+        else 
+        {
+            factory.HostName = config["RABBITMQ:HOST"] ?? "rabbitmq";
+            factory.UserName = config["RABBITMQ:USERNAME"] ?? "guest";
+            factory.Password = config["RABBITMQ:PASSWORD"] ?? "guest";
+        }
+        factory.DispatchConsumersAsync = true;
         using var conn = factory.CreateConnection();
         using var channel = conn.CreateModel();
         var requestQueue = "pdf.generate.document";

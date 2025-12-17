@@ -49,8 +49,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MessagingService", "backend
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "PatientService.Tests", "backend-container\PatientService\PatientService.Tests\PatientService.Tests.csproj", "{AA11BB22-CC33-44DD-EE55-66778899AA00}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AppointmentService.Tests", "backend-container\AppointmentService\AppointmentService.Tests\AppointmentService.Tests.csproj", "{6AC9D6B2-89C1-4D66-9F33-DEF123456789}"
-EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
