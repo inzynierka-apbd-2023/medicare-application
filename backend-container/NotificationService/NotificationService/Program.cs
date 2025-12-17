@@ -1,4 +1,6 @@
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using NotificationService.Data;
 using RabbitMQ.Client;
@@ -58,6 +60,26 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Notification Service API", Version = "v1", Description = "User notifications" });
 });
 
+// JWT Authentication
+var jwt = builder.Configuration.GetSection("Jwt");
+var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
+var issuer = jwt["Issuer"] ?? "MedicareApp";
+var audience = jwt["Audience"] ?? "MedicareUsers";
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(o =>
+    {
+        o.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidateIssuerSigningKey = true,
+            ValidIssuer = issuer,
+            ValidAudience = audience,
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+        };
+    });
+
 builder.Services.AddHealthChecks().AddDbContextCheck<NotificationsDbContext>();
 
 var app = builder.Build();
@@ -69,6 +91,9 @@ if (app.Environment.IsDevelopment())
     app.UseSwagger();
     app.UseSwaggerUI();
 }
+
+app.UseAuthentication();
+app.UseAuthorization();
 
 app.MapControllers();
 app.MapHealthChecks("/health");
@@ -198,8 +223,8 @@ static (string ConnectionString, string Source, bool UseAzureDefaultCredential) 
 {
     string? src; string? cs;
     if (!string.IsNullOrWhiteSpace(config["AZURE_SQL_CONNECTIONSTRING"])) { cs = config["AZURE_SQL_CONNECTIONSTRING"]; src = "AZURE_SQL_CONNECTIONSTRING"; }
-    else if (!string.IsNullOrWhiteSpace(config["ConnectionStrings__DefaultConnection"])) { cs = config["ConnectionStrings__DefaultConnection"]; src = "ConnectionStrings__DefaultConnection env var"; }
-    else { cs = config.GetConnectionString("DefaultConnection"); src = "appsettings"; }
+    else if (!string.IsNullOrWhiteSpace(config["ConnectionStrings__NotificationDb"])) { cs = config["ConnectionStrings__NotificationDb"]; src = "ConnectionStrings__NotificationDb env var"; }
+    else { cs = config.GetConnectionString("NotificationDb"); src = "appsettings"; }
     if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException("No SQL connection string configured.");
     var useAzure = string.Equals(config[UseAzureDefaultCredentialKey], "true", StringComparison.OrdinalIgnoreCase);
     var csb = new SqlConnectionStringBuilder(cs);

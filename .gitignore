@@ -75,3 +75,5 @@ tmp-rx4.pdf
 .tmp-patient-id.txt
 backend-container/UserService/scripts/seed-test-patient.sql
 .azure
+
+**/appsettings.Development.json

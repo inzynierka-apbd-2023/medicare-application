@@ -155,8 +155,8 @@ static (string ConnectionString, string Source, bool UseAzureDefaultCredential) 
 {
     string? src; string? cs;
     if (!string.IsNullOrWhiteSpace(config["AZURE_SQL_CONNECTIONSTRING"])) { cs = config["AZURE_SQL_CONNECTIONSTRING"]; src = "AZURE_SQL_CONNECTIONSTRING"; }
-    else if (!string.IsNullOrWhiteSpace(config["ConnectionStrings__DefaultConnection"])) { cs = config["ConnectionStrings__DefaultConnection"]; src = "ConnectionStrings__DefaultConnection env var"; }
-    else { cs = config.GetConnectionString("DefaultConnection"); src = "appsettings"; }
+    else if (!string.IsNullOrWhiteSpace(config["ConnectionStrings__PatientServiceDb"])) { cs = config["ConnectionStrings__PatientServiceDb"]; src = "ConnectionStrings__PatientServiceDb env var"; }
+    else { cs = config.GetConnectionString("PatientServiceDb"); src = "appsettings"; }
     if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException("No SQL connection string configured.");
     var useAzure = string.Equals(config[UseAzureDefaultCredentialKey], "true", StringComparison.OrdinalIgnoreCase);
     var csb = new SqlConnectionStringBuilder(cs);

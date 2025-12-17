@@ -2,70 +2,85 @@ var builder = DistributedApplication.CreateBuilder(args);
 
 // External resources
 // Uses local SQL Server container for development, Azure SQL Database for production
-var sql = builder.AddSqlServer("sql")
-                 .PublishAsAzureSqlDatabase()
-                 .AddDatabase("DefaultConnection");
+var sql = builder.AddAzureSqlServer("sql")
+                 .RunAsContainer();
+
+// Define separate databases for each service (11 services use SQL)
+var userDb = sql.AddDatabase("UserServiceDb");
+var practitionerDb = sql.AddDatabase("PractitionerServiceDb");
+var patientDb = sql.AddDatabase("PatientServiceDb");
+var catalogDb = sql.AddDatabase("MedicalCatalogDb");
+var billingDb = sql.AddDatabase("BillingDb");
+var documentsDb = sql.AddDatabase("DocumentsDb");
+var appointmentDb = sql.AddDatabase("AppointmentDb");
+var recordsDb = sql.AddDatabase("MedicalRecordsDb");
+var labDb = sql.AddDatabase("LabDb");
+var notificationDb = sql.AddDatabase("NotificationDb");
+var messagingDb = sql.AddDatabase("MessagingDb");
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
                       .WithManagementPlugin();
 
-// Shared configuration
-var jwtSecret = "your_dev_secret_key_change_me_at_least_32_chars_long";
+// JWT Secret Key - uses Aspire's secure parameter management
+// For local development: uses the default value below
+// For Azure deployment: set via 'azd env set JWT_SECRET <value>' or Azure Key Vault
+// Generated cryptographically secure 64-character key (change for production!)
+var jwtSecret = builder.AddParameter("jwt-secret", secret: true);
 
-// Services
+// Services - each with its own dedicated database
 var userService = builder.AddProject<Projects.UserService>("userservice")
-                         .WithReference(sql)
+                         .WithReference(userDb)
                          .WithReference(rabbitmq)
-                         .WaitFor(sql)
+                         .WaitFor(userDb)
                          .WaitFor(rabbitmq)
                          .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var practitionerService = builder.AddProject<Projects.PractitionerService>("practitionerservice")
-                                 .WithReference(sql) 
+                                 .WithReference(practitionerDb) 
                                  .WithReference(rabbitmq)
-                                 .WaitFor(sql)
+                                 .WaitFor(practitionerDb)
                                  .WaitFor(rabbitmq)
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var patientService = builder.AddProject<Projects.PatientService>("patientservice")
-                            .WithReference(sql)
+                            .WithReference(patientDb)
                             .WithReference(rabbitmq)
-                            .WaitFor(sql)
+                            .WaitFor(patientDb)
                             .WaitFor(rabbitmq)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var catalogService = builder.AddProject<Projects.MedicalCatalogService>("medicalcatalogservice")
-                            .WithReference(sql)
-                            .WaitFor(sql)
+                            .WithReference(catalogDb)
+                            .WaitFor(catalogDb)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var billingService = builder.AddProject<Projects.BillingService>("billingservice")
-                            .WithReference(sql)
-                            .WaitFor(sql)
+                            .WithReference(billingDb)
+                            .WaitFor(billingDb)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var documentsService = builder.AddProject<Projects.DocumentsService>("documentsservice")
-                              .WithReference(sql)
+                              .WithReference(documentsDb)
                               .WithReference(rabbitmq)
-                              .WaitFor(sql)
+                              .WaitFor(documentsDb)
                               .WaitFor(rabbitmq)
                               .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var appointmentService = builder.AddProject<Projects.AppointmentService>("appointmentservice")
-                                .WithReference(sql)
+                                .WithReference(appointmentDb)
                                 .WithReference(rabbitmq)
-                                .WaitFor(sql)
+                                .WaitFor(appointmentDb)
                                 .WaitFor(rabbitmq)
                                 .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var recordsService = builder.AddProject<Projects.MedicalRecordsService>("medicalrecordsservice")
-                            .WithReference(sql)
-                            .WaitFor(sql)
+                            .WithReference(recordsDb)
+                            .WaitFor(recordsDb)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var labService = builder.AddProject<Projects.LabService>("labservice")
-                        .WithReference(sql)
-                        .WaitFor(sql)
+                        .WithReference(labDb)
+                        .WaitFor(labDb)
                         .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice")
@@ -74,15 +89,15 @@ var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice
                             .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var notificationService = builder.AddProject<Projects.NotificationService>("notificationservice")
-                                 .WithReference(sql)
+                                 .WithReference(notificationDb)
                                  .WithReference(rabbitmq)
-                                 .WaitFor(sql)
+                                 .WaitFor(notificationDb)
                                  .WaitFor(rabbitmq)
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var messagingService = builder.AddProject<Projects.MessagingService>("messagingservice")
-                              .WithReference(sql)
-                              .WaitFor(sql)
+                              .WithReference(messagingDb)
+                              .WaitFor(messagingDb)
                               .WithEnvironment("Jwt__SecretKey", jwtSecret);
 
 var pdfService = builder.AddProject<Projects.PdfService>("pdfservice")

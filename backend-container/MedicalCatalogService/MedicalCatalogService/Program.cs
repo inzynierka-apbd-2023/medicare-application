@@ -14,7 +14,7 @@ try
 
     builder.AddServiceDefaults();
 
-    var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") ?? "";
+    var connectionString = builder.Configuration.GetConnectionString("MedicalCatalogDb") ?? "";
     var useAzureDefaultCredential = (builder.Configuration["USE_AZURE_DEFAULT_CREDENTIAL"] ?? builder.Configuration["UseAzureDefaultCredential"])?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
 
     builder.Services.AddDbContext<MedicalCatalogDbContext>((sp, options) =>
@@ -30,7 +30,25 @@ try
     builder.Services.AddHealthChecks().AddDbContextCheck<MedicalCatalogDbContext>();
     builder.Services.AddControllers();
 
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme).AddJwtBearer();
+    // JWT Authentication with proper token validation
+    var jwt = builder.Configuration.GetSection("Jwt");
+    var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
+    var issuer = jwt["Issuer"] ?? "MedicareApp";
+    var audience = jwt["Audience"] ?? "MedicareUsers";
+    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+        .AddJwtBearer(o =>
+        {
+            o.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            {
+                ValidateIssuer = true,
+                ValidateAudience = true,
+                ValidateLifetime = true,
+                ValidateIssuerSigningKey = true,
+                ValidIssuer = issuer,
+                ValidAudience = audience,
+                IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey))
+            };
+        });
     builder.Services.AddAuthorization(options =>
     {
         options.AddPolicy("CatalogImport", policy =>

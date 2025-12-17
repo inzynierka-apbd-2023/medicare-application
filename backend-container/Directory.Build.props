@@ -1,0 +1,10 @@
+<Project>
+  <PropertyGroup>
+    <!-- Suppress NU1608: Version constraint warnings that don't affect runtime -->
+    <NoWarn>$(NoWarn);NU1608</NoWarn>
+  </PropertyGroup>
+  <ItemGroup>
+    <!-- Pin RabbitMQ.Client to version 6.8.1 to match Aspire.RabbitMQ.Client 9.1.0 requirements -->
+    <PackageReference Update="RabbitMQ.Client" Version="6.8.1" />
+  </ItemGroup>
+</Project>
