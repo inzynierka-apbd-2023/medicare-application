@@ -54,6 +54,9 @@ if (useAzureDefaultCredential)
 
 builder.Services.AddDbContext<PractitionerDbContext>((sp, options) =>
 {
+    // Suppress EF Core 9 PendingModelChangesWarning for local development
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+    
     if (useAzureDefaultCredential)
     {
         var sqlConn = sp.GetRequiredService<SqlConnection>();
@@ -285,9 +288,14 @@ IF NOT EXISTS (SELECT 1 FROM practitioner.Specialization WHERE Name='Orthopedist
 -- Doctors (two sample doctors referencing existing user IDs if available)
 IF NOT EXISTS (SELECT 1 FROM practitioner.Doctor)
 BEGIN
-    DECLARE @u1 nvarchar(36) = (SELECT TOP 1 Id FROM [user].[User] ORDER BY Created_At);
+    DECLARE @u1 nvarchar(36), @u2 nvarchar(36);
+    -- Check if user.User table exists (shared database scenario)
+    IF OBJECT_ID('[user].[User]', 'U') IS NOT NULL
+    BEGIN
+        SET @u1 = (SELECT TOP 1 Id FROM [user].[User] ORDER BY Created_At);
+        SET @u2 = (SELECT TOP 1 Id FROM [user].[User] WHERE Id <> ISNULL(@u1,'') ORDER BY Created_At);
+    END
     IF @u1 IS NULL SET @u1 = CONVERT(varchar(36),NEWID());
-    DECLARE @u2 nvarchar(36) = (SELECT TOP 1 Id FROM [user].[User] WHERE Id <> @u1 ORDER BY Created_At);
     IF @u2 IS NULL SET @u2 = CONVERT(varchar(36),NEWID());
 
     INSERT INTO practitioner.Doctor (UserId, Bio) VALUES
@@ -317,7 +325,9 @@ END
 -- Receptionist (sample)
 IF NOT EXISTS (SELECT 1 FROM practitioner.Receptionist)
 BEGIN
-    DECLARE @rUser nvarchar(36) = (SELECT TOP 1 Id FROM [user].[User] WHERE Id NOT IN (SELECT UserId FROM practitioner.Doctor) ORDER BY Created_At);
+    DECLARE @rUser nvarchar(36);
+    IF OBJECT_ID('[user].[User]', 'U') IS NOT NULL
+        SET @rUser = (SELECT TOP 1 Id FROM [user].[User] WHERE Id NOT IN (SELECT UserId FROM practitioner.Doctor) ORDER BY Created_At);
     IF @rUser IS NULL SET @rUser = CONVERT(varchar(36),NEWID());
     INSERT INTO practitioner.Receptionist (UserId) VALUES (@rUser);
 END

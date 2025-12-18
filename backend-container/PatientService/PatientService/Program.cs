@@ -36,6 +36,9 @@ try
 
     builder.Services.AddDbContext<PatientDbContext>((sp, options) =>
     {
+        // Suppress EF Core 9 PendingModelChangesWarning for local development
+        options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+        
         if (useAzureDefaultCredential)
         {
             var sqlConn = sp.GetRequiredService<SqlConnection>();
