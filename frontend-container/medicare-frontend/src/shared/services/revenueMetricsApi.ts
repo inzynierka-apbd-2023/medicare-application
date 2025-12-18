@@ -1,4 +1,4 @@
-import { apiClient } from './apiClient';
+import { apiClient } from "./apiClient";
 
 export interface DailyRevenueResponse {
   date: string;
@@ -15,6 +15,7 @@ export interface MonthlyRevenueResponse {
   appointmentRevenue: number;
   subscriptionRevenue: number;
   transactionCount: number;
+  growthPercentage?: number;
   dailyBreakdown: DailyRevenueItem[];
 }
 
@@ -60,18 +61,27 @@ export const revenueMetricsApi = {
    */
   getDailyRevenue: async (date?: string): Promise<DailyRevenueResponse> => {
     const params = date ? { date } : {};
-    const response = await apiClient.get<DailyRevenueResponse>('/billing/revenue-metrics/daily', { params });
+    const response = await apiClient.get<DailyRevenueResponse>(
+      "/billing/revenue-metrics/daily",
+      { params }
+    );
     return response.data;
   },
 
   /**
    * Get monthly revenue metrics
    */
-  getMonthlyRevenue: async (year?: number, month?: number): Promise<MonthlyRevenueResponse> => {
-    const params: any = {};
+  getMonthlyRevenue: async (
+    year?: number,
+    month?: number
+  ): Promise<MonthlyRevenueResponse> => {
+    const params: Record<string, number> = {};
     if (year) params.year = year;
     if (month) params.month = month;
-    const response = await apiClient.get<MonthlyRevenueResponse>('/billing/revenue-metrics/monthly', { params });
+    const response = await apiClient.get<MonthlyRevenueResponse>(
+      "/billing/revenue-metrics/monthly",
+      { params }
+    );
     return response.data;
   },
 
@@ -80,18 +90,27 @@ export const revenueMetricsApi = {
    */
   getYearlyRevenue: async (year?: number): Promise<YearlyRevenueResponse> => {
     const params = year ? { year } : {};
-    const response = await apiClient.get<YearlyRevenueResponse>('/billing/revenue-metrics/yearly', { params });
+    const response = await apiClient.get<YearlyRevenueResponse>(
+      "/billing/revenue-metrics/yearly",
+      { params }
+    );
     return response.data;
   },
 
   /**
    * Get payment types breakdown
    */
-  getPaymentTypes: async (startDate?: string, endDate?: string): Promise<PaymentTypesResponse> => {
-    const params: any = {};
+  getPaymentTypes: async (
+    startDate?: string,
+    endDate?: string
+  ): Promise<PaymentTypesResponse> => {
+    const params: Record<string, string> = {};
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
-    const response = await apiClient.get<PaymentTypesResponse>('/billing/revenue-metrics/payment-types', { params });
+    const response = await apiClient.get<PaymentTypesResponse>(
+      "/billing/revenue-metrics/payment-types",
+      { params }
+    );
     return response.data;
   },
 };

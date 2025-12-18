@@ -52,6 +52,7 @@ builder.Services.AddDbContext<MessagingDbContext>((sp, options) =>
     }
 });
 
+// Auth (JWT)
 var jwt = builder.Configuration.GetSection("Jwt");
 var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
 var issuer = jwt["Issuer"] ?? "MedicareApp";
@@ -59,6 +60,7 @@ var audience = jwt["Audience"] ?? "MedicareUsers";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
+        o.MapInboundClaims = false;
         o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -67,7 +69,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = issuer,
             ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            RoleClaimType = "role"
         };
     });
 

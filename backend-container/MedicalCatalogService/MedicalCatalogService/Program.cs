@@ -5,7 +5,9 @@ using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using System.Data;
+using System.Text;
 using MedicalCatalogService.Data;
+using Microsoft.IdentityModel.Tokens;
 
 
 try
@@ -41,7 +43,8 @@ try
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(o =>
         {
-            o.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
+            o.MapInboundClaims = false;
+            o.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
                 ValidateAudience = true,
@@ -49,7 +52,8 @@ try
                 ValidateIssuerSigningKey = true,
                 ValidIssuer = issuer,
                 ValidAudience = audience,
-                IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey))
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+                RoleClaimType = "role"
             };
         });
     builder.Services.AddAuthorization(options =>

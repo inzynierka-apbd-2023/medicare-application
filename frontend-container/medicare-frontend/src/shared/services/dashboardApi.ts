@@ -1,4 +1,4 @@
-import { ApiResponse, createMockResponse } from "./api";
+import { ApiResponse, createErrorResponse, createMockResponse } from "./api";
 
 // Types for dashboard data
 export interface Notification {
@@ -161,106 +161,47 @@ export interface DoctorPerformance {
 }
 
 // Mock data storage
-const MOCK_PATIENT_NOTIFICATIONS: Notification[] = [
-  {
-    id: "1",
-    message:
-      "Appointment Reminder: May 14, 2025 at 10:00 AM with Dr. Alice Heart",
-    type: "info",
-    timestamp: "2025-05-13T10:00:00Z",
-    read: false,
-  },
-  {
-    id: "2",
-    message: "Lab Results Available: Cholesterol Panel",
-    type: "success",
-    timestamp: "2025-05-12T14:30:00Z",
-    read: false,
-  },
-  {
-    id: "3",
-    message: "New Message: Follow-up from Dr. Bob Vessel",
-    type: "info",
-    timestamp: "2025-05-11T09:15:00Z",
-    read: true,
-  },
-  {
-    id: "4",
-    message: "Your appointment with Dr. Alice Heart is tomorrow at 10:00 AM.",
-    type: "warning",
-    timestamp: "2025-05-13T08:00:00Z",
-    read: false,
-  },
-  {
-    id: "5",
-    message: "Lab results from your blood test are available.",
-    type: "success",
-    timestamp: "2025-05-10T16:45:00Z",
-    read: true,
-  },
-  {
-    id: "6",
-    message: "Reminder: Teleconsultation on May 20, 2025 at 3:00 PM.",
-    type: "info",
-    timestamp: "2025-05-09T11:00:00Z",
-    read: false,
-  },
-  {
-    id: "7",
-    message: "Prescription #456 has been renewed.",
-    type: "success",
-    timestamp: "2025-05-08T13:20:00Z",
-    read: true,
-  },
-  {
-    id: "8",
-    message: "New message from Dr. Bob Vessel regarding your test.",
-    type: "info",
-    timestamp: "2025-05-07T15:30:00Z",
-    read: false,
-  },
-];
-
-const MOCK_PATIENT_DOCUMENTS: Document[] = [
-  {
-    id: "1",
-    title: "Prescription #456 issued",
-    date: "May 10, 2025",
-    type: "prescription",
-    size: "125 KB",
-  },
-  {
-    id: "2",
-    title: "Referral to Cardiologist",
-    date: "April 22, 2025",
-    type: "referral",
-    size: "89 KB",
-  },
-  {
-    id: "3",
-    title: "Blood Test Results",
-    date: "March 15, 2025",
-    type: "lab_result",
-    size: "203 KB",
-  },
-];
+import { documentsApi } from "./documentsApi";
+import { notificationsApi } from "./notificationsApi";
 
 // API functions for Patient Dashboard
 export const patientDashboardApi = {
-  getDocuments: (): Promise<ApiResponse<Document[]>> => {
-    return createMockResponse(MOCK_PATIENT_DOCUMENTS, 200);
+  getDocuments: async (): Promise<ApiResponse<Document[]>> => {
+    return createErrorResponse("Use getRecentDocuments(userId) instead");
   },
 
-  markNotificationAsRead: (
+  getRecentDocuments: async (
+    userId: string
+  ): Promise<ApiResponse<Document[]>> => {
+    if (!userId) return createErrorResponse("User ID required");
+    const res = await documentsApi.getDocuments({ patientId: userId });
+    if (!res.success)
+      return createErrorResponse(res.error || "Failed to fetch documents");
+
+    const items = res.data || [];
+    const mapped: Document[] = items.map(
+      (d: {
+        id: string;
+        notes?: string;
+        type?: string;
+        createdAt?: string;
+      }) => ({
+        id: d.id,
+        title: d.notes || d.type || "Untitled",
+        date: d.createdAt
+          ? new Date(d.createdAt).toLocaleDateString()
+          : new Date().toLocaleDateString(),
+        type: d.type,
+        size: "100 KB",
+      })
+    );
+    return { success: true, data: mapped };
+  },
+
+  markNotificationAsRead: async (
     notificationId: string
   ): Promise<ApiResponse<boolean>> => {
-    const notification = MOCK_PATIENT_NOTIFICATIONS.find(
-      (n) => n.id === notificationId
-    );
-    if (notification) {
-      notification.read = true;
-    }
-    return createMockResponse(true, 100);
+    return await notificationsApi.markAsRead(notificationId);
   },
 };
 
@@ -926,7 +867,6 @@ const MOCK_DOCTOR_PRODUCTIVITY: DoctorProductivityData[] = [
     completionRate: 96.3,
   },
 ];
-
 
 // API functions for Appointment Analytics
 export const appointmentAnalyticsApi = {

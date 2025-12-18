@@ -69,7 +69,7 @@ public class BillingDbContext : DbContext
             e.HasIndex(p => p.PublishedAt);
         });
 
-        // Views as keyless if not materialized
+        // View mappings - views are created at startup in Program.cs
         modelBuilder.Entity<PatientBillingSummary>().HasNoKey().ToView("vw_Patient_Billing_Summary", "billing");
         modelBuilder.Entity<DoctorRevenueDashboard>().HasNoKey().ToView("vw_Doctor_Revenue_Dashboard", "billing");
     }

@@ -8,7 +8,7 @@ namespace MessagingService.Controllers;
 
 [ApiController]
 [Route("api/messaging/[controller]")]
-public class MessagesController : ControllerBase
+public partial class MessagesController : ControllerBase
 {
     private readonly MessagingDbContext _db;
     public MessagesController(MessagingDbContext db) => _db = db;
@@ -127,3 +127,42 @@ public record SendMessageRequest(
 );
 
 public record MarkAsReadRequest(string UserId);
+
+public record ConversationDto(
+    string ParticipantId,
+    string LastMessageContent,
+    DateTime LastMessageDate,
+    int UnreadCount
+);
+
+public partial class MessagesController
+{
+    [HttpGet("conversations/{userId}")]
+    public async Task<IActionResult> GetConversations(string userId)
+    {
+        // Fetch all messages involving the user
+        var messages = await _db.Messages
+            .AsNoTracking()
+            .Where(m => m.SenderId == userId || m.RecipientId == userId)
+            .OrderByDescending(m => m.SentAt)
+            .ToListAsync();
+
+        // Group by the "other" person
+        var grouped = messages
+            .GroupBy(m => m.SenderId == userId ? m.RecipientId : m.SenderId)
+            .Select(g => 
+            {
+                var lastMsg = g.First(); // Already ordered by SentAt desc
+                var unread = g.Count(m => m.RecipientId == userId && !m.IsRead);
+                return new ConversationDto(
+                    g.Key,
+                    lastMsg.Content,
+                    lastMsg.SentAt,
+                    unread
+                );
+            })
+            .ToList();
+
+        return Ok(grouped);
+    }
+}

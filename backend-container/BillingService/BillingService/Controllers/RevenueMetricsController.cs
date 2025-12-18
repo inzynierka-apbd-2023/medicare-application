@@ -13,7 +13,7 @@ namespace BillingService.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/billing/revenue-metrics")]
-[Authorize(Roles = "Owner")]
+[Authorize(Roles = "Owner,Admin")]
 public class RevenueMetricsController : ControllerBase
 {
     private readonly IMediator _mediator;

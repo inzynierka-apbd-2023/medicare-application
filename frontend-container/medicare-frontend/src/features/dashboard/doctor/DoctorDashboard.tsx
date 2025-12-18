@@ -1,11 +1,13 @@
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { MessageCircle } from "lucide-react";
 
 import Header from "../../../layout/Header";
-import { Card, Modal } from "../../../shared/components";
 import { useAuth } from "../../../shared/auth/AuthContext";
-import doctorDashboardApiService, { DoctorQuickStat } from "../../../shared/services/doctorDashboardApi";
+import { Card, Modal } from "../../../shared/components";
+import doctorDashboardApiService, {
+  DoctorQuickStat,
+} from "../../../shared/services/doctorDashboardApi";
 import {
   DashboardCard,
   DashboardLayout,
@@ -28,10 +30,13 @@ export default function DoctorDashboard() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
-  const doctorLastName = (user?.lastName || "").trim() || user?.username || "Doctor";
+  const doctorLastName =
+    (user?.lastName || "").trim() || user?.username || "Doctor";
+
+  const [doctorId, setDoctorId] = useState<string>();
 
   useEffect(() => {
-    const loadQuickStats = async () => {
+    const initDashboard = async () => {
       if (!user?.id) {
         setLoading(false);
         return;
@@ -39,21 +44,52 @@ export default function DoctorDashboard() {
 
       try {
         setLoading(true);
-        const response = await doctorDashboardApiService.getQuickStats(user.id);
-        if (response.success) {
-          setQuickStats(response.data);
+        // 1. Resolve Doctor ID from User ID
+        const profileRes = await doctorDashboardApiService.getDoctorByUserId(
+          user.id
+        );
+
+        if (profileRes.success && profileRes.data?.id) {
+          const realDoctorId = profileRes.data.id;
+          setDoctorId(realDoctorId);
+          // Load stats...
+          const response =
+            await doctorDashboardApiService.getQuickStats(realDoctorId);
+          if (response.success) {
+            setQuickStats(response.data);
+          }
         } else {
-          setError("Failed to load quick stats");
+          // Auto-recovery: If 404/not found, try to register the doctor
+          console.log(
+            "Doctor profile missing. Attempting auto-registration..."
+          );
+          const regRes = await doctorDashboardApiService.registerDoctor(
+            user.id
+          );
+          if (regRes.success && regRes.data?.id) {
+            const newDoctorId = regRes.data.id;
+            setDoctorId(newDoctorId);
+            // Retry stats load
+            const response =
+              await doctorDashboardApiService.getQuickStats(newDoctorId);
+            if (response.success) {
+              setQuickStats(response.data);
+            }
+          } else {
+            setError(
+              "Doctor profile not found and auto-creation failed. Please contact support."
+            );
+          }
         }
       } catch (err) {
-        setError("Failed to load quick stats");
-        console.error("Error loading quick stats:", err);
+        setError("Failed to initialize dashboard");
+        console.error("Error initializing dashboard:", err);
       } finally {
         setLoading(false);
       }
     };
 
-    loadQuickStats();
+    initDashboard();
   }, [user?.id]);
 
   // Sample data - in real app this would come from API/props
@@ -125,12 +161,12 @@ export default function DoctorDashboard() {
   return (
     <div className="min-h-screen bg-gray-100 overflow-x-hidden">
       <Header />
-  <DashboardLayout title={`Welcome, Dr. ${doctorLastName}`}>
+      <DashboardLayout title={`Welcome, Dr. ${doctorLastName}`}>
         <div className="flex flex-col md:flex-row md:space-x-6 space-y-6 md:space-y-0">
           {/* Left Column - Schedule and Recent Messages */}
           <div className="w-full md:w-3/4 space-y-6">
             {/* Today's Schedule - Embedded Scheduler */}
-            <DashboardScheduler />
+            {doctorId && <DashboardScheduler doctorId={doctorId} />}
 
             <Card variant="medical" padding="md">
               <h3 className="text-lg font-semibold text-blue-600 mb-2">

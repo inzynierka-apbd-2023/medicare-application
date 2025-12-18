@@ -84,7 +84,7 @@ public class PractitionerDbContext : DbContext
             e.HasOne<Doctor>().WithMany(d => d.Schedules).HasForeignKey(s => s.DoctorId).OnDelete(DeleteBehavior.Cascade);
         });
 
-    // Projection view: DoctorDirectory joining user profile
+        // View mapping - view is created at startup in Program.cs
         modelBuilder.Entity<DoctorDirectory>().HasNoKey().ToView("DoctorDirectory", schema: "practitioner");
     }
 }

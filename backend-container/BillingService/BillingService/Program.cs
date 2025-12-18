@@ -58,12 +58,13 @@ builder.Services.AddDbContext<BillingDbContext>((sp, options) =>
 });
 
 var jwt = builder.Configuration.GetSection("Jwt");
-var secretKey = jwt["SecretKey"] ?? "dev_secret_key_change";
+var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
 var issuer = jwt["Issuer"] ?? "MedicareApp";
 var audience = jwt["Audience"] ?? "MedicareUsers";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
+        o.MapInboundClaims = false;
         o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -72,7 +73,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = issuer,
             ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            RoleClaimType = "role"
         };
     });
 
@@ -179,11 +181,51 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
     {
         Console.WriteLine("[Startup] Applying EF Core migrations (Billing)...");
         await db.Database.MigrateAsync();
+        await CreateViewsAsync(db);
         Console.WriteLine("[Startup] Billing migrations complete.");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"[Startup] Billing migration failed: {ex.Message}");
         if (ex.InnerException != null) Console.WriteLine($"[Startup] Inner: {ex.InnerException.Message}");
+    }
+}
+
+static async Task CreateViewsAsync(BillingDbContext db)
+{
+    try
+    {
+        // Create billing summary views - these are simple aggregates on billing tables only
+        var patientSummaryView = @"
+CREATE OR ALTER VIEW billing.vw_Patient_Billing_Summary AS
+SELECT 
+    pm.PatientId,
+    COUNT(DISTINCT pi.Id) AS TotalPaymentIntents,
+    SUM(CASE WHEN pi.Status = 'Succeeded' THEN pi.Amount ELSE 0 END) AS TotalPaidAmount,
+    SUM(CASE WHEN pi.Status = 'Pending' THEN pi.Amount ELSE 0 END) AS TotalPendingAmount,
+    MAX(pi.CreatedAt) AS LastPaymentDate
+FROM billing.PaymentMethod pm
+LEFT JOIN billing.PaymentIntent pi ON pi.PatientId = pm.PatientId
+GROUP BY pm.PatientId;
+";
+        await db.Database.ExecuteSqlRawAsync(patientSummaryView);
+
+        var doctorRevenueView = @"
+CREATE OR ALTER VIEW billing.vw_Doctor_Revenue_Dashboard AS
+SELECT 
+    ap.DoctorId,
+    COUNT(ap.Id) AS TotalAppointmentPayments,
+    SUM(ap.Amount) AS TotalRevenue,
+    AVG(ap.Amount) AS AveragePaymentAmount
+FROM billing.AppointmentPayment ap
+GROUP BY ap.DoctorId;
+";
+        await db.Database.ExecuteSqlRawAsync(doctorRevenueView);
+        
+        Console.WriteLine("[Startup] Billing views created.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] View creation warning: {ex.Message}");
     }
 }

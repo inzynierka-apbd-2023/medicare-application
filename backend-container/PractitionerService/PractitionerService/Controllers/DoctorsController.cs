@@ -244,6 +244,14 @@ public class DoctorsController : ControllerBase
         return Ok(doctor);
     }
 
+    [HttpGet("by-user/{userId}")]
+    public async Task<IActionResult> GetDoctorByUserId(string userId)
+    {
+        var doctor = await _db.Doctors.FirstOrDefaultAsync(d => d.UserId == userId);
+        if (doctor == null) return NotFound("Doctor not found for this user");
+        return Ok(doctor);
+    }
+
     // Lightweight directory projection for a single doctor
     [HttpGet("{id}/directory")]
     public async Task<IActionResult> GetDoctorDirectoryById(string id)
@@ -285,7 +293,7 @@ public class DoctorsController : ControllerBase
         if (!string.IsNullOrWhiteSpace(q))
         {
             var ql = q.ToLowerInvariant();
-            query = query.Where(d => d.FirstName.ToLower().Contains(ql) || d.LastName.ToLower().Contains(ql));
+            query = query.Where(d => (d.FirstName != null && d.FirstName.ToLower().Contains(ql)) || (d.LastName != null && d.LastName.ToLower().Contains(ql)));
         }
         if (specializationId != null && specializationId != Guid.Empty)
         {

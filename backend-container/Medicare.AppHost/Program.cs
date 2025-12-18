@@ -17,6 +17,7 @@ var recordsDb = sql.AddDatabase("MedicalRecordsDb");
 var labDb = sql.AddDatabase("LabDb");
 var notificationDb = sql.AddDatabase("NotificationDb");
 var messagingDb = sql.AddDatabase("MessagingDb");
+var archiveDb = sql.AddDatabase("ArchiveDb");
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
                       .WithManagementPlugin();
@@ -33,77 +34,105 @@ var userService = builder.AddProject<Projects.UserService>("userservice")
                          .WithReference(rabbitmq)
                          .WaitFor(userDb)
                          .WaitFor(rabbitmq)
-                         .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                         .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                         .WithEnvironment("Jwt__Issuer", "UserService")
+                         .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var practitionerService = builder.AddProject<Projects.PractitionerService>("practitionerservice")
                                  .WithReference(practitionerDb) 
                                  .WithReference(rabbitmq)
                                  .WaitFor(practitionerDb)
                                  .WaitFor(rabbitmq)
-                                 .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                                 .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                                 .WithEnvironment("Jwt__Issuer", "UserService")
+                                 .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var patientService = builder.AddProject<Projects.PatientService>("patientservice")
                             .WithReference(patientDb)
                             .WithReference(rabbitmq)
                             .WaitFor(patientDb)
                             .WaitFor(rabbitmq)
-                            .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                            .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                            .WithEnvironment("Jwt__Issuer", "UserService")
+                            .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var catalogService = builder.AddProject<Projects.MedicalCatalogService>("medicalcatalogservice")
                             .WithReference(catalogDb)
                             .WaitFor(catalogDb)
-                            .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                            .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                            .WithEnvironment("Jwt__Issuer", "UserService")
+                            .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var billingService = builder.AddProject<Projects.BillingService>("billingservice")
                             .WithReference(billingDb)
                             .WaitFor(billingDb)
-                            .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                            .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                            .WithEnvironment("Jwt__Issuer", "UserService")
+                            .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var documentsService = builder.AddProject<Projects.DocumentsService>("documentsservice")
                               .WithReference(documentsDb)
                               .WithReference(rabbitmq)
                               .WaitFor(documentsDb)
                               .WaitFor(rabbitmq)
-                              .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                              .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                              .WithEnvironment("Jwt__Issuer", "UserService")
+                              .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var appointmentService = builder.AddProject<Projects.AppointmentService>("appointmentservice")
                                 .WithReference(appointmentDb)
                                 .WithReference(rabbitmq)
                                 .WaitFor(appointmentDb)
                                 .WaitFor(rabbitmq)
-                                .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                                .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                                .WithEnvironment("Jwt__Issuer", "UserService")
+                                .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var recordsService = builder.AddProject<Projects.MedicalRecordsService>("medicalrecordsservice")
                             .WithReference(recordsDb)
                             .WaitFor(recordsDb)
-                            .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                            .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                            .WithEnvironment("Jwt__Issuer", "UserService")
+                            .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var labService = builder.AddProject<Projects.LabService>("labservice")
                         .WithReference(labDb)
                         .WaitFor(labDb)
-                        .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                        .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                        .WithEnvironment("Jwt__Issuer", "UserService")
+                        .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice")
+                            .WithReference(archiveDb)
                             .WithReference(rabbitmq)
+                            .WaitFor(archiveDb)
                             .WaitFor(rabbitmq)
-                            .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                            .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                            .WithEnvironment("Jwt__Issuer", "UserService")
+                            .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var notificationService = builder.AddProject<Projects.NotificationService>("notificationservice")
                                  .WithReference(notificationDb)
                                  .WithReference(rabbitmq)
                                  .WaitFor(notificationDb)
                                  .WaitFor(rabbitmq)
-                                 .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                                 .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                                 .WithEnvironment("Jwt__Issuer", "UserService")
+                                 .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var messagingService = builder.AddProject<Projects.MessagingService>("messagingservice")
                               .WithReference(messagingDb)
                               .WaitFor(messagingDb)
-                              .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                              .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                              .WithEnvironment("Jwt__Issuer", "UserService")
+                              .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var pdfService = builder.AddProject<Projects.PdfService>("pdfservice")
                         .WithReference(rabbitmq)
                         .WaitFor(rabbitmq)
-                        .WithEnvironment("Jwt__SecretKey", jwtSecret);
+                        .WithEnvironment("Jwt__SecretKey", jwtSecret)
+                        .WithEnvironment("Jwt__Issuer", "UserService")
+                        .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 // Frontend (Docker or Project?)
 // If the frontend is a NodeJS app (Vite), we usually run it as an external executable or container. 

@@ -87,14 +87,14 @@ public class GetAppointmentMetricsHandler : IRequestHandler<GetAppointmentMetric
                 (ap, sa) => new { ap, sa })
             .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.ap.Status == "Paid")
             .Where(x => string.IsNullOrEmpty(request.DoctorId) || x.sa.Doctor_User_Id == request.DoctorId)
-            .SumAsync(x => x.ap.Amount, cancellationToken);
-
+            .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
+            
         var previousRevenue = await _context.AppointmentPayments
             .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
                 (ap, sa) => new { ap, sa })
             .Where(x => x.sa.Day >= previousPeriodStart && x.sa.Day < startDate && x.ap.Status == "Paid")
             .Where(x => string.IsNullOrEmpty(request.DoctorId) || x.sa.Doctor_User_Id == request.DoctorId)
-            .SumAsync(x => x.ap.Amount, cancellationToken);
+            .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
         var revenueChange = previousRevenue > 0 ? ((double)(totalRevenue - previousRevenue) / (double)previousRevenue) * 100 : 0;
 

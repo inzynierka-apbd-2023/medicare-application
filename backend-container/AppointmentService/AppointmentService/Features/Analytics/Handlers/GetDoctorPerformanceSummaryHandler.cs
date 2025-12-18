@@ -43,7 +43,7 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
         string topRatedDoctor = "N/A";
         if (ratings.Count > 0)
         {
-            doctorAverageRating = (decimal)ratings.Average(r => r.Avg);
+            doctorAverageRating = (decimal)(ratings.Average(r => r.Avg) ?? 0);
             var top = ratings.OrderByDescending(r => r.Avg).ThenByDescending(r => r.Count).First();
             var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.User_Id == top.DoctorId, cancellationToken);
             if (profile != null)

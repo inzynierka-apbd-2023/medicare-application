@@ -71,6 +71,7 @@ var audience = jwt["Audience"] ?? "MedicareUsers";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
+        o.MapInboundClaims = false;
         o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -79,7 +80,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = issuer,
             ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            RoleClaimType = "role"
         };
     });
 
@@ -127,21 +129,34 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
         Console.WriteLine("[Startup] Applying EF Core migrations (Notifications)...");
 
         // Self-heal: if migration history exists but the Notification table doesn't, drop history so migrations can recreate.
-        await db.Database.OpenConnectionAsync();
-        var conn = db.Database.GetDbConnection();
-        using (var cmd = conn.CreateCommand())
+        try 
         {
-            cmd.CommandText = "SELECT OBJECT_ID(N'[notifications].[__EFMigrationsHistory]')";
-            var histObj = await cmd.ExecuteScalarAsync();
-            cmd.CommandText = "SELECT OBJECT_ID(N'[notifications].[Notification]')";
-            var tableObj = await cmd.ExecuteScalarAsync();
-            bool historyExists = histObj != null && histObj != DBNull.Value && Convert.ToInt32(histObj) != 0;
-            bool tableExists = tableObj != null && tableObj != DBNull.Value && Convert.ToInt32(tableObj) != 0;
-            if (historyExists && !tableExists)
+            await db.Database.OpenConnectionAsync();
+            var conn = db.Database.GetDbConnection();
+            using (var cmd = conn.CreateCommand())
             {
-                Console.WriteLine("[Startup] Detected history without table. Dropping notifications.__EFMigrationsHistory to reapply migrations...");
-                await db.Database.ExecuteSqlRawAsync("DROP TABLE [notifications].[__EFMigrationsHistory]");
+                cmd.CommandText = "SELECT OBJECT_ID(N'[notifications].[__EFMigrationsHistory]')";
+                var histObj = await cmd.ExecuteScalarAsync();
+                cmd.CommandText = "SELECT OBJECT_ID(N'[notifications].[Notification]')";
+                var tableObj = await cmd.ExecuteScalarAsync();
+                bool historyExists = histObj != null && histObj != DBNull.Value && Convert.ToInt32(histObj) != 0;
+                bool tableExists = tableObj != null && tableObj != DBNull.Value && Convert.ToInt32(tableObj) != 0;
+                if (historyExists && !tableExists)
+                {
+                    Console.WriteLine("[Startup] Detected history without table. Dropping notifications.__EFMigrationsHistory to reapply migrations...");
+                    await db.Database.ExecuteSqlRawAsync("DROP TABLE [notifications].[__EFMigrationsHistory]");
+                }
             }
+        }
+        catch 
+        {
+            // Ignore pre-migration connection errors (e.g. DB doesn't exist yet)
+            // Proceed to MigrateAsync which will create the DB.
+        }
+        finally
+        {
+            if (db.Database.GetDbConnection().State == System.Data.ConnectionState.Open)
+                await db.Database.CloseConnectionAsync();
         }
 
         var all = db.GetService<IMigrationsAssembly>().Migrations.Keys;

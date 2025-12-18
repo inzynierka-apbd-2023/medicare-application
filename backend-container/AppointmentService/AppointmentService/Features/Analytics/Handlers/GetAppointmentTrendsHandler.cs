@@ -57,7 +57,7 @@ public class GetAppointmentTrendsHandler : IRequestHandler<GetAppointmentTrendsQ
                     (ap, sa) => new { ap, sa })
                 .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.ap.Status == "Paid")
                 .Where(x => string.IsNullOrEmpty(request.DoctorId) || x.sa.Doctor_User_Id == request.DoctorId)
-                .SumAsync(x => x.ap.Amount, cancellationToken);
+                .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
             trends.Add(new TrendDataDto
             {

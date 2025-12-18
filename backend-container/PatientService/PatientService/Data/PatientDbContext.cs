@@ -57,6 +57,7 @@ public class PatientDbContext : DbContext
             e.HasIndex(s => s.IdempotencyKey).IsUnique().HasFilter("[IdempotencyKey] IS NOT NULL");
         });
 
+        // View mapping - view is created at startup in Program.cs
         modelBuilder.Entity<PatientOverview>().HasNoKey().ToView("PatientOverview", schema: "patient");
     }
 }

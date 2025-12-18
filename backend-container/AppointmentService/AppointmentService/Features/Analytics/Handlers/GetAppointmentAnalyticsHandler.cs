@@ -24,23 +24,31 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var startDate = request.StartDate ?? endDate.AddDays(-30);
 
         // Execute all analytics queries in parallel
-        var metricsTask = GetMetricsAsync(startDate, endDate, request.DoctorId, cancellationToken);
-        var trendsTask = GetTrendsAsync(startDate, endDate, request.DoctorId, cancellationToken);
-        var doctorPerformanceTask = GetDoctorPerformanceAsync(startDate, endDate, request.DoctorId, request.Specialization, cancellationToken);
-        var specializationStatsTask = GetSpecializationStatsAsync(startDate, endDate, cancellationToken);
-        var timeAnalysisTask = GetTimeSlotAnalysisAsync(startDate, endDate, request.DoctorId, cancellationToken);
+        // Execute all analytics queries in parallel with error handling
+        var metricsTask = SafeExecuteListAsync(() => GetMetricsAsync(startDate, endDate, request.DoctorId, cancellationToken), "Metrics");
+        var trendsTask = SafeExecuteListAsync(() => GetTrendsAsync(startDate, endDate, request.DoctorId, cancellationToken), "Trends");
+        var doctorPerformanceTask = SafeExecuteListAsync(() => GetDoctorPerformanceAsync(startDate, endDate, request.DoctorId, request.Specialization, cancellationToken), "DoctorPerformance");
+        var specializationStatsTask = SafeExecuteListAsync(() => GetSpecializationStatsAsync(startDate, endDate, cancellationToken), "SpecializationStats");
+        var timeAnalysisTask = SafeExecuteObjectAsync(() => GetTimeSlotAnalysisAsync(startDate, endDate, request.DoctorId, cancellationToken), "TimeAnalysis");
 
         await Task.WhenAll(metricsTask, trendsTask, doctorPerformanceTask, specializationStatsTask, timeAnalysisTask);
 
-        // Create notification for analytics access
-        await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
+        try
         {
-            RecipientUserId = "system", // This would be the actual user ID in production
-            Description = "Appointment analytics dashboard accessed",
-            Type = 1, // Info notification
-            SourceService = "AppointmentService",
-            Priority = "Low"
-        });
+            // Create notification for analytics access
+            await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
+            {
+                RecipientUserId = "system", // This would be the actual user ID in production
+                Description = "Appointment analytics dashboard accessed",
+                Type = 1, // Info notification
+                SourceService = "AppointmentService",
+                Priority = "Low"
+            });
+        }
+        catch (Exception)
+        {
+            // Ignore notification failures to prevent blocking analytics response
+        }
 
         return new AppointmentAnalyticsResponse
         {
@@ -54,73 +62,69 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
 
     private async Task<IEnumerable<AppointmentMetricDto>> GetMetricsAsync(DateTime startDate, DateTime endDate, string? doctorId, CancellationToken cancellationToken)
     {
-        var query = _context.ScheduleAppointments
-            .Where(sa => sa.Day >= startDate && sa.Day <= endDate);
+        var query = _context.Appointments
+            .Where(a => a.ScheduledAt >= startDate && a.ScheduledAt <= endDate);
 
         if (!string.IsNullOrEmpty(doctorId))
-            query = query.Where(sa => sa.Doctor_User_Id == doctorId);
+            query = query.Where(a => a.DoctorId == doctorId);
 
         var appointments = await query.ToListAsync(cancellationToken);
         var previousPeriodStart = startDate.AddDays(-(endDate - startDate).Days);
         
-        var previousAppointments = await _context.ScheduleAppointments
-            .Where(sa => sa.Day >= previousPeriodStart && sa.Day < startDate)
-            .Where(sa => string.IsNullOrEmpty(doctorId) || sa.Doctor_User_Id == doctorId)
+        var previousAppointments = await _context.Appointments
+            .Where(a => a.ScheduledAt >= previousPeriodStart && a.ScheduledAt < startDate)
+            .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
             .ToListAsync(cancellationToken);
 
         var totalAppointments = appointments.Count();
         var previousTotal = previousAppointments.Count();
         var totalChange = previousTotal > 0 ? ((double)(totalAppointments - previousTotal) / previousTotal) * 100 : 0;
 
-        var completedAppointments = await _context.ScheduleAppointments
-            .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                (sa, status) => new { sa, status })
-            .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Completed")
-            .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
+        var completedAppointments = await _context.Appointments
+            .Where(a => a.ScheduledAt >= startDate && a.ScheduledAt <= endDate && a.Status == "Completed")
+            .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
             .CountAsync(cancellationToken);
 
-        var previousCompleted = await _context.ScheduleAppointments
-            .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                (sa, status) => new { sa, status })
-            .Where(x => x.sa.Day >= previousPeriodStart && x.sa.Day < startDate && x.status.Name == "Completed")
-            .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
+        var previousCompleted = await _context.Appointments
+            .Where(a => a.ScheduledAt >= previousPeriodStart && a.ScheduledAt < startDate && a.Status == "Completed")
+            .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
             .CountAsync(cancellationToken);
 
         var completedChange = previousCompleted > 0 ? ((double)(completedAppointments - previousCompleted) / previousCompleted) * 100 : 0;
 
-        var activePatients = await _context.ScheduleAppointments
-            .Where(sa => sa.Day >= startDate && sa.Day <= endDate)
-            .Where(sa => string.IsNullOrEmpty(doctorId) || sa.Doctor_User_Id == doctorId)
-            .Select(sa => sa.Patient_User_Id)
+        var activePatients = await _context.Appointments
+            .Where(a => a.ScheduledAt >= startDate && a.ScheduledAt <= endDate)
+            .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
+            .Select(a => a.PatientId)
             .Distinct()
             .CountAsync(cancellationToken);
 
-        var previousActivePatients = await _context.ScheduleAppointments
-            .Where(sa => sa.Day >= previousPeriodStart && sa.Day < startDate)
-            .Where(sa => string.IsNullOrEmpty(doctorId) || sa.Doctor_User_Id == doctorId)
-            .Select(sa => sa.Patient_User_Id)
+        var previousActivePatients = await _context.Appointments
+            .Where(a => a.ScheduledAt >= previousPeriodStart && a.ScheduledAt < startDate)
+            .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
+            .Select(a => a.PatientId)
             .Distinct()
             .CountAsync(cancellationToken);
 
         var patientsChange = previousActivePatients > 0 ? ((double)(activePatients - previousActivePatients) / previousActivePatients) * 100 : 0;
 
-        var avgDuration = appointments.Any() ? appointments.Average(a => a.Duration_Minutes) : 0;
-        var previousAvgDuration = previousAppointments.Any() ? previousAppointments.Average(a => a.Duration_Minutes) : 0;
+        var avgDuration = appointments.Any() ? appointments.Average(a => (a.ScheduledEndAt - a.ScheduledAt).TotalMinutes) : 0;
+        var previousAvgDuration = previousAppointments.Any() ? previousAppointments.Average(a => (a.ScheduledEndAt - a.ScheduledAt).TotalMinutes) : 0;
         var durationChange = previousAvgDuration > 0 ? ((avgDuration - previousAvgDuration) / previousAvgDuration) * 100 : 0;
 
         var totalRevenue = await _context.AppointmentPayments
-            .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
-                (ap, sa) => new { ap, sa })
-            .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.ap.Status == "Paid")
-            .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
-            .SumAsync(x => x.ap.Amount, cancellationToken);
+            .Join(_context.Appointments, ap => ap.Schedule_Appointment_Id, a => a.Id,
+                (ap, a) => new { ap, a })
+            .Where(x => x.a.ScheduledAt >= startDate && x.a.ScheduledAt <= endDate && x.ap.Status == "Paid")
+            .Where(x => string.IsNullOrEmpty(doctorId) || x.a.DoctorId == doctorId)
+            .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
         var previousRevenue = await _context.AppointmentPayments
-            .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
-                (ap, sa) => new { ap, sa })
-            .Where(x => x.sa.Day >= previousPeriodStart && x.sa.Day < startDate && x.ap.Status == "Paid")
-            .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
-            .SumAsync(x => x.ap.Amount, cancellationToken);
+            .Join(_context.Appointments, ap => ap.Schedule_Appointment_Id, a => a.Id,
+                (ap, a) => new { ap, a })
+            .Where(x => x.a.ScheduledAt >= previousPeriodStart && x.a.ScheduledAt < startDate && x.ap.Status == "Paid")
+            .Where(x => string.IsNullOrEmpty(doctorId) || x.a.DoctorId == doctorId)
+            .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
         var revenueChange = previousRevenue > 0 ? ((double)(totalRevenue - previousRevenue) / (double)previousRevenue) * 100 : 0;
 
@@ -155,38 +159,32 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         {
             var nextDate = date.AddDays(1);
             
-            var dayAppointments = await _context.ScheduleAppointments
-                .Where(sa => sa.Day >= date && sa.Day < nextDate)
-                .Where(sa => string.IsNullOrEmpty(doctorId) || sa.Doctor_User_Id == doctorId)
+            var dayAppointments = await _context.Appointments
+                .Where(a => a.ScheduledAt >= date && a.ScheduledAt < nextDate)
+                .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
                 .ToListAsync(cancellationToken);
 
-            var completed = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "Completed")
-                .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
+            var completed = await _context.Appointments
+                .Where(a => a.ScheduledAt >= date && a.ScheduledAt < nextDate && a.Status == "Completed")
+                .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
                 .CountAsync(cancellationToken);
 
-            var cancelled = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "Cancelled")
-                .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
+            var cancelled = await _context.Appointments
+                .Where(a => a.ScheduledAt >= date && a.ScheduledAt < nextDate && a.Status == "Cancelled")
+                .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
                 .CountAsync(cancellationToken);
 
-            var noShow = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "NoShow")
-                .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
+            var noShow = await _context.Appointments
+                .Where(a => a.ScheduledAt >= date && a.ScheduledAt < nextDate && a.Status == "NoShow")
+                .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
                 .CountAsync(cancellationToken);
 
             var revenue = await _context.AppointmentPayments
-                .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
-                    (ap, sa) => new { ap, sa })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.ap.Status == "Paid")
-                .Where(x => string.IsNullOrEmpty(doctorId) || x.sa.Doctor_User_Id == doctorId)
-                .SumAsync(x => x.ap.Amount, cancellationToken);
+                .Join(_context.Appointments, ap => ap.Schedule_Appointment_Id, a => a.Id,
+                    (ap, a) => new { ap, a })
+                .Where(x => x.a.ScheduledAt >= date && x.a.ScheduledAt < nextDate && x.ap.Status == "Paid")
+                .Where(x => string.IsNullOrEmpty(doctorId) || x.a.DoctorId == doctorId)
+                .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
             trends.Add(new TrendDataDto
             {
@@ -225,26 +223,20 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
 
         foreach (var doctor in doctors)
         {
-            var appointments = await _context.ScheduleAppointments
-                .Where(sa => sa.Doctor_User_Id == doctor.Doctor.Id && sa.Day >= startDate && sa.Day <= endDate)
+            var appointments = await _context.Appointments
+                .Where(a => a.DoctorId == doctor.Doctor.Id && a.ScheduledAt >= startDate && a.ScheduledAt <= endDate)
                 .ToListAsync(cancellationToken);
 
-            var completed = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Completed")
+            var completed = await _context.Appointments
+                .Where(a => a.DoctorId == doctor.Doctor.Id && a.ScheduledAt >= startDate && a.ScheduledAt <= endDate && a.Status == "Completed")
                 .CountAsync(cancellationToken);
 
-            var cancelled = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Cancelled")
+            var cancelled = await _context.Appointments
+                .Where(a => a.DoctorId == doctor.Doctor.Id && a.ScheduledAt >= startDate && a.ScheduledAt <= endDate && a.Status == "Cancelled")
                 .CountAsync(cancellationToken);
 
-            var noShow = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "NoShow")
+            var noShow = await _context.Appointments
+                .Where(a => a.DoctorId == doctor.Doctor.Id && a.ScheduledAt >= startDate && a.ScheduledAt <= endDate && a.Status == "NoShow")
                 .CountAsync(cancellationToken);
 
             var ratings = await _context.Rates
@@ -252,21 +244,21 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
                 .ToListAsync(cancellationToken);
 
             var revenue = await _context.AppointmentPayments
-                .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
-                    (ap, sa) => new { ap, sa })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Doctor.Id && x.sa.Day >= startDate && x.sa.Day <= endDate && x.ap.Status == "Paid")
-                .SumAsync(x => x.ap.Amount, cancellationToken);
+                .Join(_context.Appointments, ap => ap.Schedule_Appointment_Id, a => a.Id,
+                    (ap, a) => new { ap, a })
+                .Where(x => x.a.DoctorId == doctor.Doctor.Id && x.a.ScheduledAt >= startDate && x.a.ScheduledAt <= endDate && x.ap.Status == "Paid")
+                .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
             performance.Add(new DoctorPerformanceDto
             {
                 Id = doctor.Doctor.Id,
-                Name = $"Dr. {doctor.Profile.FirstName} {doctor.Profile.LastName}",
+                Name = $"Dr. {doctor.Profile.FirstName ?? "Unknown"} {doctor.Profile.LastName ?? ""}",
                 Specialization = doctor.Specialization,
                 TotalAppointments = appointments.Count,
                 CompletedAppointments = completed,
                 CancelledAppointments = cancelled,
                 NoShowAppointments = noShow,
-                AverageRating = ratings.Any() ? ratings.Average(r => r.Rate_Value) : 0,
+                AverageRating = ratings.Any() ? (ratings.Average(r => (double?)r.Rate_Value) ?? 0) : 0,
                 TotalRatings = ratings.Count,
                 Revenue = revenue,
                 UtilizationRate = appointments.Count > 0 ? (double)completed / appointments.Count * 100 : 0
@@ -278,42 +270,48 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
 
     private async Task<IEnumerable<SpecializationStatsDto>> GetSpecializationStatsAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
     {
-        var specializationData = await (from s in _context.Specializations
-                                       join ds in _context.DoctorSpecializations on s.Id equals ds.Specialization_Id
-                                       join d in _context.Doctors on ds.Doctor_Id equals d.Id
-                                       where s.Is_Active
-                                       group new { s, ds, d } by s.Name into g
-                                       select new
-                                       {
-                                           SpecializationName = g.Key,
-                                           DoctorIds = g.Select(x => x.d.Id).Distinct().ToList()
-                                       }).ToListAsync(cancellationToken);
+        var flatData = await (from s in _context.Specializations
+                                        join ds in _context.DoctorSpecializations on s.Id equals ds.Specialization_Id
+                                        join d in _context.Doctors on ds.Doctor_Id equals d.Id
+                                        where s.Is_Active
+                                        select new
+                                        {
+                                            SpecializationName = s.Name,
+                                            DoctorId = d.Id
+                                        }).ToListAsync(cancellationToken);
+
+        var specializationData = flatData
+            .GroupBy(x => x.SpecializationName)
+            .Select(g => new
+            {
+                SpecializationName = g.Key,
+                DoctorIds = g.Select(x => x.DoctorId).Distinct().ToList()
+            })
+            .ToList();
 
         var stats = new List<SpecializationStatsDto>();
 
         foreach (var spec in specializationData)
         {
-            var appointments = await _context.ScheduleAppointments
-                .Where(sa => spec.DoctorIds.Contains(sa.Doctor_User_Id) && sa.Day >= startDate && sa.Day <= endDate)
+            var appointments = await _context.Appointments
+                .Where(a => spec.DoctorIds.Contains(a.DoctorId) && a.ScheduledAt >= startDate && a.ScheduledAt <= endDate)
                 .ToListAsync(cancellationToken);
 
-            var completed = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => spec.DoctorIds.Contains(x.sa.Doctor_User_Id) && x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Completed")
+            var completed = await _context.Appointments
+                .Where(a => spec.DoctorIds.Contains(a.DoctorId) && a.ScheduledAt >= startDate && a.ScheduledAt <= endDate && a.Status == "Completed")
                 .CountAsync(cancellationToken);
 
-            var patients = await _context.ScheduleAppointments
-                .Where(sa => spec.DoctorIds.Contains(sa.Doctor_User_Id) && sa.Day >= startDate && sa.Day <= endDate)
-                .Select(sa => sa.Patient_User_Id)
+            var patients = await _context.Appointments
+                .Where(a => spec.DoctorIds.Contains(a.DoctorId) && a.ScheduledAt >= startDate && a.ScheduledAt <= endDate)
+                .Select(a => a.PatientId)
                 .Distinct()
                 .CountAsync(cancellationToken);
 
             var revenue = await _context.AppointmentPayments
-                .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
-                    (ap, sa) => new { ap, sa })
-                .Where(x => spec.DoctorIds.Contains(x.sa.Doctor_User_Id) && x.sa.Day >= startDate && x.sa.Day <= endDate && x.ap.Status == "Paid")
-                .SumAsync(x => x.ap.Amount, cancellationToken);
+                .Join(_context.Appointments, ap => ap.Schedule_Appointment_Id, a => a.Id,
+                    (ap, a) => new { ap, a })
+                .Where(x => spec.DoctorIds.Contains(x.a.DoctorId) && x.a.ScheduledAt >= startDate && x.a.ScheduledAt <= endDate && x.ap.Status == "Paid")
+                .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
             var avgRating = await _context.Rates
                 .Where(r => spec.DoctorIds.Contains(r.Doctor_User_Id) && r.Rated_At >= startDate && r.Rated_At <= endDate)
@@ -325,7 +323,7 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
                 TotalAppointments = appointments.Count,
                 TotalPatients = patients,
                 TotalDoctors = spec.DoctorIds.Count,
-                AverageAppointmentDuration = appointments.Any() ? appointments.Average(a => a.Duration_Minutes) : 0,
+                AverageAppointmentDuration = appointments.Any() ? appointments.Average(a => (a.ScheduledEndAt - a.ScheduledAt).TotalMinutes) : 0,
                 Revenue = revenue,
                 CompletionRate = appointments.Count > 0 ? (double)completed / appointments.Count * 100 : 0,
                 AverageRating = avgRating
@@ -337,9 +335,9 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
 
     private async Task<TimeSlotAnalysisDto> GetTimeSlotAnalysisAsync(DateTime startDate, DateTime endDate, string? doctorId, CancellationToken cancellationToken)
     {
-        var appointments = await _context.ScheduleAppointments
-            .Where(sa => sa.Day >= startDate && sa.Day <= endDate)
-            .Where(sa => string.IsNullOrEmpty(doctorId) || sa.Doctor_User_Id == doctorId)
+        var appointments = await _context.Appointments
+            .Where(a => a.ScheduledAt >= startDate && a.ScheduledAt <= endDate)
+            .Where(a => string.IsNullOrEmpty(doctorId) || a.DoctorId == doctorId)
             .ToListAsync(cancellationToken);
 
         var timeSlots = new List<TimeSlotDataDto>();
@@ -347,7 +345,7 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
 
         // Group by hour for time slot analysis
         var hourlyData = appointments
-            .GroupBy(a => a.Day.Hour)
+            .GroupBy(a => a.ScheduledAt.Hour)
             .Where(g => g.Key >= 8 && g.Key <= 18) // Business hours
             .OrderBy(g => g.Key);
 
@@ -364,13 +362,13 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
             };
 
             // Count by day of week
-            timeSlotData.Monday = hourAppointments.Count(a => a.Day.DayOfWeek == DayOfWeek.Monday);
-            timeSlotData.Tuesday = hourAppointments.Count(a => a.Day.DayOfWeek == DayOfWeek.Tuesday);
-            timeSlotData.Wednesday = hourAppointments.Count(a => a.Day.DayOfWeek == DayOfWeek.Wednesday);
-            timeSlotData.Thursday = hourAppointments.Count(a => a.Day.DayOfWeek == DayOfWeek.Thursday);
-            timeSlotData.Friday = hourAppointments.Count(a => a.Day.DayOfWeek == DayOfWeek.Friday);
-            timeSlotData.Saturday = hourAppointments.Count(a => a.Day.DayOfWeek == DayOfWeek.Saturday);
-            timeSlotData.Sunday = hourAppointments.Count(a => a.Day.DayOfWeek == DayOfWeek.Sunday);
+            timeSlotData.Monday = hourAppointments.Count(a => a.ScheduledAt.DayOfWeek == DayOfWeek.Monday);
+            timeSlotData.Tuesday = hourAppointments.Count(a => a.ScheduledAt.DayOfWeek == DayOfWeek.Tuesday);
+            timeSlotData.Wednesday = hourAppointments.Count(a => a.ScheduledAt.DayOfWeek == DayOfWeek.Wednesday);
+            timeSlotData.Thursday = hourAppointments.Count(a => a.ScheduledAt.DayOfWeek == DayOfWeek.Thursday);
+            timeSlotData.Friday = hourAppointments.Count(a => a.ScheduledAt.DayOfWeek == DayOfWeek.Friday);
+            timeSlotData.Saturday = hourAppointments.Count(a => a.ScheduledAt.DayOfWeek == DayOfWeek.Saturday);
+            timeSlotData.Sunday = hourAppointments.Count(a => a.ScheduledAt.DayOfWeek == DayOfWeek.Sunday);
 
             timeSlots.Add(timeSlotData);
         }
@@ -381,10 +379,10 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         for (int i = 0; i < 7; i++)
         {
             var dayOfWeek = (DayOfWeek)((i + 1) % 7); // Adjust for Sunday = 0
-            var dayAppointments = appointments.Where(a => a.Day.DayOfWeek == dayOfWeek).ToList();
+            var dayAppointments = appointments.Where(a => a.ScheduledAt.DayOfWeek == dayOfWeek).ToList();
             
             var peakHour = dayAppointments
-                .GroupBy(a => a.Day.Hour)
+                .GroupBy(a => a.ScheduledAt.Hour)
                 .OrderByDescending(g => g.Count())
                 .FirstOrDefault();
 
@@ -402,5 +400,33 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
             TimeSlots = timeSlots,
             WeeklyData = weeklyData
         };
+    }
+
+    private async Task<IEnumerable<T>> SafeExecuteListAsync<T>(Func<Task<IEnumerable<T>>> action, string componentName)
+    {
+        try
+        {
+            return await action();
+        }
+        catch (Exception ex)
+        {
+            // Log error
+            Console.WriteLine($"[ERROR] Failed to retrieve {componentName}: {ex.Message}");
+            return Enumerable.Empty<T>();
+        }
+    }
+
+    private async Task<T> SafeExecuteObjectAsync<T>(Func<Task<T>> action, string componentName) where T : new()
+    {
+        try
+        {
+            return await action();
+        }
+        catch (Exception ex)
+        {
+            // Log error
+            Console.WriteLine($"[ERROR] Failed to retrieve {componentName}: {ex.Message}");
+            return new T();
+        }
     }
 }

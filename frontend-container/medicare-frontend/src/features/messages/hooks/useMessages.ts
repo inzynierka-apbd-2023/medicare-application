@@ -51,25 +51,30 @@ export const useMessages = (
   }, [userId, userType]);
 
   // Load messages for a conversation
-  const loadMessages = useCallback(async (conversationId: string) => {
-    try {
-      setIsLoading(true);
-      const response = await messagesApi.getMessages(conversationId);
-      if (response.success) {
-        setMessages((prev) => ({
-          ...prev,
-          [conversationId]: response.data,
-        }));
-      } else {
-        setError(response.error || "Failed to load messages");
+  const loadMessages = useCallback(
+    async (conversationId: string) => {
+      if (!userId) return; // Ensure userId is available
+
+      try {
+        setIsLoading(true);
+        const response = await messagesApi.getMessages(conversationId, userId);
+        if (response.success) {
+          setMessages((prev) => ({
+            ...prev,
+            [conversationId]: response.data,
+          }));
+        } else {
+          setError(response.error || "Failed to load messages");
+        }
+      } catch (err) {
+        setError("Failed to load messages");
+        console.error("Error loading messages:", err);
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError("Failed to load messages");
-      console.error("Error loading messages:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+    },
+    [userId]
+  );
 
   // Select conversation
   const selectConversation = useCallback(

@@ -53,7 +53,7 @@ public class GetTimeSlotAnalysisHandler : IRequestHandler<GetTimeSlotAnalysisQue
                     .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
                         (ap, sa) => new { ap, sa })
                     .Where(x => hourlyAppointments.Select(h => h.Id).Contains(x.sa.Id) && x.ap.Status == "Paid")
-                    .AverageAsync(x => (decimal?)x.ap.Amount, cancellationToken) ?? 0;
+                    .AverageAsync(x => (decimal?)x.ap.Amount, cancellationToken) ?? 0m;
 
                 timeSlot.AverageRevenue = revenue;
 
@@ -88,7 +88,7 @@ public class GetTimeSlotAnalysisHandler : IRequestHandler<GetTimeSlotAnalysisQue
                 .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
                     (ap, sa) => new { ap, sa })
                 .Where(x => dayAppointments.Select(d => d.Id).Contains(x.sa.Id) && x.ap.Status == "Paid")
-                .SumAsync(x => x.ap.Amount, cancellationToken);
+                .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
             weeklyData.Add(new DayDataDto
             {

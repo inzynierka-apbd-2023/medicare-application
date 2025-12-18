@@ -57,39 +57,47 @@ Frontend runs at: **http://localhost:5173**
 
 ---
 
-## Service Architecture
-
-| Service | Database | Purpose |
-|---------|----------|---------|
-| UserService | UserServiceDb | Authentication & user management |
-| PractitionerService | PractitionerServiceDb | Doctor profiles & schedules |
-| PatientService | PatientServiceDb | Patient profiles |
-| MedicalCatalogService | MedicalCatalogDb | LOINC codes & medical catalog |
-| BillingService | BillingDb | Invoices & payments |
-| DocumentsService | DocumentsDb | Medical documents |
-| AppointmentService | AppointmentDb | Appointment scheduling |
-| MedicalRecordsService | MedicalRecordsDb | Patient medical records |
-| LabService | LabDb | Lab orders & results |
-| NotificationService | NotificationDb | Email/SMS notifications |
-| MessagingService | MessagingDb | In-app messaging |
-| ArchiveService | (none) | Document archival via RabbitMQ |
-| PdfService | (none) | PDF generation via RabbitMQ |
-
----
-
 ## Configuration
 
-### Frontend API URLs (Optional)
+### Frontend API Proxying
 
-If Aspire assigns different ports than the defaults, create `.env.local` in the frontend directory:
+The frontend uses Vite's proxy feature to route API calls to the correct backend services.
+Configuration is in `.env.development` - update ports after Aspire starts:
+
+1. Start Aspire and open the dashboard (http://localhost:18888)
+2. Note the ports for each service from the "Endpoints" column
+3. Update `.env.development` with the correct ports:
 
 ```env
-VITE_API_URL=http://localhost:XXXXX
-VITE_NOTIFICATION_URL=http://localhost:XXXXX
-VITE_APPOINTMENT_URL=http://localhost:XXXXX
+VITE_USER_SERVICE_URL=http://localhost:9184
+VITE_APPOINTMENT_SERVICE_URL=http://localhost:8284
+VITE_NOTIFICATION_SERVICE_URL=http://localhost:8884
+VITE_PATIENT_SERVICE_URL=http://localhost:9084
+VITE_PRACTITIONER_SERVICE_URL=http://localhost:8384
+VITE_DOCUMENTS_SERVICE_URL=http://localhost:8184
+VITE_BILLING_SERVICE_URL=http://localhost:8584
+VITE_MEDICAL_RECORDS_SERVICE_URL=http://localhost:8684
+VITE_MESSAGING_SERVICE_URL=http://localhost:8984
+VITE_LAB_SERVICE_URL=http://localhost:8784
+VITE_CATALOG_SERVICE_URL=http://localhost:8484
 ```
 
-Find the actual URLs in the Aspire Dashboard.
+4. Restart Vite: `npm run dev`
+
+### API Endpoint Routing
+
+| Endpoint Prefix | Service | Examples |
+|-----------------|---------|----------|
+| `/api/auth/*` | UserService | Login, Register, Refresh |
+| `/api/users/*` | UserService | Profile management |
+| `/api/appointment/*` | AppointmentService | Appointments |
+| `/api/patient/*` | PatientService | Patient data |
+| `/api/notifications/*` | NotificationService | Notifications |
+| `/api/doctors/*` | PractitionerService | Doctor directory |
+| `/api/documents/*` | DocumentsService | Documents |
+| `/api/billing/*` | BillingService | Payments |
+| `/api/messages/*` | MessagingService | Messages |
+| `/api/lab/*` | LabService | Lab orders |
 
 ### JWT Secret
 
@@ -112,33 +120,50 @@ The JWT secret for local development is pre-configured in:
 
 ---
 
-## Troubleshooting
+## Connecting to SQL Server Database
 
-### Docker not running
-```
-Error: Cannot connect to Docker daemon
-```
-**Solution:** Start Docker Desktop and wait until it shows "Docker is running"
+Connect to the database using **Azure Data Studio**, **SSMS**, or any SQL client.
 
-### Port conflicts
-```
-Error: Address already in use
-```
-**Solution:** Stop other services using those ports or restart Docker
+### Step 1: Get Connection Info
 
-### Database connection errors
-```
-Error: Cannot open database
-```
-**Solution:** Wait 30-60 seconds for SQL Server container to fully initialize, then restart the AppHost
+Run these PowerShell commands:
 
-### Migrations failed
-Check service logs in Aspire Dashboard for specific error messages. Each service retries migrations up to 10 times with 5-second delays.
+```powershell
+# Get the port
+docker ps --format "{{.Ports}}" | Select-String "1433"
 
-### Frontend can't connect to backend
-1. Check Aspire Dashboard - ensure services are green
-2. Verify the correct URLs in `.env.local`
-3. Check browser console for CORS errors
+# Get the password
+docker exec $(docker ps --filter "name=sql" --format "{{.Names}}") printenv MSSQL_SA_PASSWORD
+```
+
+### Step 2: Build Connection String
+
+```
+Server=127.0.0.1,{PORT};User Id=sa;Password={PASSWORD};TrustServerCertificate=True;Encrypt=True
+```
+
+Replace `{PORT}` and `{PASSWORD}` with values from Step 1.
+
+### Step 3: Connect in Azure Data Studio
+
+1. Click **New Connection**
+2. Select **Connection String** input type
+3. Paste your connection string
+4. Click **Connect**
+
+### Available Databases
+
+- `UserServiceDb` - Users & authentication
+- `PatientServiceDb` - Patient profiles
+- `PractitionerServiceDb` - Doctor profiles
+- `AppointmentDb` - Appointments
+- `BillingDb` - Payments
+- `DocumentsDb` - Documents
+- `MedicalCatalogDb` - Medical codes (LOINC, ICD-10)
+- `MedicalRecordsDb` - Medical records
+- `LabDb` - Lab orders
+- `NotificationDb` - Notifications
+- `MessagingDb` - Messages
 
 ---
 
@@ -150,10 +175,16 @@ Check service logs in Aspire Dashboard for specific error messages. Each service
 
 ---
 
-## Test Users
+## Test Users (Development Only)
 
-After first startup, the following user is seeded:
-- **Username:** `admin`
-- **Password:** Shown in UserService logs (temporary, auto-generated)
+These users are automatically seeded on first startup in development mode:
 
-Check the Aspire Dashboard logs for UserService to find the password.
+| Username | Password | Role |
+|----------|----------|------|
+| `patient_a_20250818` | `P@ssw0rd!` | Patient |
+| `doctor_a_20250818` | `P@ssw0rd!` | Doctor |
+| `reception_a_20250818` | `P@ssw0rd!` | Receptionist |
+| `admin_a_20250818` | `P@ssw0rd!` | Admin |
+| `owner@test.local` | `P@ssw0rd!` | Owner |
+
+> **Note:** To re-seed users, delete the `UserServiceDb` database and restart Aspire.

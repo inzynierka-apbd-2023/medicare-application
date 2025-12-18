@@ -75,7 +75,7 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
                 .Where(r => r.Rated_At >= startDate && r.Rated_At <= endDate)
                 .ToListAsync(cancellationToken);
 
-            var averageRating = ratings.Any() ? ratings.Average(r => r.Rate_Value) : 0;
+            var averageRating = ratings.Any() ? (ratings.Average(r => (double?)r.Rate_Value) ?? 0) : 0;
             var totalRatings = ratings.Count;
 
             var revenue = await _context.AppointmentPayments
@@ -83,11 +83,11 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
                     (ap, sa) => new { ap, sa })
                 .Where(x => x.sa.Doctor_User_Id == doctor.Id)
                 .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.ap.Status == "Paid")
-                .SumAsync(x => x.ap.Amount, cancellationToken);
+                .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
             // Calculate utilization rate based on total working hours vs booked appointments
             var totalWorkingMinutes = (endDate - startDate).Days * 8 * 60; // Assuming 8 hours per day
-            var bookedMinutes = appointments.Sum(a => a.Duration_Minutes);
+            var bookedMinutes = appointments.Sum(a => a.Duration_Minutes ?? 0);
             var utilizationRate = totalWorkingMinutes > 0 ? ((double)bookedMinutes / totalWorkingMinutes) * 100 : 0;
 
             var specialization = await _context.DoctorSpecializations
@@ -99,7 +99,7 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
             performanceList.Add(new DoctorPerformanceDto
             {
                 Id = doctor.Id,
-                Name = doctorProfile != null ? $"{doctorProfile.FirstName} {doctorProfile.LastName}" : "Unknown",
+                Name = doctorProfile != null ? $"Dr. {doctorProfile.FirstName ?? "Unknown"} {doctorProfile.LastName ?? ""}" : "Unknown",
                 Specialization = specialization,
                 TotalAppointments = totalAppointments,
                 CompletedAppointments = completedAppointments,

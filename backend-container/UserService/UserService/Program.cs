@@ -68,6 +68,7 @@ try
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(o =>
         {
+            o.MapInboundClaims = false;
             o.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
@@ -76,7 +77,8 @@ try
                 ValidateIssuerSigningKey = true,
                 ValidIssuer = issuer,
                 ValidAudience = audience,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+                RoleClaimType = "role"
             };
         });
 
@@ -266,8 +268,7 @@ END";
                 Console.WriteLine($"[Startup] Fallback Refresh_Token create failed: {ex.Message}");
             }
             await SeedRolesAsync(db);
-            if (isDev) await SeedAdminUserIfNoneAsync(db);
-            await SeedTestPatientAsync(db);
+            if (isDev) await SeedDevelopmentUsersAsync(db);
             Console.WriteLine("[Startup] Migrations & seeding complete.");
             break;
         }
@@ -283,64 +284,80 @@ END";
 
 static async Task SeedRolesAsync(UserDbContext db)
 {
-    if (await db.Roles.AnyAsync()) return;
-    Console.WriteLine("[Startup] Seeding roles...");
-    db.Roles.AddRange(
-        new Role { Id = Guid.NewGuid().ToString(), Name = "Admin", Description = "Administrator" },
-        new Role { Id = Guid.NewGuid().ToString(), Name = "Doctor", Description = "Doctor user" },
-        new Role { Id = Guid.NewGuid().ToString(), Name = "Patient", Description = "Patient user" }
-    );
-    await db.SaveChangesAsync();
-}
-
-static async Task SeedAdminUserIfNoneAsync(UserDbContext db)
-{
-    if (await db.Users.AnyAsync()) return;
-    var adminRole = await db.Roles.FirstOrDefaultAsync(r => r.Name == "Admin");
-    if (adminRole == null) return;
-    var tempPassword = ($"Adm!n-{Guid.NewGuid():N}").Substring(0, 16);
-    var userId = Guid.NewGuid().ToString();
-    db.Users.Add(new User
+    var existingRoles = await db.Roles.Select(r => r.Name).ToListAsync();
+    var rolesToAdd = new List<Role>();
+    
+    if (!existingRoles.Contains("Admin"))
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Admin", Description = "Administrator" });
+    if (!existingRoles.Contains("Doctor"))
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Doctor", Description = "Doctor user" });
+    if (!existingRoles.Contains("Patient"))
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Patient", Description = "Patient user" });
+    if (!existingRoles.Contains("Receptionist"))
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Receptionist", Description = "Receptionist user" });
+    if (!existingRoles.Contains("Owner"))
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Owner", Description = "Clinic owner" });
+    
+    if (rolesToAdd.Any())
     {
-        Id = userId,
-        Username = AdminSeedUsername,
-        PasswordHash = BCrypt.Net.BCrypt.HashPassword(tempPassword),
-        RoleId = adminRole.Id,
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow,
-        IsActive = true
-    });
-    db.UserProfiles.Add(new UserProfile
-    {
-        UserId = userId,
-        FirstName = "System",
-        LastName = "Admin",
-        Email = "admin@local.invalid",
-        CreatedAt = DateTime.UtcNow,
-        UpdatedAt = DateTime.UtcNow
-    });
-    await db.SaveChangesAsync();
-    Console.WriteLine($"[Startup] Seeded admin user. Username: {AdminSeedUsername} TempPassword: {tempPassword}");
-}
-
-static async Task SeedTestPatientAsync(UserDbContext db)
-{
-    // Username from test-users.txt (example). Only seed details if user already exists.
-    const string testUsername = "patient_a_20250818"; // adjust if date pattern changes
-    var user = await db.Users.Include(u => u.Profile).FirstOrDefaultAsync(u => u.Username == testUsername);
-    if (user == null || user.Profile == null) return; // don't create; only enrich existing test user
-    bool changed = false;
-    if (string.IsNullOrWhiteSpace(user.Profile.Phone)) { user.Profile.Phone = "+1-555-0100"; changed = true; }
-    if (string.IsNullOrWhiteSpace(user.Profile.AddressLine1)) { user.Profile.AddressLine1 = "123 Test Street"; changed = true; }
-    if (string.IsNullOrWhiteSpace(user.Profile.AddressLine2)) { user.Profile.AddressLine2 = "Apt 4B"; changed = true; }
-    if (string.IsNullOrWhiteSpace(user.Profile.City)) { user.Profile.City = "Testville"; changed = true; }
-    if (string.IsNullOrWhiteSpace(user.Profile.State)) { user.Profile.State = "TS"; changed = true; }
-    if (string.IsNullOrWhiteSpace(user.Profile.ZipCode)) { user.Profile.ZipCode = "12345"; changed = true; }
-    if (string.IsNullOrWhiteSpace(user.Profile.Country)) { user.Profile.Country = "Testland"; changed = true; }
-    if (changed)
-    {
-        user.Profile.UpdatedAt = DateTime.UtcNow;
+        db.Roles.AddRange(rolesToAdd);
         await db.SaveChangesAsync();
-        Console.WriteLine($"[Startup] Enriched test patient '{testUsername}' with phone/address.");
+        Console.WriteLine($"[Startup] Seeded {rolesToAdd.Count} roles: {string.Join(", ", rolesToAdd.Select(r => r.Name))}");
+    }
+}
+
+static async Task SeedDevelopmentUsersAsync(UserDbContext db)
+{
+    // Development test users with known passwords
+    var testUsers = new[]
+    {
+        new { Username = "patient_a_20250818", Password = "P@ssw0rd!", Role = "Patient", FirstName = "Test", LastName = "Patient", Email = "patient@test.local" },
+        new { Username = "doctor_a_20250818", Password = "P@ssw0rd!", Role = "Doctor", FirstName = "Test", LastName = "Doctor", Email = "doctor@test.local" },
+        new { Username = "reception_a_20250818", Password = "P@ssw0rd!", Role = "Receptionist", FirstName = "Test", LastName = "Receptionist", Email = "reception@test.local" },
+        new { Username = "admin_a_20250818", Password = "P@ssw0rd!", Role = "Admin", FirstName = "Test", LastName = "Admin", Email = "admin@test.local" },
+        new { Username = "owner@test.local", Password = "P@ssw0rd!", Role = "Owner", FirstName = "Test", LastName = "Owner", Email = "owner@test.local" },
+    };
+
+    var existingUsernames = await db.Users.Select(u => u.Username).ToListAsync();
+    var roles = await db.Roles.ToDictionaryAsync(r => r.Name, r => r.Id);
+    int created = 0;
+
+    foreach (var tu in testUsers)
+    {
+        if (existingUsernames.Contains(tu.Username)) continue;
+        if (!roles.TryGetValue(tu.Role, out var roleId)) continue;
+
+        var userId = Guid.NewGuid().ToString();
+        db.Users.Add(new User
+        {
+            Id = userId,
+            Username = tu.Username,
+            PasswordHash = BCrypt.Net.BCrypt.HashPassword(tu.Password),
+            RoleId = roleId,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsActive = true
+        });
+        db.UserProfiles.Add(new UserProfile
+        {
+            UserId = userId,
+            FirstName = tu.FirstName,
+            LastName = tu.LastName,
+            Email = tu.Email,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+        created++;
+    }
+
+    if (created > 0)
+    {
+        await db.SaveChangesAsync();
+        Console.WriteLine($"[Startup] Seeded {created} development test users:");
+        foreach (var tu in testUsers)
+        {
+            if (!existingUsernames.Contains(tu.Username))
+                Console.WriteLine($"  - {tu.Username} / {tu.Password} ({tu.Role})");
+        }
     }
 }

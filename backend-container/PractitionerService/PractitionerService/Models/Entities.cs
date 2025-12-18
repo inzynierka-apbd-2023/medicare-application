@@ -86,8 +86,8 @@ public class DoctorDirectory
 {
     public string DoctorId { get; set; } = default!;
     public string UserId { get; set; } = default!;
-    public string FirstName { get; set; } = default!;
-    public string LastName { get; set; } = default!;
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
     public string? Email { get; set; }
     public string? Phone { get; set; }
     public string? Specializations { get; set; } // comma-separated

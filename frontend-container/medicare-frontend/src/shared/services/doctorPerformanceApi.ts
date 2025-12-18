@@ -31,18 +31,29 @@ const buildQuery = (filters?: DoctorPerformanceFilters) => {
 };
 
 export const doctorPerformanceApi = {
-  async getSummary(filters?: DoctorPerformanceFilters): Promise<ApiResult<DoctorPerformanceSummaryResponse>> {
+  async getSummary(
+    filters?: DoctorPerformanceFilters
+  ): Promise<ApiResult<DoctorPerformanceSummaryResponse>> {
     try {
-  const res = await apiClient.get(`/appointment/analytics/doctor-performance/summary${buildQuery(filters)}`);
+      const res = await apiClient.get(
+        `/practitioner/doctor-performance/summary${buildQuery(filters)}`
+      );
       return { success: true, data: res.data, error: null };
-    } catch (err: any) {
+    } catch (err: unknown) {
       let message = "Failed to load doctor performance summary";
-      if (err.response?.data?.errors) {
-        message = Array.isArray(err.response.data.errors) ? err.response.data.errors.join(", ") : err.response.data.errors;
-      } else if (err.message) {
+      if (err && typeof err === "object" && "response" in err) {
+        const response = (
+          err as { response?: { data?: { errors?: string | string[] } } }
+        ).response;
+        if (response?.data?.errors) {
+          message = Array.isArray(response.data.errors)
+            ? response.data.errors.join(", ")
+            : response.data.errors;
+        }
+      } else if (err instanceof Error) {
         message = err.message;
       }
       return { success: false, data: null, error: message };
     }
-  }
+  },
 };

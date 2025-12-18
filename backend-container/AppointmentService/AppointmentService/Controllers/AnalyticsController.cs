@@ -32,7 +32,7 @@ public class AnalyticsController : ControllerBase
     {
         try
         {
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userRole = User.FindFirst("role")?.Value;
             if (userRole != "Owner" && userRole != "Admin")
             {
                 return Forbid("Insufficient permissions to access doctor performance summary");
@@ -86,7 +86,7 @@ public class AnalyticsController : ControllerBase
             }
 
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userRole = User.FindFirst("role")?.Value;
 
             _logger.LogInformation("Analytics dashboard requested by user {UserId} with role {UserRole}", userId, userRole);
 
@@ -140,7 +140,7 @@ public class AnalyticsController : ControllerBase
         try
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userRole = User.FindFirst("role")?.Value;
 
             if (!IsAuthorizedForAnalytics(userRole))
             {
@@ -185,7 +185,7 @@ public class AnalyticsController : ControllerBase
         try
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userRole = User.FindFirst("role")?.Value;
 
             if (!IsAuthorizedForAnalytics(userRole))
             {
@@ -231,7 +231,7 @@ public class AnalyticsController : ControllerBase
         try
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userRole = User.FindFirst("role")?.Value;
 
             if (!IsAuthorizedForAnalytics(userRole))
             {
@@ -275,7 +275,7 @@ public class AnalyticsController : ControllerBase
     {
         try
         {
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userRole = User.FindFirst("role")?.Value;
 
             if (!IsAuthorizedForSpecializationStats(userRole))
             {
@@ -310,7 +310,7 @@ public class AnalyticsController : ControllerBase
         try
         {
             var userId = User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-            var userRole = User.FindFirst(ClaimTypes.Role)?.Value;
+            var userRole = User.FindFirst("role")?.Value;
 
             if (!IsAuthorizedForAnalytics(userRole))
             {

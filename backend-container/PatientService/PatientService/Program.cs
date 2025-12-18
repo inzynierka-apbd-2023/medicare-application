@@ -67,6 +67,7 @@ try
     builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(o =>
         {
+            o.MapInboundClaims = false;
             o.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
@@ -75,7 +76,8 @@ try
                 ValidateIssuerSigningKey = true,
                 ValidIssuer = issuer,
                 ValidAudience = audience,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+                RoleClaimType = "role"
             };
         });
 
@@ -217,6 +219,7 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
             var pendingAfter = all.Except(applied);
             Console.WriteLine($"[Startup] Patient pending AFTER apply: {string.Join(",", pendingAfter)}");
             await SeedCatalogAsync(db);
+            await CreateViewsAsync(db);
             Console.WriteLine("[Startup] Patient migrations & seeding complete.");
             break;
         }
@@ -227,6 +230,53 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
             if (retries > 10) throw;
             await Task.Delay(5000);
         }
+    }
+}
+
+static async Task CreateViewsAsync(PatientDbContext db)
+{
+    try
+    {
+        // Create PatientOverview view with cross-database compatibility
+        var viewSql = @"
+IF OBJECT_ID('[user].[User_Profile]', 'U') IS NOT NULL
+BEGIN
+    -- Shared database scenario (e.g., Azure) - create full view with join
+    EXEC('CREATE OR ALTER VIEW patient.PatientOverview AS
+    SELECT p.Id AS PatientId,
+           p.UserId,
+           up.FirstName,
+           up.LastName,
+           up.Email,
+           up.Phone,
+           (SELECT TOP 1 s.Status FROM patient.Patient_Status s WHERE s.PatientId = p.Id ORDER BY s.EffectiveAt DESC) AS CurrentStatus,
+           (SELECT TOP 1 ec.Name FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactName,
+           (SELECT TOP 1 ec.Phone FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactPhone
+    FROM patient.Patient p
+    LEFT JOIN [user].[User_Profile] up ON up.User_Id = p.UserId;');
+END
+ELSE
+BEGIN
+    -- Separate databases scenario (local dev) - create view without user join
+    EXEC('CREATE OR ALTER VIEW patient.PatientOverview AS
+    SELECT p.Id AS PatientId,
+           p.UserId,
+           NULL AS FirstName,
+           NULL AS LastName,
+           NULL AS Email,
+           NULL AS Phone,
+           (SELECT TOP 1 s.Status FROM patient.Patient_Status s WHERE s.PatientId = p.Id ORDER BY s.EffectiveAt DESC) AS CurrentStatus,
+           (SELECT TOP 1 ec.Name FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactName,
+           (SELECT TOP 1 ec.Phone FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactPhone
+    FROM patient.Patient p;');
+END
+";
+        await db.Database.ExecuteSqlRawAsync(viewSql);
+        Console.WriteLine("[Startup] PatientOverview view created.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] View creation warning: {ex.Message}");
     }
 }
 

@@ -57,12 +57,13 @@ builder.Services.AddDbContext<DocumentsDbContext>((sp, options) =>
 });
 
 var jwt = builder.Configuration.GetSection("Jwt");
-var secretKey = jwt["SecretKey"] ?? "dev_secret_key_change"; // keep optional for local
+var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
 var issuer = jwt["Issuer"] ?? "MedicareApp";
 var audience = jwt["Audience"] ?? "MedicareUsers";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
+        o.MapInboundClaims = false;
         o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -71,7 +72,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = issuer,
             ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            RoleClaimType = "role"
         };
     });
 
@@ -225,12 +227,50 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
         Console.WriteLine($"[Startup] Documents applied migrations: {string.Join(",", applied)} (history: documents.__EFMigrationsHistory)");
         var pendingAfter = all.Except(applied);
         Console.WriteLine($"[Startup] Documents pending AFTER apply: {string.Join(",", pendingAfter)}");
+        
+        // Seed Document Types (required reference data)
+        await SeedDocumentTypesAsync(db);
+        
         Console.WriteLine("[Startup] Documents migrations complete.");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"[Startup] Documents migration failed: {ex.Message}");
         if (ex.InnerException != null) Console.WriteLine($"[Startup] Inner: {ex.InnerException.Message}");
+    }
+}
+
+static async Task SeedDocumentTypesAsync(DocumentsDbContext db)
+{
+    try
+    {
+        var typesToSeed = new[]
+        {
+            new { Code = "VISIT_NOTE", Name = "Visit Note", Description = "Clinical visit document" },
+            new { Code = "PRESCRIPTION", Name = "Prescription", Description = "Medication order" },
+            new { Code = "REFERRAL", Name = "Referral", Description = "Referral to specialist/provider" },
+            new { Code = "SICK_LEAVE", Name = "Sick Leave", Description = "Work absence certificate" },
+            new { Code = "LAB_RESULTS", Name = "Lab Results", Description = "Laboratory results report" }
+        };
+
+        foreach (var t in typesToSeed)
+        {
+            if (!await db.DocumentTypes.AnyAsync(dt => dt.Code == t.Code))
+            {
+                db.DocumentTypes.Add(new DocumentsService.Models.DocumentType
+                {
+                    Code = t.Code,
+                    Name = t.Name,
+                    Description = t.Description
+                });
+            }
+        }
+        await db.SaveChangesAsync();
+        Console.WriteLine("[Startup] Document types seeded.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Document type seeding warning: {ex.Message}");
     }
 }
 

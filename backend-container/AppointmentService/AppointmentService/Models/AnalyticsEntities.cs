@@ -29,11 +29,11 @@ public class UserProfile
     [MaxLength(36)]
     public string User_Id { get; set; } = default!;
     
-    [Required, MaxLength(100)]
-    public string FirstName { get; set; } = default!;
+    [MaxLength(100)]
+    public string? FirstName { get; set; }
     
-    [Required, MaxLength(100)]
-    public string LastName { get; set; } = default!;
+    [MaxLength(100)]
+    public string? LastName { get; set; }
     
     [Required, MaxLength(255)]
     public string Email { get; set; } = default!;
@@ -135,8 +135,7 @@ public class ScheduleAppointment
     [Required]
     public DateTime Day { get; set; }
     
-    [Required]
-    public int Duration_Minutes { get; set; }
+    public int? Duration_Minutes { get; set; }
     
     [MaxLength(255)]
     public string? Room { get; set; }
@@ -190,9 +189,8 @@ public class AppointmentPayment
     [MaxLength(36)]
     public string Id { get; set; } = default!;
     
-    [Required]
     [Column(TypeName = "decimal(10,2)")]
-    public decimal Amount { get; set; }
+    public decimal? Amount { get; set; }
     
     [Required, MaxLength(10)]
     public string Currency { get; set; } = default!;
@@ -223,8 +221,7 @@ public class Rate
     [MaxLength(36)]
     public string Id { get; set; } = default!;
     
-    [Required]
-    public byte Rate_Value { get; set; }
+    public byte? Rate_Value { get; set; }
     
     [MaxLength(1000)]
     public string? Description { get; set; }

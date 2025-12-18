@@ -33,7 +33,7 @@ interface UseDoctorScheduleReturn {
 }
 
 export const useDoctorSchedule = ({
-  doctorId = "current-doctor-id",
+  doctorId,
   autoRefresh = false,
   refreshInterval = 30000, // 30 seconds
 }: UseDoctorScheduleProps = {}): UseDoctorScheduleReturn => {
@@ -99,6 +99,15 @@ export const useDoctorSchedule = ({
   });
 
   const refreshSchedule = useCallback(async () => {
+    // Prevent fetching if doctorId is invalid or a placeholder
+    if (
+      !doctorId ||
+      doctorId === "current-doctor-id" ||
+      doctorId === "mock-doctor-id"
+    ) {
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
 

@@ -11,11 +11,12 @@ public class PatientMetricsService : IPatientMetricsService
 
     public async Task<PatientMetricsResponse> GetMetricsAsync(DateTime startDate, DateTime endDate, CancellationToken ct)
     {
-    var activePatientIds = await _db.PatientStatuses.AsNoTracking()
-            .GroupBy(s => s.PatientId)
-            .Select(g => g.OrderByDescending(s => s.EffectiveAt).First())
-            .Where(latest => latest.Status == "Active")
-            .Select(latest => latest.PatientId)
+        // Use correlated subquery to find latest status active
+        var activePatientIds = await _db.PatientStatuses.AsNoTracking()
+            .Where(s => s.Status == "Active" && s.EffectiveAt == _db.PatientStatuses
+                .Where(sub => sub.PatientId == s.PatientId)
+                .Max(sub => sub.EffectiveAt))
+            .Select(s => s.PatientId)
             .ToListAsync(ct);
 
         var totalActive = activePatientIds.Count;

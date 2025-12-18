@@ -59,14 +59,14 @@ public class GetSpecializationStatsHandler : IRequestHandler<GetSpecializationSt
 
             var totalDoctors = doctorIds.Count;
 
-            var averageDuration = appointments.Any() ? appointments.Average(a => a.Duration_Minutes) : 0;
+            var averageDuration = appointments.Any() ? appointments.Average(a => a.Duration_Minutes ?? 0) : 0;
 
             var revenue = await _context.AppointmentPayments
                 .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
                     (ap, sa) => new { ap, sa })
                 .Where(x => doctorIds.Contains(x.sa.Doctor_User_Id))
                 .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.ap.Status == "Paid")
-                .SumAsync(x => x.ap.Amount, cancellationToken);
+                .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
             var completionRate = totalAppointments > 0 ? ((double)completedAppointments / totalAppointments) * 100 : 0;
 

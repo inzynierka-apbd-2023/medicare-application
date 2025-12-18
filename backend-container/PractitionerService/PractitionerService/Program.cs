@@ -85,6 +85,7 @@ var audience = jwt["Audience"] ?? "MedicareUsers";
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(o =>
     {
+        o.MapInboundClaims = false;
         o.TokenValidationParameters = new TokenValidationParameters
         {
             ValidateIssuer = true,
@@ -93,7 +94,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             ValidateIssuerSigningKey = true,
             ValidIssuer = issuer,
             ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey))
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
+            RoleClaimType = "role"
         };
     });
 
@@ -222,12 +224,68 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
     Console.WriteLine($"[Startup] Practitioner pending AFTER apply: {string.Join(",", pendingAfter)}");
         await SeedCatalogAsync(db);
     await SeedTestDataAsync(db);
+    await CreateViewsAsync(db);
         Console.WriteLine("[Startup] Practitioner migrations & seeding complete.");
     }
     catch (Exception ex)
     {
         Console.WriteLine($"[Startup] Practitioner migration failed: {ex.Message}");
         if (ex.InnerException != null) Console.WriteLine($"[Startup] Inner: {ex.InnerException.Message}");
+    }
+}
+
+static async Task CreateViewsAsync(PractitionerDbContext db)
+{
+    try
+    {
+        // Create DoctorDirectory view with cross-database compatibility
+        var viewSql = @"
+IF OBJECT_ID('[user].[User_Profile]', 'U') IS NOT NULL
+BEGIN
+    EXEC('CREATE OR ALTER VIEW practitioner.DoctorDirectory AS
+    SELECT d.Id AS DoctorId,
+           d.UserId,
+           up.FirstName,
+           up.LastName,
+           up.Email,
+           up.Phone,
+           STUFF((
+               SELECT '','' + ds.SpecializationId
+               FROM practitioner.Doctor_Specialization ds
+               WHERE ds.DoctorId = d.Id
+               FOR XML PATH(''''), TYPE
+           ).value(''.'',''NVARCHAR(MAX)''), 1, 1, '''') AS Specializations,
+           NULL AS Services,
+           d.IsActive
+    FROM practitioner.Doctor d
+    LEFT JOIN [user].[User_Profile] up ON up.User_Id = d.UserId;');
+END
+ELSE
+BEGIN
+    EXEC('CREATE OR ALTER VIEW practitioner.DoctorDirectory AS
+    SELECT d.Id AS DoctorId,
+           d.UserId,
+           NULL AS FirstName,
+           NULL AS LastName,
+           NULL AS Email,
+           NULL AS Phone,
+           STUFF((
+               SELECT '','' + ds.SpecializationId
+               FROM practitioner.Doctor_Specialization ds
+               WHERE ds.DoctorId = d.Id
+               FOR XML PATH(''''), TYPE
+           ).value(''.'',''NVARCHAR(MAX)''), 1, 1, '''') AS Specializations,
+           NULL AS Services,
+           d.IsActive
+    FROM practitioner.Doctor d;');
+END
+";
+        await db.Database.ExecuteSqlRawAsync(viewSql);
+        Console.WriteLine("[Startup] DoctorDirectory view created.");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] View creation warning: {ex.Message}");
     }
 }
 
