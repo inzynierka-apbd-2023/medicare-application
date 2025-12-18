@@ -1,8 +1,0 @@
-Registered 4 users via the UserService API:
-patient_a_20250818 / P@ssw0rd!
-doctor_a_20250818 / P@ssw0rd!
-reception_a_20250818 / P@ssw0rd!
-admin_a_20250818 / P@ssw0rd!
-jancewiczjerzy2@gmail.com / Niewodnica5! -> owner
-
-Username: doctor_s_20250820_4 | Password: s}d$q1LhX3fM
