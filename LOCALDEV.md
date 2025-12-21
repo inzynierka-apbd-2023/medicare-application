@@ -188,3 +188,65 @@ These users are automatically seeded on first startup in development mode:
 | `owner@test.local` | `P@ssw0rd!` | Owner |
 
 > **Note:** To re-seed users, delete the `UserServiceDb` database and restart Aspire.
+
+---
+
+## Deployment to Azure
+
+To deploy the application to Azure:
+
+1. Open a terminal in the solution root.
+2. Run `azd up`
+3. Follow the prompts (login, select subscription, location).
+
+Once deployed, the application URL will be displayed in the terminal.
+To find it later, run:
+```powershell
+azd show
+```
+Look for the **Ingress** URL in the output.
+
+### Accessing the Deployed Database
+
+Since the application uses **Azure SQL Database** in production, you can connect to it using tools like **Azure Data Studio** or **SSMS**.
+
+1. **Find the SQL Server:**
+   - Go to the [Azure Portal](https://portal.azure.com).
+   - Open the Resource Group `rg-medicare-dev`.
+   - Look for the **SQL Server** resource (usually named like `sql-xyz...`).
+
+2. **Set Admin Password (if unknown):**
+   - Click on the SQL Server resource.
+   - Click **"Reset password"** in the top menu to set a known admin password.
+
+3. **Allow Your IP:**
+   - In the SQL Server menu, go to **Security** > **Networking**.
+   - Click **"Add your client IPv4 address"**.
+   - Click **Save**.
+
+4. **Connect:**
+   - Use the **Server name** (e.g., `sql-xyz.database.windows.net`).
+   - Use **Authentication**: `SQL Login`.
+   - **Username**: The admin username (check the resource Overview or `azd` env).
+   - **Password**: The one you set in step 2.
+   - **Database**: `UserServiceDb` (or others).
+
+---
+
+## Viewing Logs
+
+You can view the live logs of your application in two ways:
+
+### Method 1: CLI (Easiest)
+Run the following command in your terminal:
+```powershell
+azd monitor --logs
+```
+This will stream logs from your Azure resources directly to your terminal.
+
+### Method 2: Azure Portal
+1. Go to the [Azure Portal](https://portal.azure.com).
+2. Navigate to your **Container App** (e.g., `userservice`).
+3. In the left menu, select **Log stream**.
+4. You will see live logs from the running container.
+

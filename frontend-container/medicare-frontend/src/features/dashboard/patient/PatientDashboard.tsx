@@ -61,7 +61,8 @@ export default function PatientDashboard() {
 
     let cardStatus: "upcoming" | "completed" | "cancelled" = "upcoming";
     if (apt.status?.name === "Cancelled") cardStatus = "cancelled";
-    else if (apt.status?.name === "Completed" || isOverdue) cardStatus = "completed";
+    else if (apt.status?.name === "Completed" || isOverdue)
+      cardStatus = "completed";
 
     return {
       id: apt.id,
@@ -86,11 +87,11 @@ export default function PatientDashboard() {
         // Fetch notifications and documents in parallel
         const [notificationsResponse, documentsResponse] = await Promise.all([
           notificationsApi.getForRecipient(currentPatientId, false),
-          patientDashboardApi.getDocuments(),
+          patientDashboardApi.getRecentDocuments(currentPatientId),
         ]);
 
         if (notificationsResponse.success) {
-          setNotifications(notificationsResponse.data as any);
+          setNotifications(notificationsResponse.data as Notification[]);
         } else {
           throw new Error(
             notificationsResponse.error || "Failed to fetch notifications"
@@ -112,7 +113,7 @@ export default function PatientDashboard() {
     };
 
     executeInitialLoad(fetchDashboardData);
-  }, [executeInitialLoad]);
+  }, [executeInitialLoad, currentPatientId]);
 
   const handleViewAllNotifications = () => {
     setShowNotifications(true);
@@ -148,7 +149,7 @@ export default function PatientDashboard() {
 
   const handleMarkNotificationAsRead = async (notificationId: string) => {
     try {
-  const response = await notificationsApi.markAsRead(notificationId);
+      const response = await notificationsApi.markAsRead(notificationId);
       if (response.success) {
         setNotifications((prev: Notification[]) => {
           const updated = prev.map((notif: Notification) =>
@@ -158,8 +159,14 @@ export default function PatientDashboard() {
         });
         // Best-effort broadcast (Header listens and will refresh unread badge)
         try {
-          window.dispatchEvent(new CustomEvent("notifications:updated", { detail: { kind: "read", id: notificationId } }));
-        } catch {}
+          window.dispatchEvent(
+            new CustomEvent("notifications:updated", {
+              detail: { kind: "read", id: notificationId },
+            })
+          );
+        } catch {
+          // Ignore error
+        }
       } else {
         throw new Error("Failed to mark notification as read");
       }
@@ -172,7 +179,9 @@ export default function PatientDashboard() {
     <div className="min-h-screen bg-gray-100 overflow-x-hidden">
       <Header />
       <LoadingOverlay isLoading={isLoading} message="Loading dashboard...">
-        <DashboardLayout title={user?.firstName ? `Welcome, ${user.firstName}` : "Welcome"}>
+        <DashboardLayout
+          title={user?.firstName ? `Welcome, ${user.firstName}` : "Welcome"}
+        >
           {error ? (
             <div className="flex items-center justify-center h-64">
               <ErrorDisplay

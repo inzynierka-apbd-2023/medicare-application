@@ -155,10 +155,7 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-if (!app.Environment.IsProduction())
-{
-    await ApplyMigrationsAsync(app.Services);
-}
+await ApplyMigrationsAsync(app.Services);
 
 app.MapDefaultEndpoints();
 

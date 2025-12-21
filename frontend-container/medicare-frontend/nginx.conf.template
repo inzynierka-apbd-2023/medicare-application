@@ -1,4 +1,5 @@
 server {
+  absolute_redirect off;
   listen 80;
   server_name _;
 
@@ -10,126 +11,120 @@ server {
     add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
   }
 
-  # Ensure the SPA index is never cached
   location = /index.html {
     add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
   }
+
+  # --- DYNAMIC PROXY CONFIGURATION (Envsubst) ---
   
+  # Defaults for all proxies
+  proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+  # proxy_set_header X-Forwarded-Proto $scheme; # Removed to allow Azure Ingress header (https) to pass through
+  proxy_set_header X-Forwarded-Host $host;
+  
+  # SSL Proxy Settings (Required for internal HTTPS)
+  proxy_ssl_server_name on;
+  proxy_ssl_verify off;
+  proxy_ssl_protocols TLSv1.2 TLSv1.3;
+
   # Documents Service
   location = /api/documents { return 301 /api/documents/; }
   location /api/documents/ {
-    proxy_pass http://documentsservice;
+    proxy_pass ${DOCUMENTS_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
-    add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
   }
 
   # Billing Service
   location = /api/billing { return 301 /api/billing/; }
   location /api/billing/ {
-    proxy_pass http://billingservice;
+    proxy_pass ${BILLING_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
-    add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
   }
 
   # Practitioner Service
   location /api/practitioner/ {
-    proxy_pass http://practitionerservice;
+    proxy_pass ${PRACTITIONER_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
   }
 
   # Patient Service
   location /api/patient/ {
-    proxy_pass http://patientservice;
+    proxy_pass ${PATIENT_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
-    add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
   }
 
   # Appointment Service
   location /api/appointment/ {
-    proxy_pass http://appointmentservice;
+    proxy_pass ${APPOINTMENT_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
-    add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
   }
 
   # Notification Service
   location ^~ /api/notifications {
-    proxy_pass http://notificationservice;
+    proxy_pass ${NOTIFICATION_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
-    add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
   }
 
   # Medical Catalog Service
   location /api/catalog/ {
-    proxy_pass http://medicalcatalogservice;
+    proxy_pass ${CATALOG_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
   }
 
   # Lab Service
   location /api/lab/ {
-    proxy_pass http://labservice;
+    proxy_pass ${LAB_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
   }
 
   # Medical Records Service
   location /api/medical-records/ {
-    proxy_pass http://medicalrecordsservice;
+    proxy_pass ${RECORDS_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
   }
 
   # Messaging Service
   location /api/messaging/ {
-    proxy_pass http://messagingservice;
+    proxy_pass ${MESSAGING_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
   }
 
   # User Service (Gateway/Fallback)
   location /api/ {
-    proxy_pass http://userservice;
+    proxy_pass ${USER_SERVICE_URL};
     proxy_http_version 1.1;
     proxy_set_header Upgrade $http_upgrade;
     proxy_set_header Connection 'upgrade';
-    proxy_set_header Host $host;
     proxy_cache_bypass $http_upgrade;
-    add_header Cache-Control "no-store, no-cache, must-revalidate, max-age=0" always;
   }
 }

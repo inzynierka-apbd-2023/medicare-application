@@ -77,3 +77,5 @@ backend-container/UserService/scripts/seed-test-patient.sql
 .azure
 
 **/appsettings.Development.json
+
+env_output.txt

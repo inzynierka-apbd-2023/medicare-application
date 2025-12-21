@@ -141,10 +141,8 @@ try
     app.MapControllers();
     app.MapHealthChecks("/health");
 
-    if (!app.Environment.IsProduction())
-    {
-        await ApplyMigrationsAndSeedAsync(app.Services, app.Environment.IsDevelopment());
-    }
+    // Always apply migrations to ensure DB exists in Azure (Production)
+    await ApplyMigrationsAndSeedAsync(app.Services, app.Environment.IsDevelopment());
 
     app.MapDefaultEndpoints();
 
@@ -268,7 +266,7 @@ END";
                 Console.WriteLine($"[Startup] Fallback Refresh_Token create failed: {ex.Message}");
             }
             await SeedRolesAsync(db);
-            if (isDev) await SeedDevelopmentUsersAsync(db);
+            await SeedDevelopmentUsersAsync(db);
             Console.WriteLine("[Startup] Migrations & seeding complete.");
             break;
         }

@@ -134,14 +134,23 @@ var pdfService = builder.AddProject<Projects.PdfService>("pdfservice")
                         .WithEnvironment("Jwt__Issuer", "UserService")
                         .WithEnvironment("Jwt__Audience", "MedicareApp");
 
-// Frontend (Docker or Project?)
-// If the frontend is a NodeJS app (Vite), we usually run it as an external executable or container. 
-// For now, assuming we might run it via npm run dev or add it as a container if it's Dockerized.
-// Since User requested "efficient configuration", Aspire usually manages backend.
-// Adding Frontend as simple container if needed, or NodeApp if using Aspire.Hosting.NodeJs (v9) but we are on v8.2.
-// We will just expose the backend services for now. 
-// If there is a .csproj for frontend (unlikely for Vite), we'd reference it. 
-// Checking file structure earlier: frontend-container/medicare-frontend contains package.json, not csproj.
+// Frontend (Docker)
+// Deployed as an Nginx container serving the React build
+builder.AddDockerfile("frontend", "../../frontend-container/medicare-frontend")
+       .WithHttpEndpoint(targetPort: 80, name: "http")
+       .WithExternalHttpEndpoints()
+       .WithReference(userService)
+       .WithReference(practitionerService)
+       .WithReference(patientService)
+       .WithReference(catalogService)
+       .WithReference(billingService)
+       .WithReference(documentsService)
+       .WithReference(appointmentService)
+       .WithReference(recordsService)
+       .WithReference(labService)
+       .WithReference(notificationService)
+       .WithReference(messagingService)
+       .WaitFor(userService);
 
 // Orchestration complete
 builder.Build().Run();
