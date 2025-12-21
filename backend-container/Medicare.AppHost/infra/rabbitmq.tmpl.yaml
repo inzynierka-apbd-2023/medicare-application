@@ -29,6 +29,9 @@ properties:
   template:
     containers:
       - image: {{ .Image }}
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
         name: rabbitmq
         env:
           - name: AZURE_CLIENT_ID

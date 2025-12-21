@@ -30,6 +30,9 @@ properties:
   template:
     containers:
       - image: {{ .Image }}
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
         name: billingservice
         env:
           - name: AZURE_CLIENT_ID
@@ -55,7 +58,7 @@ properties:
           - name: Jwt__SecretKey
             secretRef: jwt--secretkey
     scale:
-      minReplicas: 1
+      minReplicas: 0
 tags:
   azd-service-name: billingservice
   aspire-resource-name: billingservice

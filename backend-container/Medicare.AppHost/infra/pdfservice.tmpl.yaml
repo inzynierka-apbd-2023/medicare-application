@@ -28,6 +28,9 @@ properties:
   template:
     containers:
       - image: {{ .Image }}
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
         name: pdfservice
         env:
           - name: AZURE_CLIENT_ID
@@ -51,7 +54,7 @@ properties:
           - name: Jwt__SecretKey
             secretRef: jwt--secretkey
     scale:
-      minReplicas: 1
+      minReplicas: 0
 tags:
   azd-service-name: pdfservice
   aspire-resource-name: pdfservice

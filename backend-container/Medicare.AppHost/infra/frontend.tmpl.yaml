@@ -23,6 +23,9 @@ properties:
   template:
     containers:
       - image: {{ .Image }}
+        resources:
+          cpu: 0.25
+          memory: 0.5Gi
         name: frontend
         env:
           - name: AZURE_CLIENT_ID
@@ -72,7 +75,7 @@ properties:
           - name: services__userservice__https__0
             value: https://userservice.internal.{{ .Env.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN }}
     scale:
-      minReplicas: 1
+      minReplicas: 0
 tags:
   azd-service-name: frontend
   aspire-resource-name: frontend
