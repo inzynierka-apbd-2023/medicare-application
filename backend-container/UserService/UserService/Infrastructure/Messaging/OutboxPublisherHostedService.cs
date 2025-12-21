@@ -71,7 +71,7 @@ public class OutboxPublisherHostedService : BackgroundService
                     .ToListAsync(stoppingToken);
                 if (events.Count == 0)
                 {
-                    await Task.Delay(TimeSpan.FromSeconds(2), stoppingToken);
+                    await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                     continue;
                 }
                 Console.WriteLine($"[OutboxPublisher] Found {events.Count} pending outbox event(s) to publish...");
@@ -92,7 +92,7 @@ public class OutboxPublisherHostedService : BackgroundService
             catch (Exception ex)
             {
                 Console.WriteLine($"[OutboxPublisher] Error while publishing: {ex.Message}");
-                await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
             }
         }
     }

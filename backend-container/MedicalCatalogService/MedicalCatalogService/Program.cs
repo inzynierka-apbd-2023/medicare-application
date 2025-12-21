@@ -1,5 +1,4 @@
 using Azure.Core;
-using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
@@ -8,6 +7,9 @@ using System.Data;
 using System.Text;
 using MedicalCatalogService.Data;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 
 try
@@ -16,8 +18,14 @@ try
 
     builder.AddServiceDefaults();
 
-    var connectionString = builder.Configuration.GetConnectionString("MedicalCatalogDb") ?? "";
-    var useAzureDefaultCredential = (builder.Configuration["USE_AZURE_DEFAULT_CREDENTIAL"] ?? builder.Configuration["UseAzureDefaultCredential"])?.Equals("true", StringComparison.OrdinalIgnoreCase) == true;
+    const string AuthenticationKeyword = "Authentication";
+
+    var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"] 
+                         ?? builder.Configuration.GetConnectionString("MedicareDb") 
+                         ?? builder.Configuration.GetConnectionString("MedicalCatalogDb") 
+                         ?? throw new InvalidOperationException("No SQL connection string configured.");
+
+    LogConnectionInfo(connectionString, "Config");
 
     builder.Services.AddDbContext<MedicalCatalogDbContext>((sp, options) =>
     {
@@ -108,12 +116,7 @@ try
         {
             try
             {
-                if (useAzureDefaultCredential)
-                {
-                   // Azure logic handled by DbContext configuration if needed, 
-                   // but for now keeping it simple as per other services or just logging.
-                   // The previous placeholder code was removed.
-                }
+
 
                 logger.LogInformation("Applying migrations...");
                 await context.Database.MigrateAsync();
@@ -133,6 +136,20 @@ try
     app.MapDefaultEndpoints();
 
     app.Run();
+
+    static void LogConnectionInfo(string conn, string source)
+    {
+        try
+        {
+            var csb = new SqlConnectionStringBuilder(conn);
+            var auth = csb.ContainsKey(AuthenticationKeyword) ? csb[AuthenticationKeyword] : "(none)";
+            Console.WriteLine($"[Startup] Using SQL Server connection (source: {source}) -> Server: {csb.DataSource}, Database: {csb.InitialCatalog}, Auth: {auth}");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Startup] Connection info parse failed: {ex.Message}");
+        }
+    }
 }
 catch (Exception ex)
 {

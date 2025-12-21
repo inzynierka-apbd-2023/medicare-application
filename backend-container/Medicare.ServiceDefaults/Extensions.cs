@@ -94,15 +94,17 @@ public static class Extensions
         // See https://aka.ms/dotnet/aspire/healthchecks for details.
         if (app.Environment.IsDevelopment())
         {
-            // All health checks must pass for app to be considered ready to accept traffic after starting
-            app.MapHealthChecks("/health");
-
-            // Only health checks tagged with the "live" tag must pass for app to be considered alive
-            app.MapHealthChecks("/alive", new HealthCheckOptions
-            {
-                Predicate = r => r.Tags.Contains("live")
-            });
+            // Development-only endpoints or info
         }
+
+        // All health checks must pass for app to be considered ready to accept traffic after starting
+        app.MapHealthChecks("/health");
+
+        // Only health checks tagged with the "live" tag must pass for app to be considered alive
+        app.MapHealthChecks("/alive", new HealthCheckOptions
+        {
+            Predicate = r => r.Tags.Contains("live")
+        });
 
         return app;
     }

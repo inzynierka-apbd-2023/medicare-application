@@ -4,6 +4,9 @@ using System.Data.Common;
 using ArchiveService.Data;
 using ArchiveService.Models;
 using ArchiveService.Messaging;
+using Microsoft.Data.SqlClient;
+using ArchiveService.Data;
+using Microsoft.EntityFrameworkCore.Migrations;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -15,12 +18,15 @@ builder.Services.AddSwaggerGen();
 
 
 // Configure MSSQL Connection
-var connectionString = builder.Configuration.GetConnectionString("ArchiveDb");
-if (string.IsNullOrEmpty(connectionString))
-{
-    // Fallback for design-time or if explicit dev usage
-    connectionString = "Server=(localdb)\\mssqllocaldb;Database=ArchiveDb;Trusted_Connection=True;";
-}
+// Configure MSSQL Connection
+const string AuthenticationKeyword = "Authentication";
+    
+    var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"] 
+                         ?? builder.Configuration.GetConnectionString("MedicareDb") 
+                         ?? builder.Configuration.GetConnectionString("ArchiveDb") 
+                         ?? throw new InvalidOperationException("No SQL connection string configured.");
+
+    LogConnectionInfo(connectionString, "Config");
 
 builder.Services.AddDbContext<ArchiveDbContext>(options =>
     options.UseSqlServer(connectionString));
@@ -93,3 +99,17 @@ app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
 app.MapDefaultEndpoints();
 
 app.Run();
+
+static void LogConnectionInfo(string conn, string source)
+{
+    try
+    {
+        var csb = new SqlConnectionStringBuilder(conn);
+        var auth = csb.ContainsKey(AuthenticationKeyword) ? csb[AuthenticationKeyword] : "(none)";
+        Console.WriteLine($"[Startup] Using SQL Server connection (source: {source}) -> Server: {csb.DataSource}, Database: {csb.InitialCatalog}, Auth: {auth}");
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine($"[Startup] Connection info parse failed: {ex.Message}");
+    }
+}

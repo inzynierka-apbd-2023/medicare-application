@@ -6,18 +6,8 @@ var sql = builder.AddAzureSqlServer("sql")
                  .RunAsContainer();
 
 // Define separate databases for each service (11 services use SQL)
-var userDb = sql.AddDatabase("UserServiceDb");
-var practitionerDb = sql.AddDatabase("PractitionerServiceDb");
-var patientDb = sql.AddDatabase("PatientServiceDb");
-var catalogDb = sql.AddDatabase("MedicalCatalogDb");
-var billingDb = sql.AddDatabase("BillingDb");
-var documentsDb = sql.AddDatabase("DocumentsDb");
-var appointmentDb = sql.AddDatabase("AppointmentDb");
-var recordsDb = sql.AddDatabase("MedicalRecordsDb");
-var labDb = sql.AddDatabase("LabDb");
-var notificationDb = sql.AddDatabase("NotificationDb");
-var messagingDb = sql.AddDatabase("MessagingDb");
-var archiveDb = sql.AddDatabase("ArchiveDb");
+// Define ONE shared database for all services (Schema isolation used)
+var sharedDb = sql.AddDatabase("MedicareDb");
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
                       .WithManagementPlugin();
@@ -28,101 +18,113 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq")
 // Generated cryptographically secure 64-character key (change for production!)
 var jwtSecret = builder.AddParameter("jwt-secret", secret: true);
 
-// Services - each with its own dedicated database
+// Services - ALL share the same 'sharedDb'
 var userService = builder.AddProject<Projects.UserService>("userservice")
-                         .WithReference(userDb)
+                         .WithReference(sharedDb)
+                         .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
                          .WithReference(rabbitmq)
-                         .WaitFor(userDb)
+                         .WaitFor(sharedDb)
                          .WaitFor(rabbitmq)
                          .WithEnvironment("Jwt__SecretKey", jwtSecret)
                          .WithEnvironment("Jwt__Issuer", "UserService")
                          .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var practitionerService = builder.AddProject<Projects.PractitionerService>("practitionerservice")
-                                 .WithReference(practitionerDb) 
+                                 .WithReference(sharedDb)
+                                 .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
                                  .WithReference(rabbitmq)
-                                 .WaitFor(practitionerDb)
+                                 .WaitFor(sharedDb)
                                  .WaitFor(rabbitmq)
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                  .WithEnvironment("Jwt__Issuer", "UserService")
                                  .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var patientService = builder.AddProject<Projects.PatientService>("patientservice")
-                            .WithReference(patientDb)
+                            .WithReference(sharedDb)
+                            .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
                             .WithReference(rabbitmq)
-                            .WaitFor(patientDb)
+                            .WaitFor(sharedDb)
                             .WaitFor(rabbitmq)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var catalogService = builder.AddProject<Projects.MedicalCatalogService>("medicalcatalogservice")
-                            .WithReference(catalogDb)
-                            .WaitFor(catalogDb)
+                            .WithReference(sharedDb)
+                            .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
+                            .WaitFor(sharedDb)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var billingService = builder.AddProject<Projects.BillingService>("billingservice")
-                            .WithReference(billingDb)
-                            .WaitFor(billingDb)
+                            .WithReference(sharedDb)
+                            .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
+                            .WaitFor(sharedDb)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var documentsService = builder.AddProject<Projects.DocumentsService>("documentsservice")
-                              .WithReference(documentsDb)
+                              .WithReference(sharedDb)
+                              .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
                               .WithReference(rabbitmq)
-                              .WaitFor(documentsDb)
+                              .WaitFor(sharedDb)
                               .WaitFor(rabbitmq)
                               .WithEnvironment("Jwt__SecretKey", jwtSecret)
                               .WithEnvironment("Jwt__Issuer", "UserService")
                               .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var appointmentService = builder.AddProject<Projects.AppointmentService>("appointmentservice")
-                                .WithReference(appointmentDb)
+                                .WithReference(sharedDb)
+                                .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
                                 .WithReference(rabbitmq)
-                                .WaitFor(appointmentDb)
+                                .WaitFor(sharedDb)
                                 .WaitFor(rabbitmq)
                                 .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                 .WithEnvironment("Jwt__Issuer", "UserService")
                                 .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var recordsService = builder.AddProject<Projects.MedicalRecordsService>("medicalrecordsservice")
-                            .WithReference(recordsDb)
-                            .WaitFor(recordsDb)
+                            .WithReference(sharedDb)
+                            .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
+                            .WaitFor(sharedDb)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var labService = builder.AddProject<Projects.LabService>("labservice")
-                        .WithReference(labDb)
-                        .WaitFor(labDb)
+                        .WithReference(sharedDb)
+                        .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
+                        .WaitFor(sharedDb)
                         .WithEnvironment("Jwt__SecretKey", jwtSecret)
                         .WithEnvironment("Jwt__Issuer", "UserService")
                         .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice")
-                            .WithReference(archiveDb)
+                            .WithReference(sharedDb)
+                            .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
                             .WithReference(rabbitmq)
-                            .WaitFor(archiveDb)
+                            .WaitFor(sharedDb)
                             .WaitFor(rabbitmq)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var notificationService = builder.AddProject<Projects.NotificationService>("notificationservice")
-                                 .WithReference(notificationDb)
+                                 .WithReference(sharedDb)
+                                 .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
                                  .WithReference(rabbitmq)
-                                 .WaitFor(notificationDb)
+                                 .WaitFor(sharedDb)
                                  .WaitFor(rabbitmq)
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                  .WithEnvironment("Jwt__Issuer", "UserService")
                                  .WithEnvironment("Jwt__Audience", "MedicareApp");
 
 var messagingService = builder.AddProject<Projects.MessagingService>("messagingservice")
-                              .WithReference(messagingDb)
-                              .WaitFor(messagingDb)
+                              .WithReference(sharedDb)
+                              .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
+                              .WaitFor(sharedDb)
                               .WithEnvironment("Jwt__SecretKey", jwtSecret)
                               .WithEnvironment("Jwt__Issuer", "UserService")
                               .WithEnvironment("Jwt__Audience", "MedicareApp");

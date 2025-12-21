@@ -23,41 +23,27 @@ try
 
     builder.AddServiceDefaults();
 
-    // Normalize connection early
-    var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeConnectionString(builder.Configuration);
-    LogConnectionInfo(connectionString, connectionSource);
+    // Database
+    var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"] 
+                         ?? builder.Configuration.GetConnectionString("MedicareDb") 
+                         ?? builder.Configuration.GetConnectionString("UserServiceDb") 
+                         ?? throw new InvalidOperationException("No SQL connection string configured.");
 
+    LogConnectionInfo(connectionString, "Config");
+    
     // Controllers
     builder.Services.AddControllers();
-
-    // Database
-    if (useAzureDefaultCredential)
-    {
-        builder.Services.AddScoped(_ => CreateTokenSqlConnection(connectionString));
-    }
 
     builder.Services.AddDbContext<UserDbContext>((sp, options) =>
     {
         // Suppress EF Core 9 PendingModelChangesWarning for local development
         options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
         
-        if (useAzureDefaultCredential)
+        options.UseSqlServer(connectionString, sql =>
         {
-            var sqlConn = sp.GetRequiredService<SqlConnection>();
-            options.UseSqlServer(sqlConn, sql =>
-            {
-                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-                sql.MigrationsHistoryTable("__EFMigrationsHistory", null);
-            });
-        }
-        else
-        {
-            options.UseSqlServer(connectionString, sql =>
-            {
-                sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-                sql.MigrationsHistoryTable("__EFMigrationsHistory", null);
-            });
-        }
+            sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+            sql.MigrationsHistoryTable("__EFMigrationsHistory", null);
+        });
     });
 
     // Auth (JWT)
@@ -156,35 +142,6 @@ catch (Exception ex)
 }
 
 // --- Helpers ---
-static (string ConnectionString, string Source, bool UseAzureDefaultCredential) NormalizeConnectionString(IConfiguration config)
-{
-    string? src; string? cs;
-    if (!string.IsNullOrWhiteSpace(config["AZURE_SQL_CONNECTIONSTRING"])) { cs = config["AZURE_SQL_CONNECTIONSTRING"]; src = "AZURE_SQL_CONNECTIONSTRING"; }
-    else if (!string.IsNullOrWhiteSpace(config["ConnectionStrings__UserServiceDb"])) { cs = config["ConnectionStrings__UserServiceDb"]; src = "ConnectionStrings__UserServiceDb env var"; }
-    else { cs = config.GetConnectionString("UserServiceDb"); src = "appsettings"; }
-    if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException("No SQL connection string configured.");
-    var useAzure = string.Equals(config[UseAzureDefaultCredentialKey], "true", StringComparison.OrdinalIgnoreCase);
-    var csb = new SqlConnectionStringBuilder(cs);
-    if (useAzure)
-    {
-        bool modified = false;
-        void R(string k){ if (csb.ContainsKey(k)){ csb.Remove(k); modified = true; } }
-        R("User ID"); R("User"); R("UID"); R("Password"); R("Pwd"); R(AuthenticationKeyword);
-        if (modified) Console.WriteLine("[Startup] Normalized connection string for AAD token (removed credentials / Authentication).");
-    }
-    else
-    {
-        // For local development with SQL Server containers, trusting the server certificate is often required
-        // to avoid "The remote certificate was invalid" or pre-login handshake errors.
-        if (!csb.TrustServerCertificate)
-        {
-            csb.TrustServerCertificate = true;
-            Console.WriteLine("[Startup] Enforcing TrustServerCertificate=True for non-Azure connection.");
-        }
-    }
-    return (csb.ConnectionString, src!, useAzure);
-}
-
 static void LogConnectionInfo(string conn, string source)
 {
     try
@@ -197,16 +154,6 @@ static void LogConnectionInfo(string conn, string source)
     {
         Console.WriteLine($"[Startup] Connection info parse failed: {ex.Message}");
     }
-}
-
-static SqlConnection CreateTokenSqlConnection(string connectionString)
-{
-    var credential = new DefaultAzureCredential();
-    var conn = new SqlConnection(connectionString)
-    {
-        AccessToken = credential.GetToken(new Azure.Core.TokenRequestContext(new[] { "https://database.windows.net/.default" })).Token
-    };
-    return conn;
 }
 
 static async Task ApplyMigrationsAndSeedAsync(IServiceProvider services, bool isDev)

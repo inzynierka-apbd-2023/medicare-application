@@ -4,7 +4,6 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using Microsoft.Data.SqlClient;
-using Azure.Identity;
 using AppointmentService.Data;
 using AppointmentService.Services;
 using AppointmentService.Features.DoctorSchedule.Services;
@@ -17,11 +16,14 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-const string UseAzureDefaultCredentialKey = "USE_AZURE_DEFAULT_CREDENTIAL";
 const string AuthenticationKeyword = "Authentication";
 
-var (connectionString, connectionSource, useAzureDefaultCredential) = NormalizeConnectionString(builder.Configuration);
-LogConnectionInfo(connectionString, connectionSource);
+var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"] 
+                     ?? builder.Configuration.GetConnectionString("MedicareDb") 
+                     ?? builder.Configuration.GetConnectionString("AppointmentDb") 
+                     ?? throw new InvalidOperationException("No SQL connection string configured.");
+
+LogConnectionInfo(connectionString, "Config");
 
 builder.Services.AddControllers();
 builder.AddRabbitMQClient("rabbitmq");
@@ -43,35 +45,19 @@ builder.Services.AddScoped<IDoctorDashboardService, DoctorDashboardService>();
 builder.Services.AddHttpClient<IPatientService, PatientService>();
 builder.Services.AddHttpClient<IMedicalRecordsService, MedicalRecordsService>();
 
-if (useAzureDefaultCredential)
-{
-    builder.Services.AddScoped(_ => CreateTokenSqlConnection(connectionString));
-}
+builder.Services.AddHttpClient<IMedicalRecordsService, MedicalRecordsService>();
 
 builder.Services.AddDbContext<AppointmentDbContext>((sp, options) =>
 {
     // Suppress EF Core 9 PendingModelChangesWarning for local development
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
     
-    if (useAzureDefaultCredential)
+    options.UseSqlServer(connectionString, sql =>
     {
-        var sqlConn = sp.GetRequiredService<SqlConnection>();
-        options.UseSqlServer(sqlConn, sql =>
-        {
-            sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-            sql.MigrationsHistoryTable("__EFMigrationsHistory", "appointment");
-            sql.MigrationsAssembly(typeof(AppointmentDbContext).Assembly.GetName().Name);
-        });
-    }
-    else
-    {
-        options.UseSqlServer(connectionString, sql =>
-        {
-            sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-            sql.MigrationsHistoryTable("__EFMigrationsHistory", "appointment");
-            sql.MigrationsAssembly(typeof(AppointmentDbContext).Assembly.GetName().Name);
-        });
-    }
+        sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        sql.MigrationsHistoryTable("__EFMigrationsHistory", "appointment");
+        sql.MigrationsAssembly(typeof(AppointmentDbContext).Assembly.GetName().Name);
+    });
 });
 
 var jwt = builder.Configuration.GetSection("Jwt");
@@ -164,25 +150,6 @@ app.MapDefaultEndpoints();
 
 await app.RunAsync();
 
-static (string ConnectionString, string Source, bool UseAzureDefaultCredential) NormalizeConnectionString(IConfiguration config)
-{
-    string? src; string? cs;
-    if (!string.IsNullOrWhiteSpace(config["AZURE_SQL_CONNECTIONSTRING"])) { cs = config["AZURE_SQL_CONNECTIONSTRING"]; src = "AZURE_SQL_CONNECTIONSTRING"; }
-    else if (!string.IsNullOrWhiteSpace(config["ConnectionStrings__AppointmentDb"])) { cs = config["ConnectionStrings__AppointmentDb"]; src = "ConnectionStrings__AppointmentDb env var"; }
-    else { cs = config.GetConnectionString("AppointmentDb"); src = "appsettings"; }
-    if (string.IsNullOrWhiteSpace(cs)) throw new InvalidOperationException("No SQL connection string configured.");
-    var useAzure = string.Equals(config[UseAzureDefaultCredentialKey], "true", StringComparison.OrdinalIgnoreCase);
-    var csb = new SqlConnectionStringBuilder(cs);
-    if (useAzure)
-    {
-        bool modified = false;
-        void R(string k){ if (csb.ContainsKey(k)){ csb.Remove(k); modified = true; } }
-        R("User ID"); R("User"); R("UID"); R("Password"); R("Pwd"); R(AuthenticationKeyword);
-        if (modified) Console.WriteLine("[Startup] Normalized connection string for AAD token (removed credentials / Authentication).");
-    }
-    return (csb.ConnectionString, src!, useAzure);
-}
-
 static void LogConnectionInfo(string conn, string source)
 {
     try
@@ -195,16 +162,6 @@ static void LogConnectionInfo(string conn, string source)
     {
         Console.WriteLine($"[Startup] Connection info parse failed: {ex.Message}");
     }
-}
-
-static SqlConnection CreateTokenSqlConnection(string connectionString)
-{
-    var credential = new DefaultAzureCredential();
-    var conn = new SqlConnection(connectionString)
-    {
-        AccessToken = credential.GetToken(new Azure.Core.TokenRequestContext(new[] { "https://database.windows.net/.default" })).Token
-    };
-    return conn;
 }
 
 static async Task ApplyMigrationsAsync(IServiceProvider services)
