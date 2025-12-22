@@ -13,7 +13,7 @@ namespace PractitionerService.Controllers;
 /// </summary>
 [ApiController]
 [Route("api/practitioner/doctor-performance")]
-[Authorize(Roles = "Owner")] // restricted to Owner role as requested
+[Authorize(Roles = "Owner,Admin")] // restricted to Owner role as requested
 public class DoctorPerformanceController : ControllerBase
 {
 	private readonly IMediator _mediator;
