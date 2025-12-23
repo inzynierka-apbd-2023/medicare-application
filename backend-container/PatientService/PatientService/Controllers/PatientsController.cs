@@ -1,8 +1,11 @@
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using PatientService.Data;
-using PatientService.Models;
+using PatientService.Features.Patients.Commands.DeletePatient;
+using PatientService.Features.Patients.Commands.RegisterPatient;
+using PatientService.Features.Patients.Commands.UpdatePatient;
+using PatientService.Features.Patients.Queries.GetPatient;
+using PatientService.Features.Patients.Queries.ListPatients;
 
 namespace PatientService.Controllers;
 
@@ -10,8 +13,8 @@ namespace PatientService.Controllers;
 [Route("api/patient/[controller]")]
 public class PatientsController : ControllerBase
 {
-    private readonly PatientDbContext _db;
-    public PatientsController(PatientDbContext db) => _db = db;
+    private readonly IMediator _mediator;
+    public PatientsController(IMediator mediator) => _mediator = mediator;
 
     // Register patient; PrimaryDoctorId is optional but recommended
     [HttpPost]
@@ -19,49 +22,46 @@ public class PatientsController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterPatientRequest req)
     {
         if (req.UserId == Guid.Empty) return BadRequest("UserId is required");
-        var userIdStr = req.UserId.ToString();
-        if (await _db.Patients.AnyAsync(p => p.UserId == userIdStr)) return Conflict("Patient already exists for this user");
-        var patient = new Patient
-        {
-            UserId = userIdStr,
-            PrimaryDoctorId = req.PrimaryDoctorId,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        };
-        _db.Patients.Add(patient);
-        // initial status Active
-        _db.PatientStatuses.Add(new PatientStatus
-        {
-            PatientId = patient.Id,
-            Status = "Active",
-            EffectiveAt = DateTime.UtcNow
-        });
-        await _db.SaveChangesAsync();
-        // TODO: publish PatientRegistered event
-        return CreatedAtAction(nameof(GetById), new { id = patient.Id }, new { patient.Id, patient.UserId });
+        
+        var result = await _mediator.Send(new RegisterPatientCommand(req.UserId, req.PrimaryDoctorId));
+        
+        if (result == null) return Conflict("Patient already exists for this user"); // or other error mapping
+
+        // result is the Patient entity
+        // We need GetById to work for CreatedAtAction
+        return CreatedAtAction(nameof(GetById), new { id = result.Id }, new { result.Id, result.UserId });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> List([FromQuery] string? q, [FromQuery] int page = 1, [FromQuery] int pageSize = 10)
+    {
+        var result = await _mediator.Send(new ListPatientsQuery(q, page, pageSize));
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var patient = await _db.Patients.FindAsync(id);
+        var patient = await _mediator.Send(new GetPatientQuery(id));
         if (patient == null) return NotFound();
         return Ok(patient);
+    }
+
+    [HttpDelete("{id}")]
+    [Authorize(Roles = "admin,receptionist")]
+    public async Task<IActionResult> Delete(string id)
+    {
+        var success = await _mediator.Send(new DeletePatientCommand(id));
+        if (!success) return NotFound();
+        return NoContent();
     }
 
     [HttpPut("{id}/status")]
     [Authorize]
     public async Task<IActionResult> ChangeStatus(string id, [FromBody] ChangeStatusRequest req)
     {
-        if (!await _db.Patients.AnyAsync(p => p.Id == id)) return NotFound("Patient not found");
-        _db.PatientStatuses.Add(new PatientStatus
-        {
-            PatientId = id,
-            Status = req.Status,
-            EffectiveAt = DateTime.UtcNow
-        });
-        await _db.SaveChangesAsync();
-        // TODO: publish PatientStatusChanged event
+        var success = await _mediator.Send(new ChangePatientStatusCommand(id, req.Status));
+        if (!success) return NotFound("Patient not found");
         return NoContent();
     }
 
@@ -69,17 +69,10 @@ public class PatientsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> SetEmergencyContacts(string id, [FromBody] List<EmergencyContactRequest> contacts)
     {
-        if (!await _db.Patients.AnyAsync(p => p.Id == id)) return NotFound("Patient not found");
-        var current = _db.EmergencyContacts.Where(c => c.PatientId == id);
-        _db.EmergencyContacts.RemoveRange(current);
-        _db.EmergencyContacts.AddRange(contacts.Select(c => new EmergencyContact
-        {
-            PatientId = id,
-            Name = c.Name,
-            Relation = c.Relation,
-            Phone = c.Phone
-        }));
-        await _db.SaveChangesAsync();
+        // Map request DTO to Command DTO
+        var commandContacts = contacts.Select(c => new EmergencyContactDto(c.Name, c.Relation, c.Phone)).ToList();
+        var success = await _mediator.Send(new SetEmergencyContactsCommand(id, commandContacts));
+        if (!success) return NotFound("Patient not found");
         return NoContent();
     }
 
@@ -87,20 +80,8 @@ public class PatientsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> UpdateInsurance(string id, [FromBody] InsuranceRequest req)
     {
-        if (!await _db.Patients.AnyAsync(p => p.Id == id)) return NotFound("Patient not found");
-        // replace existing insurance records (simple model)
-        var existing = _db.Insurances.Where(i => i.PatientId == id);
-        _db.Insurances.RemoveRange(existing);
-        _db.Insurances.Add(new Insurance
-        {
-            PatientId = id,
-            Provider = req.Provider,
-            PolicyNumber = req.PolicyNumber,
-            ValidFrom = req.ValidFrom,
-            ValidTo = req.ValidTo
-        });
-        await _db.SaveChangesAsync();
-        // TODO: publish InsuranceUpdated event
+        var success = await _mediator.Send(new UpdateInsuranceCommand(id, req.Provider, req.PolicyNumber, req.ValidFrom, req.ValidTo));
+        if (!success) return NotFound("Patient not found");
         return NoContent();
     }
 }

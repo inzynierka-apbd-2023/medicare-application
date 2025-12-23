@@ -172,6 +172,7 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
             var pendingAfter = all.Except(applied);
             Console.WriteLine($"[Startup] Patient pending AFTER apply: {string.Join(",", pendingAfter)}");
             await SeedCatalogAsync(db);
+            await PatientSeeder.SeedAsync(db); // Added Seeder
             await CreateViewsAsync(db);
             Console.WriteLine("[Startup] Patient migrations & seeding complete.");
             break;
