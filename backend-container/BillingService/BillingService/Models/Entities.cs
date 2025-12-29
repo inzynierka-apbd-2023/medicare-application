@@ -6,8 +6,8 @@ namespace BillingService.Models;
 [Table("Payment_Method", Schema = "billing")]
 public class PaymentMethod
 {
-    [Key, MaxLength(36)] public string Id { get; set; } = Guid.NewGuid().ToString();
-    [MaxLength(36)] public string PatientId { get; set; } = default!;
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PatientId { get; set; }
     [MaxLength(50)] public string Provider { get; set; } = default!; // e.g., stripe
     [MaxLength(200)] public string ProviderToken { get; set; } = default!; // tokenized payment method id
     [MaxLength(4)] public string? Last4 { get; set; }
@@ -21,13 +21,13 @@ public enum SubscriptionStatus { None = 0, Active = 1, Paused = 2, Canceled = 3,
 [Table("Subscription_Contract", Schema = "billing")]
 public class SubscriptionContract
 {
-    [Key, MaxLength(36)] public string Id { get; set; } = Guid.NewGuid().ToString();
-    [MaxLength(36)] public string PatientId { get; set; } = default!;
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PatientId { get; set; }
     [MaxLength(50)] public string PlanCode { get; set; } = default!;
     public DateTime PeriodStart { get; set; }
     public DateTime PeriodEnd { get; set; }
     public SubscriptionStatus Status { get; set; }
-    [MaxLength(36)] public string? DefaultPaymentMethodId { get; set; }
+    public Guid? DefaultPaymentMethodId { get; set; }
     public PaymentMethod? DefaultPaymentMethod { get; set; }
 }
 
@@ -37,10 +37,10 @@ public enum PaymentIntentStatus { RequiresPaymentMethod = 1, RequiresConfirmatio
 [Table("Payment_Intent", Schema = "billing")]
 public class PaymentIntent
 {
-    [Key, MaxLength(36)] public string Id { get; set; } = Guid.NewGuid().ToString();
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
     public PaymentIntentKind Kind { get; set; }
-    [MaxLength(36)] public string SubjectId { get; set; } = default!; // appointmentId or subscriptionContractId
-    [MaxLength(36)] public string PatientId { get; set; } = default!;
+    public Guid SubjectId { get; set; } // appointmentId or subscriptionContractId
+    public Guid PatientId { get; set; }
     [MaxLength(50)] public string Provider { get; set; } = default!;
     [MaxLength(100)] public string? ProviderIntentId { get; set; }
     [MaxLength(100)] public string? ClientSecret { get; set; }
@@ -55,8 +55,8 @@ public enum TransactionType { Authorization = 1, Capture = 2, Refund = 3, Void =
 [Table("Payment_Transaction", Schema = "billing")]
 public class PaymentTransaction
 {
-    [Key, MaxLength(36)] public string Id { get; set; } = Guid.NewGuid().ToString();
-    [MaxLength(36)] public string PaymentIntentId { get; set; } = default!;
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid PaymentIntentId { get; set; }
     public TransactionType Type { get; set; }
     public long AmountCents { get; set; }
     [MaxLength(3)] public string Currency { get; set; } = "USD";
@@ -71,26 +71,26 @@ public class PaymentTransaction
 [Table("Appointment_Payment", Schema = "billing")]
 public class AppointmentPayment
 {
-    [Key, MaxLength(36)] public string Id { get; set; } = Guid.NewGuid().ToString();
-    [MaxLength(36)] public string AppointmentId { get; set; } = default!;
-    [MaxLength(36)] public string PatientId { get; set; } = default!;
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid AppointmentId { get; set; }
+    public Guid PatientId { get; set; }
     public long AmountCents { get; set; }
     [MaxLength(3)] public string Currency { get; set; } = "USD";
-    [MaxLength(36)] public string? PaymentIntentId { get; set; }
+    public Guid? PaymentIntentId { get; set; }
 }
 
 [Table("Subscription_Payment", Schema = "billing")]
 public class SubscriptionPayment
 {
-    [Key, MaxLength(36)] public string Id { get; set; } = Guid.NewGuid().ToString();
-    [MaxLength(36)] public string SubscriptionContractId { get; set; } = default!;
-    [MaxLength(36)] public string PatientId { get; set; } = default!;
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid SubscriptionContractId { get; set; }
+    public Guid PatientId { get; set; }
     [MaxLength(50)] public string PlanCode { get; set; } = default!;
     public DateTime PeriodStart { get; set; }
     public DateTime PeriodEnd { get; set; }
     public long AmountCents { get; set; }
     [MaxLength(3)] public string Currency { get; set; } = "USD";
-    [MaxLength(36)] public string? PaymentIntentId { get; set; }
+    public Guid? PaymentIntentId { get; set; }
 }
 
 [Table("Psp_Webhook_Event", Schema = "billing")]
@@ -106,7 +106,7 @@ public class PspWebhookEvent
 [Table("Outbox_Event", Schema = "billing")]
 public class OutboxEvent
 {
-    [Key, MaxLength(36)] public string Id { get; set; } = Guid.NewGuid().ToString();
+    [Key] public Guid Id { get; set; } = Guid.NewGuid();
     [MaxLength(200)] public string Type { get; set; } = default!;
     public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
     public string PayloadJson { get; set; } = default!;
@@ -117,7 +117,7 @@ public class OutboxEvent
 [Table("vw_Patient_Billing_Summary", Schema = "billing")]
 public class PatientBillingSummary
 {
-    [Key, MaxLength(36)] public string PatientId { get; set; } = default!;
+    [Key] public Guid PatientId { get; set; }
     public long TotalPaidCents { get; set; }
     public long OutstandingCents { get; set; }
     public int SuccessfulPayments { get; set; }
@@ -126,7 +126,7 @@ public class PatientBillingSummary
 [Table("vw_Doctor_Revenue_Dashboard", Schema = "billing")]
 public class DoctorRevenueDashboard
 {
-    [Key, MaxLength(36)] public string DoctorId { get; set; } = default!;
+    [Key] public Guid DoctorId { get; set; }
     public long TotalRevenueCents { get; set; }
     public int PaidAppointments { get; set; }
 }

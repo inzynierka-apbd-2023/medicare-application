@@ -46,7 +46,7 @@ public partial class MessagesController : ControllerBase
     }
 
     [HttpGet("inbox/{userId}")]
-    public async Task<IActionResult> GetInbox(string userId)
+    public async Task<IActionResult> GetInbox(Guid userId)
     {
         var messages = await _db.Messages
             .Where(m => m.RecipientId == userId)
@@ -56,7 +56,7 @@ public partial class MessagesController : ControllerBase
     }
 
     [HttpGet("sent/{userId}")]
-    public async Task<IActionResult> GetSentMessages(string userId)
+    public async Task<IActionResult> GetSentMessages(Guid userId)
     {
         var messages = await _db.Messages
             .Where(m => m.SenderId == userId)
@@ -66,7 +66,7 @@ public partial class MessagesController : ControllerBase
     }
 
     [HttpGet("unread/{userId}")]
-    public async Task<IActionResult> GetUnreadMessages(string userId)
+    public async Task<IActionResult> GetUnreadMessages(Guid userId)
     {
         var messages = await _db.Messages
             .Where(m => m.RecipientId == userId && !m.IsRead)
@@ -77,7 +77,7 @@ public partial class MessagesController : ControllerBase
 
     [HttpPut("{id}/read")]
     [Authorize]
-    public async Task<IActionResult> MarkAsRead(string id, [FromBody] MarkAsReadRequest req)
+    public async Task<IActionResult> MarkAsRead(Guid id, [FromBody] MarkAsReadRequest req)
     {
         var message = await _db.Messages.FindAsync(id);
         if (message == null) return NotFound();
@@ -104,7 +104,7 @@ public partial class MessagesController : ControllerBase
     }
 
     [HttpGet("conversation/{userId1}/{userId2}")]
-    public async Task<IActionResult> GetConversation(string userId1, string userId2)
+    public async Task<IActionResult> GetConversation(Guid userId1, Guid userId2)
     {
         var messages = await _db.Messages
             .Where(m => (m.SenderId == userId1 && m.RecipientId == userId2) ||
@@ -116,20 +116,20 @@ public partial class MessagesController : ControllerBase
 }
 
 public record SendMessageRequest(
-    string SenderId,
-    string RecipientId,
+    Guid SenderId,
+    Guid RecipientId,
     string Subject,
     string Content,
     string? MessageType,
     string? Priority,
-    string? RelatedEntityId,
+    Guid? RelatedEntityId,
     string? RelatedEntityType
 );
 
-public record MarkAsReadRequest(string UserId);
+public record MarkAsReadRequest(Guid UserId);
 
 public record ConversationDto(
-    string ParticipantId,
+    Guid ParticipantId,
     string LastMessageContent,
     DateTime LastMessageDate,
     int UnreadCount
@@ -138,7 +138,7 @@ public record ConversationDto(
 public partial class MessagesController
 {
     [HttpGet("conversations/{userId}")]
-    public async Task<IActionResult> GetConversations(string userId)
+    public async Task<IActionResult> GetConversations(Guid userId)
     {
         // Fetch all messages involving the user
         var messages = await _db.Messages

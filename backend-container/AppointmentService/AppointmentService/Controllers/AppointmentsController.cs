@@ -26,9 +26,9 @@ public class AppointmentsController : ControllerBase
         {
             var appointment = new Appointment
             {
-                Id = Guid.NewGuid().ToString(),
-                PatientId = req.PatientId.ToString(),
-                DoctorId = req.DoctorId.ToString(),
+                Id = Guid.NewGuid(),
+                PatientId = req.PatientId,
+                DoctorId = req.DoctorId,
                 ScheduledAt = req.ScheduledAt,
                 ScheduledEndAt = req.ScheduledEndAt,
                 AppointmentType = req.AppointmentType,
@@ -53,7 +53,7 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetById(string id)
+    public async Task<IActionResult> GetById(Guid id)
     {
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment == null) return NotFound();
@@ -71,10 +71,9 @@ public class AppointmentsController : ControllerBase
     {
         try
         {
-            var patientIdStr = patientId.ToString();
             var now = DateTime.Now;
             var appointments = await _db.Appointments
-                .Where(a => a.PatientId == patientIdStr)
+                .Where(a => a.PatientId == patientId)
                 .OrderBy(a => a.ScheduledAt)
                 .ToListAsync();
             foreach (var a in appointments)
@@ -94,7 +93,7 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpGet("doctor/{doctorId}")]
-    public async Task<IActionResult> GetByDoctorId(string doctorId)
+    public async Task<IActionResult> GetByDoctorId(Guid doctorId)
     {
         try
         {
@@ -120,7 +119,7 @@ public class AppointmentsController : ControllerBase
 
     [HttpPut("{id}/status")]
     [Authorize]
-    public async Task<IActionResult> UpdateStatus(string id, [FromBody] UpdateStatusRequest req)
+    public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest req)
     {
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment == null) return NotFound();

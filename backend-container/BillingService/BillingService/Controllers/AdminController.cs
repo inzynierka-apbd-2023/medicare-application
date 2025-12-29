@@ -50,8 +50,8 @@ public class AdminController : ControllerBase
     {
         if (_env.IsProduction()) return Forbid("Not allowed in production.");
         var strategy = _db.Database.CreateExecutionStrategy();
-        string patientId = Guid.NewGuid().ToString();
-        string contractId = string.Empty;
+        Guid patientId = Guid.NewGuid();
+        Guid contractId = Guid.Empty;
         await strategy.ExecuteAsync(async () =>
         {
             await using var tx = await _db.Database.BeginTransactionAsync();
@@ -102,8 +102,8 @@ public class AdminController : ControllerBase
             try
             {
                 // Create two patients and default payment methods
-                var patientA = Guid.NewGuid().ToString();
-                var patientB = Guid.NewGuid().ToString();
+                var patientA = Guid.NewGuid();
+                var patientB = Guid.NewGuid();
                 var pmA = new PaymentMethod { PatientId = patientA, Provider = "mock", ProviderToken = "tok_a", Last4 = "4242", Brand = "VISA", IsDefault = true };
                 var pmB = new PaymentMethod { PatientId = patientB, Provider = "mock", ProviderToken = "tok_b", Last4 = "1881", Brand = "MC", IsDefault = true };
                 _db.PaymentMethods.AddRange(pmA, pmB);
@@ -118,7 +118,7 @@ public class AdminController : ControllerBase
                 await _db.SaveChangesAsync();
 
                 // Appointment payment flow for A
-                var appointmentId = Guid.NewGuid().ToString();
+                var appointmentId = Guid.NewGuid();
                 var intentAppt = new PaymentIntent
                 {
                     Kind = PaymentIntentKind.Appointment,

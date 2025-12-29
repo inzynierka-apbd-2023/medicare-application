@@ -5,14 +5,12 @@ namespace MedicalRecordsService.Models;
 public class MedicalRecord
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string PatientId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string DoctorId { get; set; } = default!;
-    [MaxLength(36)]
-    public string? AppointmentId { get; set; }
+    public Guid Id { get; set; }
+    [Required]
+    public Guid PatientId { get; set; }
+    [Required]
+    public Guid DoctorId { get; set; }
+    public Guid? AppointmentId { get; set; }
     [Required]
     public DateTime VisitDate { get; set; }
     [MaxLength(200)]
@@ -34,14 +32,13 @@ public class MedicalRecord
 public class Prescription
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string MedicalRecordId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string PatientId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string DoctorId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid MedicalRecordId { get; set; }
+    [Required]
+    public Guid PatientId { get; set; }
+    [Required]
+    public Guid DoctorId { get; set; }
     [Required, MaxLength(200)]
     public string MedicationName { get; set; } = default!;
     [MaxLength(10)]
@@ -65,10 +62,9 @@ public class Prescription
 public class Diagnosis
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string MedicalRecordId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid MedicalRecordId { get; set; }
     [Required, MaxLength(10)]
     public string Icd10Code { get; set; } = default!; // Reference to ICD-10 catalog
     [Required, MaxLength(500)]
@@ -83,12 +79,11 @@ public class Diagnosis
 public class VitalSigns
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string MedicalRecordId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string PatientId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid MedicalRecordId { get; set; }
+    [Required]
+    public Guid PatientId { get; set; }
     public DateTime MeasuredAt { get; set; }
     public decimal? Temperature { get; set; } // Celsius
     public int? SystolicBP { get; set; }

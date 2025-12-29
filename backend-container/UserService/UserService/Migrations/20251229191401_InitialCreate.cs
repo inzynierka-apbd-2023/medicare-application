@@ -19,7 +19,7 @@ namespace UserService.Migrations
                 schema: "user",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     Type = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     OccurredAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
                     PayloadJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -35,7 +35,7 @@ namespace UserService.Migrations
                 schema: "user",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     Name = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true)
                 },
@@ -49,9 +49,9 @@ namespace UserService.Migrations
                 schema: "user",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    Role_Id = table.Column<string>(type: "nvarchar(450)", nullable: true),
-                    Schedule_Id = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    Role_Id = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
+                    Schedule_Id = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     Created_At = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
                     Updated_At = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
                     Is_Active = table.Column<bool>(type: "bit", nullable: false, defaultValue: true),
@@ -74,8 +74,8 @@ namespace UserService.Migrations
                 schema: "user",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
-                    User_Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    User_Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Token_Hash = table.Column<string>(type: "nvarchar(128)", maxLength: 128, nullable: false),
                     Expires_At = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "DATEADD(day,7,SYSUTCDATETIME())"),
                     Created_At = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
@@ -102,7 +102,7 @@ namespace UserService.Migrations
                 schema: "user",
                 columns: table => new
                 {
-                    User_Id = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    User_Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     FirstName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     LastName = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Email = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),

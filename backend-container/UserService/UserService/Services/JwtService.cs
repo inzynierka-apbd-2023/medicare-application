@@ -8,7 +8,7 @@ namespace UserService.Services;
 
 public interface IJwtService
 {
-    string GenerateToken(string userId, string username, string role);
+    string GenerateToken(Guid userId, string username, string role);
     string GenerateToken(UserResponseDto user);
     TokenResponseDto GenerateTokenResponse(UserResponseDto user);
     (string token, DateTime expiresAt) GenerateAccessToken(UserResponseDto user);
@@ -24,7 +24,7 @@ public class JwtService : IJwtService
         _configuration = configuration;
     }
 
-    public string GenerateToken(string userId, string username, string role)
+    public string GenerateToken(Guid userId, string username, string role)
     {
         var jwtSettings = _configuration.GetSection("Jwt");
         var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured");
@@ -37,10 +37,10 @@ public class JwtService : IJwtService
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, userId),
+            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
             new Claim(ClaimTypes.Name, username),
             new Claim(ClaimTypes.Role, role),
-            new Claim("userId", userId),
+            new Claim("userId", userId.ToString()),
             new Claim("username", username),
             new Claim("role", role)
         };

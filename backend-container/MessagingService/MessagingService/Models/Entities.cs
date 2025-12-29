@@ -5,12 +5,11 @@ namespace MessagingService.Models;
 public class Message
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string SenderId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string RecipientId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid SenderId { get; set; }
+    [Required]
+    public Guid RecipientId { get; set; }
     [Required, MaxLength(200)]
     public string Subject { get; set; } = default!;
     [Required, MaxLength(2000)]
@@ -24,8 +23,7 @@ public class Message
     [Required]
     public DateTime SentAt { get; set; }
     public DateTime? ReadAt { get; set; }
-    [MaxLength(36)]
-    public string? RelatedEntityId { get; set; } // Reference to appointment, medical record, etc.
+    public Guid? RelatedEntityId { get; set; } // Reference to appointment, medical record, etc.
     [MaxLength(50)]
     public string? RelatedEntityType { get; set; } // "Appointment", "MedicalRecord", etc.
     public DateTime CreatedAt { get; set; }
@@ -34,12 +32,11 @@ public class Message
 public class MessageThread
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     [Required, MaxLength(200)]
     public string Subject { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string InitiatorId { get; set; } = default!;
+    [Required]
+    public Guid InitiatorId { get; set; }
     [Required]
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
@@ -50,12 +47,11 @@ public class MessageThread
 public class ThreadParticipant
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string ThreadId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string UserId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid ThreadId { get; set; }
+    [Required]
+    public Guid UserId { get; set; }
     [Required]
     public DateTime JoinedAt { get; set; }
     public DateTime? LeftAt { get; set; }
@@ -66,12 +62,11 @@ public class ThreadParticipant
 public class ThreadMessage
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string ThreadId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string SenderId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid ThreadId { get; set; }
+    [Required]
+    public Guid SenderId { get; set; }
     [Required, MaxLength(2000)]
     public string Content { get; set; } = default!;
     [Required]
@@ -82,12 +77,11 @@ public class ThreadMessage
 public class MessageReceipt
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string MessageId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string UserId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid MessageId { get; set; }
+    [Required]
+    public Guid UserId { get; set; }
     [Required]
     public DateTime ReadAt { get; set; }
     public DateTime CreatedAt { get; set; }

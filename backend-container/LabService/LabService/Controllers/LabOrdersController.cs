@@ -19,7 +19,7 @@ public class LabOrdersController : ControllerBase
     {
         var order = new LabOrder
         {
-            PatientId = req.PatientId.ToString(),
+            PatientId = req.PatientId,
             OrderingDoctorId = req.OrderingDoctorId,
             MedicalRecordId = req.MedicalRecordId,
             OrderedDate = req.OrderedDate,
@@ -46,16 +46,15 @@ public class LabOrdersController : ControllerBase
     [HttpGet("patient/{patientId}")]
     public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
-        var patientIdStr = patientId.ToString();
         var orders = await _db.LabOrders
-            .Where(o => o.PatientId == patientIdStr)
+            .Where(o => o.PatientId == patientId)
             .OrderByDescending(o => o.OrderedDate)
             .ToListAsync();
         return Ok(orders);
     }
 
     [HttpGet("{id}/tests")]
-    public async Task<IActionResult> GetOrderTests(string id)
+    public async Task<IActionResult> GetOrderTests(Guid id)
     {
         var tests = await _db.LabTests
             .Where(t => t.LabOrderId == id)
@@ -65,7 +64,7 @@ public class LabOrdersController : ControllerBase
 
     [HttpPost("{id}/tests")]
     [Authorize]
-    public async Task<IActionResult> AddTestToOrder(string id, [FromBody] AddLabTestRequest req)
+    public async Task<IActionResult> AddTestToOrder(Guid id, [FromBody] AddLabTestRequest req)
     {
         var order = await _db.LabOrders.FindAsync(id);
         if (order == null) return NotFound();
@@ -107,8 +106,8 @@ public class LabOrdersController : ControllerBase
 
 public record CreateLabOrderRequest(
     Guid PatientId,
-    string OrderingDoctorId,
-    string? MedicalRecordId,
+    Guid OrderingDoctorId,
+    Guid? MedicalRecordId,
     DateTime OrderedDate,
     string? ClinicalNotes,
     string Priority

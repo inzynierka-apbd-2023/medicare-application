@@ -28,16 +28,9 @@ public static class AnalyticsRequestValidator
         return ValidationResult.Success!;
     }
 
-    public static ValidationResult ValidateDoctorId(string? doctorId)
+    public static ValidationResult ValidateDoctorId(Guid? doctorId)
     {
-        if (!string.IsNullOrEmpty(doctorId))
-        {
-            if (!Guid.TryParse(doctorId, out _))
-            {
-                return new ValidationResult("Doctor ID must be a valid GUID");
-            }
-        }
-
+        // Guid is strongly typed, so if it's not null, it's valid structure.
         return ValidationResult.Success!;
     }
 
@@ -76,7 +69,7 @@ public static class AnalyticsRequestValidator
     public static List<ValidationResult> ValidateAnalyticsRequest(
         DateTime? startDate, 
         DateTime? endDate, 
-        string? doctorId, 
+        Guid? doctorId, 
         string? specialization, 
         string? status)
     {

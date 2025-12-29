@@ -29,7 +29,7 @@ public class AdminController : ControllerBase
     
     // Defensive cleanup to purge appointments by doctor id (supports either entity or user id)
     [HttpDelete("purge-appointments/{doctorId}")]
-    public async Task<IActionResult> PurgeAppointments(string doctorId)
+    public async Task<IActionResult> PurgeAppointments(Guid doctorId)
     {
         var q = _db.Appointments.Where(a => a.DoctorId == doctorId);
         _db.Appointments.RemoveRange(q);

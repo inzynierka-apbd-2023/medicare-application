@@ -24,11 +24,10 @@ namespace MedicalRecordsService.Migrations
 
             modelBuilder.Entity("MedicalRecordsService.Models.Diagnosis", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -45,10 +44,8 @@ namespace MedicalRecordsService.Migrations
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("MedicalRecordId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("MedicalRecordId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -72,15 +69,13 @@ namespace MedicalRecordsService.Migrations
 
             modelBuilder.Entity("MedicalRecordsService.Models.MedicalRecord", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
-                    b.Property<string>("AppointmentId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("AppointmentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Assessment")
                         .HasMaxLength(1000)
@@ -95,10 +90,8 @@ namespace MedicalRecordsService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("HistoryOfPresentIllness")
                         .HasMaxLength(1000)
@@ -108,10 +101,8 @@ namespace MedicalRecordsService.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("PhysicalExamination")
                         .HasMaxLength(1000)
@@ -142,11 +133,10 @@ namespace MedicalRecordsService.Migrations
 
             modelBuilder.Entity("MedicalRecordsService.Models.Prescription", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("AtcCode")
                         .HasMaxLength(10)
@@ -157,10 +147,8 @@ namespace MedicalRecordsService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Dosage")
                         .IsRequired()
@@ -179,20 +167,16 @@ namespace MedicalRecordsService.Migrations
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("MedicalRecordId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("MedicalRecordId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("MedicationName")
                         .IsRequired()
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("PrescribedDate")
                         .HasColumnType("datetime2");
@@ -220,11 +204,10 @@ namespace MedicalRecordsService.Migrations
 
             modelBuilder.Entity("MedicalRecordsService.Models.VitalSigns", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -243,10 +226,8 @@ namespace MedicalRecordsService.Migrations
                     b.Property<DateTime>("MeasuredAt")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("MedicalRecordId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("MedicalRecordId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
@@ -255,10 +236,8 @@ namespace MedicalRecordsService.Migrations
                     b.Property<decimal?>("OxygenSaturation")
                         .HasColumnType("decimal(5,2)");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("RespiratoryRate")
                         .HasColumnType("int");

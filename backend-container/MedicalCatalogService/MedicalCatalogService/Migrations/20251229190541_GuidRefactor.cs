@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MedicalCatalogService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class GuidRefactor : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -80,8 +80,7 @@ namespace MedicalCatalogService.Migrations
                 schema: "catalog",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     LoincNum = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     AnswerListId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     LinkType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true)
@@ -96,8 +95,7 @@ namespace MedicalCatalogService.Migrations
                 schema: "catalog",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     AnswerListId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     AnswerStringId = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     DisplayName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
@@ -113,8 +111,7 @@ namespace MedicalCatalogService.Migrations
                 schema: "catalog",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     LoincNum = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     ConsumerName = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: false),
                     Language = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true)
@@ -129,8 +126,7 @@ namespace MedicalCatalogService.Migrations
                 schema: "catalog",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     FromLoinc = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     ToLoinc = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     MapType = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
@@ -146,8 +142,7 @@ namespace MedicalCatalogService.Migrations
                 schema: "catalog",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     PanelLoincNum = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false)
                 },
                 constraints: table =>
@@ -160,8 +155,7 @@ namespace MedicalCatalogService.Migrations
                 schema: "catalog",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     PanelLoincNum = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     ItemLoincNum = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Ordinal = table.Column<int>(type: "int", nullable: true),
@@ -177,8 +171,7 @@ namespace MedicalCatalogService.Migrations
                 schema: "catalog",
                 columns: table => new
                 {
-                    Id = table.Column<int>(type: "int", nullable: false)
-                        .Annotation("SqlServer:Identity", "1, 1"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     System = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     Version = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     ReleasedOn = table.Column<DateTime>(type: "datetime2", nullable: false),

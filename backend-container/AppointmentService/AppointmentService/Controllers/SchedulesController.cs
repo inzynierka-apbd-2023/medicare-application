@@ -17,7 +17,8 @@ public class SchedulesController : ControllerBase
     {
         var schedule = new Schedule
         {
-            DoctorId = req.DoctorId.ToString(),
+            Id = Guid.NewGuid(),
+            DoctorId = req.DoctorId,
             DayOfWeek = req.DayOfWeek,
             StartTime = req.StartTime,
             EndTime = req.EndTime,
@@ -32,7 +33,7 @@ public class SchedulesController : ControllerBase
     }
 
     [HttpGet("doctor/{doctorId}")]
-    public async Task<IActionResult> GetByDoctorId(string doctorId)
+    public async Task<IActionResult> GetByDoctorId(Guid doctorId)
     {
         var schedules = await _db.Schedules
             .Where(s => s.DoctorId == doctorId && s.IsActive)
@@ -42,7 +43,7 @@ public class SchedulesController : ControllerBase
     }
 
     [HttpGet("slots/{doctorId}")]
-    public async Task<IActionResult> GetAvailableSlots(string doctorId, DateTime date)
+    public async Task<IActionResult> GetAvailableSlots(Guid doctorId, DateTime date)
     {
         var slots = await _db.AppointmentSlots
             .Where(s => s.DoctorId == doctorId 

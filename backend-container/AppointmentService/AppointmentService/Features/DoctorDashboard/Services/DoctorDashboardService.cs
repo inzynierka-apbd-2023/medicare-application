@@ -15,24 +15,23 @@ public class DoctorDashboardService : IDoctorDashboardService
 
     public async Task<DoctorQuickStatsResponse> GetQuickStatsAsync(Guid doctorId, CancellationToken cancellationToken = default)
     {
-        var doctorIdStr = doctorId.ToString();
         var today = DateTime.UtcNow.Date;
         var startOfMonth = new DateTime(today.Year, today.Month, 1);
 
         var patientsToday = await _context.Appointments
-            .Where(a => a.DoctorId == doctorIdStr && a.ScheduledAt.Date == today)
+            .Where(a => a.DoctorId == doctorId && a.ScheduledAt.Date == today)
             .Select(a => a.PatientId)
             .Distinct()
             .CountAsync(cancellationToken);
 
         var totalPatients = await _context.Appointments
-            .Where(a => a.DoctorId == doctorIdStr)
+            .Where(a => a.DoctorId == doctorId)
             .Select(a => a.PatientId)
             .Distinct()
             .CountAsync(cancellationToken);
 
         var visitsThisMonth = await _context.Appointments
-            .Where(a => a.DoctorId == doctorIdStr && 
+            .Where(a => a.DoctorId == doctorId && 
                        a.ScheduledAt >= startOfMonth && 
                        a.Status == "Completed")
             .CountAsync(cancellationToken);

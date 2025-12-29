@@ -23,7 +23,7 @@ public class UserDbContext : DbContext
         {
             entity.ToTable("Role", schema: "user");
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
         });
 
         // Configure User entity
@@ -31,7 +31,7 @@ public class UserDbContext : DbContext
         {
             entity.ToTable("User", schema: "user");
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
             entity.Property(e => e.CreatedAt).HasDefaultValueSql(SysUtc);
             entity.Property(e => e.UpdatedAt).HasDefaultValueSql(SysUtc);
             entity.Property(e => e.IsActive).HasDefaultValue(true);
@@ -61,7 +61,7 @@ public class UserDbContext : DbContext
         {
             entity.ToTable("Outbox_Event", schema: "user");
             entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
             entity.Property(e => e.OccurredAt).HasDefaultValueSql(SysUtc);
             entity.HasIndex(e => e.PublishedAt);
         });

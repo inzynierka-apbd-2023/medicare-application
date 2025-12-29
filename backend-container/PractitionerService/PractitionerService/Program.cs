@@ -47,7 +47,8 @@ builder.Services.AddHttpClient("UserService", client =>
 // Remove duplicate named client registration
 
 // Register Staff Service
-builder.Services.AddScoped<PractitionerService.Services.IStaffService, PractitionerService.Services.StaffService>();
+// Note: IStaffService is already registered as a Typed Client via AddHttpClient above
+// builder.Services.AddScoped<PractitionerService.Services.IStaffService, PractitionerService.Services.StaffService>();
 
 builder.Services.AddDbContext<PractitionerDbContext>((sp, options) =>
 {
@@ -202,7 +203,7 @@ BEGIN
            up.Email,
            up.Phone,
            STUFF((
-               SELECT '','' + ds.SpecializationId
+               SELECT '','' + CAST(ds.SpecializationId AS NVARCHAR(36))
                FROM practitioner.Doctor_Specialization ds
                WHERE ds.DoctorId = d.Id
                FOR XML PATH(''''), TYPE
@@ -222,7 +223,7 @@ BEGIN
            NULL AS Email,
            NULL AS Phone,
            STUFF((
-               SELECT '','' + ds.SpecializationId
+               SELECT '','' + CAST(ds.SpecializationId AS NVARCHAR(36))
                FROM practitioner.Doctor_Specialization ds
                WHERE ds.DoctorId = d.Id
                FOR XML PATH(''''), TYPE

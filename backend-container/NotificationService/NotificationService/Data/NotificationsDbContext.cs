@@ -16,8 +16,8 @@ public class NotificationsDbContext : DbContext
         var e = modelBuilder.Entity<Notification>();
         e.ToTable("Notification");
         e.HasKey(x => x.Id);
-        e.Property(x => x.Id).HasColumnType("varchar(36)");
-        e.Property(x => x.Recipient_User_Id).HasColumnType("varchar(36)").IsRequired();
+        e.Property(x => x.Id).HasDefaultValueSql("NEWID()");
+        e.Property(x => x.Recipient_User_Id).IsRequired();
         e.Property(x => x.Description).HasColumnType("nvarchar(255)");
         e.Property(x => x.Type).HasColumnType("tinyint");
         e.Property(x => x.Creation_Date).HasColumnType("datetime");

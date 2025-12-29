@@ -22,8 +22,8 @@ public class MedicalRecordsController : ControllerBase
 
         var record = new MedicalRecord
         {
-            PatientId = req.PatientId.ToString(),
-            DoctorId = req.DoctorId.ToString(),
+            PatientId = req.PatientId,
+            DoctorId = req.DoctorId,
             AppointmentId = req.AppointmentId,
             VisitDate = req.VisitDate,
             ChiefComplaint = req.ChiefComplaint,
@@ -53,16 +53,15 @@ public class MedicalRecordsController : ControllerBase
     [HttpGet("patient/{patientId}")]
     public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
-        var patientIdStr = patientId.ToString();
         var records = await _db.MedicalRecords
-            .Where(r => r.PatientId == patientIdStr)
+            .Where(r => r.PatientId == patientId)
             .OrderByDescending(r => r.VisitDate)
             .ToListAsync();
         return Ok(records);
     }
 
     [HttpGet("{id}/complete")]
-    public async Task<IActionResult> GetCompleteRecord(string id)
+    public async Task<IActionResult> GetCompleteRecord(Guid id)
     {
         var record = await _db.MedicalRecords.FindAsync(id);
         if (record == null) return NotFound();
@@ -92,7 +91,7 @@ public class MedicalRecordsController : ControllerBase
 public record CreateMedicalRecordRequest(
     Guid PatientId,
     Guid DoctorId,
-    string? AppointmentId,
+    Guid? AppointmentId,
     DateTime VisitDate,
     string? ChiefComplaint,
     string? HistoryOfPresentIllness,

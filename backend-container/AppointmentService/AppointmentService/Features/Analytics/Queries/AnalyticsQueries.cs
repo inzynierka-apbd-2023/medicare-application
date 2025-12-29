@@ -7,14 +7,14 @@ public class GetAppointmentMetricsQuery : IRequest<IEnumerable<AppointmentMetric
 {
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public string? DoctorId { get; set; }
+    public Guid? DoctorId { get; set; }
 }
 
 public class GetAppointmentTrendsQuery : IRequest<IEnumerable<TrendDataDto>>
 {
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public string? DoctorId { get; set; }
+    public Guid? DoctorId { get; set; }
     public int Days { get; set; } = 30;
 }
 
@@ -22,7 +22,7 @@ public class GetDoctorPerformanceQuery : IRequest<IEnumerable<DoctorPerformanceD
 {
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public string? DoctorId { get; set; }
+    public Guid? DoctorId { get; set; }
     public string? Specialization { get; set; }
 }
 
@@ -36,5 +36,5 @@ public class GetTimeSlotAnalysisQuery : IRequest<TimeSlotAnalysisDto>
 {
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
-    public string? DoctorId { get; set; }
+    public Guid? DoctorId { get; set; }
 }

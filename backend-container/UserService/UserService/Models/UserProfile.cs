@@ -8,7 +8,7 @@ public class UserProfile
 {
     [Key]
     [Column("User_Id")]
-    public string UserId { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
 
     [Required]
     [Column("FirstName")]

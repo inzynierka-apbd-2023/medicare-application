@@ -16,7 +16,7 @@ public class StaffController : ControllerBase
     public IActionResult Get() => StatusCode(410, Message);
 
     [HttpGet("{id}")]
-    public IActionResult GetById(string id) => StatusCode(410, Message);
+    public IActionResult GetById(Guid id) => StatusCode(410, Message);
 
     [HttpGet("role/{role}")]
     public IActionResult GetByRole(string role) => StatusCode(410, Message);
@@ -27,11 +27,11 @@ public class StaffController : ControllerBase
 
     [HttpPut("{id}")]
     [Authorize]
-    public IActionResult Update(string id) => StatusCode(410, Message);
+    public IActionResult Update(Guid id) => StatusCode(410, Message);
 
     [HttpDelete("{id}")]
     [Authorize]
-    public IActionResult Delete(string id) => StatusCode(410, Message);
+    public IActionResult Delete(Guid id) => StatusCode(410, Message);
 
     [HttpGet("specializations")]
     public IActionResult Specializations() => StatusCode(410, Message);

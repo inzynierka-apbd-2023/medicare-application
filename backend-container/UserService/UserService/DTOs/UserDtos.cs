@@ -72,7 +72,7 @@ public class UpdateUserDto
 
 public class UserResponseDto
 {
-    public string Id { get; set; } = string.Empty;
+    public Guid Id { get; set; }
     public string Username { get; set; } = string.Empty;
     public string Email { get; set; } = string.Empty;
     public string FirstName { get; set; } = string.Empty;
@@ -105,7 +105,7 @@ public class AuthResponseDto
 public class TestTokenDto
 {
     [Required]
-    public string UserId { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
 
     [Required]
     public string Username { get; set; } = string.Empty;

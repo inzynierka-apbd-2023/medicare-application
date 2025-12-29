@@ -8,11 +8,11 @@ public class RefreshToken
 {
     [Key]
     [Column("Id")]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; }
 
     [Required]
     [Column("User_Id")]
-    public string UserId { get; set; } = string.Empty;
+    public Guid UserId { get; set; }
 
     [Required]
     [MaxLength(128)]

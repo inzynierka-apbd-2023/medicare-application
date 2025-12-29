@@ -25,30 +25,25 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.Document", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("DoctorName")
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("DocumentTypeId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DocumentTypeId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("FilePath")
                         .HasMaxLength(500)
@@ -61,10 +56,8 @@ namespace DocumentsService.Migrations
                         .HasMaxLength(2000)
                         .HasColumnType("nvarchar(2000)");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("PatientName")
                         .HasMaxLength(200)
@@ -86,26 +79,21 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.DocumentAssignment", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
-                    b.Property<string>("AppointmentId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("AppointmentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("AssignedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("DocumentId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -117,11 +105,10 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.DocumentType", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Code")
                         .IsRequired()
@@ -151,9 +138,8 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.LabResults", b =>
                 {
-                    b.Property<string>("DocumentId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("DoctorComments")
                         .HasColumnType("nvarchar(max)");
@@ -190,23 +176,19 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.LabTestResult", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<bool?>("IsAbnormal")
                         .HasColumnType("bit");
 
-                    b.Property<string>("LabResultsDocumentId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("LabResultsDocumentId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("LabTestTypeId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("LabTestTypeId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("LoincCode")
                         .HasMaxLength(20)
@@ -251,11 +233,10 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.LabTestType", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("ExampleUnits")
                         .HasMaxLength(100)
@@ -308,9 +289,8 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.Prescription", b =>
                 {
-                    b.Property<string>("DocumentId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("AtcCode")
                         .HasMaxLength(20)
@@ -360,9 +340,8 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.Referral", b =>
                 {
-                    b.Property<string>("DocumentId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Reason")
                         .HasMaxLength(1000)
@@ -393,9 +372,8 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.SickLeave", b =>
                 {
-                    b.Property<string>("DocumentId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int?>("DaysOff")
                         .HasColumnType("int");
@@ -420,9 +398,8 @@ namespace DocumentsService.Migrations
 
             modelBuilder.Entity("DocumentsService.Models.VisitDocument", b =>
                 {
-                    b.Property<string>("DocumentId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DocumentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Diagnosis")
                         .HasColumnType("nvarchar(max)");

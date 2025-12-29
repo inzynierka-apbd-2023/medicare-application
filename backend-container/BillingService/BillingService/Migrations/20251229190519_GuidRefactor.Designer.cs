@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BillingService.Migrations
 {
     [DbContext(typeof(BillingDbContext))]
-    [Migration("20251218181742_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251229190519_GuidRefactor")]
+    partial class GuidRefactor
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -28,33 +28,27 @@ namespace BillingService.Migrations
 
             modelBuilder.Entity("BillingService.Models.AppointmentPayment", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<long>("AmountCents")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("AppointmentId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("AppointmentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Currency")
                         .IsRequired()
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("PaymentIntentId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("PaymentIntentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -65,9 +59,8 @@ namespace BillingService.Migrations
 
             modelBuilder.Entity("BillingService.Models.DoctorRevenueDashboard", b =>
                 {
-                    b.Property<string>("DoctorId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("PaidAppointments")
                         .HasColumnType("int");
@@ -82,11 +75,10 @@ namespace BillingService.Migrations
 
             modelBuilder.Entity("BillingService.Models.OutboxEvent", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("OccurredAt")
                         .ValueGeneratedOnAdd()
@@ -117,9 +109,8 @@ namespace BillingService.Migrations
                     b.Property<long>("OutstandingCents")
                         .HasColumnType("bigint");
 
-                    b.Property<string>("PatientId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<int>("SuccessfulPayments")
                         .HasColumnType("int");
@@ -134,11 +125,10 @@ namespace BillingService.Migrations
 
             modelBuilder.Entity("BillingService.Models.PaymentIntent", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<long>("AmountCents")
                         .HasColumnType("bigint");
@@ -160,10 +150,8 @@ namespace BillingService.Migrations
                     b.Property<int>("Kind")
                         .HasColumnType("int");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Provider")
                         .IsRequired()
@@ -177,10 +165,8 @@ namespace BillingService.Migrations
                     b.Property<int>("Status")
                         .HasColumnType("int");
 
-                    b.Property<string>("SubjectId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("SubjectId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -191,11 +177,10 @@ namespace BillingService.Migrations
 
             modelBuilder.Entity("BillingService.Models.PaymentMethod", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Brand")
                         .HasMaxLength(10)
@@ -213,10 +198,8 @@ namespace BillingService.Migrations
                         .HasMaxLength(4)
                         .HasColumnType("nvarchar(4)");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Provider")
                         .IsRequired()
@@ -237,11 +220,10 @@ namespace BillingService.Migrations
 
             modelBuilder.Entity("BillingService.Models.PaymentTransaction", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<long>("AmountCents")
                         .HasColumnType("bigint");
@@ -264,10 +246,8 @@ namespace BillingService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("PaymentIntentId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PaymentIntentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("ProviderChargeId")
                         .HasMaxLength(100)
@@ -319,20 +299,16 @@ namespace BillingService.Migrations
 
             modelBuilder.Entity("BillingService.Models.SubscriptionContract", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
-                    b.Property<string>("DefaultPaymentMethodId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("DefaultPaymentMethodId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("PeriodEnd")
                         .HasColumnType("datetime2");
@@ -357,11 +333,10 @@ namespace BillingService.Migrations
 
             modelBuilder.Entity("BillingService.Models.SubscriptionPayment", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<long>("AmountCents")
                         .HasColumnType("bigint");
@@ -371,14 +346,11 @@ namespace BillingService.Migrations
                         .HasMaxLength(3)
                         .HasColumnType("nvarchar(3)");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("PaymentIntentId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("PaymentIntentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("PeriodEnd")
                         .HasColumnType("datetime2");
@@ -391,10 +363,8 @@ namespace BillingService.Migrations
                         .HasMaxLength(50)
                         .HasColumnType("nvarchar(50)");
 
-                    b.Property<string>("SubscriptionContractId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("SubscriptionContractId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 

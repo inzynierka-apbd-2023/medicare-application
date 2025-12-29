@@ -4,7 +4,7 @@ using PatientService.Data;
 
 namespace PatientService.Features.Patients.Commands.RegisterPatient;
 
-public record RegisterPatientCommand(Guid UserId, string? PrimaryDoctorId) : IRequest<Patient?>;
+public record RegisterPatientCommand(Guid UserId, Guid? PrimaryDoctorId) : IRequest<Patient?>;
 
 public class RegisterPatientHandler : IRequestHandler<RegisterPatientCommand, Patient?>
 {
@@ -14,13 +14,12 @@ public class RegisterPatientHandler : IRequestHandler<RegisterPatientCommand, Pa
     public async Task<Patient?> Handle(RegisterPatientCommand request, CancellationToken cancellationToken)
     {
         // Validation logic moved here
-        var userIdStr = request.UserId.ToString();
-        var exists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(_db.Patients, p => p.UserId == userIdStr, cancellationToken);
+        var exists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(_db.Patients, p => p.UserId == request.UserId, cancellationToken);
         if (exists) return null; // Or throw exception, but returning null fits existing controller logic of check
 
         var patient = new Patient
         {
-            UserId = userIdStr,
+            UserId = request.UserId,
             PrimaryDoctorId = request.PrimaryDoctorId,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow

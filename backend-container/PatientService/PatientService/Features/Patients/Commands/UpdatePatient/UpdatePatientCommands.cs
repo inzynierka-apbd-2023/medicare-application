@@ -5,7 +5,7 @@ using PatientService.Models;
 
 namespace PatientService.Features.Patients.Commands.UpdatePatient;
 
-public record ChangePatientStatusCommand(string Id, string Status) : IRequest<bool>;
+public record ChangePatientStatusCommand(Guid Id, string Status) : IRequest<bool>;
 
 public class ChangePatientStatusHandler : IRequestHandler<ChangePatientStatusCommand, bool>
 {
@@ -28,7 +28,7 @@ public class ChangePatientStatusHandler : IRequestHandler<ChangePatientStatusCom
     }
 }
 
-public record SetEmergencyContactsCommand(string Id, List<EmergencyContactDto> Contacts) : IRequest<bool>;
+public record SetEmergencyContactsCommand(Guid Id, List<EmergencyContactDto> Contacts) : IRequest<bool>;
 public record EmergencyContactDto(string Name, string? Relation, string? Phone);
 
 public class SetEmergencyContactsHandler : IRequestHandler<SetEmergencyContactsCommand, bool>
@@ -55,7 +55,7 @@ public class SetEmergencyContactsHandler : IRequestHandler<SetEmergencyContactsC
     }
 }
 
-public record UpdateInsuranceCommand(string Id, string? Provider, string? PolicyNumber, DateTime? ValidFrom, DateTime? ValidTo) : IRequest<bool>;
+public record UpdateInsuranceCommand(Guid Id, string? Provider, string? PolicyNumber, DateTime? ValidFrom, DateTime? ValidTo) : IRequest<bool>;
 
 public class UpdateInsuranceHandler : IRequestHandler<UpdateInsuranceCommand, bool>
 {

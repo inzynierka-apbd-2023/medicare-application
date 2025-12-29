@@ -74,9 +74,8 @@ public class AnalyticsController : ControllerBase
         try
         {
             // Validate request parameters
-            var doctorIdStr = doctorId?.ToString();
             var validationResults = AnalyticsRequestValidator.ValidateAnalyticsRequest(
-                startDate, endDate, doctorIdStr, specialization, status);
+                startDate, endDate, doctorId, specialization, status);
 
             if (validationResults.Any())
             {
@@ -110,7 +109,7 @@ public class AnalyticsController : ControllerBase
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorIdStr,
+                DoctorId = doctorId,
                 Specialization = specialization,
                 Status = status
             };
@@ -159,7 +158,7 @@ public class AnalyticsController : ControllerBase
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorId?.ToString()
+                DoctorId = doctorId
             };
 
             var result = await _mediator.Send(query);
@@ -204,7 +203,7 @@ public class AnalyticsController : ControllerBase
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorId?.ToString(),
+                DoctorId = doctorId,
                 Days = days
             };
 
@@ -251,7 +250,7 @@ public class AnalyticsController : ControllerBase
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorId?.ToString(),
+                DoctorId = doctorId,
                 Specialization = specialization
             };
 
@@ -329,7 +328,7 @@ public class AnalyticsController : ControllerBase
             {
                 StartDate = startDate,
                 EndDate = endDate,
-                DoctorId = doctorId?.ToString()
+                DoctorId = doctorId
             };
 
             var result = await _mediator.Send(query);

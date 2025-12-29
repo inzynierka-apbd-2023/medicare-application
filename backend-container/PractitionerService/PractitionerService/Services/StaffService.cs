@@ -10,9 +10,9 @@ namespace PractitionerService.Services
     public interface IStaffService
     {
         Task<StaffMemberDto?> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default);
-        Task<StaffMemberDto?> UpdateStaffMemberAsync(string id, UpdateStaffRequest request, CancellationToken cancellationToken = default);
-        Task<bool> DeleteStaffMemberAsync(string id, CancellationToken cancellationToken = default);
-        Task<StaffMemberDto?> GetStaffMemberByIdAsync(string id, CancellationToken cancellationToken = default);
+        Task<StaffMemberDto?> UpdateStaffMemberAsync(Guid id, UpdateStaffRequest request, CancellationToken cancellationToken = default);
+        Task<bool> DeleteStaffMemberAsync(Guid id, CancellationToken cancellationToken = default);
+        Task<StaffMemberDto?> GetStaffMemberByIdAsync(Guid id, CancellationToken cancellationToken = default);
         Task<List<StaffMemberDto>> GetAllStaffMembersAsync(StaffSearchRequest searchRequest, CancellationToken cancellationToken = default);
         Task<List<StaffMemberDto>> GetStaffMembersByRoleAsync(string role, CancellationToken cancellationToken = default);
     }
@@ -68,12 +68,13 @@ namespace PractitionerService.Services
 
                 var userResponseContent = await userResponse.Content.ReadAsStringAsync(cancellationToken);
                 var userResult = JsonSerializer.Deserialize<dynamic>(userResponseContent);
-                var userId = userResult?.GetProperty("id").GetString();
-
-                if (string.IsNullOrEmpty(userId))
+                var userIdString = userResult?.GetProperty("id").GetString();
+                Guid userIdResult = Guid.Empty;
+                if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out userIdResult))
                 {
-                    throw new InvalidOperationException("Failed to get user ID from UserService response");
+                    throw new InvalidOperationException("Failed to get valid user ID from UserService response");
                 }
+                var userId = userIdResult;
 
                 // Step 2: Create staff member in PractitionerService
                 var now = DateTime.UtcNow;
@@ -82,7 +83,7 @@ namespace PractitionerService.Services
                 {
                     var doctor = new Doctor
                     {
-                        Id = Guid.NewGuid().ToString(),
+                        Id = Guid.NewGuid(),
                         UserId = userId,
                         Bio = request.Biography,
                         CreatedAt = now,
@@ -111,7 +112,7 @@ namespace PractitionerService.Services
                 {
                     var receptionist = new Receptionist
                     {
-                        Id = Guid.NewGuid().ToString(),
+                        Id = Guid.NewGuid(),
                         UserId = userId,
                         CreatedAt = now,
                         UpdatedAt = now
@@ -134,7 +135,7 @@ namespace PractitionerService.Services
             }
         }
 
-        public async Task<StaffMemberDto?> UpdateStaffMemberAsync(string id, UpdateStaffRequest request, CancellationToken cancellationToken = default)
+        public async Task<StaffMemberDto?> UpdateStaffMemberAsync(Guid id, UpdateStaffRequest request, CancellationToken cancellationToken = default)
         {
             using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             
@@ -150,7 +151,7 @@ namespace PractitionerService.Services
                 }
 
                 var userId = doctor?.UserId ?? receptionist?.UserId;
-                if (string.IsNullOrEmpty(userId))
+                if (!userId.HasValue)
                 {
                     return null;
                 }
@@ -224,7 +225,7 @@ namespace PractitionerService.Services
                 await _context.SaveChangesAsync(cancellationToken);
                 await transaction.CommitAsync(cancellationToken);
 
-                return await GetStaffMemberByUserIdAsync(userId, cancellationToken);
+                return await GetStaffMemberByUserIdAsync(userId.Value, cancellationToken);
             }
             catch (Exception ex)
             {
@@ -234,7 +235,7 @@ namespace PractitionerService.Services
             }
         }
 
-        public async Task<bool> DeleteStaffMemberAsync(string id, CancellationToken cancellationToken = default)
+        public async Task<bool> DeleteStaffMemberAsync(Guid id, CancellationToken cancellationToken = default)
         {
             try
             {
@@ -266,7 +267,7 @@ namespace PractitionerService.Services
             }
         }
 
-        public async Task<StaffMemberDto?> GetStaffMemberByIdAsync(string id, CancellationToken cancellationToken = default)
+        public async Task<StaffMemberDto?> GetStaffMemberByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {
             var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
             var receptionist = await _context.Receptionists.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
@@ -277,7 +278,7 @@ namespace PractitionerService.Services
             }
 
             var userId = doctor?.UserId ?? receptionist?.UserId;
-            return await GetStaffMemberByUserIdAsync(userId!, cancellationToken);
+            return await GetStaffMemberByUserIdAsync(userId!.Value, cancellationToken);
         }
 
         public async Task<List<StaffMemberDto>> GetAllStaffMembersAsync(StaffSearchRequest searchRequest, CancellationToken cancellationToken = default)
@@ -293,7 +294,7 @@ namespace PractitionerService.Services
                 
                 foreach (var doctor in doctors)
                 {
-                    if (doctor.UserId != null)
+                    if (doctor.UserId != Guid.Empty)
                     {
                         var staffMember = await GetStaffMemberByUserIdAsync(doctor.UserId, cancellationToken);
                         if (staffMember != null)
@@ -354,7 +355,7 @@ namespace PractitionerService.Services
             return await GetAllStaffMembersAsync(searchRequest, cancellationToken);
         }
 
-        private async Task<StaffMemberDto?> GetStaffMemberByUserIdAsync(string userId, CancellationToken cancellationToken = default)
+        private async Task<StaffMemberDto?> GetStaffMemberByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
         {
             try
             {

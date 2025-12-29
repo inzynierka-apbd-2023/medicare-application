@@ -54,7 +54,7 @@ public class ProfileDto
 
 public class SpecializationDto
 {
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
     public string? ServiceName { get; set; }
@@ -64,7 +64,7 @@ public class SpecializationDto
 
 public class ServiceDto
 {
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     public string Name { get; set; } = default!;
     public string? Description { get; set; }
     public int DurationMinutes { get; set; }
@@ -73,7 +73,7 @@ public class ServiceDto
 
 public class StaffMemberDto
 {
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     public string Role { get; set; } = default!;
     public ProfileDto Profile { get; set; } = default!;
     public bool IsActive { get; set; }
@@ -128,7 +128,7 @@ public class CreateStaffRequest
     [StringLength(255)]
     public string? OfficeAddress { get; set; }
     
-    public List<string>? Specializations { get; set; }
+    public List<Guid>? Specializations { get; set; }
     
     // Receptionist-specific fields
     [StringLength(255)]
@@ -138,7 +138,7 @@ public class CreateStaffRequest
 public class UpdateStaffRequest
 {
     [Required]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
     [Required]
     [StringLength(20)]
@@ -159,7 +159,7 @@ public class UpdateStaffRequest
     [StringLength(255)]
     public string? OfficeAddress { get; set; }
     
-    public List<string>? Specializations { get; set; }
+    public List<Guid>? Specializations { get; set; }
     
     // Receptionist-specific fields
     [StringLength(255)]
@@ -171,7 +171,7 @@ public class StaffSearchRequest
     public string? Role { get; set; } // "Doctor" or "Receptionist"
     public string? SearchQuery { get; set; }
     public bool? IsActive { get; set; }
-    public List<string>? SpecializationIds { get; set; }
+    public List<Guid>? SpecializationIds { get; set; }
     public int Page { get; set; } = 1;
     public int PageSize { get; set; } = 20;
 }

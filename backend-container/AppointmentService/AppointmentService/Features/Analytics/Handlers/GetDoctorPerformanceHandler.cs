@@ -22,7 +22,7 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
 
         var doctorsQuery = _context.Doctors.AsQueryable();
 
-        if (!string.IsNullOrEmpty(request.DoctorId))
+        if (request.DoctorId.HasValue)
             doctorsQuery = doctorsQuery.Where(d => d.Id == request.DoctorId);
 
         if (!string.IsNullOrEmpty(request.Specialization))

@@ -8,14 +8,13 @@ namespace AppointmentService.Models;
 public class User
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Role_Id { get; set; } = default!;
+    [Required]
+    public Guid Role_Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Schedule_Id { get; set; } = default!;
+    [Required]
+    public Guid Schedule_Id { get; set; }
     
     public DateTime Created_At { get; set; }
     public DateTime Updated_At { get; set; }
@@ -26,8 +25,7 @@ public class User
 public class UserProfile
 {
     [Key]
-    [MaxLength(36)]
-    public string User_Id { get; set; } = default!;
+    public Guid User_Id { get; set; }
     
     [MaxLength(100)]
     public string? FirstName { get; set; }
@@ -54,8 +52,7 @@ public class UserProfile
 public class Doctor
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
     [MaxLength(100)]
     public string? License_Number { get; set; }
@@ -70,11 +67,10 @@ public class Doctor
 public class Patient
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string General_Doctor_Id { get; set; } = default!;
+    [Required]
+    public Guid General_Doctor_Id { get; set; }
     
     [MaxLength(100)]
     public string? Medical_Record_Number { get; set; }
@@ -87,8 +83,7 @@ public class Patient
 public class Specialization
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
     [Required, MaxLength(200)]
     public string Name { get; set; } = default!;
@@ -96,8 +91,8 @@ public class Specialization
     [MaxLength(1000)]
     public string? Description { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Service_Id { get; set; } = default!;
+    [Required]
+    public Guid Service_Id { get; set; }
     
     public bool Is_Active { get; set; } = true;
 }
@@ -106,14 +101,13 @@ public class Specialization
 public class DoctorSpecialization
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Doctor_Id { get; set; } = default!;
+    [Required]
+    public Guid Doctor_Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Specialization_Id { get; set; } = default!;
+    [Required]
+    public Guid Specialization_Id { get; set; }
     
     public bool Is_Primary { get; set; } = false;
     public DateTime? Certified_Date { get; set; }
@@ -123,14 +117,12 @@ public class DoctorSpecialization
 public class ScheduleAppointment
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Schedule_Id { get; set; } = default!;
+    [Required]
+    public Guid Schedule_Id { get; set; }
     
-    [MaxLength(36)]
-    public string? Time_Slot_Id { get; set; }
+    public Guid? Time_Slot_Id { get; set; }
     
     [Required]
     public DateTime Day { get; set; }
@@ -146,17 +138,16 @@ public class ScheduleAppointment
     [MaxLength(50)]
     public string Appointment_Type { get; set; } = "in-person";
     
-    [Required, MaxLength(36)]
-    public string Doctor_User_Id { get; set; } = default!;
+    [Required]
+    public Guid Doctor_User_Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Patient_User_Id { get; set; } = default!;
+    [Required]
+    public Guid Patient_User_Id { get; set; }
     
-    [MaxLength(36)]
-    public string? Receptionist_User_Id { get; set; }
+    public Guid? Receptionist_User_Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Schedule_Appointment_Status_Id { get; set; } = default!;
+    [Required]
+    public Guid Schedule_Appointment_Status_Id { get; set; }
     
     [Column(TypeName = "decimal(10,2)")]
     public decimal? Total_Cost { get; set; }
@@ -169,8 +160,7 @@ public class ScheduleAppointment
 public class ScheduleAppointmentStatus
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
     [Required, MaxLength(100)]
     public string Name { get; set; } = default!;
@@ -186,8 +176,7 @@ public class ScheduleAppointmentStatus
 public class AppointmentPayment
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
     [Column(TypeName = "decimal(10,2)")]
     public decimal? Amount { get; set; }
@@ -201,11 +190,11 @@ public class AppointmentPayment
     public DateTime? Paid_At { get; set; }
     public DateTime? Renewal_Date { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Schedule_Appointment_Id { get; set; } = default!;
+    [Required]
+    public Guid Schedule_Appointment_Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Patient_Id { get; set; } = default!;
+    [Required]
+    public Guid Patient_Id { get; set; }
     
     [MaxLength(100)]
     public string? Payment_Method { get; set; }
@@ -218,22 +207,20 @@ public class AppointmentPayment
 public class Rate
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
     public byte? Rate_Value { get; set; }
     
     [MaxLength(1000)]
     public string? Description { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Patient_User_Id { get; set; } = default!;
+    [Required]
+    public Guid Patient_User_Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Doctor_User_Id { get; set; } = default!;
+    [Required]
+    public Guid Doctor_User_Id { get; set; }
     
-    [MaxLength(36)]
-    public string? Appointment_Id { get; set; }
+    public Guid? Appointment_Id { get; set; }
     
     public DateTime Rated_At { get; set; }
     public bool Is_Anonymous { get; set; } = false;
@@ -243,11 +230,10 @@ public class Rate
 public class Notification
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     
-    [Required, MaxLength(36)]
-    public string Recipient_User_Id { get; set; } = default!;
+    [Required]
+    public Guid Recipient_User_Id { get; set; }
     
     [Required, MaxLength(255)]
     public string Description { get; set; } = default!;

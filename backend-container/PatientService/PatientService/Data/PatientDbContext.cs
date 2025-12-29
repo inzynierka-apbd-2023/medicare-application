@@ -18,9 +18,9 @@ public class PatientDbContext : DbContext
         {
             e.ToTable("Patient", schema: "patient");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(p => p.UserId).HasMaxLength(36).IsRequired();
-            e.Property(p => p.PrimaryDoctorId).HasMaxLength(36);
+            e.Property(p => p.Id).HasDefaultValueSql("NEWID()");
+            e.Property(p => p.UserId).IsRequired();
+            e.Property(p => p.PrimaryDoctorId);
             e.Property(p => p.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(p => p.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasIndex(p => p.UserId).IsUnique();
@@ -29,8 +29,8 @@ public class PatientDbContext : DbContext
         {
             e.ToTable("Emergency_Contact", schema: "patient");
             e.HasKey(c => c.Id);
-            e.Property(c => c.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(c => c.PatientId).HasMaxLength(36).IsRequired();
+            e.Property(c => c.Id).HasDefaultValueSql("NEWID()");
+            e.Property(c => c.PatientId).IsRequired();
             e.Property(c => c.Name).HasMaxLength(200).IsRequired();
             e.Property(c => c.Relation).HasMaxLength(100);
             e.Property(c => c.Phone).HasMaxLength(100);
@@ -39,8 +39,8 @@ public class PatientDbContext : DbContext
         {
             e.ToTable("Insurance", schema: "patient");
             e.HasKey(i => i.Id);
-            e.Property(i => i.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(i => i.PatientId).HasMaxLength(36).IsRequired();
+            e.Property(i => i.Id).HasDefaultValueSql("NEWID()");
+            e.Property(i => i.PatientId).IsRequired();
             e.Property(i => i.Provider).HasMaxLength(200);
             e.Property(i => i.PolicyNumber).HasMaxLength(100);
         });
@@ -48,8 +48,8 @@ public class PatientDbContext : DbContext
         {
             e.ToTable("Patient_Status", schema: "patient");
             e.HasKey(s => s.Id);
-            e.Property(s => s.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(s => s.PatientId).HasMaxLength(36).IsRequired();
+            e.Property(s => s.Id).HasDefaultValueSql("NEWID()");
+            e.Property(s => s.PatientId).IsRequired();
             e.Property(s => s.Status).HasMaxLength(50).IsRequired();
             e.Property(s => s.EffectiveAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(s => s.IdempotencyKey).HasMaxLength(100);

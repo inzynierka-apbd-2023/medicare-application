@@ -5,14 +5,12 @@ namespace LabService.Models;
 public class LabOrder
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string PatientId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string OrderingDoctorId { get; set; } = default!;
-    [MaxLength(36)]
-    public string? MedicalRecordId { get; set; }
+    public Guid Id { get; set; }
+    [Required]
+    public Guid PatientId { get; set; }
+    [Required]
+    public Guid OrderingDoctorId { get; set; }
+    public Guid? MedicalRecordId { get; set; }
     [Required]
     public DateTime OrderedDate { get; set; }
     [MaxLength(50)]
@@ -29,10 +27,9 @@ public class LabOrder
 public class LabTest
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string LabOrderId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid LabOrderId { get; set; }
     [Required, MaxLength(20)]
     public string LoincCode { get; set; } = default!; // Reference to LOINC catalog
     [Required, MaxLength(200)]
@@ -49,12 +46,11 @@ public class LabTest
 public class LabResult
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string LabTestId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string PatientId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid LabTestId { get; set; }
+    [Required]
+    public Guid PatientId { get; set; }
     [MaxLength(500)]
     public string? Value { get; set; }
     [MaxLength(100)]
@@ -67,8 +63,7 @@ public class LabResult
     public string? Comments { get; set; }
     [Required]
     public DateTime ResultDate { get; set; }
-    [MaxLength(36)]
-    public string? ReviewedByDoctorId { get; set; }
+    public Guid? ReviewedByDoctorId { get; set; }
     public DateTime? ReviewedAt { get; set; }
     [MaxLength(50)]
     public string ReviewStatus { get; set; } = "Pending"; // Pending, Reviewed, Acknowledged
@@ -78,12 +73,11 @@ public class LabResult
 public class LabResultReview
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string LabResultId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string ReviewedByDoctorId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid LabResultId { get; set; }
+    [Required]
+    public Guid ReviewedByDoctorId { get; set; }
     [Required]
     public DateTime ReviewedAt { get; set; }
     [MaxLength(50)]

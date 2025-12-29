@@ -1,4 +1,4 @@
-using DocumentsService.Data;
+ï»¿using DocumentsService.Data;
 using DocumentsService.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -101,8 +101,8 @@ public class AdminController : ControllerBase
 
     private static async Task SeedAsync(DocumentsDbContext db)
     {
-        // Ensure required document types exist (if migration seeding didn’t run)
-        async Task<string> EnsureTypeAsync(string code, string name)
+        // Ensure required document types exist (if migration seeding didnâ€™t run)
+        async Task<Guid> EnsureTypeAsync(string code, string name)
         {
             var t = await db.DocumentTypes.FirstOrDefaultAsync(x => x.Code == code);
             if (t == null)
@@ -120,8 +120,8 @@ public class AdminController : ControllerBase
         var referralTypeId = await EnsureTypeAsync("REFERRAL", "Referral");
         var sickTypeId = await EnsureTypeAsync("SICK_LEAVE", "Sick Leave");
 
-        var patientId = Guid.NewGuid().ToString();
-        var doctorId = Guid.NewGuid().ToString();
+        var patientId = Guid.NewGuid();
+        var doctorId = Guid.NewGuid();
 
         // Visit note
         var visit = new Document
@@ -139,7 +139,7 @@ public class AdminController : ControllerBase
             DocumentId = visit.Id,
             Symptoms = "Headache, fatigue",
             Findings = "BP 128/82, HR 74",
-            Diagnosis = "G44.2 – Tension-type headache", // ICD-10 code + description
+            Diagnosis = "G44.2 â€“ Tension-type headache", // ICD-10 code + description
             Recommendations = "Hydration, rest",
             VitalSignsJson = "{\"BP\":\"128/82\",\"HR\":74}",
             TreatmentPlan = "OTC analgesic",
@@ -285,10 +285,10 @@ public class AdminController : ControllerBase
     public record SeedForPatientRequest(
         Guid PatientId,
         Guid DoctorId,
-        string? AssignVisitToAppointmentId,
-        string? AssignPrescriptionToAppointmentId,
-        string? AssignReferralToAppointmentId,
-        string? AssignSickLeaveToAppointmentId
+        Guid? AssignVisitToAppointmentId,
+        Guid? AssignPrescriptionToAppointmentId,
+        Guid? AssignReferralToAppointmentId,
+        Guid? AssignSickLeaveToAppointmentId
     );
 
     [HttpPost("seed-for-patient")]
@@ -298,7 +298,7 @@ public class AdminController : ControllerBase
         if (_env.IsProduction()) return Forbid("Not allowed in production.");
 
         // Ensure doc types
-        string EnsureId(string code, string name)
+        Guid EnsureId(string code, string name)
         {
             var t = _db.DocumentTypes.FirstOrDefault(x => x.Code == code);
             if (t == null) { t = new DocumentType { Code = code, Name = name }; _db.DocumentTypes.Add(t); _db.SaveChanges(); }
@@ -310,36 +310,36 @@ public class AdminController : ControllerBase
         var referralTypeId = EnsureId("REFERRAL", "Referral");
         var sickTypeId = EnsureId("SICK_LEAVE", "Sick Leave");
 
-        var patientId = req.PatientId.ToString();
-        var doctorId = req.DoctorId.ToString();
+        var patientId = req.PatientId;
+        var doctorId = req.DoctorId;
 
         // Visit Note
         var visit = new Document { PatientId = patientId, DoctorId = doctorId, DocumentTypeId = visitTypeId, Type = (int)DocumentKind.VisitNote, Notes = "Visit summary for headache" };
         _db.Documents.Add(visit); await _db.SaveChangesAsync();
-        _db.VisitDocuments.Add(new VisitDocument { DocumentId = visit.Id, Symptoms = "Headache, fatigue", Findings = "BP 128/82, HR 74", Diagnosis = "G44.2 – Tension-type headache", Recommendations = "Hydration, rest" });
-        if (!string.IsNullOrWhiteSpace(req.AssignVisitToAppointmentId))
-            _db.DocumentAssignments.Add(new DocumentAssignment { DocumentId = visit.Id, AppointmentId = req.AssignVisitToAppointmentId! });
+        _db.VisitDocuments.Add(new VisitDocument { DocumentId = visit.Id, Symptoms = "Headache, fatigue", Findings = "BP 128/82, HR 74", Diagnosis = "G44.2 â€“ Tension-type headache", Recommendations = "Hydration, rest" });
+        if (req.AssignVisitToAppointmentId.HasValue)
+            _db.DocumentAssignments.Add(new DocumentAssignment { DocumentId = visit.Id, AppointmentId = req.AssignVisitToAppointmentId.Value });
 
         // Prescription (ATC aligned)
         var rxDoc = new Document { PatientId = patientId, DoctorId = doctorId, DocumentTypeId = rxTypeId, Type = (int)DocumentKind.Prescription, Notes = "Analgesic prescription" };
         _db.Documents.Add(rxDoc); await _db.SaveChangesAsync();
         _db.Prescriptions.Add(new Prescription { DocumentId = rxDoc.Id, Medication = "Paracetamol", Dosage = "500 mg", Frequency = "Every 8 hours", DurationDays = 3, Instructions = "After meals", AtcCode = "N02BE01", AtcName = "Paracetamol" });
-        if (!string.IsNullOrWhiteSpace(req.AssignPrescriptionToAppointmentId))
-            _db.DocumentAssignments.Add(new DocumentAssignment { DocumentId = rxDoc.Id, AppointmentId = req.AssignPrescriptionToAppointmentId! });
+        if (req.AssignPrescriptionToAppointmentId.HasValue)
+            _db.DocumentAssignments.Add(new DocumentAssignment { DocumentId = rxDoc.Id, AppointmentId = req.AssignPrescriptionToAppointmentId.Value });
 
         // Referral
         var refDoc = new Document { PatientId = patientId, DoctorId = doctorId, DocumentTypeId = referralTypeId, Type = (int)DocumentKind.Referral, Notes = "Refer to neurology" };
         _db.Documents.Add(refDoc); await _db.SaveChangesAsync();
         _db.Referrals.Add(new Referral { DocumentId = refDoc.Id, Speciality = "Neurology", ReferredTo = "Dr. N. Expert", ValidFrom = DateTime.UtcNow.Date, ValidTo = DateTime.UtcNow.Date.AddMonths(1), Reason = "Headache", UrgencyLevel = "Routine" });
-        if (!string.IsNullOrWhiteSpace(req.AssignReferralToAppointmentId))
-            _db.DocumentAssignments.Add(new DocumentAssignment { DocumentId = refDoc.Id, AppointmentId = req.AssignReferralToAppointmentId! });
+        if (req.AssignReferralToAppointmentId.HasValue)
+            _db.DocumentAssignments.Add(new DocumentAssignment { DocumentId = refDoc.Id, AppointmentId = req.AssignReferralToAppointmentId.Value });
 
         // Sick Leave
         var slDoc = new Document { PatientId = patientId, DoctorId = doctorId, DocumentTypeId = sickTypeId, Type = (int)DocumentKind.SickLeave, Notes = "Short sick leave" };
         _db.Documents.Add(slDoc); await _db.SaveChangesAsync();
         _db.SickLeaves.Add(new SickLeave { DocumentId = slDoc.Id, StartDate = DateTime.UtcNow.Date, EndDate = DateTime.UtcNow.Date.AddDays(2), DaysOff = 2 });
-        if (!string.IsNullOrWhiteSpace(req.AssignSickLeaveToAppointmentId))
-            _db.DocumentAssignments.Add(new DocumentAssignment { DocumentId = slDoc.Id, AppointmentId = req.AssignSickLeaveToAppointmentId! });
+        if (req.AssignSickLeaveToAppointmentId.HasValue)
+            _db.DocumentAssignments.Add(new DocumentAssignment { DocumentId = slDoc.Id, AppointmentId = req.AssignSickLeaveToAppointmentId.Value });
 
         // Lab Results (LOINC aligned, no appointment by default)
         var labDoc = new Document { PatientId = patientId, DoctorId = doctorId, DocumentTypeId = labTypeId, Type = (int)DocumentKind.LabResults, Notes = "CBC and lipids" };

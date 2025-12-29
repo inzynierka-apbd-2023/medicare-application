@@ -16,8 +16,8 @@ public class NotificationService : INotificationService
     {
         var notification = new Notification
         {
-            Id = Guid.NewGuid().ToString(),
-            Recipient_User_Id = request.RecipientUserId,
+            Id = Guid.NewGuid(),
+            Recipient_User_Id = Guid.Parse(request.RecipientUserId),
             Description = request.Description,
             Type = request.Type,
             Creation_Date = DateTime.UtcNow,

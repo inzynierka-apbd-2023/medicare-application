@@ -15,5 +15,5 @@ public class UpdateStaffCommand : IRequest<ApiResponse<StaffMemberDto>>
 
 public class DeleteStaffCommand : IRequest<ApiResponse<bool>>
 {
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
 }

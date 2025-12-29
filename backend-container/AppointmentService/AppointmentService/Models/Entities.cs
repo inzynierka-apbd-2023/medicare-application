@@ -5,12 +5,11 @@ namespace AppointmentService.Models;
 public class Appointment
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string PatientId { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string DoctorId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid PatientId { get; set; }
+    [Required]
+    public Guid DoctorId { get; set; }
     [Required]
     public DateTime ScheduledAt { get; set; }
     [Required]
@@ -23,8 +22,7 @@ public class Appointment
     public string? ChiefComplaint { get; set; }
     [MaxLength(500)]
     public string? Notes { get; set; }
-    [MaxLength(36)]
-    public string? RoomId { get; set; }
+    public Guid? RoomId { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     // Tracks when an upcoming notification was sent to avoid duplicate MQ messages
@@ -36,28 +34,25 @@ public class Appointment
 public class AppointmentSlot
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string DoctorId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid DoctorId { get; set; }
     [Required]
     public DateTime StartTime { get; set; }
     [Required]
     public DateTime EndTime { get; set; }
     [Required]
     public bool IsAvailable { get; set; } = true;
-    [MaxLength(36)]
-    public string? AppointmentId { get; set; }
+    public Guid? AppointmentId { get; set; }
     public DateTime CreatedAt { get; set; }
 }
 
 public class Schedule
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string DoctorId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid DoctorId { get; set; }
     [Required]
     public DayOfWeek DayOfWeek { get; set; }
     [Required]
@@ -73,8 +68,7 @@ public class Schedule
 public class AppointmentCategory
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
     [Required, MaxLength(100)]
     public string Name { get; set; } = default!;
     [MaxLength(500)]

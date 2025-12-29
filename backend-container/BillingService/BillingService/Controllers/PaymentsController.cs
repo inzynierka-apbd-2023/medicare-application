@@ -24,7 +24,7 @@ public class PaymentsController : ControllerBase
         {
             Kind = req.Kind,
             SubjectId = req.SubjectId,
-            PatientId = req.PatientId.ToString(),
+            PatientId = req.PatientId,
             Provider = req.Provider ?? "mock",
             AmountCents = req.AmountCents,
             Currency = req.Currency ?? "USD",
@@ -38,7 +38,7 @@ public class PaymentsController : ControllerBase
 
     [HttpGet("intents/{id}")]
     [Authorize]
-    public async Task<ActionResult<PaymentIntent>> GetIntent(string id)
+    public async Task<ActionResult<PaymentIntent>> GetIntent(Guid id)
     {
         var i = await _db.PaymentIntents.FindAsync(id);
         return i == null ? NotFound() : i;
@@ -47,7 +47,7 @@ public class PaymentsController : ControllerBase
     // Record transaction in ledger
     [HttpPost("intents/{id}/transactions")]
     [Authorize]
-    public async Task<ActionResult> RecordTransaction(string id, [FromBody] RecordTransactionRequest req)
+    public async Task<ActionResult> RecordTransaction(Guid id, [FromBody] RecordTransactionRequest req)
     {
         var intent = await _db.PaymentIntents.FindAsync(id);
         if (intent == null) return NotFound();
@@ -79,7 +79,7 @@ public class PaymentsController : ControllerBase
     // Manage subscription renewal (create intent for next period)
     [HttpPost("subscriptions/{contractId}/renewals")]
     [Authorize]
-    public async Task<ActionResult<PaymentIntent>> CreateRenewal(string contractId)
+    public async Task<ActionResult<PaymentIntent>> CreateRenewal(Guid contractId)
     {
         var c = await _db.SubscriptionContracts.FindAsync(contractId);
         if (c == null) return NotFound();
@@ -142,5 +142,5 @@ public class PaymentsController : ControllerBase
     }
 }
 
-public record CreateIntentRequest(PaymentIntentKind Kind, string SubjectId, Guid PatientId, string? Provider, long AmountCents, string? Currency);
+public record CreateIntentRequest(PaymentIntentKind Kind, Guid SubjectId, Guid PatientId, string? Provider, long AmountCents, string? Currency);
 public record RecordTransactionRequest(TransactionType Type, long AmountCents, string? Currency, string? ProviderChargeId, string? ProviderRefundId, string? FailureCode, string? FailureMessage, string? RawPayloadJson);

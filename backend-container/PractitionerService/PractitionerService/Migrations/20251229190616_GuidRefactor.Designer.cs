@@ -12,8 +12,8 @@ using PractitionerService.Data;
 namespace PractitionerService.Migrations
 {
     [DbContext(typeof(PractitionerDbContext))]
-    [Migration("20251218181706_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251229190616_GuidRefactor")]
+    partial class GuidRefactor
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -27,12 +27,11 @@ namespace PractitionerService.Migrations
 
             modelBuilder.Entity("PractitionerService.Models.Doctor", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("Id")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Bio")
                         .HasMaxLength(500)
@@ -53,10 +52,8 @@ namespace PractitionerService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -68,22 +65,19 @@ namespace PractitionerService.Migrations
 
             modelBuilder.Entity("PractitionerService.Models.DoctorDirectory", b =>
                 {
-                    b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Email")
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("FirstName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<bool>("IsActive")
                         .HasColumnType("bit");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
                         .HasColumnType("nvarchar(max)");
 
                     b.Property<string>("Phone")
@@ -95,9 +89,8 @@ namespace PractitionerService.Migrations
                     b.Property<string>("Specializations")
                         .HasColumnType("nvarchar(max)");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.ToTable((string)null);
 
@@ -106,11 +99,10 @@ namespace PractitionerService.Migrations
 
             modelBuilder.Entity("PractitionerService.Models.DoctorSchedule", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -120,10 +112,8 @@ namespace PractitionerService.Migrations
                     b.Property<int>("DayOfWeek")
                         .HasColumnType("int");
 
-                    b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<TimeSpan>("EndTime")
                         .HasColumnType("time");
@@ -145,13 +135,11 @@ namespace PractitionerService.Migrations
 
             modelBuilder.Entity("PractitionerService.Models.DoctorSpecialization", b =>
                 {
-                    b.Property<string>("DoctorId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("SpecializationId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("SpecializationId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("DoctorId", "SpecializationId");
 
@@ -162,11 +150,10 @@ namespace PractitionerService.Migrations
 
             modelBuilder.Entity("PractitionerService.Models.MedicalService", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -184,11 +171,10 @@ namespace PractitionerService.Migrations
 
             modelBuilder.Entity("PractitionerService.Models.Receptionist", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -200,10 +186,8 @@ namespace PractitionerService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -215,11 +199,10 @@ namespace PractitionerService.Migrations
 
             modelBuilder.Entity("PractitionerService.Models.Specialization", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Name")
                         .IsRequired()
@@ -233,13 +216,11 @@ namespace PractitionerService.Migrations
 
             modelBuilder.Entity("PractitionerService.Models.SpecializationService", b =>
                 {
-                    b.Property<string>("SpecializationId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("SpecializationId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("ServiceId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("SpecializationId", "ServiceId");
 

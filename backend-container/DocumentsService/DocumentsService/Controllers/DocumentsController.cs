@@ -39,8 +39,8 @@ public class DocumentsController : ControllerBase
         };
         var doc = new Document
         {
-            PatientId = req.PatientId.ToString(),
-            DoctorId = req.DoctorId.ToString(),
+            PatientId = req.PatientId,
+            DoctorId = req.DoctorId,
             Notes = req.Notes,
             DocumentTypeId = type.Id,
             Type = resolvedType,
@@ -65,7 +65,6 @@ public class DocumentsController : ControllerBase
     [Authorize]
     public async Task<ActionResult<Document>> GetById(Guid id)
     {
-        var idStr = id.ToString();
         var d = await _db.Documents
             .Include(x => x.VisitDocument)
             .Include(x => x.Prescription)
@@ -73,7 +72,7 @@ public class DocumentsController : ControllerBase
             .Include(x => x.SickLeave)
             .Include(x => x.LabResults).ThenInclude(r => r!.Results)
             .Include(x => x.Assignments)
-            .FirstOrDefaultAsync(x => x.Id == idStr);
+            .FirstOrDefaultAsync(x => x.Id == id);
         if (d == null) return NotFound();
         return d;
     }
@@ -91,16 +90,14 @@ public class DocumentsController : ControllerBase
             .Include(x => x.Assignments);
         if (patientId != null && patientId != Guid.Empty) 
         {
-            var patientIdStr = patientId.ToString();
-            q = q.Where(d => d.PatientId == patientIdStr);
+            q = q.Where(d => d.PatientId == patientId);
         }
         if (type.HasValue) q = q.Where(d => d.Type == type.Value);
         if (appointmentId != null && appointmentId != Guid.Empty)
         {
-            var appointmentIdStr = appointmentId.ToString();
             q = from d in q
                 join a in _db.DocumentAssignments on d.Id equals a.DocumentId
-                where a.AppointmentId == appointmentIdStr
+                where a.AppointmentId == appointmentId
                 select d;
         }
         var list = await q.OrderByDescending(d => d.CreatedAt).ToListAsync();
@@ -109,7 +106,7 @@ public class DocumentsController : ControllerBase
 
     [HttpPost("{id}/visit-note")]
     [Authorize]
-    public async Task<ActionResult> AttachVisitNote(string id, [FromBody] VisitDocument payload)
+    public async Task<ActionResult> AttachVisitNote(Guid id, [FromBody] VisitDocument payload)
     {
         var doc = await _db.Documents.FindAsync(id);
         if (doc == null) return NotFound();
@@ -122,7 +119,7 @@ public class DocumentsController : ControllerBase
 
     [HttpPost("{id}/prescription")]
     [Authorize]
-    public async Task<ActionResult> AttachPrescription(string id, [FromBody] PrescriptionRequest payload)
+    public async Task<ActionResult> AttachPrescription(Guid id, [FromBody] PrescriptionRequest payload)
     {
         var doc = await _db.Documents.FindAsync(id);
         if (doc == null) return NotFound();
@@ -168,7 +165,7 @@ public class DocumentsController : ControllerBase
 
     [HttpPost("{id}/referral")]
     [Authorize]
-    public async Task<ActionResult> AttachReferral(string id, [FromBody] Referral payload)
+    public async Task<ActionResult> AttachReferral(Guid id, [FromBody] Referral payload)
     {
         var doc = await _db.Documents.FindAsync(id);
         if (doc == null) return NotFound();
@@ -181,7 +178,7 @@ public class DocumentsController : ControllerBase
 
     [HttpPost("{id}/sick-leave")]
     [Authorize]
-    public async Task<ActionResult> AttachSickLeave(string id, [FromBody] SickLeave payload)
+    public async Task<ActionResult> AttachSickLeave(Guid id, [FromBody] SickLeave payload)
     {
         var doc = await _db.Documents.FindAsync(id);
         if (doc == null) return NotFound();
@@ -194,7 +191,7 @@ public class DocumentsController : ControllerBase
 
     [HttpPost("{id}/lab-results")]
     [Authorize]
-    public async Task<ActionResult> AttachLabResults(string id, [FromBody] LabResultsRequest payload)
+    public async Task<ActionResult> AttachLabResults(Guid id, [FromBody] LabResultsRequest payload)
     {
         var doc = await _db.Documents.FindAsync(id);
         if (doc == null) return NotFound();
@@ -263,7 +260,7 @@ public class DocumentsController : ControllerBase
 
     [HttpPost("{id}/assign")]
     [Authorize]
-    public async Task<ActionResult> AssignToAppointment(string id, [FromBody] AssignRequest req)
+    public async Task<ActionResult> AssignToAppointment(Guid id, [FromBody] AssignRequest req)
     {
         var doc = await _db.Documents.FindAsync(id);
         if (doc == null) return NotFound();
@@ -281,13 +278,12 @@ public class DocumentsController : ControllerBase
     [Authorize]
     public async Task<IActionResult> DownloadPdf(Guid id)
     {
-        var idStr = id.ToString();
         var d = await _db.Documents
             .Include(x => x.VisitDocument)
             .Include(x => x.Prescription)
             .Include(x => x.Referral)
             .Include(x => x.SickLeave)
-            .FirstOrDefaultAsync(x => x.Id == idStr);
+            .FirstOrDefaultAsync(x => x.Id == id);
         if (d == null) return NotFound();
         if (d.Type == (int)DocumentKind.LabResults)
             return BadRequest("Lab results PDFs are not supported in this endpoint.");
@@ -400,8 +396,8 @@ public class DocumentsController : ControllerBase
     private IQueryable<DocumentsService.Models.Document> FilterDocuments(SetNamesRequest req)
     {
         IQueryable<DocumentsService.Models.Document> q = _db.Documents;
-        if (!string.IsNullOrWhiteSpace(req.PatientId)) q = q.Where(d => d.PatientId == req.PatientId);
-        if (!string.IsNullOrWhiteSpace(req.DoctorId)) q = q.Where(d => d.DoctorId == req.DoctorId);
+        if (!string.IsNullOrWhiteSpace(req.PatientId) && Guid.TryParse(req.PatientId, out var pid)) q = q.Where(d => d.PatientId == pid);
+        if (!string.IsNullOrWhiteSpace(req.DoctorId) && Guid.TryParse(req.DoctorId, out var did)) q = q.Where(d => d.DoctorId == did);
         return q;
     }
 
@@ -622,12 +618,12 @@ public class DocumentsController : ControllerBase
     private sealed record ArchivedDoctorDto(Guid DoctorId, string? FullName);
     private sealed record PatientOverviewDto(string PatientId, string UserId, string? FirstName, string? LastName);
 
-    private async Task<string?> ResolveDoctorNameAsync(string doctorId)
+    private async Task<string?> ResolveDoctorNameAsync(Guid doctorId)
     {
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri(PractitionerBase(HttpContext)) };
-            var dto = await http.GetFromJsonAsync<DoctorDirectoryDto>($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId)}/directory");
+            var dto = await http.GetFromJsonAsync<DoctorDirectoryDto>($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory");
             if (dto == null) return null;
             var full = ($"{dto.FirstName} {dto.LastName}").Trim();
             return string.IsNullOrWhiteSpace(full) ? null : full;
@@ -638,7 +634,7 @@ public class DocumentsController : ControllerBase
             try
             {
                 using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)) };
-                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId)}");
+                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}");
                 if (dto2 == null) return null;
                 var full = ($"{dto2.FullName}").Trim();
                 return string.IsNullOrWhiteSpace(full) ? null : full;
@@ -647,12 +643,12 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    private async Task<string?> ResolvePatientNameAsync(string patientId)
+    private async Task<string?> ResolvePatientNameAsync(Guid patientId)
     {
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri(PatientBase(HttpContext)) };
-            var dto = await http.GetFromJsonAsync<PatientOverviewDto>($"/api/patient/overview/{Uri.EscapeDataString(patientId)}");
+            var dto = await http.GetFromJsonAsync<PatientOverviewDto>($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}");
             if (dto == null) return null;
             var full = ($"{dto.FirstName} {dto.LastName}").Trim();
             return string.IsNullOrWhiteSpace(full) ? null : full;
@@ -661,12 +657,12 @@ public class DocumentsController : ControllerBase
     }
 
     // Quick resolvers with short timeouts for read-time enrichment
-    private async Task<string?> ResolveDoctorNameQuickAsync(string doctorId, CancellationToken ct)
+    private async Task<string?> ResolveDoctorNameQuickAsync(Guid doctorId, CancellationToken ct)
     {
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri(PractitionerBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-            var dto = await http.GetFromJsonAsync<DoctorDirectoryDto>($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId)}/directory", ct);
+            var dto = await http.GetFromJsonAsync<DoctorDirectoryDto>($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory", ct);
             if (dto == null) return null;
             var full = ($"{dto.FirstName} {dto.LastName}").Trim();
             return string.IsNullOrWhiteSpace(full) ? null : full;
@@ -677,7 +673,7 @@ public class DocumentsController : ControllerBase
             try
             {
                 using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId)}", ct);
+                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}", ct);
                 if (dto2 == null) return null;
                 var full = ($"{dto2.FullName}").Trim();
                 return string.IsNullOrWhiteSpace(full) ? null : full;
@@ -686,12 +682,12 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    private async Task<string?> ResolvePatientNameQuickAsync(string patientId, CancellationToken ct)
+    private async Task<string?> ResolvePatientNameQuickAsync(Guid patientId, CancellationToken ct)
     {
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri(PatientBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-            var dto = await http.GetFromJsonAsync<PatientOverviewDto>($"/api/patient/overview/{Uri.EscapeDataString(patientId)}", ct);
+            var dto = await http.GetFromJsonAsync<PatientOverviewDto>($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}", ct);
             if (dto == null) return null;
             var full = ($"{dto.FirstName} {dto.LastName}").Trim();
             return string.IsNullOrWhiteSpace(full) ? null : full;
@@ -795,7 +791,7 @@ public record CreateDocumentRequest(
     Guid PatientId,
     Guid DoctorId,
     string? Notes,
-    string? DocumentTypeId,
+    Guid? DocumentTypeId,
     string? DocumentTypeCode,
     int? Type,
     string? FilePath,
@@ -814,7 +810,7 @@ public record PrescriptionRequest(
     string? AtcCode
 );
 
-public record AssignRequest(string AppointmentId);
+public record AssignRequest(Guid AppointmentId);
 
 public record BackfillNamesResult(int Processed, int Updated, int Skipped, int Remaining);
 public record SetNamesRequest(string? PatientId, string? DoctorId, string? PatientName, string? DoctorName);

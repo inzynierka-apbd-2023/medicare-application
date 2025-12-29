@@ -12,8 +12,8 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace ArchiveService.Migrations
 {
     [DbContext(typeof(ArchiveDbContext))]
-    [Migration("20251218200925_InitialCreate")]
-    partial class InitialCreate
+    [Migration("20251229190511_GuidRefactor")]
+    partial class GuidRefactor
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)

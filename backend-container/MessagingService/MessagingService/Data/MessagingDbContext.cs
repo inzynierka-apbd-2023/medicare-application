@@ -19,15 +19,15 @@ public class MessagingDbContext : DbContext
         {
             e.ToTable("Message", schema: "messaging");
             e.HasKey(m => m.Id);
-            e.Property(m => m.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(m => m.SenderId).HasMaxLength(36).IsRequired();
-            e.Property(m => m.RecipientId).HasMaxLength(36).IsRequired();
+            e.Property(m => m.Id).HasDefaultValueSql("NEWID()");
+            e.Property(m => m.SenderId).IsRequired();
+            e.Property(m => m.RecipientId).IsRequired();
             e.Property(m => m.Subject).HasMaxLength(200).IsRequired();
             e.Property(m => m.Content).HasMaxLength(2000).IsRequired();
             e.Property(m => m.MessageType).HasMaxLength(50).HasDefaultValue("General");
             e.Property(m => m.Priority).HasMaxLength(50).HasDefaultValue("Normal");
             e.Property(m => m.IsRead).HasDefaultValue(false);
-            e.Property(m => m.RelatedEntityId).HasMaxLength(36);
+            e.Property(m => m.RelatedEntityId);
             e.Property(m => m.RelatedEntityType).HasMaxLength(50);
             e.Property(m => m.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasIndex(m => m.SenderId);
@@ -40,9 +40,9 @@ public class MessagingDbContext : DbContext
         {
             e.ToTable("Message_Thread", schema: "messaging");
             e.HasKey(t => t.Id);
-            e.Property(t => t.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            e.Property(t => t.Id).HasDefaultValueSql("NEWID()");
             e.Property(t => t.Subject).HasMaxLength(200).IsRequired();
-            e.Property(t => t.InitiatorId).HasMaxLength(36).IsRequired();
+            e.Property(t => t.InitiatorId).IsRequired();
             e.Property(t => t.IsActive).HasDefaultValue(true);
             e.Property(t => t.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(t => t.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
@@ -53,9 +53,9 @@ public class MessagingDbContext : DbContext
         {
             e.ToTable("Thread_Participant", schema: "messaging");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(p => p.ThreadId).HasMaxLength(36).IsRequired();
-            e.Property(p => p.UserId).HasMaxLength(36).IsRequired();
+            e.Property(p => p.Id).HasDefaultValueSql("NEWID()");
+            e.Property(p => p.ThreadId).IsRequired();
+            e.Property(p => p.UserId).IsRequired();
             e.Property(p => p.IsActive).HasDefaultValue(true);
             e.Property(p => p.JoinedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasIndex(p => p.ThreadId);
@@ -67,9 +67,9 @@ public class MessagingDbContext : DbContext
         {
             e.ToTable("Thread_Message", schema: "messaging");
             e.HasKey(m => m.Id);
-            e.Property(m => m.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(m => m.ThreadId).HasMaxLength(36).IsRequired();
-            e.Property(m => m.SenderId).HasMaxLength(36).IsRequired();
+            e.Property(m => m.Id).HasDefaultValueSql("NEWID()");
+            e.Property(m => m.ThreadId).IsRequired();
+            e.Property(m => m.SenderId).IsRequired();
             e.Property(m => m.Content).HasMaxLength(2000).IsRequired();
             e.Property(m => m.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasIndex(m => m.ThreadId);
@@ -81,9 +81,9 @@ public class MessagingDbContext : DbContext
         {
             e.ToTable("Message_Receipt", schema: "messaging");
             e.HasKey(r => r.Id);
-            e.Property(r => r.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(r => r.MessageId).HasMaxLength(36).IsRequired();
-            e.Property(r => r.UserId).HasMaxLength(36).IsRequired();
+            e.Property(r => r.Id).HasDefaultValueSql("NEWID()");
+            e.Property(r => r.MessageId).IsRequired();
+            e.Property(r => r.UserId).IsRequired();
             e.Property(r => r.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasIndex(r => r.MessageId);
             e.HasIndex(r => r.UserId);

@@ -12,7 +12,7 @@ using UserService.Data;
 namespace UserService.Migrations
 {
     [DbContext(typeof(UserDbContext))]
-    [Migration("20251218181610_InitialCreate")]
+    [Migration("20251229191401_InitialCreate")]
     partial class InitialCreate
     {
         /// <inheritdoc />
@@ -27,11 +27,10 @@ namespace UserService.Migrations
 
             modelBuilder.Entity("UserService.Models.OutboxEvent", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("OccurredAt")
                         .ValueGeneratedOnAdd()
@@ -59,8 +58,9 @@ namespace UserService.Migrations
 
             modelBuilder.Entity("UserService.Models.RefreshToken", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("nvarchar(450)")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("Id");
 
                     b.Property<DateTime>("CreatedAt")
@@ -105,9 +105,8 @@ namespace UserService.Migrations
                         .HasColumnType("nvarchar(512)")
                         .HasColumnName("User_Agent");
 
-                    b.Property<string>("UserId")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(450)")
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("User_Id");
 
                     b.HasKey("Id");
@@ -119,11 +118,11 @@ namespace UserService.Migrations
 
             modelBuilder.Entity("UserService.Models.Role", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(450)")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("Id")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Description")
                         .HasMaxLength(500)
@@ -143,11 +142,11 @@ namespace UserService.Migrations
 
             modelBuilder.Entity("UserService.Models.User", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("nvarchar(450)")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("Id")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -166,12 +165,12 @@ namespace UserService.Migrations
                         .HasColumnType("nvarchar(255)")
                         .HasColumnName("PasswordHash");
 
-                    b.Property<string>("RoleId")
-                        .HasColumnType("nvarchar(450)")
+                    b.Property<Guid?>("RoleId")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("Role_Id");
 
-                    b.Property<string>("ScheduleId")
-                        .HasColumnType("nvarchar(max)")
+                    b.Property<Guid?>("ScheduleId")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("Schedule_Id");
 
                     b.Property<DateTime>("UpdatedAt")
@@ -198,8 +197,8 @@ namespace UserService.Migrations
 
             modelBuilder.Entity("UserService.Models.UserProfile", b =>
                 {
-                    b.Property<string>("UserId")
-                        .HasColumnType("nvarchar(450)")
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier")
                         .HasColumnName("User_Id");
 
                     b.Property<string>("AddressLine1")

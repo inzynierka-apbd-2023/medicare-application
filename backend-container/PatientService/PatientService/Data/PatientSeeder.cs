@@ -22,19 +22,16 @@ public static class PatientSeeder
         // This implies this user will perform the action.
         
         // Let's seed a patient with a known ID so the frontend/manual test can target it.
-        var patientId = "patient-to-delete-1";
+        // Let's seed a patient with a known ID so the frontend/manual test can target it.
+        // Guid equivalent of "patient-to-delete-1" deterministic hash or fixed guid
+        var patientId = Guid.Parse("11111111-1111-1111-1111-111111111111");
         
         if (await db.Patients.FindAsync(patientId) == null)
         {
-             // We need a valid GUID for UserId if the column is Guid.
-             // Model: `public string UserId { get; set; }` in earlier view? 
-             // RegRequest has `Guid UserId`. 
-             // Let's check Patient model if possible, but safely I will use a random Guid for UserId.
-             
             var patient = new Patient
             {
                 Id = patientId,
-                UserId = Guid.NewGuid().ToString(),
+                UserId = Guid.NewGuid(),
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
@@ -46,16 +43,7 @@ public static class PatientSeeder
                 Status = "Active",
                 EffectiveAt = DateTime.UtcNow
             });
-            
-            // Add some dummy info for the list
-            // Note: PatientOverview view relies on User_Profile join for Names OR the view handles it.
-            // If local dev, the view selects NULL for names if not joined.
-            // If I want "To Be Deleted" to show up in the list with a name in local dev, I might need to insert into 'User_Profile' if it was in the same DB? 
-            // But PatientService likely doesn't own User_Profile. 
-            // The `PatientOverview` view in `Program.cs` handles local dev by selecting NULL.
-            // So it will show as "Unnamed". 
-            // This is acceptable for backend test.
-            
+
             await db.SaveChangesAsync();
         }
     }

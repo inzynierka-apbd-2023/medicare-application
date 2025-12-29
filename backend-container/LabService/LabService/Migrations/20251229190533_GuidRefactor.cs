@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace LabService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class GuidRefactor : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,10 +19,10 @@ namespace LabService.Migrations
                 schema: "lab",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    OrderingDoctorId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    MedicalRecordId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: true),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    OrderingDoctorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MedicalRecordId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     OrderedDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Ordered"),
                     ClinicalNotes = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
@@ -41,16 +41,16 @@ namespace LabService.Migrations
                 schema: "lab",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    LabTestId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    LabTestId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Value = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     Unit = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     ReferenceRange = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     Flag = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: true),
                     Comments = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
                     ResultDate = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    ReviewedByDoctorId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: true),
+                    ReviewedByDoctorId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     ReviewedAt = table.Column<DateTime>(type: "datetime2", nullable: true),
                     ReviewStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Pending"),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
@@ -65,9 +65,9 @@ namespace LabService.Migrations
                 schema: "lab",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    LabResultId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    ReviewedByDoctorId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    LabResultId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    ReviewedByDoctorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     ReviewedAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ReviewStatus = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     ReviewNotes = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
@@ -84,8 +84,8 @@ namespace LabService.Migrations
                 schema: "lab",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    LabOrderId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    LabOrderId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     LoincCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     TestName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Status = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Pending"),

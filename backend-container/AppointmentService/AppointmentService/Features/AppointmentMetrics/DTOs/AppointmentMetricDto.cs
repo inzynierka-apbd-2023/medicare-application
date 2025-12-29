@@ -2,7 +2,7 @@ namespace AppointmentService.Features.AppointmentMetrics.DTOs;
 
 public class AppointmentMetricDto
 {
-    public string Id { get; set; } = string.Empty;
+    public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public int Value { get; set; }
     public double Change { get; set; }

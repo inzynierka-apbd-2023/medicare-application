@@ -19,13 +19,12 @@ public class ReceptionistsController : ControllerBase
     public async Task<IActionResult> Register([FromBody] RegisterReceptionistRequest req)
     {
         if (req.UserId == Guid.Empty) return BadRequest("UserId is required");
-        var userIdStr = req.UserId.ToString();
-        if (await _db.Receptionists.AnyAsync(r => r.UserId == userIdStr)) return Conflict("Receptionist already registered for this user");
+        if (await _db.Receptionists.AnyAsync(r => r.UserId == req.UserId)) return Conflict("Receptionist already registered for this user");
         
         var rec = new Receptionist 
         { 
-            Id = Guid.NewGuid().ToString(), // Generate ID manually for compatibility
-            UserId = userIdStr, 
+            Id = Guid.NewGuid(),
+            UserId = req.UserId, 
             CreatedAt = DateTime.UtcNow, 
             UpdatedAt = DateTime.UtcNow 
         };
@@ -37,7 +36,7 @@ public class ReceptionistsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetReceptionistById(string id)
+    public async Task<IActionResult> GetReceptionistById(Guid id)
     {
         var receptionist = await _db.Receptionists.FindAsync(id);
         if (receptionist == null) return NotFound();

@@ -26,7 +26,7 @@ public class UserServiceImpl : IUserService
         return users.Select(MapToDto);
     }
 
-    public async Task<UserResponseDto?> GetUserByIdAsync(string id)
+    public async Task<UserResponseDto?> GetUserByIdAsync(Guid id)
     {
         var user = await _context.Users
             .Include(u => u.Role)
@@ -67,7 +67,7 @@ public class UserServiceImpl : IUserService
         }
 
         // Create user
-        var userId = Guid.NewGuid().ToString();
+        var userId = Guid.NewGuid();
         var user = new User
         {
             Id = userId,
@@ -105,7 +105,7 @@ public class UserServiceImpl : IUserService
         return MapToDto(user);
     }
 
-    public async Task<UserResponseDto?> UpdateUserAsync(string id, UpdateUserDto updateUserDto)
+    public async Task<UserResponseDto?> UpdateUserAsync(Guid id, UpdateUserDto updateUserDto)
     {
         var user = await _context.Users
             .Include(u => u.Role)
@@ -190,7 +190,7 @@ public class UserServiceImpl : IUserService
         return MapToDto(user);
     }
 
-    public async Task<bool> DeleteUserAsync(string id)
+    public async Task<bool> DeleteUserAsync(Guid id)
     {
         var user = await _context.Users.FindAsync(id);
         if (user == null) return false;
@@ -202,7 +202,7 @@ public class UserServiceImpl : IUserService
         return true;
     }
 
-    public async Task<bool> UserExistsAsync(string id)
+    public async Task<bool> UserExistsAsync(Guid id)
     {
         return await _context.Users.AnyAsync(u => u.Id == id && u.IsActive);
     }
@@ -222,7 +222,7 @@ public class UserServiceImpl : IUserService
         return MapToDto(user);
     }
 
-    public async Task<bool> UsernameExistsAsync(string username, string? excludeUserId = null)
+    public async Task<bool> UsernameExistsAsync(string username, Guid? excludeUserId = null)
     {
         return await _context.Users.AnyAsync(u => 
             u.Username == username && 
@@ -230,7 +230,7 @@ public class UserServiceImpl : IUserService
             (excludeUserId == null || u.Id != excludeUserId));
     }
 
-    public async Task<bool> EmailExistsAsync(string email, string? excludeUserId = null)
+    public async Task<bool> EmailExistsAsync(string email, Guid? excludeUserId = null)
     {
         return await _context.UserProfiles.AnyAsync(up => 
             up.Email == email && 

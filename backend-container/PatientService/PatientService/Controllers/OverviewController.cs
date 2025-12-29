@@ -28,8 +28,7 @@ public class OverviewController : ControllerBase
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var idStr = id.ToString();
-        var item = await _db.Set<PatientOverview>().FirstOrDefaultAsync(p => p.PatientId == idStr);
+        var item = await _db.Set<PatientOverview>().FirstOrDefaultAsync(p => p.PatientId == id);
         if (item == null) return NotFound();
         return Ok(item);
     }

@@ -27,8 +27,7 @@ public class DoctorScheduleService : IDoctorScheduleService
         string? status = null,
         CancellationToken cancellationToken = default)
     {
-        var doctorIdStr = doctorId.ToString();
-        var query = _context.Appointments.Where(a => a.DoctorId == doctorIdStr);
+        var query = _context.Appointments.Where(a => a.DoctorId == doctorId);
 
         if (startDate.HasValue)
             query = query.Where(a => a.ScheduledAt >= startDate.Value);
@@ -70,9 +69,8 @@ public class DoctorScheduleService : IDoctorScheduleService
         Guid appointmentId,
         CancellationToken cancellationToken = default)
     {
-        var appointmentIdStr = appointmentId.ToString();
         var appointment = await _context.Appointments
-            .FirstOrDefaultAsync(a => a.Id == appointmentIdStr, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == appointmentId, cancellationToken);
 
         if (appointment == null)
             return null;
@@ -86,9 +84,8 @@ public class DoctorScheduleService : IDoctorScheduleService
         string? notes,
         CancellationToken cancellationToken = default)
     {
-        var appointmentIdStr = appointmentId.ToString();
         var appointment = await _context.Appointments
-            .FirstOrDefaultAsync(a => a.Id == appointmentIdStr, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == appointmentId, cancellationToken);
 
         if (appointment == null)
             return false;
@@ -110,9 +107,8 @@ public class DoctorScheduleService : IDoctorScheduleService
         string notes,
         CancellationToken cancellationToken = default)
     {
-        var appointmentIdStr = appointmentId.ToString();
         var appointment = await _context.Appointments
-            .FirstOrDefaultAsync(a => a.Id == appointmentIdStr, cancellationToken);
+            .FirstOrDefaultAsync(a => a.Id == appointmentId, cancellationToken);
 
         if (appointment == null)
             return false;

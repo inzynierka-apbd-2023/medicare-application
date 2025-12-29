@@ -7,7 +7,7 @@ using System.Collections.Generic;
 
 namespace PatientService.Infrastructure.Messaging;
 
-public record UserRegistered(string UserId, string Username, string Email, DateTime OccurredAtUtc);
+public record UserRegistered(Guid UserId, string Username, string Email, DateTime OccurredAtUtc);
 
 public class UserRegisteredConsumer : BackgroundService
 {

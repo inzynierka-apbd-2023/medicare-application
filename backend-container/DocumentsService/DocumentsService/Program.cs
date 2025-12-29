@@ -233,8 +233,8 @@ static async Task SeedTestDataAsync(IServiceProvider services)
             var rxType = await db.DocumentTypes.FirstAsync(t => t.Code == "PRESCRIPTION");
             var labType = await db.DocumentTypes.FirstAsync(t => t.Code == "LAB_RESULTS");
 
-            var patientId = Guid.NewGuid().ToString();
-            var doctorId = Guid.NewGuid().ToString();
+            var patientId = Guid.NewGuid();
+            var doctorId = Guid.NewGuid();
 
             var visit = new DocumentsService.Models.Document
             {

@@ -57,11 +57,10 @@ namespace MedicalCatalogService.Migrations
 
             modelBuilder.Entity("MedicalCatalogService.Models.CatalogRelease", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Description")
                         .HasMaxLength(200)
@@ -118,11 +117,10 @@ namespace MedicalCatalogService.Migrations
 
             modelBuilder.Entity("MedicalCatalogService.Models.LoincAnswerLink", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("AnswerListId")
                         .IsRequired()
@@ -148,11 +146,10 @@ namespace MedicalCatalogService.Migrations
 
             modelBuilder.Entity("MedicalCatalogService.Models.LoincAnswerList", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("AnswerListId")
                         .IsRequired()
@@ -180,11 +177,10 @@ namespace MedicalCatalogService.Migrations
 
             modelBuilder.Entity("MedicalCatalogService.Models.LoincConsumerName", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("ConsumerName")
                         .IsRequired()
@@ -292,11 +288,10 @@ namespace MedicalCatalogService.Migrations
 
             modelBuilder.Entity("MedicalCatalogService.Models.LoincMapTo", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Comment")
                         .HasMaxLength(500)
@@ -326,11 +321,10 @@ namespace MedicalCatalogService.Migrations
 
             modelBuilder.Entity("MedicalCatalogService.Models.LoincPanel", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("PanelLoincNum")
                         .IsRequired()
@@ -347,11 +341,10 @@ namespace MedicalCatalogService.Migrations
 
             modelBuilder.Entity("MedicalCatalogService.Models.LoincPanelItem", b =>
                 {
-                    b.Property<int>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("ItemLoincNum")
                         .IsRequired()

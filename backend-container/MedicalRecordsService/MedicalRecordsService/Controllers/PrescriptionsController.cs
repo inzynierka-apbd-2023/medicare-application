@@ -19,9 +19,9 @@ public class PrescriptionsController : ControllerBase
     {
         var prescription = new Prescription
         {
-            MedicalRecordId = req.MedicalRecordId.ToString(),
-            PatientId = req.PatientId.ToString(),
-            DoctorId = req.DoctorId.ToString(),
+            MedicalRecordId = req.MedicalRecordId,
+            PatientId = req.PatientId,
+            DoctorId = req.DoctorId,
             MedicationName = req.MedicationName,
             AtcCode = req.AtcCode,
             Dosage = req.Dosage,
@@ -50,16 +50,15 @@ public class PrescriptionsController : ControllerBase
     [HttpGet("patient/{patientId}")]
     public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
-        var patientIdStr = patientId.ToString();
         var prescriptions = await _db.Prescriptions
-            .Where(p => p.PatientId == patientIdStr)
+            .Where(p => p.PatientId == patientId)
             .OrderByDescending(p => p.PrescribedDate)
             .ToListAsync();
         return Ok(prescriptions);
     }
 
     [HttpGet("patient/{patientId}/active")]
-    public async Task<IActionResult> GetActiveByPatientId(string patientId)
+    public async Task<IActionResult> GetActiveByPatientId(Guid patientId)
     {
         var prescriptions = await _db.Prescriptions
             .Where(p => p.PatientId == patientId && p.Status == "Active")

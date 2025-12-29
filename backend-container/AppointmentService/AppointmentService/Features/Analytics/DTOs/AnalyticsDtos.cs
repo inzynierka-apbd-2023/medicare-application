@@ -11,7 +11,7 @@ public class AppointmentAnalyticsResponse
 
 public class AppointmentMetricDto
 {
-    public string Id { get; set; } = string.Empty;
+    public Guid Id { get; set; }
     public string Title { get; set; } = string.Empty;
     public int Value { get; set; }
     public double Change { get; set; }
@@ -31,7 +31,7 @@ public class TrendDataDto
 
 public class DoctorPerformanceDto
 {
-    public string Id { get; set; } = string.Empty;
+    public Guid Id { get; set; }
     public string Name { get; set; } = string.Empty;
     public string Specialization { get; set; } = string.Empty;
     public int TotalAppointments { get; set; }

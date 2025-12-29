@@ -48,7 +48,6 @@ public class DoctorsController : ControllerBase
         string? Country
     );
 
-
     private static string GenerateUsername(UserProfileDto p)
     {
         var date = DateTime.UtcNow.ToString("yyyyMMdd");
@@ -183,12 +182,12 @@ public class DoctorsController : ControllerBase
 
         // Create doctor and specializations (active by default)
         var now = DateTime.UtcNow;
-        var doctor = new Doctor { Id = Guid.NewGuid().ToString(), UserId = userId!, Bio = req.Biography, IsActive = true, CreatedAt = now, UpdatedAt = now };
+        var doctor = new Doctor { Id = Guid.NewGuid(), UserId = Guid.Parse(userId!), Bio = req.Biography, IsActive = true, CreatedAt = now, UpdatedAt = now };
         _db.Doctors.Add(doctor);
         await _db.SaveChangesAsync();
         if (req.SpecializationIds != null && req.SpecializationIds.Count > 0)
         {
-            var ids = req.SpecializationIds.Select(g => g.ToString()).ToList();
+            var ids = req.SpecializationIds.ToList();
             _db.DoctorSpecializations.AddRange(ids.Select(sid => new DoctorSpecialization { DoctorId = doctor.Id, SpecializationId = sid }));
             await _db.SaveChangesAsync();
         }
@@ -218,13 +217,12 @@ public class DoctorsController : ControllerBase
     public async Task<IActionResult> RegisterDoctor([FromBody] RegisterDoctorRequest req)
     {
         if (req.UserId == Guid.Empty) return BadRequest("UserId is required");
-        var userIdStr = req.UserId.ToString();
-        if (await _db.Doctors.AnyAsync(d => d.UserId == userIdStr)) return Conflict("Doctor already registered for this user");
+        if (await _db.Doctors.AnyAsync(d => d.UserId == req.UserId)) return Conflict("Doctor already registered for this user");
         
         var doctor = new Doctor 
         { 
-            Id = Guid.NewGuid().ToString(), // Generate ID manually for compatibility
-            UserId = userIdStr, 
+            Id = Guid.NewGuid(), 
+            UserId = req.UserId, 
             CreatedAt = DateTime.UtcNow, 
             UpdatedAt = DateTime.UtcNow, 
             Bio = req.Bio 
@@ -237,7 +235,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("{id}")]
-    public async Task<IActionResult> GetDoctorById(string id)
+    public async Task<IActionResult> GetDoctorById(Guid id)
     {
         var doctor = await _db.Doctors.FindAsync(id);
         if (doctor == null) return NotFound();
@@ -245,7 +243,7 @@ public class DoctorsController : ControllerBase
     }
 
     [HttpGet("by-user/{userId}")]
-    public async Task<IActionResult> GetDoctorByUserId(string userId)
+    public async Task<IActionResult> GetDoctorByUserId(Guid userId)
     {
         var doctor = await _db.Doctors.FirstOrDefaultAsync(d => d.UserId == userId);
         if (doctor == null) return NotFound("Doctor not found for this user");
@@ -254,7 +252,7 @@ public class DoctorsController : ControllerBase
 
     // Lightweight directory projection for a single doctor
     [HttpGet("{id}/directory")]
-    public async Task<IActionResult> GetDoctorDirectoryById(string id)
+    public async Task<IActionResult> GetDoctorDirectoryById(Guid id)
     {
     var item = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
         if (item == null) return NotFound();
@@ -264,11 +262,11 @@ public class DoctorsController : ControllerBase
     // Update specializations for a doctor
     [HttpPut("{id}/specializations")]
     [Authorize]
-    public async Task<IActionResult> UpdateSpecializations(string id, [FromBody] UpdateSpecializationsRequest req)
+    public async Task<IActionResult> UpdateSpecializations(Guid id, [FromBody] UpdateSpecializationsRequest req)
     {
     if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound(DoctorNotFound);
         // Ensure all provided specialization IDs exist
-        var specIds = req.SpecializationIds?.Distinct().Select(g => g.ToString()).ToList() ?? new();
+        var specIds = req.SpecializationIds?.Distinct().ToList() ?? new();
         var existing = await _db.Specializations.Where(s => specIds.Contains(s.Id)).Select(s => s.Id).ToListAsync();
         if (existing.Count != specIds.Count) return BadRequest("One or more specialization IDs are invalid");
         // Replace current set
@@ -297,21 +295,23 @@ public class DoctorsController : ControllerBase
         }
         if (specializationId != null && specializationId != Guid.Empty)
         {
-            var specializationIdStr = specializationId.ToString();
+            var specializationIdStr = specializationId.Value.ToString();
             query = query.Where(d => d.Specializations != null && d.Specializations.Contains(specializationIdStr));
         }
         if (serviceId != null && serviceId != Guid.Empty)
         {
-            var sid = serviceId.ToString();
             // map service -> specialization ids
             var specIds = await _db.SpecializationServices
-                .Where(ss => ss.ServiceId == sid)
+                .Where(ss => ss.ServiceId == serviceId.Value)
                 .Select(ss => ss.SpecializationId)
                 .ToListAsync();
             if (specIds.Count > 0)
             {
                 // intersect with doctor specialization CSV
-                query = query.Where(d => d.Specializations != null && specIds.Any(sid => d.Specializations!.Contains(sid)));
+                // Note: Specializations in DoctorDirectory are likely stored as comma-separated GUID strings still, or verified usage. 
+                // Assuming they are stored as CSV strings for now, conversion is needed for comparison.
+                var specIdStrings = specIds.Select(g => g.ToString()).ToList();
+                query = query.Where(d => d.Specializations != null && specIdStrings.Any(sid => d.Specializations!.Contains(sid)));
             }
             else
             {
@@ -326,7 +326,7 @@ public class DoctorsController : ControllerBase
     // Manage recurring availability
     [HttpPut("{id}/availability")]
     [Authorize]
-    public async Task<IActionResult> SetAvailability(string id, [FromBody] List<ScheduleEntry> entries)
+    public async Task<IActionResult> SetAvailability(Guid id, [FromBody] List<ScheduleEntry> entries)
     {
     if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound(DoctorNotFound);
         var current = _db.DoctorSchedules.Where(s => s.DoctorId == id);
@@ -348,7 +348,7 @@ public class DoctorsController : ControllerBase
 
     // Read recurring availability
     [HttpGet("{id}/availability")]
-    public async Task<IActionResult> GetAvailability(string id)
+    public async Task<IActionResult> GetAvailability(Guid id)
     {
         if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound("Doctor not found");
         var schedules = await _db.DoctorSchedules
@@ -362,7 +362,7 @@ public class DoctorsController : ControllerBase
     // Request doctor removal: emit event and remove from local tables
     [HttpDelete("{id}")]
     [Authorize]
-    public async Task<IActionResult> DeleteDoctor(string id)
+    public async Task<IActionResult> DeleteDoctor(Guid id)
     {
         var doctor = await _db.Doctors.FindAsync(id);
         if (doctor == null) return NotFound("Doctor not found");
@@ -397,12 +397,10 @@ public class DoctorsController : ControllerBase
         var snapshotJson = System.Text.Json.JsonSerializer.Serialize(snapshot);
 
         // Compose enriched event
-        Guid? userGuid = null;
-        if (Guid.TryParse(doctor.UserId, out var ug)) userGuid = ug;
         var evt = new
         {
-            DoctorId = Guid.Parse(doctor.Id),
-            DoctorUserId = userGuid,
+            DoctorId = doctor.Id,
+            DoctorUserId = doctor.UserId,
             Type = "DoctorRemovalRequested",
             At = DateTime.UtcNow,
             FullName = dir == null ? null : ($"{dir.FirstName} {dir.LastName}").Trim(),
@@ -437,9 +435,9 @@ public class DoctorsController : ControllerBase
         _db.DoctorSpecializations.RemoveRange(specs);
         var scheds = _db.DoctorSchedules.Where(x => x.DoctorId == id);
         _db.DoctorSchedules.RemoveRange(scheds);
-    doctor.IsActive = false;
-    doctor.UpdatedAt = DateTime.UtcNow;
-    _db.Doctors.Update(doctor);
+        doctor.IsActive = false;
+        doctor.UpdatedAt = DateTime.UtcNow;
+        _db.Doctors.Update(doctor);
         await _db.SaveChangesAsync();
         return NoContent();
     }

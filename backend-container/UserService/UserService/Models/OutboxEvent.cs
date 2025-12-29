@@ -7,8 +7,7 @@ namespace UserService.Models;
 public class OutboxEvent
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; }
 
     [MaxLength(200)]
     public string Type { get; set; } = default!;

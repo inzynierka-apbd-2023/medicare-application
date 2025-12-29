@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace BillingService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class GuidRefactor : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,12 +19,12 @@ namespace BillingService.Migrations
                 schema: "billing",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    AppointmentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    AppointmentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     AmountCents = table.Column<long>(type: "bigint", nullable: false),
                     Currency = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
-                    PaymentIntentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: true)
+                    PaymentIntentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -36,7 +36,7 @@ namespace BillingService.Migrations
                 schema: "billing",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     Type = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     OccurredAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
                     PayloadJson = table.Column<string>(type: "nvarchar(max)", nullable: false),
@@ -52,10 +52,10 @@ namespace BillingService.Migrations
                 schema: "billing",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     Kind = table.Column<int>(type: "int", nullable: false),
-                    SubjectId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    SubjectId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Provider = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     ProviderIntentId = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
                     ClientSecret = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: true),
@@ -74,8 +74,8 @@ namespace BillingService.Migrations
                 schema: "billing",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Provider = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     ProviderToken = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Last4 = table.Column<string>(type: "nvarchar(4)", maxLength: 4, nullable: true),
@@ -93,8 +93,8 @@ namespace BillingService.Migrations
                 schema: "billing",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    PaymentIntentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    PaymentIntentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Type = table.Column<int>(type: "int", nullable: false),
                     AmountCents = table.Column<long>(type: "bigint", nullable: false),
                     Currency = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
@@ -131,15 +131,15 @@ namespace BillingService.Migrations
                 schema: "billing",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    SubscriptionContractId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    SubscriptionContractId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     PlanCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     PeriodStart = table.Column<DateTime>(type: "datetime2", nullable: false),
                     PeriodEnd = table.Column<DateTime>(type: "datetime2", nullable: false),
                     AmountCents = table.Column<long>(type: "bigint", nullable: false),
                     Currency = table.Column<string>(type: "nvarchar(3)", maxLength: 3, nullable: false),
-                    PaymentIntentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: true)
+                    PaymentIntentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -151,7 +151,7 @@ namespace BillingService.Migrations
                 schema: "billing",
                 columns: table => new
                 {
-                    DoctorId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: true),
+                    DoctorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TotalRevenueCents = table.Column<long>(type: "bigint", nullable: false),
                     PaidAppointments = table.Column<int>(type: "int", nullable: false)
                 },
@@ -164,7 +164,7 @@ namespace BillingService.Migrations
                 schema: "billing",
                 columns: table => new
                 {
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: true),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TotalPaidCents = table.Column<long>(type: "bigint", nullable: false),
                     OutstandingCents = table.Column<long>(type: "bigint", nullable: false),
                     SuccessfulPayments = table.Column<int>(type: "int", nullable: false)
@@ -178,13 +178,13 @@ namespace BillingService.Migrations
                 schema: "billing",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     PlanCode = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false),
                     PeriodStart = table.Column<DateTime>(type: "datetime2", nullable: false),
                     PeriodEnd = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Status = table.Column<int>(type: "int", nullable: false),
-                    DefaultPaymentMethodId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: true)
+                    DefaultPaymentMethodId = table.Column<Guid>(type: "uniqueidentifier", nullable: true)
                 },
                 constraints: table =>
                 {

@@ -81,7 +81,7 @@ public class OutboxPublisherHostedService : BackgroundService
                     var props = _ch!.CreateBasicProperties();
                     props.ContentType = "application/json";
                     props.DeliveryMode = 2;
-                    props.MessageId = evt.Id;
+                    props.MessageId = evt.Id.ToString();
                     _ch.BasicPublish(_opt.Exchange, evt.Type, props, body);
                     Console.WriteLine($"[OutboxPublisher] Published event id={evt.Id} type='{evt.Type}'");
                     // mark as published

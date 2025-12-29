@@ -53,7 +53,7 @@ public class LoincEntry
 public class CatalogRelease
 {
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     [Required, MaxLength(50)]
     public string System { get; set; } = default!; // icd10, snomed, loinc, cpt, hcpcs
     [Required, MaxLength(100)]
@@ -69,7 +69,7 @@ public class CatalogRelease
 public class LoincMapTo
 {
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     [Required, MaxLength(20)] public string FromLoinc { get; set; } = default!;
     [Required, MaxLength(20)] public string ToLoinc { get; set; } = default!;
     [MaxLength(50)] public string? MapType { get; set; }
@@ -79,7 +79,7 @@ public class LoincMapTo
 public class LoincAnswerList
 {
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     [Required, MaxLength(50)] public string AnswerListId { get; set; } = default!; // e.g., LL6136-7
     [MaxLength(50)] public string? AnswerStringId { get; set; }
     [MaxLength(255)] public string? DisplayName { get; set; }
@@ -89,7 +89,7 @@ public class LoincAnswerList
 public class LoincAnswerLink
 {
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     [Required, MaxLength(20)] public string LoincNum { get; set; } = default!;
     [Required, MaxLength(50)] public string AnswerListId { get; set; } = default!;
     [MaxLength(50)] public string? LinkType { get; set; }
@@ -98,14 +98,14 @@ public class LoincAnswerLink
 public class LoincPanel
 {
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     [Required, MaxLength(20)] public string PanelLoincNum { get; set; } = default!;
 }
 
 public class LoincPanelItem
 {
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     [Required, MaxLength(20)] public string PanelLoincNum { get; set; } = default!;
     [Required, MaxLength(20)] public string ItemLoincNum { get; set; } = default!;
     public int? Ordinal { get; set; }
@@ -117,7 +117,7 @@ public class LoincPanelItem
 public class LoincConsumerName
 {
     [Key]
-    public int Id { get; set; }
+    public Guid Id { get; set; }
     [Required, MaxLength(20)] public string LoincNum { get; set; } = default!;
     [Required, MaxLength(255)] public string ConsumerName { get; set; } = default!;
     [MaxLength(20)] public string? Language { get; set; }

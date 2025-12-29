@@ -2,8 +2,8 @@ namespace NotificationService.Models;
 
 public class Notification
 {
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-    public string Recipient_User_Id { get; set; } = default!; // FK to Users or auth directory
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid Recipient_User_Id { get; set; } = Guid.Empty; // FK to Users or auth directory
     public string? Description { get; set; }
     public byte Type { get; set; } // tinyint
     public DateTime Creation_Date { get; set; } = DateTime.UtcNow;

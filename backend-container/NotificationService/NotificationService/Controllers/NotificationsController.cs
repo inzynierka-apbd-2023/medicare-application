@@ -18,8 +18,8 @@ public class NotificationsController : ControllerBase
     }
 
     public record NotificationDto(
-        string Id,
-        string RecipientUserId,
+        Guid Id,
+        Guid RecipientUserId,
         string? Description,
         byte Type,
         DateTime CreationDate,
@@ -29,12 +29,12 @@ public class NotificationsController : ControllerBase
 
     [HttpGet]
     public async Task<ActionResult<IEnumerable<NotificationDto>>> Get(
-        [FromQuery] string recipientUserId,
+        [FromQuery] Guid recipientUserId,
         [FromQuery] bool unreadOnly = false,
         [FromQuery] int page = 1,
         [FromQuery] int pageSize = 20)
     {
-        if (string.IsNullOrWhiteSpace(recipientUserId))
+        if (recipientUserId == Guid.Empty)
         {
             return BadRequest("recipientUserId is required");
         }
@@ -68,9 +68,9 @@ public class NotificationsController : ControllerBase
     }
 
     [HttpPost("{id}/read")]
-    public async Task<IActionResult> MarkAsRead([FromRoute] string id)
+    public async Task<IActionResult> MarkAsRead([FromRoute] Guid id)
     {
-        if (string.IsNullOrWhiteSpace(id)) return BadRequest();
+        if (id == Guid.Empty) return BadRequest();
         var n = await _db.Notifications.FirstOrDefaultAsync(x => x.Id == id);
         if (n == null) return NotFound();
         if (n.Is_Read == true) return NoContent();

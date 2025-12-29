@@ -25,8 +25,10 @@ namespace NotificationService.Migrations
 
             modelBuilder.Entity("NotificationService.Models.Notification", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasColumnType("varchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("Action_Url")
                         .HasColumnType("nvarchar(500)");
@@ -46,9 +48,8 @@ namespace NotificationService.Migrations
                     b.Property<string>("Priority_Level")
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("Recipient_User_Id")
-                        .IsRequired()
-                        .HasColumnType("varchar(36)");
+                    b.Property<Guid>("Recipient_User_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Source_Service")
                         .HasColumnType("nvarchar(64)");

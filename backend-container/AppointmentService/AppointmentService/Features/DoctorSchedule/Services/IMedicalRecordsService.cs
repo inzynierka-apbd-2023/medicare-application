@@ -4,7 +4,7 @@ namespace AppointmentService.Features.DoctorSchedule.Services;
 
 public interface IMedicalRecordsService
 {
-    Task<MedicalRecordDto?> GetMedicalRecordAsync(string patientId, CancellationToken cancellationToken = default);
+    Task<MedicalRecordDto?> GetMedicalRecordAsync(Guid patientId, CancellationToken cancellationToken = default);
 }
 
 public class MedicalRecordsService : IMedicalRecordsService
@@ -21,7 +21,7 @@ public class MedicalRecordsService : IMedicalRecordsService
         _httpClient.BaseAddress = new Uri(baseUrl);
     }
 
-    public async Task<MedicalRecordDto?> GetMedicalRecordAsync(string patientId, CancellationToken cancellationToken = default)
+    public async Task<MedicalRecordDto?> GetMedicalRecordAsync(Guid patientId, CancellationToken cancellationToken = default)
     {
         try
         {

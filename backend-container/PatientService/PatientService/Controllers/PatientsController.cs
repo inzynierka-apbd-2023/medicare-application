@@ -25,10 +25,8 @@ public class PatientsController : ControllerBase
         
         var result = await _mediator.Send(new RegisterPatientCommand(req.UserId, req.PrimaryDoctorId));
         
-        if (result == null) return Conflict("Patient already exists for this user"); // or other error mapping
+        if (result == null) return Conflict("Patient already exists for this user"); 
 
-        // result is the Patient entity
-        // We need GetById to work for CreatedAtAction
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, new { result.Id, result.UserId });
     }
 
@@ -49,7 +47,7 @@ public class PatientsController : ControllerBase
 
     [HttpDelete("{id}")]
     [Authorize(Roles = "admin,receptionist")]
-    public async Task<IActionResult> Delete(string id)
+    public async Task<IActionResult> Delete(Guid id)
     {
         var success = await _mediator.Send(new DeletePatientCommand(id));
         if (!success) return NotFound();
@@ -58,7 +56,7 @@ public class PatientsController : ControllerBase
 
     [HttpPut("{id}/status")]
     [Authorize]
-    public async Task<IActionResult> ChangeStatus(string id, [FromBody] ChangeStatusRequest req)
+    public async Task<IActionResult> ChangeStatus(Guid id, [FromBody] ChangeStatusRequest req)
     {
         var success = await _mediator.Send(new ChangePatientStatusCommand(id, req.Status));
         if (!success) return NotFound("Patient not found");
@@ -67,7 +65,7 @@ public class PatientsController : ControllerBase
 
     [HttpPut("{id}/emergency-contacts")]
     [Authorize]
-    public async Task<IActionResult> SetEmergencyContacts(string id, [FromBody] List<EmergencyContactRequest> contacts)
+    public async Task<IActionResult> SetEmergencyContacts(Guid id, [FromBody] List<EmergencyContactRequest> contacts)
     {
         // Map request DTO to Command DTO
         var commandContacts = contacts.Select(c => new EmergencyContactDto(c.Name, c.Relation, c.Phone)).ToList();
@@ -78,7 +76,7 @@ public class PatientsController : ControllerBase
 
     [HttpPut("{id}/insurance")]
     [Authorize]
-    public async Task<IActionResult> UpdateInsurance(string id, [FromBody] InsuranceRequest req)
+    public async Task<IActionResult> UpdateInsurance(Guid id, [FromBody] InsuranceRequest req)
     {
         var success = await _mediator.Send(new UpdateInsuranceCommand(id, req.Provider, req.PolicyNumber, req.ValidFrom, req.ValidTo));
         if (!success) return NotFound("Patient not found");
@@ -86,7 +84,7 @@ public class PatientsController : ControllerBase
     }
 }
 
-public record RegisterPatientRequest(Guid UserId, string? PrimaryDoctorId);
+public record RegisterPatientRequest(Guid UserId, Guid? PrimaryDoctorId);
 public record ChangeStatusRequest(string Status);
 public record EmergencyContactRequest(string Name, string? Relation, string? Phone);
 public record InsuranceRequest(string? Provider, string? PolicyNumber, DateTime? ValidFrom, DateTime? ValidTo);

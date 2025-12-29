@@ -13,9 +13,7 @@ using UserService.Infrastructure.Messaging;
 
 
 // Constants (Must be top-level for static local functions to see them if they are const)
-const string UseAzureDefaultCredentialKey = "USE_AZURE_DEFAULT_CREDENTIAL";
 const string AuthenticationKeyword = "Authentication";
-const string AdminSeedUsername = "admin";
 
 try
 {
@@ -189,8 +187,8 @@ IF OBJECT_ID('[dbo].[User_Profile]', 'U') IS NOT NULL AND OBJECT_ID('[user].[Use
 BEGIN
     PRINT('[Startup] Refresh_Token table missing; creating fallback table.');
     CREATE TABLE [user].[Refresh_Token](
-        [Id] nvarchar(450) NOT NULL CONSTRAINT DF_RefreshToken_Id DEFAULT CONVERT(VARCHAR(36), NEWID()),
-        [User_Id] nvarchar(450) NOT NULL,
+        [Id] uniqueidentifier NOT NULL CONSTRAINT DF_RefreshToken_Id DEFAULT NEWID(),
+        [User_Id] uniqueidentifier NOT NULL,
         [Token_Hash] nvarchar(128) NOT NULL,
         [Expires_At] datetime2 NOT NULL CONSTRAINT DF_RefreshToken_Expires DEFAULT DATEADD(day,7,SYSUTCDATETIME()),
         [Created_At] datetime2 NOT NULL CONSTRAINT DF_RefreshToken_Created DEFAULT SYSUTCDATETIME(),
@@ -233,15 +231,15 @@ static async Task SeedRolesAsync(UserDbContext db)
     var rolesToAdd = new List<Role>();
     
     if (!existingRoles.Contains("Admin"))
-        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Admin", Description = "Administrator" });
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid(), Name = "Admin", Description = "Administrator" });
     if (!existingRoles.Contains("Doctor"))
-        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Doctor", Description = "Doctor user" });
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid(), Name = "Doctor", Description = "Doctor user" });
     if (!existingRoles.Contains("Patient"))
-        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Patient", Description = "Patient user" });
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid(), Name = "Patient", Description = "Patient user" });
     if (!existingRoles.Contains("Receptionist"))
-        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Receptionist", Description = "Receptionist user" });
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid(), Name = "Receptionist", Description = "Receptionist user" });
     if (!existingRoles.Contains("Owner"))
-        rolesToAdd.Add(new Role { Id = Guid.NewGuid().ToString(), Name = "Owner", Description = "Clinic owner" });
+        rolesToAdd.Add(new Role { Id = Guid.NewGuid(), Name = "Owner", Description = "Clinic owner" });
     
     if (rolesToAdd.Any())
     {
@@ -272,7 +270,7 @@ static async Task SeedDevelopmentUsersAsync(UserDbContext db)
         if (existingUsernames.Contains(tu.Username)) continue;
         if (!roles.TryGetValue(tu.Role, out var roleId)) continue;
 
-        var userId = Guid.NewGuid().ToString();
+        var userId = Guid.NewGuid();
         db.Users.Add(new User
         {
             Id = userId,

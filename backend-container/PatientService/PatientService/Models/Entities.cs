@@ -5,12 +5,10 @@ namespace PatientService.Models;
 public class Patient
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string UserId { get; set; } = default!; // reference by ID to users.User
-    [MaxLength(36)]
-    public string? PrimaryDoctorId { get; set; } // reference by ID to practitioner.Doctor
+    public Guid Id { get; set; }
+    [Required]
+    public Guid UserId { get; set; } // reference by ID to users.User
+    public Guid? PrimaryDoctorId { get; set; } // reference by ID to practitioner.Doctor
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }
@@ -18,10 +16,9 @@ public class Patient
 public class EmergencyContact
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string PatientId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid PatientId { get; set; }
     [Required, MaxLength(200)]
     public string Name { get; set; } = default!;
     [MaxLength(100)]
@@ -33,10 +30,9 @@ public class EmergencyContact
 public class Insurance
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string PatientId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid PatientId { get; set; }
     [MaxLength(200)]
     public string? Provider { get; set; }
     [MaxLength(100)]
@@ -48,10 +44,9 @@ public class Insurance
 public class PatientStatus
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = default!;
-    [Required, MaxLength(36)]
-    public string PatientId { get; set; } = default!;
+    public Guid Id { get; set; }
+    [Required]
+    public Guid PatientId { get; set; }
     [Required, MaxLength(50)]
     public string Status { get; set; } = default!; // e.g., Active, Inactive, Suspended
     public DateTime EffectiveAt { get; set; }
@@ -62,8 +57,8 @@ public class PatientStatus
 // Projection read model
 public class PatientOverview
 {
-    public string PatientId { get; set; } = default!;
-    public string UserId { get; set; } = default!;
+    public Guid PatientId { get; set; }
+    public Guid UserId { get; set; }
     public string? FirstName { get; set; }
     public string? LastName { get; set; }
     public string? Email { get; set; }

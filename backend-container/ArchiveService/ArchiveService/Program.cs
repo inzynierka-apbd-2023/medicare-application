@@ -5,7 +5,6 @@ using ArchiveService.Data;
 using ArchiveService.Models;
 using ArchiveService.Messaging;
 using Microsoft.Data.SqlClient;
-using ArchiveService.Data;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 var builder = WebApplication.CreateBuilder(args);

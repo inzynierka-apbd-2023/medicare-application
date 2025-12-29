@@ -16,9 +16,8 @@ public class LabResultsController : ControllerBase
     [HttpGet("patient/{patientId}")]
     public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
-        var patientIdStr = patientId.ToString();
         var results = await _db.LabResults
-            .Where(r => r.PatientId == patientIdStr)
+            .Where(r => r.PatientId == patientId)
             .OrderByDescending(r => r.ResultDate)
             .ToListAsync();
         return Ok(results);
@@ -33,7 +32,7 @@ public class LabResultsController : ControllerBase
     }
 
     [HttpGet("{id}/detail")]
-    public async Task<IActionResult> GetDetailById(string id)
+    public async Task<IActionResult> GetDetailById(Guid id)
     {
         var result = await _db.LabResults.FindAsync(id);
         if (result == null) return NotFound();
@@ -61,7 +60,7 @@ public class LabResultsController : ControllerBase
         var result = new LabResult
         {
             LabTestId = req.LabTestId,
-            PatientId = req.PatientId.ToString(),
+            PatientId = req.PatientId,
             Value = req.Value,
             Unit = req.Unit,
             ReferenceRange = req.ReferenceRange,
@@ -90,7 +89,7 @@ public class LabResultsController : ControllerBase
 
     [HttpPost("{id}/review")]
     [Authorize]
-    public async Task<IActionResult> ReviewResult(string id, [FromBody] ReviewLabResultRequest req)
+    public async Task<IActionResult> ReviewResult(Guid id, [FromBody] ReviewLabResultRequest req)
     {
         var result = await _db.LabResults.FindAsync(id);
         if (result == null) return NotFound();
@@ -118,7 +117,7 @@ public class LabResultsController : ControllerBase
 }
 
 public record CreateLabResultRequest(
-    string LabTestId,
+    Guid LabTestId,
     Guid PatientId,
     string? Value,
     string? Unit,
@@ -129,7 +128,7 @@ public record CreateLabResultRequest(
 );
 
 public record ReviewLabResultRequest(
-    string ReviewedByDoctorId,
+    Guid ReviewedByDoctorId,
     string ReviewStatus,
     string? ReviewNotes,
     string? Recommendations

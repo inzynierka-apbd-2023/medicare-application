@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace MedicalRecordsService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class GuidRefactor : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,8 +19,8 @@ namespace MedicalRecordsService.Migrations
                 schema: "medical",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    MedicalRecordId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    MedicalRecordId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Icd10Code = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Type = table.Column<string>(type: "nvarchar(50)", maxLength: 50, nullable: false, defaultValue: "Primary"),
@@ -37,10 +37,10 @@ namespace MedicalRecordsService.Migrations
                 schema: "medical",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    DoctorId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    AppointmentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: true),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DoctorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AppointmentId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     VisitDate = table.Column<DateTime>(type: "datetime2", nullable: false),
                     ChiefComplaint = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     HistoryOfPresentIllness = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
@@ -61,10 +61,10 @@ namespace MedicalRecordsService.Migrations
                 schema: "medical",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    MedicalRecordId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    DoctorId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    MedicalRecordId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DoctorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     MedicationName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     AtcCode = table.Column<string>(type: "nvarchar(10)", maxLength: 10, nullable: true),
                     Dosage = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
@@ -86,9 +86,9 @@ namespace MedicalRecordsService.Migrations
                 schema: "medical",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    MedicalRecordId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    MedicalRecordId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     MeasuredAt = table.Column<DateTime>(type: "datetime2", nullable: false),
                     Temperature = table.Column<decimal>(type: "decimal(4,1)", nullable: true),
                     SystolicBP = table.Column<int>(type: "int", nullable: true),

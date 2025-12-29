@@ -4,7 +4,7 @@ namespace AppointmentService.Features.DoctorSchedule.Services;
 
 public interface IPatientService
 {
-    Task<PatientDto?> GetPatientAsync(string patientId, CancellationToken cancellationToken = default);
+    Task<PatientDto?> GetPatientAsync(Guid patientId, CancellationToken cancellationToken = default);
 }
 
 public class PatientService : IPatientService
@@ -21,7 +21,7 @@ public class PatientService : IPatientService
         _httpClient.BaseAddress = new Uri(baseUrl);
     }
 
-    public async Task<PatientDto?> GetPatientAsync(string patientId, CancellationToken cancellationToken = default)
+    public async Task<PatientDto?> GetPatientAsync(Guid patientId, CancellationToken cancellationToken = default)
     {
         try
         {

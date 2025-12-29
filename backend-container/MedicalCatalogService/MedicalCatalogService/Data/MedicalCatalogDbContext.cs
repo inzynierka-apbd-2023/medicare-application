@@ -68,6 +68,7 @@ public class MedicalCatalogDbContext : DbContext
         {
             e.ToTable("release", schema: "catalog");
             e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasDefaultValueSql("NEWID()");
             e.Property(x => x.System).HasMaxLength(50).IsRequired();
             e.Property(x => x.Version).HasMaxLength(100).IsRequired();
             e.HasIndex(x => new { x.System, x.Version }).IsUnique();
@@ -77,6 +78,7 @@ public class MedicalCatalogDbContext : DbContext
         {
             e.ToTable("loinc_map_to", schema: "catalog");
             e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasDefaultValueSql("NEWID()");
             e.Property(x => x.FromLoinc).HasMaxLength(20).IsRequired();
             e.Property(x => x.ToLoinc).HasMaxLength(20).IsRequired();
             e.Property(x => x.MapType).HasMaxLength(50);
@@ -88,6 +90,7 @@ public class MedicalCatalogDbContext : DbContext
         {
             e.ToTable("loinc_answer_list", schema: "catalog");
             e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasDefaultValueSql("NEWID()");
             e.Property(x => x.AnswerListId).HasMaxLength(50).IsRequired();
             e.Property(x => x.AnswerStringId).HasMaxLength(50);
             e.Property(x => x.DisplayName).HasMaxLength(255);
@@ -99,6 +102,7 @@ public class MedicalCatalogDbContext : DbContext
         {
             e.ToTable("loinc_answer_link", schema: "catalog");
             e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasDefaultValueSql("NEWID()");
             e.Property(x => x.LoincNum).HasMaxLength(20).IsRequired();
             e.Property(x => x.AnswerListId).HasMaxLength(50).IsRequired();
             e.Property(x => x.LinkType).HasMaxLength(50);
@@ -109,6 +113,7 @@ public class MedicalCatalogDbContext : DbContext
         {
             e.ToTable("loinc_panel", schema: "catalog");
             e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasDefaultValueSql("NEWID()");
             e.Property(x => x.PanelLoincNum).HasMaxLength(20).IsRequired();
             e.HasIndex(x => x.PanelLoincNum).IsUnique();
         });
@@ -117,6 +122,7 @@ public class MedicalCatalogDbContext : DbContext
         {
             e.ToTable("loinc_panel_item", schema: "catalog");
             e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasDefaultValueSql("NEWID()");
             e.Property(x => x.PanelLoincNum).HasMaxLength(20).IsRequired();
             e.Property(x => x.ItemLoincNum).HasMaxLength(20).IsRequired();
             e.Property(x => x.Ordinal);
@@ -128,6 +134,7 @@ public class MedicalCatalogDbContext : DbContext
         {
             e.ToTable("loinc_consumer_name", schema: "catalog");
             e.HasKey(x => x.Id);
+            e.Property(x => x.Id).HasDefaultValueSql("NEWID()");
             e.Property(x => x.LoincNum).HasMaxLength(20).IsRequired();
             e.Property(x => x.ConsumerName).HasMaxLength(255).IsRequired();
             e.Property(x => x.Language).HasMaxLength(20);

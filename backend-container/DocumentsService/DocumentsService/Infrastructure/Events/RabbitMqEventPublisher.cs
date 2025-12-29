@@ -53,14 +53,14 @@ public sealed class RabbitMqEventPublisher : IEventPublisher
         {
             var (recipientUserId, description, type, actionUrl) = MapToNotification(@event);
             var docId = ExtractDocumentId(@event);
-            if (recipientUserId is null && !string.IsNullOrWhiteSpace(docId))
+            if (recipientUserId is null && docId.HasValue)
             {
                 // Try to resolve from DocumentId -> Document.PatientId
                 try
                 {
                     using var scope = _services.CreateScope();
                     var db = scope.ServiceProvider.GetRequiredService<DocumentsDbContext>();
-                    var doc = db.Documents.Find(docId!);
+                    var doc = db.Documents.Find(docId.Value);
                     if (doc != null) recipientUserId = doc.PatientId;
                 }
                 catch { /* best-effort only */ }
@@ -75,7 +75,7 @@ public sealed class RabbitMqEventPublisher : IEventPublisher
             channel.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false);
             var payload = new
             {
-                RecipientUserId = recipientUserId,
+                RecipientUserId = recipientUserId.ToString(),
                 Description = description,
                 Type = (byte)type,
                 SourceService = "documents-service",
@@ -94,7 +94,7 @@ public sealed class RabbitMqEventPublisher : IEventPublisher
         }
     }
 
-    private static (string? recipientUserId, string? description, int type, string? actionUrl) MapToNotification<TEvent>(TEvent @event)
+    private static (Guid? recipientUserId, string? description, int type, string? actionUrl) MapToNotification<TEvent>(TEvent @event)
     {
         // Notification Type mapping:
         // 1 = info (appointments), 2 = success (documents), 3 = warning, 4 = error
@@ -150,7 +150,7 @@ public sealed class RabbitMqEventPublisher : IEventPublisher
         }
     }
 
-    private static string? ExtractDocumentId<TEvent>(TEvent @event)
+    private static Guid? ExtractDocumentId<TEvent>(TEvent @event)
         => @event switch
         {
             DocumentsService.Contracts.DocumentCreated e => e.DocumentId,

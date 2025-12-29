@@ -154,16 +154,17 @@ static async Task CreateViewsAsync(BillingDbContext db)
     try
     {
         // Create billing summary views - these are simple aggregates on billing tables only
+        // Note: Status enum - 0=Pending, 1=RequiresAction, 2=Failed, 3=Succeeded, 4=Cancelled, 5=RefundedFull, 6=RefundedPartial
         var patientSummaryView = @"
 CREATE OR ALTER VIEW billing.vw_Patient_Billing_Summary AS
 SELECT 
     pm.PatientId,
     COUNT(DISTINCT pi.Id) AS TotalPaymentIntents,
-    SUM(CASE WHEN pi.Status = 'Succeeded' THEN pi.Amount ELSE 0 END) AS TotalPaidAmount,
-    SUM(CASE WHEN pi.Status = 'Pending' THEN pi.Amount ELSE 0 END) AS TotalPendingAmount,
+    SUM(CASE WHEN pi.Status = 3 THEN pi.AmountCents ELSE 0 END) AS TotalPaidAmount,
+    SUM(CASE WHEN pi.Status = 0 THEN pi.AmountCents ELSE 0 END) AS TotalPendingAmount,
     MAX(pi.CreatedAt) AS LastPaymentDate
-FROM billing.PaymentMethod pm
-LEFT JOIN billing.PaymentIntent pi ON pi.PatientId = pm.PatientId
+FROM billing.Payment_Method pm
+LEFT JOIN billing.Payment_Intent pi ON pi.PatientId = pm.PatientId
 GROUP BY pm.PatientId;
 ";
         await db.Database.ExecuteSqlRawAsync(patientSummaryView);
@@ -171,12 +172,12 @@ GROUP BY pm.PatientId;
         var doctorRevenueView = @"
 CREATE OR ALTER VIEW billing.vw_Doctor_Revenue_Dashboard AS
 SELECT 
-    ap.DoctorId,
+    CAST('00000000-0000-0000-0000-000000000000' AS uniqueidentifier) AS DoctorId,
     COUNT(ap.Id) AS TotalAppointmentPayments,
-    SUM(ap.Amount) AS TotalRevenue,
-    AVG(ap.Amount) AS AveragePaymentAmount
-FROM billing.AppointmentPayment ap
-GROUP BY ap.DoctorId;
+    SUM(ap.AmountCents) AS TotalRevenue,
+    AVG(ap.AmountCents) AS AveragePaymentAmount
+FROM billing.Appointment_Payment ap
+GROUP BY PatientId;
 ";
         await db.Database.ExecuteSqlRawAsync(doctorRevenueView);
         

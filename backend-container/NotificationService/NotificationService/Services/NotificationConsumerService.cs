@@ -96,7 +96,7 @@ public class NotificationConsumerService : BackgroundService
 }
 
 public record NotificationEvent(
-    string RecipientUserId,
+    Guid RecipientUserId,
     string? Description,
     byte Type,
     string? SourceService,

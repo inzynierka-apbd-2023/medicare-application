@@ -47,16 +47,16 @@ public class DoctorArchivedConsumer : BackgroundService
                             _ch!.BasicAck(ea.DeliveryTag, false); 
                             return; 
                         }
-                        var archivedDoctorEntityId = idEl.GetGuid().ToString();
-                        string? doctorUserId = null;
+                        var archivedDoctorEntityId = idEl.GetGuid();
+                        Guid? doctorUserId = null;
                         if (doc.RootElement.TryGetProperty("DoctorUserId", out var userIdEl) && userIdEl.ValueKind == JsonValueKind.String)
                         {
-                            doctorUserId = userIdEl.GetString();
-                            if (Guid.TryParse(doctorUserId, out var g)) doctorUserId = g.ToString();
+                            var userIdStr = userIdEl.GetString();
+                            if (Guid.TryParse(userIdStr, out var g)) doctorUserId = g;
                         }
                         using var scope = _sp.CreateScope();
                         var db = scope.ServiceProvider.GetRequiredService<AppointmentDbContext>();
-                        var appts = await db.Appointments.Where(a => a.DoctorId == archivedDoctorEntityId || (doctorUserId != null && a.DoctorId == doctorUserId)).ToListAsync(stoppingToken);
+                        var appts = await db.Appointments.Where(a => a.DoctorId == archivedDoctorEntityId || (doctorUserId.HasValue && a.DoctorId == doctorUserId.Value)).ToListAsync(stoppingToken);
                         if (appts.Any())
                         {
                             db.Appointments.RemoveRange(appts);

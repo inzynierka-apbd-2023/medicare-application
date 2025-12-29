@@ -24,11 +24,10 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.Appointment", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<string>("AppointmentType")
                         .HasMaxLength(100)
@@ -43,23 +42,18 @@ namespace AppointmentService.Migrations
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Notes")
                         .HasMaxLength(500)
                         .HasColumnType("nvarchar(500)");
 
-                    b.Property<string>("PatientId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("PatientId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("RoomId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("RoomId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("ScheduledAt")
                         .HasColumnType("datetime2");
@@ -100,11 +94,10 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.AppointmentCategory", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -137,11 +130,11 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.AppointmentPayment", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<decimal>("Amount")
+                    b.Property<decimal?>("Amount")
                         .HasColumnType("decimal(10,2)");
 
                     b.Property<string>("Currency")
@@ -152,10 +145,8 @@ namespace AppointmentService.Migrations
                     b.Property<DateTime?>("Paid_At")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Patient_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Patient_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Payment_Method")
                         .HasMaxLength(100)
@@ -164,10 +155,8 @@ namespace AppointmentService.Migrations
                     b.Property<DateTime?>("Renewal_Date")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Schedule_Appointment_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Schedule_Appointment_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Status")
                         .IsRequired()
@@ -188,25 +177,21 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.AppointmentSlot", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
-                    b.Property<string>("AppointmentId")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("AppointmentId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("EndTime")
                         .HasColumnType("datetime2");
@@ -230,9 +215,9 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.Doctor", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Biography")
                         .HasMaxLength(2000)
@@ -255,25 +240,21 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.DoctorSpecialization", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime?>("Certified_Date")
                         .HasColumnType("datetime2");
 
-                    b.Property<string>("Doctor_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Doctor_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("Is_Primary")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Specialization_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Specialization_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -285,9 +266,9 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.Notification", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Action_Url")
                         .HasMaxLength(500)
@@ -312,10 +293,8 @@ namespace AppointmentService.Migrations
                         .HasMaxLength(20)
                         .HasColumnType("nvarchar(20)");
 
-                    b.Property<string>("Recipient_User_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Recipient_User_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Source_Service")
                         .IsRequired()
@@ -335,18 +314,16 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.Patient", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Blood_Type")
                         .HasMaxLength(10)
                         .HasColumnType("nvarchar(10)");
 
-                    b.Property<string>("General_Doctor_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("General_Doctor_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Medical_Record_Number")
                         .HasMaxLength(100)
@@ -362,32 +339,27 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.Rate", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Appointment_Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("Appointment_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<string>("Doctor_User_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Doctor_User_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<bool>("Is_Anonymous")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Patient_User_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Patient_User_Id")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<byte>("Rate_Value")
+                    b.Property<byte?>("Rate_Value")
                         .HasColumnType("tinyint");
 
                     b.Property<DateTime>("Rated_At")
@@ -403,11 +375,10 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.Schedule", b =>
                 {
-                    b.Property<string>("Id")
+                    b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)")
-                        .HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
@@ -417,10 +388,8 @@ namespace AppointmentService.Migrations
                     b.Property<int>("DayOfWeek")
                         .HasColumnType("int");
 
-                    b.Property<string>("DoctorId")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<TimeOnly>("EndTime")
                         .HasColumnType("time");
@@ -447,9 +416,9 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.ScheduleAppointment", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Appointment_Type")
                         .IsRequired()
@@ -466,40 +435,30 @@ namespace AppointmentService.Migrations
                         .HasMaxLength(1000)
                         .HasColumnType("nvarchar(1000)");
 
-                    b.Property<string>("Doctor_User_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Doctor_User_Id")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<int>("Duration_Minutes")
+                    b.Property<int?>("Duration_Minutes")
                         .HasColumnType("int");
 
-                    b.Property<string>("Patient_User_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Patient_User_Id")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Receptionist_User_Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("Receptionist_User_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Room")
                         .HasMaxLength(255)
                         .HasColumnType("nvarchar(255)");
 
-                    b.Property<string>("Schedule_Appointment_Status_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Schedule_Appointment_Status_Id")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Schedule_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Schedule_Id")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Time_Slot_Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid?>("Time_Slot_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<decimal?>("Total_Cost")
                         .HasColumnType("decimal(10,2)");
@@ -517,9 +476,9 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.ScheduleAppointmentStatus", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Color_Code")
                         .HasMaxLength(7)
@@ -544,9 +503,9 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.Specialization", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<string>("Description")
                         .HasMaxLength(1000)
@@ -560,10 +519,8 @@ namespace AppointmentService.Migrations
                         .HasMaxLength(200)
                         .HasColumnType("nvarchar(200)");
 
-                    b.Property<string>("Service_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Service_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
@@ -575,9 +532,9 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.User", b =>
                 {
-                    b.Property<string>("Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime2");
@@ -585,15 +542,11 @@ namespace AppointmentService.Migrations
                     b.Property<bool>("Is_Active")
                         .HasColumnType("bit");
 
-                    b.Property<string>("Role_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Role_Id")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Schedule_Id")
-                        .IsRequired()
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("Schedule_Id")
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("Updated_At")
                         .HasColumnType("datetime2");
@@ -608,9 +561,9 @@ namespace AppointmentService.Migrations
 
             modelBuilder.Entity("AppointmentService.Models.UserProfile", b =>
                 {
-                    b.Property<string>("User_Id")
-                        .HasMaxLength(36)
-                        .HasColumnType("nvarchar(36)");
+                    b.Property<Guid>("User_Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
 
                     b.Property<DateTime>("Created_At")
                         .HasColumnType("datetime2");
@@ -624,7 +577,6 @@ namespace AppointmentService.Migrations
                         .HasColumnType("nvarchar(255)");
 
                     b.Property<string>("FirstName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 
@@ -633,7 +585,6 @@ namespace AppointmentService.Migrations
                         .HasColumnType("nvarchar(20)");
 
                     b.Property<string>("LastName")
-                        .IsRequired()
                         .HasMaxLength(100)
                         .HasColumnType("nvarchar(100)");
 

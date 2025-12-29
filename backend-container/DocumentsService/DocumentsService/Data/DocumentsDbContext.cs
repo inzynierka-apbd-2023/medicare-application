@@ -23,13 +23,13 @@ public class DocumentsDbContext : DbContext
         base.OnModelCreating(modelBuilder);
 
     const string SysUtc = "SYSUTCDATETIME()";
-    const string SqlGuid = "CONVERT(VARCHAR(36), NEWID())";
+    const string SqlGuid = "NEWID()";
 
         modelBuilder.HasDefaultSchema("documents");
 
         modelBuilder.Entity<Document>(e =>
         {
-            e.Property(p => p.Id).HasMaxLength(36).HasDefaultValueSql(SqlGuid);
+            e.Property(p => p.Id).HasDefaultValueSql(SqlGuid);
             e.Property(p => p.CreatedAt).HasDefaultValueSql(SysUtc);
             e.HasIndex(p => new { p.PatientId, p.Type, p.CreatedAt });
             e.HasIndex(p => new { p.DoctorId, p.CreatedAt });

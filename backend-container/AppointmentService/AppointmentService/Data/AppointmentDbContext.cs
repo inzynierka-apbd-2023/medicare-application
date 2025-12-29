@@ -31,13 +31,13 @@ public class AppointmentDbContext : DbContext
         {
             e.ToTable("Appointment", schema: "appointment");
             e.HasKey(a => a.Id);
-            e.Property(a => a.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(a => a.PatientId).HasMaxLength(36).IsRequired();
-            e.Property(a => a.DoctorId).HasMaxLength(36).IsRequired();
+            e.Property(a => a.Id).HasDefaultValueSql("NEWID()");
+            e.Property(a => a.PatientId).IsRequired();
+            e.Property(a => a.DoctorId).IsRequired();
             e.Property(a => a.Status).HasMaxLength(50).HasDefaultValue("Scheduled");
             e.Property(a => a.AppointmentType).HasMaxLength(100);
             e.Property(a => a.Notes).HasMaxLength(500);
-            e.Property(a => a.RoomId).HasMaxLength(36);
+            e.Property(a => a.RoomId);
             e.Property(a => a.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(a => a.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(a => a.UpcomingNotificationSentAt).HasColumnType("datetime2");
@@ -53,10 +53,10 @@ public class AppointmentDbContext : DbContext
         {
             e.ToTable("Appointment_Slot", schema: "appointment");
             e.HasKey(s => s.Id);
-            e.Property(s => s.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(s => s.DoctorId).HasMaxLength(36).IsRequired();
+            e.Property(s => s.Id).HasDefaultValueSql("NEWID()");
+            e.Property(s => s.DoctorId).IsRequired();
             e.Property(s => s.IsAvailable).HasDefaultValue(true);
-            e.Property(s => s.AppointmentId).HasMaxLength(36);
+            e.Property(s => s.AppointmentId);
             e.Property(s => s.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasIndex(s => s.DoctorId);
             e.HasIndex(s => s.StartTime);
@@ -66,8 +66,8 @@ public class AppointmentDbContext : DbContext
         {
             e.ToTable("Schedule", schema: "appointment");
             e.HasKey(s => s.Id);
-            e.Property(s => s.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(s => s.DoctorId).HasMaxLength(36).IsRequired();
+            e.Property(s => s.Id).HasDefaultValueSql("NEWID()");
+            e.Property(s => s.DoctorId).IsRequired();
             e.Property(s => s.IsActive).HasDefaultValue(true);
             e.Property(s => s.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(s => s.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
@@ -78,7 +78,7 @@ public class AppointmentDbContext : DbContext
         {
             e.ToTable("Appointment_Category", schema: "appointment");
             e.HasKey(c => c.Id);
-            e.Property(c => c.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
+            e.Property(c => c.Id).HasDefaultValueSql("NEWID()");
             e.Property(c => c.Name).HasMaxLength(100).IsRequired();
             e.Property(c => c.Description).HasMaxLength(500);
             e.Property(c => c.IsActive).HasDefaultValue(true);
@@ -90,9 +90,9 @@ public class AppointmentDbContext : DbContext
         modelBuilder.Entity<User>(e =>
         {
             e.HasKey(u => u.Id);
-            e.Property(u => u.Id).HasMaxLength(36);
-            e.Property(u => u.Role_Id).HasMaxLength(36);
-            e.Property(u => u.Schedule_Id).HasMaxLength(36);
+            e.Property(u => u.Id);
+            e.Property(u => u.Role_Id);
+            e.Property(u => u.Schedule_Id);
             // Do not let EF migrations manage this table (exists in main DB)
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
@@ -100,7 +100,7 @@ public class AppointmentDbContext : DbContext
         modelBuilder.Entity<UserProfile>(e =>
         {
             e.HasKey(up => up.User_Id);
-            e.Property(up => up.User_Id).HasMaxLength(36);
+            e.Property(up => up.User_Id);
             e.Property(up => up.FirstName).HasMaxLength(100);
             e.Property(up => up.LastName).HasMaxLength(100);
             e.Property(up => up.Email).HasMaxLength(255);
@@ -110,21 +110,21 @@ public class AppointmentDbContext : DbContext
         modelBuilder.Entity<Doctor>(e =>
         {
             e.HasKey(d => d.Id);
-            e.Property(d => d.Id).HasMaxLength(36);
+            e.Property(d => d.Id);
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Patient>(e =>
         {
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasMaxLength(36);
+            e.Property(p => p.Id);
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Specialization>(e =>
         {
             e.HasKey(s => s.Id);
-            e.Property(s => s.Id).HasMaxLength(36);
+            e.Property(s => s.Id);
             e.Property(s => s.Name).HasMaxLength(200);
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
@@ -132,42 +132,42 @@ public class AppointmentDbContext : DbContext
         modelBuilder.Entity<DoctorSpecialization>(e =>
         {
             e.HasKey(ds => ds.Id);
-            e.Property(ds => ds.Id).HasMaxLength(36);
+            e.Property(ds => ds.Id);
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<ScheduleAppointment>(e =>
         {
             e.HasKey(sa => sa.Id);
-            e.Property(sa => sa.Id).HasMaxLength(36);
+            e.Property(sa => sa.Id);
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<ScheduleAppointmentStatus>(e =>
         {
             e.HasKey(sas => sas.Id);
-            e.Property(sas => sas.Id).HasMaxLength(36);
+            e.Property(sas => sas.Id);
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<AppointmentPayment>(e =>
         {
             e.HasKey(ap => ap.Id);
-            e.Property(ap => ap.Id).HasMaxLength(36);
+            e.Property(ap => ap.Id);
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Rate>(e =>
         {
             e.HasKey(r => r.Id);
-            e.Property(r => r.Id).HasMaxLength(36);
+            e.Property(r => r.Id);
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Notification>(e =>
         {
             e.HasKey(n => n.Id);
-            e.Property(n => n.Id).HasMaxLength(36);
+            e.Property(n => n.Id);
             e.ToTable(tb => tb.ExcludeFromMigrations());
         });
     }

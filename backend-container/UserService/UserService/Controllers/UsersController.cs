@@ -37,7 +37,7 @@ public class UsersController : ControllerBase
     // GET: api/users/{id}
     [HttpGet("{id}")]
     [Authorize]
-    public async Task<ActionResult<UserResponseDto>> GetById(string id)
+    public async Task<ActionResult<UserResponseDto>> GetById(Guid id)
     {
         var user = await _userService.GetUserByIdAsync(id);
         if (user == null) return NotFound();
@@ -47,7 +47,7 @@ public class UsersController : ControllerBase
     // PUT: api/users/{id}
     [HttpPut("{id}")]
     [Authorize]
-    public async Task<ActionResult<UserResponseDto>> Update(string id, [FromBody] UpdateUserDto dto)
+    public async Task<ActionResult<UserResponseDto>> Update(Guid id, [FromBody] UpdateUserDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
         try

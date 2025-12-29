@@ -97,6 +97,7 @@ public class AuthController : ControllerBase
             var evt = new UserRegistered(user.Id, user.Username, user.Email, DateTime.UtcNow);
             _db.OutboxEvents.Add(new OutboxEvent
             {
+                Id = Guid.NewGuid(),
                 Type = "user.created",
                 PayloadJson = System.Text.Json.JsonSerializer.Serialize(evt)
             });
@@ -107,6 +108,7 @@ public class AuthController : ControllerBase
             var (refreshToken, refreshExpires, refreshHash) = _jwtService.GenerateRefreshToken();
             _db.RefreshTokens.Add(new RefreshToken
             {
+                Id = Guid.NewGuid(),
                 UserId = user.Id,
                 TokenHash = refreshHash,
                 ExpiresAt = refreshExpires,

@@ -18,10 +18,10 @@ public class MedicalRecordsDbContext : DbContext
         {
             e.ToTable("Medical_Record", schema: "medical");
             e.HasKey(m => m.Id);
-            e.Property(m => m.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(m => m.PatientId).HasMaxLength(36).IsRequired();
-            e.Property(m => m.DoctorId).HasMaxLength(36).IsRequired();
-            e.Property(m => m.AppointmentId).HasMaxLength(36);
+            e.Property(m => m.Id).HasDefaultValueSql("NEWID()");
+            e.Property(m => m.PatientId).IsRequired();
+            e.Property(m => m.DoctorId).IsRequired();
+            e.Property(m => m.AppointmentId);
             e.Property(m => m.ChiefComplaint).HasMaxLength(200);
             e.Property(m => m.HistoryOfPresentIllness).HasMaxLength(1000);
             e.Property(m => m.PhysicalExamination).HasMaxLength(1000);
@@ -39,10 +39,10 @@ public class MedicalRecordsDbContext : DbContext
         {
             e.ToTable("Prescription", schema: "medical");
             e.HasKey(p => p.Id);
-            e.Property(p => p.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(p => p.MedicalRecordId).HasMaxLength(36).IsRequired();
-            e.Property(p => p.PatientId).HasMaxLength(36).IsRequired();
-            e.Property(p => p.DoctorId).HasMaxLength(36).IsRequired();
+            e.Property(p => p.Id).HasDefaultValueSql("NEWID()");
+            e.Property(p => p.MedicalRecordId).IsRequired();
+            e.Property(p => p.PatientId).IsRequired();
+            e.Property(p => p.DoctorId).IsRequired();
             e.Property(p => p.MedicationName).HasMaxLength(200).IsRequired();
             e.Property(p => p.AtcCode).HasMaxLength(10);
             e.Property(p => p.Dosage).HasMaxLength(100).IsRequired();
@@ -59,8 +59,8 @@ public class MedicalRecordsDbContext : DbContext
         {
             e.ToTable("Diagnosis", schema: "medical");
             e.HasKey(d => d.Id);
-            e.Property(d => d.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(d => d.MedicalRecordId).HasMaxLength(36).IsRequired();
+            e.Property(d => d.Id).HasDefaultValueSql("NEWID()");
+            e.Property(d => d.MedicalRecordId).IsRequired();
             e.Property(d => d.Icd10Code).HasMaxLength(10).IsRequired();
             e.Property(d => d.Description).HasMaxLength(500).IsRequired();
             e.Property(d => d.Type).HasMaxLength(50).HasDefaultValue("Primary");
@@ -74,9 +74,9 @@ public class MedicalRecordsDbContext : DbContext
         {
             e.ToTable("Vital_Signs", schema: "medical");
             e.HasKey(v => v.Id);
-            e.Property(v => v.Id).HasMaxLength(36).HasDefaultValueSql("CONVERT(VARCHAR(36), NEWID())");
-            e.Property(v => v.MedicalRecordId).HasMaxLength(36).IsRequired();
-            e.Property(v => v.PatientId).HasMaxLength(36).IsRequired();
+            e.Property(v => v.Id).HasDefaultValueSql("NEWID()");
+            e.Property(v => v.MedicalRecordId).IsRequired();
+            e.Property(v => v.PatientId).IsRequired();
             e.Property(v => v.Temperature).HasColumnType("decimal(4,1)");
             e.Property(v => v.OxygenSaturation).HasColumnType("decimal(5,2)");
             e.Property(v => v.Height).HasColumnType("decimal(5,2)");

@@ -16,8 +16,7 @@ public enum DocumentKind
 public class Document
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 
@@ -26,14 +25,9 @@ public class Document
 
     public int Type { get; set; } // mirrors DocumentKind and Document_Type
 
-    [MaxLength(36)]
-    public string DocumentTypeId { get; set; } = default!;
-
-    [MaxLength(36)]
-    public string PatientId { get; set; } = default!;
-
-    [MaxLength(36)]
-    public string DoctorId { get; set; } = default!;
+    public Guid DocumentTypeId { get; set; }
+    public Guid PatientId { get; set; }
+    public Guid DoctorId { get; set; }
 
     // Denormalized display names to avoid cross-service lookups at read/PDF time
     [MaxLength(200)]
@@ -62,8 +56,7 @@ public class Document
 public class DocumentType
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     [Required]
     [MaxLength(100)]
@@ -84,8 +77,7 @@ public class DocumentType
 public class VisitDocument
 {
     [Key]
-    [MaxLength(36)]
-    public string DocumentId { get; set; } = default!;
+    public Guid DocumentId { get; set; } = default!;
 
     public string? Symptoms { get; set; }
     public string? Findings { get; set; }
@@ -100,8 +92,7 @@ public class VisitDocument
 public class Prescription
 {
     [Key]
-    [MaxLength(36)]
-    public string DocumentId { get; set; } = default!;
+    public Guid DocumentId { get; set; } = default!;
 
     // Canonical medication name from catalog.atc (filled from AtcCode)
     [MaxLength(500)]
@@ -130,8 +121,7 @@ public class Prescription
 public class Referral
 {
     [Key]
-    [MaxLength(36)]
-    public string DocumentId { get; set; } = default!;
+    public Guid DocumentId { get; set; } = default!;
 
     [MaxLength(200)]
     public string? Speciality { get; set; }
@@ -149,8 +139,7 @@ public class Referral
 public class SickLeave
 {
     [Key]
-    [MaxLength(36)]
-    public string DocumentId { get; set; } = default!;
+    public Guid DocumentId { get; set; } = default!;
 
     public DateTime? StartDate { get; set; }
     public DateTime? EndDate { get; set; }
@@ -164,8 +153,7 @@ public class SickLeave
 public class LabResults
 {
     [Key]
-    [MaxLength(36)]
-    public string DocumentId { get; set; } = default!;
+    public Guid DocumentId { get; set; } = default!;
 
     [MaxLength(200)]
     public string? TestType { get; set; }
@@ -187,14 +175,11 @@ public class LabResults
 public class LabTestResult
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; } = Guid.NewGuid();
 
-    [MaxLength(36)]
-    public string LabResultsDocumentId { get; set; } = default!; // FK -> Lab_Results.Document_Id
+    public Guid LabResultsDocumentId { get; set; }
 
-    [MaxLength(36)]
-    public string? LabTestTypeId { get; set; } // FK -> documents.Lab_Test_Type.Id (projection of LOINC)
+    public Guid? LabTestTypeId { get; set; }
 
     [MaxLength(20)]
     public string? LoincCode { get; set; } // direct code on the line for ingestion
@@ -221,14 +206,10 @@ public class LabTestResult
 public class DocumentAssignment
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; } = Guid.NewGuid();
 
-    [MaxLength(36)]
-    public string DocumentId { get; set; } = default!;
-
-    [MaxLength(36)]
-    public string AppointmentId { get; set; } = default!; // external appointment aggregate id
+    public Guid DocumentId { get; set; }
+    public Guid AppointmentId { get; set; }
 
     public DateTime AssignedAt { get; set; } = DateTime.UtcNow;
 }
@@ -237,8 +218,7 @@ public class DocumentAssignment
 public class LabTestType
 {
     [Key]
-    [MaxLength(36)]
-    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public Guid Id { get; set; } = Guid.NewGuid();
 
     // Link to LOINC
     [Required]

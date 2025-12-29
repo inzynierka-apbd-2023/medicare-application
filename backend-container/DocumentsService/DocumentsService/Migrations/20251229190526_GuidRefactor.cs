@@ -6,7 +6,7 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace DocumentsService.Migrations
 {
     /// <inheritdoc />
-    public partial class InitialCreate : Migration
+    public partial class GuidRefactor : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -19,7 +19,7 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     Code = table.Column<string>(type: "nvarchar(100)", maxLength: 100, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: false),
                     Description = table.Column<string>(type: "nvarchar(1000)", maxLength: 1000, nullable: true),
@@ -35,7 +35,7 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     LoincCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: false),
                     Name = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
                     LoincComponent = table.Column<string>(type: "nvarchar(255)", maxLength: 255, nullable: true),
@@ -57,13 +57,13 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
                     CreatedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()"),
                     Notes = table.Column<string>(type: "nvarchar(2000)", maxLength: 2000, nullable: true),
                     Type = table.Column<int>(type: "int", nullable: false),
-                    DocumentTypeId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    PatientId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    DoctorId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    DocumentTypeId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    PatientId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    DoctorId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     PatientName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     DoctorName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     FilePath = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: true),
@@ -86,9 +86,9 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    DocumentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    AppointmentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    DocumentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    AppointmentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     AssignedAt = table.Column<DateTime>(type: "datetime2", nullable: false, defaultValueSql: "SYSUTCDATETIME()")
                 },
                 constraints: table =>
@@ -108,7 +108,7 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    DocumentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    DocumentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     TestType = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     TestDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     Laboratory = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
@@ -135,7 +135,7 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    DocumentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    DocumentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Medication = table.Column<string>(type: "nvarchar(500)", maxLength: 500, nullable: false),
                     Dosage = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     Frequency = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
@@ -164,7 +164,7 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    DocumentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    DocumentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Speciality = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     ReferredTo = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     ValidFrom = table.Column<DateTime>(type: "datetime2", nullable: true),
@@ -189,7 +189,7 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    DocumentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    DocumentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     StartDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     EndDate = table.Column<DateTime>(type: "datetime2", nullable: true),
                     DaysOff = table.Column<int>(type: "int", nullable: true),
@@ -213,7 +213,7 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    DocumentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
+                    DocumentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
                     Symptoms = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Findings = table.Column<string>(type: "nvarchar(max)", nullable: true),
                     Diagnosis = table.Column<string>(type: "nvarchar(max)", nullable: true),
@@ -239,9 +239,9 @@ namespace DocumentsService.Migrations
                 schema: "documents",
                 columns: table => new
                 {
-                    Id = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false, defaultValueSql: "CONVERT(VARCHAR(36), NEWID())"),
-                    LabResultsDocumentId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: false),
-                    LabTestTypeId = table.Column<string>(type: "nvarchar(36)", maxLength: 36, nullable: true),
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false, defaultValueSql: "NEWID()"),
+                    LabResultsDocumentId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    LabTestTypeId = table.Column<Guid>(type: "uniqueidentifier", nullable: true),
                     LoincCode = table.Column<string>(type: "nvarchar(20)", maxLength: 20, nullable: true),
                     ParameterName = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),
                     Value = table.Column<string>(type: "nvarchar(200)", maxLength: 200, nullable: true),

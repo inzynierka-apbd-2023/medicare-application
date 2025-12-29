@@ -18,10 +18,9 @@ public class CatalogController : ControllerBase
         var query = _db.Services.AsQueryable();
         if (specializationId.HasValue && specializationId.Value != Guid.Empty)
         {
-            var sid = specializationId.Value.ToString();
             query = from s in _db.Services
                     join ss in _db.SpecializationServices on s.Id equals ss.ServiceId
-                    where ss.SpecializationId == sid
+                    where ss.SpecializationId == specializationId.Value
                     select s;
         }
         var items = await query.Select(s => new { s.Id, s.Name, s.Description }).ToListAsync();
@@ -34,10 +33,9 @@ public class CatalogController : ControllerBase
         var query = _db.Specializations.AsQueryable();
         if (serviceId.HasValue && serviceId.Value != Guid.Empty)
         {
-            var sid = serviceId.Value.ToString();
             query = from sp in _db.Specializations
                     join ss in _db.SpecializationServices on sp.Id equals ss.SpecializationId
-                    where ss.ServiceId == sid
+                    where ss.ServiceId == serviceId.Value
                     select sp;
         }
         var items = await query.Select(s => new { s.Id, s.Name }).ToListAsync();

@@ -21,7 +21,7 @@ public class BillingDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema("billing");
 
-        const string SqlGuid = "CONVERT(VARCHAR(36), NEWID())";
+        const string SqlGuid = "NEWID()";
         const string SysUtc = "SYSUTCDATETIME()";
 
         modelBuilder.Entity<PaymentMethod>(e =>

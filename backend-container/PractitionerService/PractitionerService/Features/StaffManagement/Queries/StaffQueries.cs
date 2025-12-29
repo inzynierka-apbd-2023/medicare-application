@@ -10,7 +10,7 @@ public class GetAllStaffQuery : IRequest<ApiResponse<List<StaffMemberDto>>>
 
 public class GetStaffByIdQuery : IRequest<ApiResponse<StaffMemberDto>>
 {
-    public string Id { get; set; } = default!;
+    public Guid Id { get; set; }
 }
 
 public class GetStaffByRoleQuery : IRequest<ApiResponse<List<StaffMemberDto>>>

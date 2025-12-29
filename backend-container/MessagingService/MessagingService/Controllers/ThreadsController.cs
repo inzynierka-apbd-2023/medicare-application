@@ -64,7 +64,7 @@ public class ThreadsController : ControllerBase
     }
 
     [HttpGet("user/{userId}")]
-    public async Task<IActionResult> GetUserThreads(string userId)
+    public async Task<IActionResult> GetUserThreads(Guid userId)
     {
         var threads = await _db.ThreadParticipants
             .Where(p => p.UserId == userId && p.IsActive)
@@ -77,7 +77,7 @@ public class ThreadsController : ControllerBase
 
     [HttpPost("{id}/messages")]
     [Authorize]
-    public async Task<IActionResult> SendThreadMessage(string id, [FromBody] SendThreadMessageRequest req)
+    public async Task<IActionResult> SendThreadMessage(Guid id, [FromBody] SendThreadMessageRequest req)
     {
         var thread = await _db.MessageThreads.FindAsync(id);
         if (thread == null) return NotFound();
@@ -106,7 +106,7 @@ public class ThreadsController : ControllerBase
     }
 
     [HttpGet("{id}/messages")]
-    public async Task<IActionResult> GetThreadMessages(string id)
+    public async Task<IActionResult> GetThreadMessages(Guid id)
     {
         var messages = await _db.ThreadMessages
             .Where(m => m.ThreadId == id)
@@ -116,7 +116,7 @@ public class ThreadsController : ControllerBase
     }
 
     [HttpGet("{id}/participants")]
-    public async Task<IActionResult> GetThreadParticipants(string id)
+    public async Task<IActionResult> GetThreadParticipants(Guid id)
     {
         var participants = await _db.ThreadParticipants
             .Where(p => p.ThreadId == id && p.IsActive)
@@ -127,11 +127,11 @@ public class ThreadsController : ControllerBase
 
 public record CreateThreadRequest(
     string Subject,
-    string InitiatorId,
-    List<string> ParticipantIds
+    Guid InitiatorId,
+    List<Guid> ParticipantIds
 );
 
 public record SendThreadMessageRequest(
-    string SenderId,
+    Guid SenderId,
     string Content
 );

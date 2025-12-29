@@ -22,7 +22,7 @@ public class GetTimeSlotAnalysisHandler : IRequestHandler<GetTimeSlotAnalysisQue
 
         var appointments = await _context.ScheduleAppointments
             .Where(sa => sa.Day >= startDate && sa.Day <= endDate)
-            .Where(sa => string.IsNullOrEmpty(request.DoctorId) || sa.Doctor_User_Id == request.DoctorId)
+            .Where(sa => !request.DoctorId.HasValue || sa.Doctor_User_Id == request.DoctorId)
             .ToListAsync(cancellationToken);
 
         // Create time slot data for hourly analysis

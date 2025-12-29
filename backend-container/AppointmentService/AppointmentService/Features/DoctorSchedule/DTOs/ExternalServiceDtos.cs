@@ -2,8 +2,8 @@ namespace AppointmentService.Features.DoctorSchedule.DTOs;
 
 public class PatientDto
 {
-    public string Id { get; set; } = default!;
-    public string UserId { get; set; } = default!;
+    public Guid Id { get; set; }
+    public Guid UserId { get; set; }
     public string FirstName { get; set; } = default!;
     public string LastName { get; set; } = default!;
     public string Email { get; set; } = default!;

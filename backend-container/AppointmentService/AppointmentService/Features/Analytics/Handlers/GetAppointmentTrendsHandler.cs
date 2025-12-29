@@ -28,35 +28,35 @@ public class GetAppointmentTrendsHandler : IRequestHandler<GetAppointmentTrendsQ
             
             var appointments = await _context.ScheduleAppointments
                 .Where(sa => sa.Day >= date && sa.Day < nextDate)
-                .Where(sa => string.IsNullOrEmpty(request.DoctorId) || sa.Doctor_User_Id == request.DoctorId)
+                .Where(sa => !request.DoctorId.HasValue || sa.Doctor_User_Id == request.DoctorId)
                 .CountAsync(cancellationToken);
 
             var completed = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
                 .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "Completed")
-                .Where(x => string.IsNullOrEmpty(request.DoctorId) || x.sa.Doctor_User_Id == request.DoctorId)
+                .Where(x => !request.DoctorId.HasValue || x.sa.Doctor_User_Id == request.DoctorId)
                 .CountAsync(cancellationToken);
 
             var cancelled = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
                 .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "Cancelled")
-                .Where(x => string.IsNullOrEmpty(request.DoctorId) || x.sa.Doctor_User_Id == request.DoctorId)
+                .Where(x => !request.DoctorId.HasValue || x.sa.Doctor_User_Id == request.DoctorId)
                 .CountAsync(cancellationToken);
 
             var noShow = await _context.ScheduleAppointments
                 .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
                     (sa, status) => new { sa, status })
                 .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "No Show")
-                .Where(x => string.IsNullOrEmpty(request.DoctorId) || x.sa.Doctor_User_Id == request.DoctorId)
+                .Where(x => !request.DoctorId.HasValue || x.sa.Doctor_User_Id == request.DoctorId)
                 .CountAsync(cancellationToken);
 
             var revenue = await _context.AppointmentPayments
                 .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
                     (ap, sa) => new { ap, sa })
                 .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.ap.Status == "Paid")
-                .Where(x => string.IsNullOrEmpty(request.DoctorId) || x.sa.Doctor_User_Id == request.DoctorId)
+                .Where(x => !request.DoctorId.HasValue || x.sa.Doctor_User_Id == request.DoctorId)
                 .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
 
             trends.Add(new TrendDataDto

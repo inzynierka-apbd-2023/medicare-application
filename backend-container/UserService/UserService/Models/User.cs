@@ -8,13 +8,13 @@ public class User
 {
     [Key]
     [Column("Id")]
-    public string Id { get; set; } = string.Empty;
+    public Guid Id { get; set; }
 
     [Column("Role_Id")]
-    public string? RoleId { get; set; }
+    public Guid? RoleId { get; set; }
 
     [Column("Schedule_Id")]
-    public string? ScheduleId { get; set; }
+    public Guid? ScheduleId { get; set; }
 
     [Column("Created_At")]
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
