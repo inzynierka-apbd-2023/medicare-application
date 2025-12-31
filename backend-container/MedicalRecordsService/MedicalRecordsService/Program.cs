@@ -179,6 +179,5 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
 
 static async Task SeedCatalogAsync(MedicalRecordsDbContext db)
 {
-    // Minimal seed: none for now; left for future idempotent inserts if needed
-    await Task.CompletedTask;
+    await MedicalRecordsService.Data.MockDataSeeder.SeedAsync(db);
 }

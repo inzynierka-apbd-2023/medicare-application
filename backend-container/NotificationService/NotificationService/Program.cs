@@ -164,6 +164,7 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
         }
 
         Console.WriteLine("[Startup] Notifications migrations complete.");
+        await NotificationService.Data.MockDataSeeder.SeedAsync(db);
     }
     catch (Exception ex)
     {

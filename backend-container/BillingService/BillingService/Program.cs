@@ -140,6 +140,7 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
         Console.WriteLine("[Startup] Applying EF Core migrations (Billing)...");
         await db.Database.MigrateAsync();
         await CreateViewsAsync(db);
+        await BillingService.Data.MockDataSeeder.SeedAsync(db);
         Console.WriteLine("[Startup] Billing migrations complete.");
     }
     catch (Exception ex)

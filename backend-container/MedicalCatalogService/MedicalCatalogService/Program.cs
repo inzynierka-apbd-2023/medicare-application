@@ -120,6 +120,7 @@ try
 
                 logger.LogInformation("Applying migrations...");
                 await context.Database.MigrateAsync();
+                await MedicalCatalogService.Data.MockDataSeeder.SeedAsync(context);
                 logger.LogInformation("Migrations applied successfully.");
                 break; 
             }

@@ -238,8 +238,7 @@ END
 
 static async Task SeedCatalogAsync(AppointmentDbContext db)
 {
-    // Minimal seed: none for now; left for future idempotent inserts if needed
-    await Task.CompletedTask;
+    await AppointmentService.Data.MockDataSeeder.SeedAsync(db);
 }
 
 // Make Program class public for testing

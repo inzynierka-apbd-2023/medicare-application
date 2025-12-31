@@ -165,6 +165,5 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
 
 static async Task SeedCatalogAsync(LabDbContext db)
 {
-    // Minimal seed: none for now; left for future idempotent inserts if needed
-    await Task.CompletedTask;
+    await LabService.Data.MockDataSeeder.SeedAsync(db);
 }

@@ -212,6 +212,7 @@ END";
             }
             await SeedRolesAsync(db);
             await SeedDevelopmentUsersAsync(db);
+            await UserService.Data.MockDataSeeder.SeedAsync(db);
             Console.WriteLine("[Startup] Migrations & seeding complete.");
             break;
         }
@@ -251,14 +252,15 @@ static async Task SeedRolesAsync(UserDbContext db)
 
 static async Task SeedDevelopmentUsersAsync(UserDbContext db)
 {
-    // Development test users with known passwords
+    // Development test users with known passwords and DETERMINISTIC IDs
+    // These IDs must match MockIds in other services for cross-service references
     var testUsers = new[]
     {
-        new { Username = "patient_a_20250818", Password = "P@ssw0rd!", Role = "Patient", FirstName = "Test", LastName = "Patient", Email = "patient@test.local" },
-        new { Username = "doctor_a_20250818", Password = "P@ssw0rd!", Role = "Doctor", FirstName = "Test", LastName = "Doctor", Email = "doctor@test.local" },
-        new { Username = "reception_a_20250818", Password = "P@ssw0rd!", Role = "Receptionist", FirstName = "Test", LastName = "Receptionist", Email = "reception@test.local" },
-        new { Username = "admin_a_20250818", Password = "P@ssw0rd!", Role = "Admin", FirstName = "Test", LastName = "Admin", Email = "admin@test.local" },
-        new { Username = "owner@test.local", Password = "P@ssw0rd!", Role = "Owner", FirstName = "Test", LastName = "Owner", Email = "owner@test.local" },
+        new { Id = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000001"), Username = "patient_a_20250818", Password = "P@ssw0rd!", Role = "Patient", FirstName = "Test", LastName = "Patient", Email = "patient@test.local" },
+        new { Id = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001"), Username = "doctor_a_20250818", Password = "P@ssw0rd!", Role = "Doctor", FirstName = "Test", LastName = "Doctor", Email = "doctor@test.local" },
+        new { Id = Guid.Parse("cccccccc-0003-0003-0003-000000000001"), Username = "reception_a_20250818", Password = "P@ssw0rd!", Role = "Receptionist", FirstName = "Test", LastName = "Receptionist", Email = "reception@test.local" },
+        new { Id = Guid.Parse("dddddddd-0004-0004-0004-000000000001"), Username = "admin_a_20250818", Password = "P@ssw0rd!", Role = "Admin", FirstName = "Test", LastName = "Admin", Email = "admin@test.local" },
+        new { Id = Guid.Parse("eeeeeeee-0005-0005-0005-000000000001"), Username = "owner@test.local", Password = "P@ssw0rd!", Role = "Owner", FirstName = "Test", LastName = "Owner", Email = "owner@test.local" },
     };
 
     var existingUsernames = await db.Users.Select(u => u.Username).ToListAsync();
@@ -270,10 +272,9 @@ static async Task SeedDevelopmentUsersAsync(UserDbContext db)
         if (existingUsernames.Contains(tu.Username)) continue;
         if (!roles.TryGetValue(tu.Role, out var roleId)) continue;
 
-        var userId = Guid.NewGuid();
         db.Users.Add(new User
         {
-            Id = userId,
+            Id = tu.Id,
             Username = tu.Username,
             PasswordHash = BCrypt.Net.BCrypt.HashPassword(tu.Password),
             RoleId = roleId,
@@ -283,7 +284,7 @@ static async Task SeedDevelopmentUsersAsync(UserDbContext db)
         });
         db.UserProfiles.Add(new UserProfile
         {
-            UserId = userId,
+            UserId = tu.Id,
             FirstName = tu.FirstName,
             LastName = tu.LastName,
             Email = tu.Email,

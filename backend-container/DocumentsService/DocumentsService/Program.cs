@@ -226,77 +226,7 @@ static async Task SeedTestDataAsync(IServiceProvider services)
     var db = scope.ServiceProvider.GetRequiredService<DocumentsDbContext>();
     try
     {
-        // Seed Document Types already done by migration; insert a couple of sample documents if none exist
-        if (!await db.Documents.AnyAsync())
-        {
-            var visitType = await db.DocumentTypes.FirstAsync(t => t.Code == "VISIT_NOTE");
-            var rxType = await db.DocumentTypes.FirstAsync(t => t.Code == "PRESCRIPTION");
-            var labType = await db.DocumentTypes.FirstAsync(t => t.Code == "LAB_RESULTS");
-
-            var patientId = Guid.NewGuid();
-            var doctorId = Guid.NewGuid();
-
-            var visit = new DocumentsService.Models.Document
-            {
-                PatientId = patientId,
-                DoctorId = doctorId,
-                DocumentTypeId = visitType.Id,
-                Type = (int)DocumentsService.Models.DocumentKind.VisitNote,
-                Notes = "Initial consultation",
-            };
-            db.Documents.Add(visit);
-            await db.SaveChangesAsync();
-            db.VisitDocuments.Add(new DocumentsService.Models.VisitDocument
-            {
-                DocumentId = visit.Id,
-                Symptoms = "Headache, fatigue",
-                Findings = "BP 130/85",
-                Diagnosis = "Tension headache",
-                Recommendations = "Hydration, rest",
-                TreatmentPlan = "OTC analgesic",
-            });
-
-            var rx = new DocumentsService.Models.Document
-            {
-                PatientId = patientId,
-                DoctorId = doctorId,
-                DocumentTypeId = rxType.Id,
-                Type = (int)DocumentsService.Models.DocumentKind.Prescription,
-                Notes = "Analgesic prescription",
-            };
-            db.Documents.Add(rx);
-            await db.SaveChangesAsync();
-            db.Prescriptions.Add(new DocumentsService.Models.Prescription
-            {
-                DocumentId = rx.Id,
-                Medication = "Ibuprofen",
-                Dosage = "200mg",
-                Frequency = "2x daily",
-                DurationDays = 5,
-                Instructions = "After meals"
-            });
-
-            var lab = new DocumentsService.Models.Document
-            {
-                PatientId = patientId,
-                DoctorId = doctorId,
-                DocumentTypeId = labType.Id,
-                Type = (int)DocumentsService.Models.DocumentKind.LabResults,
-                Notes = "Basic panel",
-            };
-            db.Documents.Add(lab);
-            await db.SaveChangesAsync();
-            db.LabResults.Add(new DocumentsService.Models.LabResults
-            {
-                DocumentId = lab.Id,
-                TestType = "CBC",
-                TestDate = DateTime.UtcNow.Date.AddDays(-1),
-                Laboratory = "Local Lab",
-                OverallStatus = "Final",
-                Interpretation = "All within normal ranges"
-            });
-            await db.SaveChangesAsync();
-        }
+        await DocumentsService.Data.MockDataSeeder.SeedAsync(db);
     }
     catch (Exception ex)
     {

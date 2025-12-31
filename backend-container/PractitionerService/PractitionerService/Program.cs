@@ -176,7 +176,7 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
     var pendingAfter = all.Except(applied);
     Console.WriteLine($"[Startup] Practitioner pending AFTER apply: {string.Join(",", pendingAfter)}");
         await SeedCatalogAsync(db);
-    await SeedTestDataAsync(db);
+    await PractitionerService.Data.MockDataSeeder.SeedAsync(db);
     await CreateViewsAsync(db);
         Console.WriteLine("[Startup] Practitioner migrations & seeding complete.");
     }
