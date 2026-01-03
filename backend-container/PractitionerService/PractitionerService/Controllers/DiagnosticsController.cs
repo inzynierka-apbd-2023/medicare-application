@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using PractitionerService.Data;
+using PractitionerService.Models;
 using System.Data;
 
 namespace PractitionerService.Controllers;
@@ -12,6 +13,24 @@ public class DiagnosticsController : ControllerBase
 {
     private readonly PractitionerDbContext _db;
     public DiagnosticsController(PractitionerDbContext db) => _db = db;
+
+    [HttpGet("doctor-directory")]
+    [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]
+    public async Task<IActionResult> DoctorDirectory()
+    {
+        var doctors = await _db.Set<DoctorDirectory>().Take(10).ToListAsync();
+        return Ok(new { 
+            count = doctors.Count,
+            doctors = doctors.Select(d => new {
+                d.DoctorId,
+                d.UserId,
+                d.FirstName,
+                d.LastName,
+                d.Email,
+                d.IsActive
+            })
+        });
+    }
 
     [HttpGet("migrations")] 
     [ProducesResponseType(typeof(object), StatusCodes.Status200OK)]

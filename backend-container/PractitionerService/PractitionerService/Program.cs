@@ -189,56 +189,87 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
 
 static async Task CreateViewsAsync(PractitionerDbContext db)
 {
+    // Wait for User_Profile table to exist (UserService creates it)
+    const int maxRetries = 10;
+    const int retryDelayMs = 1000;
+    
+    for (int attempt = 1; attempt <= maxRetries; attempt++)
+    {
+        try
+        {
+            // Check if User_Profile table exists
+            var checkResult = await db.Database.SqlQueryRaw<int>(
+                "SELECT CASE WHEN OBJECT_ID('[user].[User_Profile]', 'U') IS NOT NULL THEN 1 ELSE 0 END AS Value"
+            ).FirstOrDefaultAsync();
+
+            if (checkResult == 1)
+            {
+                // User_Profile exists, create the view with join
+                var viewSql = @"
+CREATE OR ALTER VIEW practitioner.DoctorDirectory AS
+SELECT d.Id AS DoctorId,
+       d.UserId,
+       up.FirstName,
+       up.LastName,
+       up.Email,
+       up.Phone,
+       STUFF((
+           SELECT ',' + CAST(ds.SpecializationId AS NVARCHAR(36))
+           FROM practitioner.Doctor_Specialization ds
+           WHERE ds.DoctorId = d.Id
+           FOR XML PATH(''), TYPE
+       ).value('.','NVARCHAR(MAX)'), 1, 1, '') AS Specializations,
+       NULL AS Services,
+       d.IsActive
+FROM practitioner.Doctor d
+LEFT JOIN [user].[User_Profile] up ON up.User_Id = d.UserId;
+";
+                await db.Database.ExecuteSqlRawAsync(viewSql);
+                Console.WriteLine("[Startup] DoctorDirectory view created with User_Profile join.");
+                return;
+            }
+            
+            Console.WriteLine($"[Startup] User_Profile table not ready, waiting... (attempt {attempt}/{maxRetries})");
+            await Task.Delay(retryDelayMs);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Startup] View creation attempt {attempt} failed: {ex.Message}");
+            if (attempt < maxRetries)
+            {
+                await Task.Delay(retryDelayMs);
+            }
+        }
+    }
+
+    // Fallback: create view without User_Profile join (frontend will fetch names from UserService)
+    Console.WriteLine("[Startup] Creating fallback DoctorDirectory view without User_Profile join.");
     try
     {
-        // Create DoctorDirectory view with cross-database compatibility
-        var viewSql = @"
-IF OBJECT_ID('[user].[User_Profile]', 'U') IS NOT NULL
-BEGIN
-    EXEC('CREATE OR ALTER VIEW practitioner.DoctorDirectory AS
-    SELECT d.Id AS DoctorId,
-           d.UserId,
-           up.FirstName,
-           up.LastName,
-           up.Email,
-           up.Phone,
-           STUFF((
-               SELECT '','' + CAST(ds.SpecializationId AS NVARCHAR(36))
-               FROM practitioner.Doctor_Specialization ds
-               WHERE ds.DoctorId = d.Id
-               FOR XML PATH(''''), TYPE
-           ).value(''.'',''NVARCHAR(MAX)''), 1, 1, '''') AS Specializations,
-           NULL AS Services,
-           d.IsActive
-    FROM practitioner.Doctor d
-    LEFT JOIN [user].[User_Profile] up ON up.User_Id = d.UserId;');
-END
-ELSE
-BEGIN
-    EXEC('CREATE OR ALTER VIEW practitioner.DoctorDirectory AS
-    SELECT d.Id AS DoctorId,
-           d.UserId,
-           NULL AS FirstName,
-           NULL AS LastName,
-           NULL AS Email,
-           NULL AS Phone,
-           STUFF((
-               SELECT '','' + CAST(ds.SpecializationId AS NVARCHAR(36))
-               FROM practitioner.Doctor_Specialization ds
-               WHERE ds.DoctorId = d.Id
-               FOR XML PATH(''''), TYPE
-           ).value(''.'',''NVARCHAR(MAX)''), 1, 1, '''') AS Specializations,
-           NULL AS Services,
-           d.IsActive
-    FROM practitioner.Doctor d;');
-END
+        var fallbackSql = @"
+CREATE OR ALTER VIEW practitioner.DoctorDirectory AS
+SELECT d.Id AS DoctorId,
+       d.UserId,
+       NULL AS FirstName,
+       NULL AS LastName,
+       NULL AS Email,
+       NULL AS Phone,
+       STUFF((
+           SELECT ',' + CAST(ds.SpecializationId AS NVARCHAR(36))
+           FROM practitioner.Doctor_Specialization ds
+           WHERE ds.DoctorId = d.Id
+           FOR XML PATH(''), TYPE
+       ).value('.','NVARCHAR(MAX)'), 1, 1, '') AS Specializations,
+       NULL AS Services,
+       d.IsActive
+FROM practitioner.Doctor d;
 ";
-        await db.Database.ExecuteSqlRawAsync(viewSql);
-        Console.WriteLine("[Startup] DoctorDirectory view created.");
+        await db.Database.ExecuteSqlRawAsync(fallbackSql);
+        Console.WriteLine("[Startup] DoctorDirectory fallback view created. Doctor names will be fetched via UserService.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Startup] View creation warning: {ex.Message}");
+        Console.WriteLine($"[Startup] Fallback view creation also failed: {ex.Message}");
     }
 }
 

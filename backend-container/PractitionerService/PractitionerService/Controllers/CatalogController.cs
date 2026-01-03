@@ -38,7 +38,8 @@ public class CatalogController : ControllerBase
                     where ss.ServiceId == serviceId.Value
                     select sp;
         }
-        var items = await query.Select(s => new { s.Id, s.Name }).ToListAsync();
+        // Use Distinct to avoid duplicates when specializations have multiple service mappings
+        var items = await query.Select(s => new { s.Id, s.Name }).Distinct().ToListAsync();
         return Ok(items);
     }
 }
