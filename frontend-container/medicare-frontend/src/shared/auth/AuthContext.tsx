@@ -41,6 +41,7 @@ interface AuthState {
     phoneNumber?: string;
     dateOfBirth?: string;
     role?: string;
+    planId?: string;
   }) => Promise<AuthResponse>;
   updateProfile: (
     data: {
@@ -135,6 +136,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     phoneNumber?: string;
     dateOfBirth?: string;
     role?: string;
+    planId?: string;
   }): Promise<AuthResponse> => {
     setLoading(true);
     setError(null);

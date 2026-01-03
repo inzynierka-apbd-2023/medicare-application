@@ -27,6 +27,7 @@
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.8.0" />
   <PackageReference Include="Microsoft.Data.SqlClient" Version="6.0.0" />
   <PackageReference Include="Aspire.RabbitMQ.Client" Version="9.1.0" />
+  <PackageReference Include="MediatR" Version="12.4.1" />
   </ItemGroup>
 
   <ItemGroup>

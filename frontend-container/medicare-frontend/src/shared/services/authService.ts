@@ -31,6 +31,7 @@ export interface RegisterRequest {
   phoneNumber?: string;
   role?: string;
   dateOfBirth?: string;
+  planId?: string;
 }
 
 const TOKEN_KEY = "authToken";
@@ -57,6 +58,7 @@ export const authService = {
       phoneNumber: req.phoneNumber,
       role: req.role ?? "Patient",
       dateOfBirth: req.dateOfBirth || null,
+      planId: req.planId || null,
     });
     persistTokens(res.data);
     return res.data;

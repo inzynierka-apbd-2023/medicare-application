@@ -60,7 +60,9 @@ var catalogService = builder.AddProject<Projects.MedicalCatalogService>("medical
 var billingService = builder.AddProject<Projects.BillingService>("billingservice")
                             .WithReference(sharedDb)
                             .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
+                            .WithReference(rabbitmq)
                             .WaitFor(sharedDb)
+                            .WaitFor(rabbitmq)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");

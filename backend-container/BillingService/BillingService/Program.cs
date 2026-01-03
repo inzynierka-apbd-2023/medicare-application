@@ -12,6 +12,9 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
+// Add Aspire RabbitMQ client - gets connection string from Aspire orchestrator
+builder.AddRabbitMQClient("rabbitmq");
+
 const string AuthenticationKeyword = "Authentication";
 
 var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"] 
@@ -29,7 +32,7 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Progr
 // Add services
 builder.Services.AddScoped<BillingService.Services.IRevenueMetricsService, BillingService.Services.RevenueMetricsService>();
 
-builder.Services.Configure<BillingService.Infrastructure.Messaging.RabbitOptions>(builder.Configuration.GetSection("RabbitMQ"));
+// RabbitMQ consumer - uses the IConnection provided by Aspire
 builder.Services.AddHostedService<BillingService.Infrastructure.Messaging.BillingEventConsumer>();
 
 builder.Services.AddDbContext<BillingDbContext>((sp, options) =>
