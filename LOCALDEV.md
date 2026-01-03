@@ -124,15 +124,33 @@ The JWT secret for local development is pre-configured in:
 
 These users are automatically seeded on first startup in development mode:
 
-| Username | Password | Role |
-|----------|----------|------|
-| `patient_a_20250818` | `P@ssw0rd!` | Patient |
-| `doctor_a_20250818` | `P@ssw0rd!` | Doctor |
-| `reception_a_20250818` | `P@ssw0rd!` | Receptionist |
-| `admin_a_20250818` | `P@ssw0rd!` | Admin |
-| `owner@test.local` | `P@ssw0rd!` | Owner |
+### Doctors
 
-> **Note:** To re-seed users, delete the `UserServiceDb` database and restart Aspire.
+| Username | Email | Password | Name | Specialization | Schedule |
+|----------|-------|----------|------|----------------|----------|
+| `doctor1` | `doctor1@medicare.local` | `P@ssw0rd!` | Dr. John Carter | Cardiologist, General Practice | Mon 9-13, Wed 14-18, Fri 9-12 |
+| `doctor2` | `doctor2@medicare.local` | `P@ssw0rd!` | Dr. Sarah Chen | General Practice | Mon 8-16, Tue 8-16, Thu 8-16 |
+
+### Patients
+
+| Username | Email | Password | Name |
+|----------|-------|----------|------|
+| `patient1` | `patient1@medicare.local` | `P@ssw0rd!` | Alice Johnson |
+| `patient2` | `patient2@medicare.local` | `P@ssw0rd!` | Bob Smith |
+
+### Staff
+
+| Username | Email | Password | Name | Role |
+|----------|-------|----------|------|------|
+| `receptionist` | `receptionist@medicare.local` | `P@ssw0rd!` | Mary Williams | Receptionist |
+| `admin` | `admin@medicare.local` | `P@ssw0rd!` | System Administrator | Admin |
+
+### Pre-seeded Appointments
+
+- **Appointment 1:** Alice Johnson with Dr. John Carter - Tomorrow at 10:00 AM
+- **Appointment 2:** Bob Smith with Dr. Sarah Chen - Day after tomorrow at 2:00 PM
+
+> **Note:** To re-seed users, delete all databases and restart Aspire. The seeder uses deterministic IDs, so data is consistent across services.
 
 ---
 
