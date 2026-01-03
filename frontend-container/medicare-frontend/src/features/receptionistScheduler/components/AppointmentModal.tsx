@@ -162,13 +162,15 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
   const handleDoctorSelect = useCallback(
     (doctorId: string) => {
-      const doctor = doctors.find((d: Doctor) => d.id === doctorId);
+      const doctor = doctors.find((d: Doctor) => d.id === doctorId || d.userId === doctorId);
       setSelectedDoctor(doctor || null);
-      setFormData((prev) => ({ ...prev, doctorId }));
+      // Use userId for backend API calls (appointment storage)
+      const userIdToStore = doctor?.userId || doctorId;
+      setFormData((prev) => ({ ...prev, doctorId: userIdToStore }));
 
       // Load time slots if both doctor and date are selected
-      if (doctorId && formData.day) {
-        loadTimeSlots(doctorId, formData.day);
+      if (userIdToStore && formData.day) {
+        loadTimeSlots(userIdToStore, formData.day);
       }
     },
     [doctors, formData.day, loadTimeSlots]

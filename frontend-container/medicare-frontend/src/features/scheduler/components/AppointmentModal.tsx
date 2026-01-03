@@ -443,11 +443,11 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                       <Card
                         key={doctor.id}
                         className={`cursor-pointer transition-colors hover:border-blue-500 ${
-                          formData.doctorUserId === doctor.id
+                          formData.doctorUserId === doctor.userId || formData.doctorUserId === doctor.id
                             ? "border-blue-500 bg-blue-50"
                             : ""
                         }`}
-                        onClick={() => handleDoctorSelect(doctor.id)}
+                        onClick={() => handleDoctorSelect(doctor.userId || doctor.id)}
                       >
                         <div className="p-4">
                           <div className="flex items-center">

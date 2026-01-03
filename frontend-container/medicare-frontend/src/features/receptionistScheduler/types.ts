@@ -11,6 +11,7 @@ export interface Patient {
 
 export interface Doctor {
   id: string;
+  userId?: string;
   firstName: string;
   lastName: string;
   email: string;
