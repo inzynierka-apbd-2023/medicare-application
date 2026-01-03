@@ -2,19 +2,21 @@ import type { Appointment } from "../appointments/types";
 
 export type PaymentStatus = "paid" | "not_paid";
 
-export type SubscriptionType = "Premium" | "Basic" | "Pro";
-
 // Re-use the Appointment interface from appointments feature
 export type WalletAppointment = Appointment;
 
+// Subscription interface matching the backend BillingService response
 export interface Subscription {
-  type: SubscriptionType;
+  id: string;
+  type: string;
   active: boolean;
   renewalDate: string;
+  periodStart: string;
+  periodEnd: string;
 }
 
 export interface WalletData {
-  subscription: Subscription;
+  subscription: Subscription | null;
   unpaidAppointments: WalletAppointment[];
 }
 

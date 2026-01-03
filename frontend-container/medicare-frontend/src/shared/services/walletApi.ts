@@ -1,10 +1,7 @@
 import type { Appointment } from "../../features/appointments/types";
 
-import {
-  type ApiResponse,
-  createErrorResponse,
-  createMockResponse,
-} from "./api";
+import { type ApiResponse, createErrorResponse } from "./api";
+import { apiClient } from "./apiClient";
 
 export type PaymentStatus = "paid" | "not_paid";
 
@@ -12,54 +9,42 @@ export type PaymentStatus = "paid" | "not_paid";
 export type WalletAppointment = Appointment;
 
 export interface Subscription {
-  type: "Premium" | "Basic" | "Pro";
+  id: string;
+  type: string;
   active: boolean;
   renewalDate: string;
+  periodStart: string;
+  periodEnd: string;
 }
 
 export interface WalletData {
-  subscription: Subscription;
+  subscription: Subscription | null;
   unpaidAppointments: WalletAppointment[];
 }
 
-// Import the same mock appointments data from appointmentsApi
-// This ensures consistency between appointments and wallet data
-import { appointmentsApi } from "./appointmentsApi";
-
-// Mock subscription data
-const mockSubscription: Subscription = {
-  type: "Premium",
-  active: false,
-  renewalDate: "2025-07-01",
-};
+export interface PaymentIntentResponse {
+  id: string;
+  kind: string;
+  amountCents: number;
+  currency: string;
+  status: string;
+  clientSecret: string;
+}
 
 export const walletApi = {
   /**
-   * Fetch wallet data including subscription and unpaid appointments
+   * Renew subscription for a patient
    */
-  getWalletData: async (): Promise<ApiResponse<WalletData>> => {
+  renewSubscription: async (
+    contractId: string
+  ): Promise<ApiResponse<PaymentIntentResponse>> => {
     try {
-      // Get all appointments from the appointments API
-      const appointmentsResponse = await appointmentsApi.getAppointments();
-
-      if (!appointmentsResponse.success) {
-        return createErrorResponse("Failed to fetch appointments data");
-      }
-
-      // Filter for unpaid appointments only
-      const unpaidAppointments = appointmentsResponse.data.filter(
-        (appointment) => appointment.paymentStatus === "not_paid"
+      const response = await apiClient.post<PaymentIntentResponse>(
+        `/payments/subscriptions/${contractId}/renewals`
       );
-
-      const walletData: WalletData = {
-        subscription: mockSubscription,
-        unpaidAppointments,
-      };
-
-      // Simulate API delay
-      return await createMockResponse(walletData, 800);
+      return { success: true, data: response.data };
     } catch (_error) {
-      return createErrorResponse("Failed to fetch wallet data");
+      return createErrorResponse("Failed to renew subscription");
     }
   },
 
@@ -67,40 +52,26 @@ export const walletApi = {
    * Process payment for an appointment
    */
   payAppointment: async (
-    appointmentId: string
-  ): Promise<ApiResponse<WalletAppointment>> => {
+    appointmentId: string,
+    patientId: string,
+    amountCents: number
+  ): Promise<ApiResponse<PaymentIntentResponse>> => {
     try {
-      // Update the appointment payment status in the appointments API
-      const response = await appointmentsApi.updatePaymentStatus(
-        appointmentId,
+      // Create a payment intent for the appointment
+      const response = await apiClient.post<PaymentIntentResponse>(
+        "/payments/intents",
         {
-          paymentStatus: "paid",
+          kind: "Appointment",
+          subjectId: appointmentId,
+          patientId: patientId,
+          provider: "mock",
+          amountCents: amountCents,
+          currency: "PLN",
         }
       );
-
-      if (!response.success) {
-        return createErrorResponse("Payment processing failed");
-      }
-
-      return await createMockResponse(response.data, 1500);
+      return { success: true, data: response.data };
     } catch (_error) {
       return createErrorResponse("Payment processing failed");
-    }
-  },
-
-  /**
-   * Update subscription status
-   */
-  updateSubscription: async (
-    subscriptionData: Partial<Subscription>
-  ): Promise<ApiResponse<Subscription>> => {
-    try {
-      // Update the mock subscription data
-      Object.assign(mockSubscription, subscriptionData);
-
-      return await createMockResponse(mockSubscription, 500);
-    } catch (_error) {
-      return createErrorResponse("Failed to update subscription");
     }
   },
 };

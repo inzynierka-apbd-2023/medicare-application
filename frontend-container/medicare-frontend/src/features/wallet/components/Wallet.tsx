@@ -28,10 +28,27 @@ export const Wallet: React.FC<WalletProps> = ({
       </h1>
 
       {/* Subscription Info */}
-      <SubscriptionInfo
-        subscription={wallet.subscription}
-        onNavigateToSubscription={onNavigateToSubscription}
-      />
+      {wallet.subscription ? (
+        <SubscriptionInfo
+          subscription={wallet.subscription}
+          onNavigateToSubscription={onNavigateToSubscription}
+        />
+      ) : (
+        <div className="flex flex-col sm:flex-row gap-6 items-center justify-between mb-5">
+          <div className="text-gray-600">
+            <span className="font-medium">No active subscription</span>
+            <p className="text-sm text-gray-500">
+              Subscribe to unlock premium features
+            </p>
+          </div>
+          <button
+            onClick={onNavigateToSubscription}
+            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          >
+            Get Subscription
+          </button>
+        </div>
+      )}
 
       {/* Divider */}
       <div className="h-px bg-gray-300" />
