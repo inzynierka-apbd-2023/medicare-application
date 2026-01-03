@@ -115,59 +115,35 @@ export const mockServices: Service[] = [
   },
 ];
 
-// Mock Doctors
+// Mock Doctors - IDs match seeded database doctors for consistency
 export const mockDoctors: Doctor[] = [
   {
-    id: "doctor-1",
-    firstName: "Sarah",
-    lastName: "Johnson",
-    email: "sarah.johnson@hospital.com",
-    phone: "+1-555-0101",
+    id: "bbbbbbbb-0002-0002-0002-000000000001",
+    userId: "bbbbbbbb-0002-0002-0002-000000000001",
+    firstName: "John",
+    lastName: "Carter",
+    email: "doctor1@medicare.local",
+    phone: "555-0101",
     licenseNumber: "MD-12345",
     yearsExperience: 12,
     biography:
-      "Dr. Sarah Johnson is a board-certified cardiologist with over 12 years of experience in treating heart conditions.",
+      "Board-certified cardiologist with extensive experience in interventional cardiology.",
     officeAddress: "123 Medical Center Dr, Suite 200",
     specializations: [mockSpecializations[0]], // Cardiology
   },
   {
-    id: "doctor-2",
-    firstName: "Michael",
+    id: "bbbbbbbb-0002-0002-0002-000000000002",
+    userId: "bbbbbbbb-0002-0002-0002-000000000002",
+    firstName: "Sarah",
     lastName: "Chen",
-    email: "michael.chen@hospital.com",
-    phone: "+1-555-0102",
+    email: "doctor2@medicare.local",
+    phone: "555-0102",
     licenseNumber: "MD-23456",
     yearsExperience: 8,
     biography:
-      "Dr. Michael Chen specializes in dermatology and cosmetic procedures.",
+      "Experienced dermatologist specializing in medical and cosmetic dermatology.",
     officeAddress: "123 Medical Center Dr, Suite 150",
     specializations: [mockSpecializations[1]], // Dermatology
-  },
-  {
-    id: "doctor-3",
-    firstName: "Emily",
-    lastName: "Rodriguez",
-    email: "emily.rodriguez@hospital.com",
-    phone: "+1-555-0103",
-    licenseNumber: "MD-34567",
-    yearsExperience: 15,
-    biography:
-      "Dr. Emily Rodriguez is an experienced internal medicine physician.",
-    officeAddress: "123 Medical Center Dr, Suite 100",
-    specializations: [mockSpecializations[2]], // Internal Medicine
-  },
-  {
-    id: "doctor-4",
-    firstName: "David",
-    lastName: "Thompson",
-    email: "david.thompson@hospital.com",
-    phone: "+1-555-0104",
-    licenseNumber: "MD-45678",
-    yearsExperience: 10,
-    biography:
-      "Dr. David Thompson specializes in orthopedic surgery and sports medicine.",
-    officeAddress: "123 Medical Center Dr, Suite 300",
-    specializations: [mockSpecializations[3]], // Orthopedics
   },
 ];
 
