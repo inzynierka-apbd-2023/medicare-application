@@ -35,8 +35,8 @@ public class UsersController : ControllerBase
     }
 
     // GET: api/users/{id}
+    // Note: No authorization required - allows cross-service lookup of user profiles
     [HttpGet("{id}")]
-    [Authorize]
     public async Task<ActionResult<UserResponseDto>> GetById(Guid id)
     {
         var user = await _userService.GetUserByIdAsync(id);
