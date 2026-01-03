@@ -1,10 +1,8 @@
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
+using MediatR;
 using UserService.DTOs;
-using UserService.Services;
-using UserService.Infrastructure.Messaging;
-using UserService.Data;
-using UserService.Models;
-using Microsoft.EntityFrameworkCore;
+using UserService.Features.Auth.Commands;
 
 namespace UserService.Controllers;
 
@@ -12,224 +10,121 @@ namespace UserService.Controllers;
 [Route("api/[controller]")]
 public class AuthController : ControllerBase
 {
-    private readonly IUserService _userService;
-    private readonly IJwtService _jwtService;
-    private readonly UserDbContext _db;
+    private readonly IMediator _mediator;
 
-    public AuthController(IUserService userService, IJwtService jwtService, UserDbContext db)
+    public AuthController(IMediator mediator)
     {
-        _userService = userService;
-        _jwtService = jwtService;
-        _db = db;
+        _mediator = mediator;
     }
 
     /// <summary>
     /// User login
     /// </summary>
     [HttpPost("login")]
-    public async Task<ActionResult<AuthResponseDto>> Login(LoginDto loginDto)
+    [ProducesResponseType(typeof(RefreshTokenResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> Login(LoginDto loginDto)
     {
-        try
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var result = await _mediator.Send(new LoginUserCommand
         {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+            Username = loginDto.Username,
+            Password = loginDto.Password,
+            ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = Request.Headers.UserAgent.ToString()
+        });
 
-            // Authenticate user
-            var user = await _userService.AuthenticateAsync(loginDto.Username, loginDto.Password);
-            if (user == null)
-            {
-                return Unauthorized(new { message = "Invalid username or password" });
-            }
-
-            // Check if user is active
-            if (!user.IsActive)
-            {
-                return Unauthorized(new { message = "Account is deactivated" });
-            }
-
-            // Generate JWT token response
-            // access + refresh
-            var (accessToken, accessExpires) = _jwtService.GenerateAccessToken(user);
-            var (refreshToken, refreshExpires, refreshHash) = _jwtService.GenerateRefreshToken();
-            _db.RefreshTokens.Add(new RefreshToken
-            {
-                UserId = user.Id,
-                TokenHash = refreshHash,
-                ExpiresAt = refreshExpires,
-                CreatedAt = DateTime.UtcNow,
-                CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                UserAgent = Request.Headers.UserAgent.ToString()
-            });
-            await _db.SaveChangesAsync();
-
-            return Ok(new RefreshTokenResponseDto
-            {
-                AccessToken = accessToken,
-                AccessTokenExpiresAt = accessExpires,
-                RefreshToken = refreshToken,
-                RefreshTokenExpiresAt = refreshExpires,
-                User = user
-            });
-        }
-        catch (Exception ex)
+        if (!result.Success)
         {
-            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
+            return result.UserInactive 
+                ? Unauthorized(new { message = result.ErrorMessage }) 
+                : Unauthorized(new { message = result.ErrorMessage });
         }
+
+        return Ok(result.TokenResponse);
     }
 
     /// <summary>
     /// User registration
     /// </summary>
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register(CreateUserDto createUserDto, [FromServices] RabbitMQ.Client.IConnection rabbitConnection)
+    [ProducesResponseType(typeof(RefreshTokenResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Register(CreateUserDto createUserDto)
     {
-        try
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var user = await _userService.CreateUserAsync(createUserDto);
-            // transactional outbox: store event in same DB
-            var evt = new UserRegistered(user.Id, user.Username, user.Email, DateTime.UtcNow, createUserDto.PlanId);
-            _db.OutboxEvents.Add(new OutboxEvent
-            {
-                Id = Guid.NewGuid(),
-                Type = "user.created",
-                PayloadJson = System.Text.Json.JsonSerializer.Serialize(evt)
-            });
-            await _db.SaveChangesAsync();
+        var result = await _mediator.Send(new RegisterUserCommand
+        {
+            Username = createUserDto.Username,
+            Email = createUserDto.Email,
+            Password = createUserDto.Password,
+            FirstName = createUserDto.FirstName,
+            LastName = createUserDto.LastName,
+            PhoneNumber = createUserDto.PhoneNumber,
+            Role = createUserDto.Role,
+            PlanId = createUserDto.PlanId,
+            DateOfBirth = createUserDto.DateOfBirth,
+            ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = Request.Headers.UserAgent.ToString()
+        });
 
-            // Send welcome email via RabbitMQ
-            try
-            {
-                using var channel = rabbitConnection.CreateModel();
-                channel.QueueDeclare(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null);
-                var emailEvent = new
-                {
-                    Type = "welcome",
-                    Email = user.Email,
-                    FirstName = user.FirstName
-                };
-                var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(emailEvent));
-                channel.BasicPublish(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: null, body: body);
-            }
-            catch (Exception emailEx)
-            {
-                // Log but don't fail registration if email fails
-                Console.WriteLine($"[Register] Failed to queue welcome email: {emailEx.Message}");
-            }
-            
-            // Generate JWT token response for the new user
-            var (accessToken, accessExpires) = _jwtService.GenerateAccessToken(user);
-            var (refreshToken, refreshExpires, refreshHash) = _jwtService.GenerateRefreshToken();
-            _db.RefreshTokens.Add(new RefreshToken
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                TokenHash = refreshHash,
-                ExpiresAt = refreshExpires,
-                CreatedAt = DateTime.UtcNow,
-                CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
-                UserAgent = Request.Headers.UserAgent.ToString()
-            });
-            await _db.SaveChangesAsync();
-            return Created(string.Empty, new RefreshTokenResponseDto
-            {
-                AccessToken = accessToken,
-                AccessTokenExpiresAt = accessExpires,
-                RefreshToken = refreshToken,
-                RefreshTokenExpiresAt = refreshExpires,
-                User = user
-            });
-        }
-        catch (InvalidOperationException ex)
+        if (!result.Success)
         {
-            return Conflict(new { message = ex.Message });
+            return Conflict(new { message = result.ErrorMessage });
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-        }
+
+        return Created(string.Empty, result.TokenResponse);
     }
 
     /// <summary>
     /// Test JWT token (for development/testing purposes)
     /// </summary>
     [HttpPost("test-token")]
-    public IActionResult TestToken(TestTokenDto testTokenDto)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> TestToken(TestTokenDto testTokenDto)
     {
-        try
-        {
-            if (!ModelState.IsValid)
-            {
-                return BadRequest(ModelState);
-            }
+        if (!ModelState.IsValid) return BadRequest(ModelState);
 
-            var token = _jwtService.GenerateToken(
-                testTokenDto.UserId, 
-                testTokenDto.Username, 
-                testTokenDto.Role
-            );
-
-            return Ok(new { token = token });
-        }
-        catch (Exception ex)
+        var result = await _mediator.Send(new GenerateTestTokenCommand
         {
-            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-        }
+            UserId = testTokenDto.UserId,
+            Username = testTokenDto.Username,
+            Role = testTokenDto.Role
+        });
+
+        return Ok(new { token = result.Token });
     }
 
     /// <summary>
-    /// Refresh token (placeholder for future implementation)
+    /// Refresh token
     /// </summary>
     [HttpPost("refresh")]
-    public async Task<ActionResult<RefreshTokenResponseDto>> RefreshToken(RefreshRequestDto req)
+    [ProducesResponseType(typeof(RefreshTokenResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
+    public async Task<IActionResult> RefreshToken(RefreshRequestDto req)
     {
-        if (string.IsNullOrWhiteSpace(req.RefreshToken)) return BadRequest(new { message = "Missing refresh token" });
-        var hash = ComputeSha256(req.RefreshToken);
-        var match = await _db.RefreshTokens
-            .Include(r => r.User)!.ThenInclude(u => u.Profile)
-            .Include(r => r.User)!.ThenInclude(u => u.Role)
-            .FirstOrDefaultAsync(r => r.TokenHash == hash && r.RevokedAt == null && r.ExpiresAt >= DateTime.UtcNow);
-        if (match == null) return Unauthorized(new { message = "Invalid refresh token" });
-        if (match.User == null || !match.User.IsActive) return Unauthorized(new { message = "User inactive" });
-        var user = await new UserServiceImpl(_db).GetUserByIdAsync(match.UserId);
-        if (user == null) return Unauthorized(new { message = "User not found" });
+        var result = await _mediator.Send(new RefreshTokenCommand
+        {
+            RefreshToken = req.RefreshToken,
+            ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
+            UserAgent = Request.Headers.UserAgent.ToString()
+        });
 
-        // rotate
-        match.RevokedAt = DateTime.UtcNow;
-        match.RevokedByIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-        var (newAccess, accessExp) = _jwtService.GenerateAccessToken(user);
-        var (newRefresh, refreshExp, refreshHash) = _jwtService.GenerateRefreshToken();
-        _db.RefreshTokens.Add(new RefreshToken
+        if (!result.Success)
         {
-            UserId = user.Id,
-            TokenHash = refreshHash,
-            ExpiresAt = refreshExp,
-            CreatedAt = DateTime.UtcNow,
-            CreatedByIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
-            UserAgent = Request.Headers.UserAgent.ToString(),
-            ReplacedByTokenHash = match.TokenHash
-        });
-        await _db.SaveChangesAsync();
-        return Ok(new RefreshTokenResponseDto
-        {
-            AccessToken = newAccess,
-            AccessTokenExpiresAt = accessExp,
-            RefreshToken = newRefresh,
-            RefreshTokenExpiresAt = refreshExp,
-            User = user
-        });
+            return Unauthorized(new { message = result.ErrorMessage });
+        }
+
+        return Ok(result.TokenResponse);
     }
 
     /// <summary>
-    /// Logout (placeholder for future implementation with token blacklisting)
+    /// Logout (revoke refresh token)
     /// </summary>
     [HttpPost("logout")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout([FromBody] RefreshRequestDto? req)
     {
         string? refresh = req?.RefreshToken;
@@ -237,159 +132,79 @@ public class AuthController : ControllerBase
         {
             refresh = headerVal.FirstOrDefault();
         }
-        if (string.IsNullOrWhiteSpace(refresh)) return Ok(new { message = "No refresh token provided" });
-        var hash = ComputeSha256(refresh);
-        var token = await _db.RefreshTokens.FirstOrDefaultAsync(r => r.TokenHash == hash && r.RevokedAt == null);
-        if (token != null)
+
+        var result = await _mediator.Send(new LogoutCommand
         {
-            token.RevokedAt = DateTime.UtcNow;
-            token.RevokedByIp = HttpContext.Connection.RemoteIpAddress?.ToString();
-            await _db.SaveChangesAsync();
-        }
-        return Ok(new { message = "Logout successful" });
+            RefreshToken = refresh,
+            ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString()
+        });
+
+        return Ok(new { message = result.Message });
     }
 
     /// <summary>
     /// Request password reset - sends reset email
     /// </summary>
     [HttpPost("forgot-password")]
-    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto, [FromServices] RabbitMQ.Client.IConnection rabbitConnection)
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
     {
-        try
-        {
-            // Find user by email
-            var user = await _db.Users
-                .Include(u => u.Profile)
-                .FirstOrDefaultAsync(u => u.Profile != null && u.Profile.Email == dto.Email);
-
-            // Always return success to prevent email enumeration
-            if (user == null)
-            {
-                return Ok(new { message = "If the email exists, a reset link has been sent." });
-            }
-
-            // Generate token
-            var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
-            var tokenHash = ComputeSha256(token);
-
-            // Store reset token (expires in 1 hour)
-            _db.PasswordResetTokens.Add(new PasswordResetToken
-            {
-                Id = Guid.NewGuid(),
-                UserId = user.Id,
-                TokenHash = tokenHash,
-                ExpiresAt = DateTime.UtcNow.AddHours(1),
-                CreatedAt = DateTime.UtcNow
-            });
-            await _db.SaveChangesAsync();
-
-            // Perform QueueDeclare with correct signature
-            using var channel = rabbitConnection.CreateModel();
-            channel.QueueDeclare(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null);
-            var emailEvent = new
-            {
-                Type = "password_reset",
-                Email = user.Profile!.Email,
-                FirstName = user.Profile.FirstName,
-                ResetToken = token
-            };
-            var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(emailEvent));
-            channel.BasicPublish(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: null, body: body);
-
-            return Ok(new { message = "If the email exists, a reset link has been sent." });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Error processing request", error = ex.Message });
-        }
+        var result = await _mediator.Send(new ForgotPasswordCommand { Email = dto.Email });
+        return Ok(new { message = result.Message });
     }
 
     /// <summary>
     /// Reset password using token
     /// </summary>
     [HttpPost("reset-password")]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
     {
-        try
+        var result = await _mediator.Send(new ResetPasswordCommand
         {
-            var tokenHash = ComputeSha256(dto.Token);
-            var resetToken = await _db.PasswordResetTokens
-                .Include(t => t.User)
-                .ThenInclude(u => u!.Profile)
-                .FirstOrDefaultAsync(t => t.TokenHash == tokenHash && t.UsedAt == null && t.ExpiresAt > DateTime.UtcNow);
+            Token = dto.Token,
+            NewPassword = dto.NewPassword
+        });
 
-            if (resetToken == null)
-            {
-                return BadRequest(new { message = "Invalid or expired reset token" });
-            }
-
-            // Update password
-            var user = resetToken.User!;
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
-            user.UpdatedAt = DateTime.UtcNow;
-
-            // Mark token as used
-            resetToken.UsedAt = DateTime.UtcNow;
-
-            await _db.SaveChangesAsync();
-
-            return Ok(new { message = "Password has been reset successfully" });
-        }
-        catch (Exception ex)
+        if (!result.Success)
         {
-            return StatusCode(500, new { message = "Error resetting password", error = ex.Message });
+            return BadRequest(new { message = result.ErrorMessage });
         }
+
+        return Ok(new { message = "Password has been reset successfully" });
     }
 
     /// <summary>
     /// Change password for authenticated user
     /// </summary>
     [HttpPost("change-password")]
-    [Microsoft.AspNetCore.Authorization.Authorize]
+    [Authorize]
+    [ProducesResponseType(StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
     {
-        try
+        if (!ModelState.IsValid) return BadRequest(ModelState);
+
+        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
-            if (!ModelState.IsValid) return BadRequest(ModelState);
-
-            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
-            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
-            {
-                return Unauthorized();
-            }
-
-            var user = await _db.Users.FindAsync(userId);
-            if (user == null) return Unauthorized();
-
-            // Verify current password
-            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
-            {
-                return BadRequest(new { message = "Incorrect current password" });
-            }
-
-            // Update with new password
-            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
-            user.UpdatedAt = DateTime.UtcNow;
-
-            // Revoke all refresh tokens for this user?
-            // Optional: for better security, revoke to force re-login on other devices
-            // but might annoy user. For now, let's keep them logged in or just revoke specific token?
-            // Let's keep simpler: just update password.
-
-            await _db.SaveChangesAsync();
-
-            return Ok(new { message = "Password updated successfully" });
+            return Unauthorized();
         }
-        catch (Exception ex)
+
+        var result = await _mediator.Send(new ChangePasswordCommand
         {
-            return StatusCode(500, new { message = "Error changing password", error = ex.Message });
-        }
-    }
+            UserId = userId,
+            CurrentPassword = dto.CurrentPassword,
+            NewPassword = dto.NewPassword
+        });
 
-    private static string ComputeSha256(string input)
-    {
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-        return Convert.ToBase64String(bytes);
+        if (!result.Success)
+        {
+            return BadRequest(new { message = result.ErrorMessage });
+        }
+
+        return Ok(new { message = "Password updated successfully" });
     }
 }

@@ -82,6 +82,9 @@ try
     builder.AddRabbitMQClient("rabbitmq");
     builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("RABBITMQ"));
     builder.Services.AddHostedService<OutboxPublisherHostedService>();
+    
+    // MediatR for CQRS
+    builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
     // Swagger
     builder.Services.AddEndpointsApiExplorer();

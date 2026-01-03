@@ -79,3 +79,4 @@ backend-container/UserService/scripts/seed-test-patient.sql
 **/appsettings.Development.json
 
 env_output.txt
+.vs

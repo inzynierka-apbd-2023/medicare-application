@@ -74,7 +74,7 @@ public class OutboxPublisherHostedService : BackgroundService
                     await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                     continue;
                 }
-                Console.WriteLine($"[OutboxPublisher] Found {events.Count} pending outbox event(s) to publish...");
+                Console.WriteLine($"[OutboxPublisher] 📬 Found {events.Count} pending outbox event(s) to publish...");
                 foreach (var evt in events)
                 {
                     var body = Encoding.UTF8.GetBytes(evt.PayloadJson);
@@ -83,7 +83,8 @@ public class OutboxPublisherHostedService : BackgroundService
                     props.DeliveryMode = 2;
                     props.MessageId = evt.Id.ToString();
                     _ch.BasicPublish(_opt.Exchange, evt.Type, props, body);
-                    Console.WriteLine($"[OutboxPublisher] Published event id={evt.Id} type='{evt.Type}'");
+                    Console.WriteLine($"[OutboxPublisher] ✅ Published event id={evt.Id} type='{evt.Type}' to exchange='{_opt.Exchange}' routingKey='{evt.Type}'");
+                    Console.WriteLine($"[OutboxPublisher] 📄 Payload: {evt.PayloadJson}");
                     // mark as published
                     evt.PublishedAt = DateTime.UtcNow;
                 }
