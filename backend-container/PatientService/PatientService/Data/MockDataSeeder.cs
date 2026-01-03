@@ -5,10 +5,11 @@ namespace PatientService.Data;
 
 /// <summary>
 /// Shared deterministic IDs for cross-service mock data references
+/// Patient IDs match User IDs from UserService for seamless auth integration
 /// </summary>
 public static class MockIds
 {
-    // Patient Users (from UserService)
+    // Patient User IDs (from UserService) - used as both User ID and Patient entity ID
     public static readonly Guid PatientUser1 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000001");
     public static readonly Guid PatientUser2 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000002");
     public static readonly Guid PatientUser3 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000003");
@@ -17,7 +18,7 @@ public static class MockIds
     public static readonly Guid PatientUser6 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000006");
     public static readonly Guid PatientUser7 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000007");
 
-    // Doctor Users (for PrimaryDoctorId reference)
+    // Doctor User IDs (for PrimaryDoctorId reference)
     public static readonly Guid DoctorUser1 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001");
     public static readonly Guid DoctorUser2 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000002");
     public static readonly Guid DoctorUser3 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000003");
@@ -26,14 +27,14 @@ public static class MockIds
     public static readonly Guid DoctorUser6 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000006");
     public static readonly Guid DoctorUser7 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000007");
 
-    // Patient IDs (entities in this service)
-    public static readonly Guid Patient1 = Guid.Parse("11111111-1111-1111-1111-000000000001");
-    public static readonly Guid Patient2 = Guid.Parse("11111111-1111-1111-1111-000000000002");
-    public static readonly Guid Patient3 = Guid.Parse("11111111-1111-1111-1111-000000000003");
-    public static readonly Guid Patient4 = Guid.Parse("11111111-1111-1111-1111-000000000004");
-    public static readonly Guid Patient5 = Guid.Parse("11111111-1111-1111-1111-000000000005");
-    public static readonly Guid Patient6 = Guid.Parse("11111111-1111-1111-1111-000000000006");
-    public static readonly Guid Patient7 = Guid.Parse("11111111-1111-1111-1111-000000000007");
+    // Patient entity IDs = User IDs (simplified: Patient.Id == Patient.UserId)
+    public static readonly Guid Patient1 = PatientUser1;
+    public static readonly Guid Patient2 = PatientUser2;
+    public static readonly Guid Patient3 = PatientUser3;
+    public static readonly Guid Patient4 = PatientUser4;
+    public static readonly Guid Patient5 = PatientUser5;
+    public static readonly Guid Patient6 = PatientUser6;
+    public static readonly Guid Patient7 = PatientUser7;
 
     public static readonly Guid[] AllPatientUserIds = { PatientUser1, PatientUser2, PatientUser3, PatientUser4, PatientUser5, PatientUser6, PatientUser7 };
     public static readonly Guid[] AllDoctorUserIds = { DoctorUser1, DoctorUser2, DoctorUser3, DoctorUser4, DoctorUser5, DoctorUser6, DoctorUser7 };

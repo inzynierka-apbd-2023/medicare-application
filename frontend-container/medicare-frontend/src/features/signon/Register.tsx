@@ -30,7 +30,9 @@ const Register: React.FC = () => {
   const [acceptTerms, setAcceptTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [emailError, setEmailError] = useState<string | null>(null);
-  const [passwordStrength, setPasswordStrength] = useState<"weak" | "medium" | "strong" | null>(null);
+  const [passwordStrength, setPasswordStrength] = useState<
+    "weak" | "medium" | "strong" | null
+  >(null);
   const emailCheckAbort = useRef<AbortController | null>(null);
   const { loading } = useAuth();
   const navigate = useNavigate();
@@ -46,19 +48,32 @@ const Register: React.FC = () => {
   // Simple password strength estimator
   const computeStrength = (pwd: string): "weak" | "medium" | "strong" => {
     let score = 0;
-    if (pwd.length >= 8) { score++; }
-    if (/[A-Z]/.test(pwd)) { score++; }
-    if (/[a-z]/.test(pwd)) { score++; }
-    if (/\d/.test(pwd)) { score++; }
-    if (/[^A-Za-z0-9]/.test(pwd)) { score++; }
-    if (pwd.length >= 12) { score++; }
+    if (pwd.length >= 8) {
+      score++;
+    }
+    if (/[A-Z]/.test(pwd)) {
+      score++;
+    }
+    if (/[a-z]/.test(pwd)) {
+      score++;
+    }
+    if (/\d/.test(pwd)) {
+      score++;
+    }
+    if (/[^A-Za-z0-9]/.test(pwd)) {
+      score++;
+    }
+    if (pwd.length >= 12) {
+      score++;
+    }
     if (score >= 5) return "strong";
     if (score >= 3) return "medium";
     return "weak";
   };
 
   useEffect(() => {
-    if (formData.password) setPasswordStrength(computeStrength(formData.password));
+    if (formData.password)
+      setPasswordStrength(computeStrength(formData.password));
     else setPasswordStrength(null);
   }, [formData.password]);
 
@@ -75,10 +90,11 @@ const Register: React.FC = () => {
     const ctrl = new AbortController();
     emailCheckAbort.current = ctrl;
 
-  const t = setTimeout(async () => {
+    const t = setTimeout(async () => {
       try {
-    const exists = await availabilityApi.checkEmail(email, ctrl.signal);
-        if (!ctrl.signal.aborted && exists) setEmailError("Email is already in use");
+        const exists = await availabilityApi.checkEmail(email, ctrl.signal);
+        if (!ctrl.signal.aborted && exists)
+          setEmailError("Email is already in use");
       } catch {
         // ignore availability errors in UI; don't block typing
       }
@@ -98,7 +114,9 @@ const Register: React.FC = () => {
       return;
     }
     if (passwordStrength === "weak") {
-      setError("Password too weak. Add length, numbers, upper/lowercase and a symbol.");
+      setError(
+        "Password too weak. Add length, numbers, upper/lowercase and a symbol."
+      );
       return;
     }
     if (emailError) {
@@ -121,6 +139,14 @@ const Register: React.FC = () => {
           phoneNumber: formData.phone,
           dateOfBirth: formData.dateOfBirth,
           role: "Patient",
+          planId: (() => {
+            try {
+              const saved = localStorage.getItem("selectedPlan");
+              return saved ? JSON.parse(saved).id : null;
+            } catch {
+              return null;
+            }
+          })(),
         },
       },
     });
@@ -129,7 +155,7 @@ const Register: React.FC = () => {
   return (
     <div className="page-container-with-scroll">
       <div className="auth-card">
-        <button onClick={() => navigate("/choose-plan")} className="btn-back">
+        <button onClick={() => navigate(-1)} className="btn-back">
           <ArrowLeft className="icon-small" />
           Back to plans
         </button>
@@ -143,7 +169,9 @@ const Register: React.FC = () => {
           {/* Name Fields */}
           <div className="grid-2">
             <div className="form-group-small">
-              <label className="form-label" htmlFor="firstName">First Name</label>
+              <label className="form-label" htmlFor="firstName">
+                First Name
+              </label>
               <input
                 type="text"
                 name="firstName"
@@ -156,7 +184,9 @@ const Register: React.FC = () => {
               />
             </div>
             <div className="form-group-small">
-              <label className="form-label" htmlFor="lastName">Last Name</label>
+              <label className="form-label" htmlFor="lastName">
+                Last Name
+              </label>
               <input
                 type="text"
                 name="lastName"
@@ -172,7 +202,9 @@ const Register: React.FC = () => {
 
           {/* Email */}
           <div className="form-group-small">
-            <label className="form-label" htmlFor="email">Email Address</label>
+            <label className="form-label" htmlFor="email">
+              Email Address
+            </label>
             <input
               type="email"
               name="email"
@@ -183,12 +215,16 @@ const Register: React.FC = () => {
               onChange={handleInputChange}
               required
             />
-            {emailError && <div className="text-red-600 text-xs mt-1">{emailError}</div>}
+            {emailError && (
+              <div className="text-red-600 text-xs mt-1">{emailError}</div>
+            )}
           </div>
 
           {/* Phone */}
           <div className="form-group-small">
-            <label className="form-label" htmlFor="phone">Phone Number</label>
+            <label className="form-label" htmlFor="phone">
+              Phone Number
+            </label>
             <input
               type="tel"
               name="phone"
@@ -203,7 +239,9 @@ const Register: React.FC = () => {
 
           {/* Date of Birth */}
           <div className="form-group-small">
-            <label className="form-label" htmlFor="dateOfBirth">Date of Birth</label>
+            <label className="form-label" htmlFor="dateOfBirth">
+              Date of Birth
+            </label>
             <input
               type="date"
               name="dateOfBirth"
@@ -217,7 +255,9 @@ const Register: React.FC = () => {
 
           {/* Password */}
           <div className="form-group-small">
-            <label className="form-label" htmlFor="password">Password</label>
+            <label className="form-label" htmlFor="password">
+              Password
+            </label>
             <div className="field-group">
               <input
                 type={showPassword ? "text" : "password"}
@@ -241,22 +281,27 @@ const Register: React.FC = () => {
                 )}
               </button>
             </div>
-            {passwordStrength && (() => {
-              let strengthClass = "text-red-600";
-              if (passwordStrength === "medium") strengthClass = "text-yellow-600";
-              if (passwordStrength === "strong") strengthClass = "text-green-600";
-              return (
-                <div className="text-xs mt-1" aria-live="polite">
-                  <span>Password strength: </span>
-                  <span className={strengthClass}>{passwordStrength}</span>
-                </div>
-              );
-            })()}
+            {passwordStrength &&
+              (() => {
+                let strengthClass = "text-red-600";
+                if (passwordStrength === "medium")
+                  strengthClass = "text-yellow-600";
+                if (passwordStrength === "strong")
+                  strengthClass = "text-green-600";
+                return (
+                  <div className="text-xs mt-1" aria-live="polite">
+                    <span>Password strength: </span>
+                    <span className={strengthClass}>{passwordStrength}</span>
+                  </div>
+                );
+              })()}
           </div>
 
           {/* Confirm Password */}
           <div className="form-group-small">
-            <label className="form-label" htmlFor="confirmPassword">Confirm Password</label>
+            <label className="form-label" htmlFor="confirmPassword">
+              Confirm Password
+            </label>
             <div className="field-group">
               <input
                 type={showConfirmPassword ? "text" : "password"}
@@ -294,14 +339,32 @@ const Register: React.FC = () => {
             />
             <label htmlFor="terms" className="terms-text">
               I agree to the{" "}
-              <button type="button" className="text-link" onClick={() => window.open("/terms", "_blank")}>Terms of Service</button>{" "}
+              <button
+                type="button"
+                className="text-link"
+                onClick={() => window.open("/terms", "_blank")}
+              >
+                Terms of Service
+              </button>{" "}
               and{" "}
-              <button type="button" className="text-link" onClick={() => window.open("/privacy", "_blank")}>Privacy Policy</button>
+              <button
+                type="button"
+                className="text-link"
+                onClick={() => window.open("/privacy", "_blank")}
+              >
+                Privacy Policy
+              </button>
             </label>
           </div>
 
           {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
-          <button type="submit" className="btn-primary" disabled={loading || emailError !== null || passwordStrength === "weak"}>
+          <button
+            type="submit"
+            className="btn-primary"
+            disabled={
+              loading || emailError !== null || passwordStrength === "weak"
+            }
+          >
             {loading ? "Continuing..." : "Continue"}
           </button>
         </form>

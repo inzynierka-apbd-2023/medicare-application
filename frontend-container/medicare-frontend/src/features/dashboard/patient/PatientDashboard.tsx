@@ -9,6 +9,7 @@ import {
   Modal,
 } from "../../../shared/components";
 import { useLoadingService } from "../../../shared/hooks/useLoadingService";
+import { useSubscription } from "../../../shared/hooks/useSubscription";
 import { patientDashboardApi } from "../../../shared/services/dashboardApi";
 import { notificationsApi } from "../../../shared/services/notificationsApi";
 import useScheduler from "../../scheduler/hooks/useScheduler";
@@ -33,6 +34,7 @@ export default function PatientDashboard() {
   const [showNotifications, setShowNotifications] = useState(false);
   const [notifications, setNotifications] = useState<Notification[]>([]);
   const [documents, setDocuments] = useState<Document[]>([]);
+  const subscription = useSubscription();
 
   const { isLoading, error, clearError, executeInitialLoad } =
     useLoadingService();
@@ -211,6 +213,7 @@ export default function PatientDashboard() {
                     onViewMedications={handleViewMedications}
                     onViewBilling={handleViewBilling}
                     onManageProfile={handleManageProfile}
+                    features={subscription.features}
                   />
                 </div>
               </div>

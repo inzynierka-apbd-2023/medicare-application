@@ -83,8 +83,26 @@ export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
         confirmPassword: "",
       });
       setErrors({});
-    } catch (error) {
+    } catch (e: unknown) {
+      const error = e as { response?: { data?: { message?: string } } };
       console.error("Password change error:", error);
+
+      const message = error.response?.data?.message;
+
+      // Determine if error is password mismatch or generic
+      if (message) {
+        setErrors((prev) => ({
+          ...prev,
+          currentPassword: message.includes("current") ? message : "",
+          general: message,
+        }));
+      } else {
+        setErrors((prev) => ({
+          ...prev,
+          general:
+            "An error occurred while changing password. Please try again.",
+        }));
+      }
     }
   };
 

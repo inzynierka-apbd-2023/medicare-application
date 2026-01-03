@@ -5,10 +5,11 @@ namespace PractitionerService.Data;
 
 /// <summary>
 /// Shared deterministic IDs for cross-service mock data references
+/// Doctor IDs match User IDs from UserService for seamless auth integration
 /// </summary>
 public static class MockIds
 {
-    // Doctor Users (from UserService)
+    // Doctor User IDs (from UserService) - used as both User ID and Doctor entity ID
     public static readonly Guid DoctorUser1 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001");
     public static readonly Guid DoctorUser2 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000002");
     public static readonly Guid DoctorUser3 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000003");
@@ -26,14 +27,14 @@ public static class MockIds
     public static readonly Guid ReceptionistUser6 = Guid.Parse("cccccccc-0003-0003-0003-000000000006");
     public static readonly Guid ReceptionistUser7 = Guid.Parse("cccccccc-0003-0003-0003-000000000007");
 
-    // Doctor entity IDs
-    public static readonly Guid Doctor1 = Guid.Parse("22222222-2222-2222-2222-000000000001");
-    public static readonly Guid Doctor2 = Guid.Parse("22222222-2222-2222-2222-000000000002");
-    public static readonly Guid Doctor3 = Guid.Parse("22222222-2222-2222-2222-000000000003");
-    public static readonly Guid Doctor4 = Guid.Parse("22222222-2222-2222-2222-000000000004");
-    public static readonly Guid Doctor5 = Guid.Parse("22222222-2222-2222-2222-000000000005");
-    public static readonly Guid Doctor6 = Guid.Parse("22222222-2222-2222-2222-000000000006");
-    public static readonly Guid Doctor7 = Guid.Parse("22222222-2222-2222-2222-000000000007");
+    // Doctor entity IDs = User IDs (simplified: Doctor.Id == Doctor.UserId)
+    public static readonly Guid Doctor1 = DoctorUser1;
+    public static readonly Guid Doctor2 = DoctorUser2;
+    public static readonly Guid Doctor3 = DoctorUser3;
+    public static readonly Guid Doctor4 = DoctorUser4;
+    public static readonly Guid Doctor5 = DoctorUser5;
+    public static readonly Guid Doctor6 = DoctorUser6;
+    public static readonly Guid Doctor7 = DoctorUser7;
 
     // Specialization IDs
     public static readonly Guid SpecCardiologist = Guid.Parse("33333333-3333-3333-3333-000000000001");

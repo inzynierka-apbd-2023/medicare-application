@@ -1,6 +1,8 @@
 import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 import Header from "../../layout/Header";
+import { useAuth } from "../../shared/auth/AuthContext";
 import { ErrorDisplay, LoadingOverlay } from "../../shared/components";
 import { useProfile } from "../../shared/hooks/useProfile";
 
@@ -8,6 +10,8 @@ import { Profile } from "./Profile";
 import type { ProfilePageProps } from "./types";
 
 export const ProfilePage: React.FC<ProfilePageProps> = ({ userId }) => {
+  const { logout } = useAuth();
+  const navigate = useNavigate();
   const {
     profileData,
     isLoading,
@@ -24,6 +28,8 @@ export const ProfilePage: React.FC<ProfilePageProps> = ({ userId }) => {
     newPassword: string
   ) => {
     await changePassword(currentPassword, newPassword);
+    logout();
+    navigate("/login");
   };
 
   if (isLoading && !profileData) {

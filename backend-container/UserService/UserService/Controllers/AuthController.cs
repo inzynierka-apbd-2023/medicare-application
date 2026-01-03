@@ -83,7 +83,7 @@ public class AuthController : ControllerBase
     /// User registration
     /// </summary>
     [HttpPost("register")]
-    public async Task<ActionResult<AuthResponseDto>> Register(CreateUserDto createUserDto)
+    public async Task<ActionResult<AuthResponseDto>> Register(CreateUserDto createUserDto, [FromServices] RabbitMQ.Client.IConnection rabbitConnection)
     {
         try
         {
@@ -94,7 +94,7 @@ public class AuthController : ControllerBase
 
             var user = await _userService.CreateUserAsync(createUserDto);
             // transactional outbox: store event in same DB
-            var evt = new UserRegistered(user.Id, user.Username, user.Email, DateTime.UtcNow);
+            var evt = new UserRegistered(user.Id, user.Username, user.Email, DateTime.UtcNow, createUserDto.PlanId);
             _db.OutboxEvents.Add(new OutboxEvent
             {
                 Id = Guid.NewGuid(),
@@ -102,6 +102,26 @@ public class AuthController : ControllerBase
                 PayloadJson = System.Text.Json.JsonSerializer.Serialize(evt)
             });
             await _db.SaveChangesAsync();
+
+            // Send welcome email via RabbitMQ
+            try
+            {
+                using var channel = rabbitConnection.CreateModel();
+                channel.QueueDeclare(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null);
+                var emailEvent = new
+                {
+                    Type = "welcome",
+                    Email = user.Email,
+                    FirstName = user.FirstName
+                };
+                var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(emailEvent));
+                channel.BasicPublish(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: null, body: body);
+            }
+            catch (Exception emailEx)
+            {
+                // Log but don't fail registration if email fails
+                Console.WriteLine($"[Register] Failed to queue welcome email: {emailEx.Message}");
+            }
             
             // Generate JWT token response for the new user
             var (accessToken, accessExpires) = _jwtService.GenerateAccessToken(user);
@@ -227,6 +247,143 @@ public class AuthController : ControllerBase
             await _db.SaveChangesAsync();
         }
         return Ok(new { message = "Logout successful" });
+    }
+
+    /// <summary>
+    /// Request password reset - sends reset email
+    /// </summary>
+    [HttpPost("forgot-password")]
+    public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto, [FromServices] RabbitMQ.Client.IConnection rabbitConnection)
+    {
+        try
+        {
+            // Find user by email
+            var user = await _db.Users
+                .Include(u => u.Profile)
+                .FirstOrDefaultAsync(u => u.Profile != null && u.Profile.Email == dto.Email);
+
+            // Always return success to prevent email enumeration
+            if (user == null)
+            {
+                return Ok(new { message = "If the email exists, a reset link has been sent." });
+            }
+
+            // Generate token
+            var token = Guid.NewGuid().ToString("N") + Guid.NewGuid().ToString("N");
+            var tokenHash = ComputeSha256(token);
+
+            // Store reset token (expires in 1 hour)
+            _db.PasswordResetTokens.Add(new PasswordResetToken
+            {
+                Id = Guid.NewGuid(),
+                UserId = user.Id,
+                TokenHash = tokenHash,
+                ExpiresAt = DateTime.UtcNow.AddHours(1),
+                CreatedAt = DateTime.UtcNow
+            });
+            await _db.SaveChangesAsync();
+
+            // Perform QueueDeclare with correct signature
+            using var channel = rabbitConnection.CreateModel();
+            channel.QueueDeclare(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null);
+            var emailEvent = new
+            {
+                Type = "password_reset",
+                Email = user.Profile!.Email,
+                FirstName = user.Profile.FirstName,
+                ResetToken = token
+            };
+            var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(emailEvent));
+            channel.BasicPublish(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: null, body: body);
+
+            return Ok(new { message = "If the email exists, a reset link has been sent." });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error processing request", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Reset password using token
+    /// </summary>
+    [HttpPost("reset-password")]
+    public async Task<IActionResult> ResetPassword([FromBody] ResetPasswordDto dto)
+    {
+        try
+        {
+            var tokenHash = ComputeSha256(dto.Token);
+            var resetToken = await _db.PasswordResetTokens
+                .Include(t => t.User)
+                .ThenInclude(u => u!.Profile)
+                .FirstOrDefaultAsync(t => t.TokenHash == tokenHash && t.UsedAt == null && t.ExpiresAt > DateTime.UtcNow);
+
+            if (resetToken == null)
+            {
+                return BadRequest(new { message = "Invalid or expired reset token" });
+            }
+
+            // Update password
+            var user = resetToken.User!;
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            // Mark token as used
+            resetToken.UsedAt = DateTime.UtcNow;
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Password has been reset successfully" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error resetting password", error = ex.Message });
+        }
+    }
+
+    /// <summary>
+    /// Change password for authenticated user
+    /// </summary>
+    [HttpPost("change-password")]
+    [Microsoft.AspNetCore.Authorization.Authorize]
+    public async Task<IActionResult> ChangePassword([FromBody] ChangePasswordDto dto)
+    {
+        try
+        {
+            if (!ModelState.IsValid) return BadRequest(ModelState);
+
+            var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
+            {
+                return Unauthorized();
+            }
+
+            var user = await _db.Users.FindAsync(userId);
+            if (user == null) return Unauthorized();
+
+            // Verify current password
+            if (!BCrypt.Net.BCrypt.Verify(dto.CurrentPassword, user.PasswordHash))
+            {
+                return BadRequest(new { message = "Incorrect current password" });
+            }
+
+            // Update with new password
+            user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(dto.NewPassword);
+            user.UpdatedAt = DateTime.UtcNow;
+
+            // Revoke all refresh tokens for this user?
+            // Optional: for better security, revoke to force re-login on other devices
+            // but might annoy user. For now, let's keep them logged in or just revoke specific token?
+            // Let's keep simpler: just update password.
+
+            await _db.SaveChangesAsync();
+
+            return Ok(new { message = "Password updated successfully" });
+        }
+        catch (Exception ex)
+        {
+            return StatusCode(500, new { message = "Error changing password", error = ex.Message });
+        }
     }
 
     private static string ComputeSha256(string input)

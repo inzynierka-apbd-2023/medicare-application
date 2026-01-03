@@ -31,6 +31,8 @@ public class CreateUserDto
     [Required]
     public string Role { get; set; } = "Patient"; // Role name: Admin, Doctor, Patient
 
+    public string? PlanId { get; set; }
+
     public DateTime? DateOfBirth { get; set; }
 }
 
@@ -133,4 +135,34 @@ public class RefreshTokenResponseDto
 public class RefreshRequestDto
 {
     public string RefreshToken { get; set; } = string.Empty;
+}
+
+public class ForgotPasswordDto
+{
+    [Required]
+    [EmailAddress]
+    public string Email { get; set; } = string.Empty;
+}
+
+public class ResetPasswordDto
+{
+    [Required]
+    public string Token { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100, MinimumLength = 6)]
+    public string NewPassword { get; set; } = string.Empty;
+}
+
+public class ChangePasswordDto
+{
+    [Required]
+    public string CurrentPassword { get; set; } = string.Empty;
+
+    [Required]
+    [StringLength(100, MinimumLength = 6)]
+    public string NewPassword { get; set; } = string.Empty;
+
+    [Compare("NewPassword", ErrorMessage = "The new password and confirmation password do not match.")]
+    public string ConfirmPassword { get; set; } = string.Empty;
 }

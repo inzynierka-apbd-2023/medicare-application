@@ -5,7 +5,7 @@ import { Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../../shared/auth/AuthContext";
 
 const Login: React.FC = () => {
-  const [cardNumber, setCardNumber] = useState<string>("");
+  const [username, setUsername] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
@@ -14,15 +14,11 @@ const Login: React.FC = () => {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    await login(cardNumber, password);
-    // Prefer immediate redirect to default dashboard if token is present
-    const token = localStorage.getItem("authToken");
-    if (token) {
-      const user = JSON.parse(sessionStorage.getItem("authUser") || "null");
-      // Fallback to login success splash if we can't resolve user yet
-      if (!user || !user.role) return navigate("/login-success");
+    const success = await login(username, password);
+
+    if (success) {
+      navigate("/login-success");
     }
-    navigate("/login-success");
   };
 
   return (
@@ -30,53 +26,37 @@ const Login: React.FC = () => {
       <div className="auth-card">
         <h1 className="auth-header">Welcome to Medicare</h1>
         <p className="auth-subtitle">
-          Are you logging in for the first time?{" "}
-          <button
-            type="button"
-            onClick={() => navigate("/forgot-password")}
-            className="text-link"
-          >
-            Find out how to collect your password
-          </button>
+          Sign in to access your healthcare dashboard
         </p>
 
-        {/* Tabs */}
-        <div className="flex justify-center space-x-4 mb-6 border-b pb-2"></div>
-
         <form onSubmit={handleSubmit} className="auth-form">
-          {/* Username (was: Card Number) */}
+          {/* Username */}
           <div className="form-group">
-            <div className="field-row">
-              <label className="field-label" htmlFor="cardNumber">Username</label>
-              <Link to="/forgot-card" className="field-link">
-                I forgot the username
-              </Link>
-            </div>
+            <label className="field-label" htmlFor="username">
+              Username
+            </label>
             <input
               type="text"
-              id="cardNumber"
+              id="username"
               className="auth-input"
-              placeholder="Enter username"
-              value={cardNumber}
-              onChange={(e) => setCardNumber(e.target.value)}
+              placeholder="Enter your username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
               required
             />
           </div>
 
-          {/* Password with eye icon */}
+          {/* Password */}
           <div className="form-group">
-            <div className="field-row">
-              <label className="field-label" htmlFor="password">Password</label>
-              <Link to="/forgot-password" className="field-link">
-                I forgot the password
-              </Link>
-            </div>
+            <label className="field-label" htmlFor="password">
+              Password
+            </label>
             <div className="field-group">
               <input
                 type={showPassword ? "text" : "password"}
                 id="password"
                 className="auth-input auth-input-with-icon"
-                placeholder="Enter password"
+                placeholder="Enter your password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -90,20 +70,20 @@ const Login: React.FC = () => {
               </button>
             </div>
           </div>
+
           {error && <div className="text-red-600 text-sm mb-2">{error}</div>}
+
           <button type="submit" className="auth-submit" disabled={loading}>
             {loading ? "Logging in..." : "Log in"}
           </button>
-          {/* API base shown removed to avoid leaking internal URL */}
         </form>
 
-        {/* CTA: Choose plan */}
+        {/* Register CTA */}
         <div className="auth-footer">
-          <p className="auth-footer-text">Not our patient?</p>
+          <p className="auth-footer-text">Don't have an account?</p>
           <Link to="/choose-plan" className="text-link">
-            Choose your plan
+            Register now
           </Link>
-          <p className="auth-cta-text">Skip queues with us!!!!!</p>
         </div>
       </div>
     </div>

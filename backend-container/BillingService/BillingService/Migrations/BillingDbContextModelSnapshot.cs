@@ -267,6 +267,63 @@ namespace BillingService.Migrations
                     b.ToTable("Payment_Transaction", "billing");
                 });
 
+            modelBuilder.Entity("BillingService.Models.Plan", b =>
+                {
+                    b.Property<string>("Code")
+                        .HasMaxLength(50)
+                        .HasColumnType("nvarchar(50)");
+
+                    b.Property<string>("BillingPeriod")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(20)
+                        .HasColumnType("nvarchar(20)")
+                        .HasDefaultValue("monthly");
+
+                    b.Property<string>("Currency")
+                        .IsRequired()
+                        .ValueGeneratedOnAdd()
+                        .HasMaxLength(3)
+                        .HasColumnType("nvarchar(3)")
+                        .HasDefaultValue("PLN");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<int>("FreeVisitsPerMonth")
+                        .HasColumnType("int");
+
+                    b.Property<bool>("HasDocuments")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("HasMessaging")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("HasPrescriptions")
+                        .HasColumnType("bit");
+
+                    b.Property<bool>("IsActive")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("bit")
+                        .HasDefaultValue(true);
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(100)
+                        .HasColumnType("nvarchar(100)");
+
+                    b.Property<int>("PriceCents")
+                        .HasColumnType("int");
+
+                    b.Property<int>("SortOrder")
+                        .HasColumnType("int");
+
+                    b.HasKey("Code");
+
+                    b.ToTable("Plan", "billing");
+                });
+
             modelBuilder.Entity("BillingService.Models.PspWebhookEvent", b =>
                 {
                     b.Property<string>("Id")

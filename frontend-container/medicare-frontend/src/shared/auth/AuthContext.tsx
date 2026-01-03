@@ -31,7 +31,7 @@ interface AuthState {
   user: AuthUser | null;
   token: string | null;
   loading: boolean;
-  login: (username: string, password: string) => Promise<void>;
+  login: (username: string, password: string) => Promise<boolean>;
   register: (data: {
     username: string;
     email: string;
@@ -63,7 +63,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log("🚧 DEV MODE: Using mock owner user");
       return MOCK_OWNER_USER;
     }
-    
+
     try {
       const raw = sessionStorage.getItem("authUser");
       if (raw) return JSON.parse(raw) as AuthUser;
@@ -72,15 +72,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
     return null;
   });
-  
+
   const [token, setToken] = useState<string | null>(() => {
     if (DEV_MOCK_OWNER) {
       return MOCK_TOKEN;
     }
     return authService.getToken();
   });
-  
-  const memAccessRef = useRef<string | null>(DEV_MOCK_OWNER ? MOCK_TOKEN : authService.getToken());
+
+  const memAccessRef = useRef<string | null>(
+    DEV_MOCK_OWNER ? MOCK_TOKEN : authService.getToken()
+  );
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -96,24 +98,29 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  const login = async (username: string, password: string) => {
+  const login = async (
+    username: string,
+    password: string
+  ): Promise<boolean> => {
     if (DEV_MOCK_OWNER) {
       console.log("🚧 DEV MODE: Mock login as owner");
       setUser(MOCK_OWNER_USER);
       setToken(MOCK_TOKEN);
       memAccessRef.current = MOCK_TOKEN;
-      return;
+      return true;
     }
-    
+
     setLoading(true);
     setError(null);
     try {
       // Trim inputs to avoid accidental whitespace issues from paste/typing
       const resp = await authService.login(username.trim(), password.trim());
       applyAuth(resp);
+      return true;
     } catch (e: unknown) {
       const error = e as { response?: { data?: { message?: string } } };
       setError(error.response?.data?.message || "Login failed");
+      return false;
     } finally {
       setLoading(false);
     }
@@ -199,7 +206,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log("🚧 DEV MODE: Skipping storage hydration, using mock data");
       return;
     }
-    
+
     // Hydrate from storage on mount if available
     if (!user) {
       try {
@@ -242,6 +249,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   return <Ctx.Provider value={ctxValue}>{children}</Ctx.Provider>;
 };
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

@@ -8,7 +8,7 @@ import "./styles/components.css";
 // Authentication Components
 import Login from "./features/signon/Login";
 import ForgotPassword from "./features/signon/ForgotPassword";
-import ForgotCardNumber from "./features/signon/ForgotCardNumber";
+import ResetPassword from "./features/signon/ResetPassword";
 import Register from "./features/signon/Register";
 import PlanSelection from "./features/signon/PlanSelection";
 import SubscriptionView from "./features/signon/SubscriptionView";
@@ -42,12 +42,12 @@ import { AppointmentAnalyticsPage } from "./features/appointmentAnalytics";
 import { StaffManagementPage } from "./features/staffManagement";
 import { ReceptionistSchedulerPage } from "./features/receptionistScheduler";
 import { PatientRegistryPage } from "./features/patientRegistry";
+import { TermsPage, PrivacyPage } from "./features/public";
 
 // Auth Components
 import { AuthProvider } from "./shared/auth/AuthContext";
 import { RoleBasedRoute } from "./shared/auth/RoleBasedRoute";
-
-// DevMockBanner removed (mock login disabled)
+import { PlanRestrictedRoute } from "./shared/auth/PlanRestricted";
 
 function App() {
   return (
@@ -62,7 +62,10 @@ function App() {
             <Route path="/register" element={<Register />} />
             <Route path="/complete-profile" element={<CompleteProfile />} />
             <Route path="/forgot-password" element={<ForgotPassword />} />
-            <Route path="/forgot-card" element={<ForgotCardNumber />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/terms" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+
             <Route path="/choose-plan" element={<PlanSelection />} />
             <Route path="/subscription-view" element={<SubscriptionView />} />
             <Route path="/login-success" element={<LoginSuccess />} />
@@ -130,7 +133,9 @@ function App() {
               path="/my-documents"
               element={
                 <RoleBasedRoute allowedRoles={["Patient"]}>
-                  <DocumentsPage />
+                  <PlanRestrictedRoute feature="hasDocuments">
+                    <DocumentsPage />
+                  </PlanRestrictedRoute>
                 </RoleBasedRoute>
               }
             />
@@ -138,7 +143,10 @@ function App() {
               path="/lab-results"
               element={
                 <RoleBasedRoute allowedRoles={["Patient"]}>
-                  <LabResultsPage />
+                  {/* Lab results usually considered part of documents/records */}
+                  <PlanRestrictedRoute feature="hasDocuments">
+                    <LabResultsPage />
+                  </PlanRestrictedRoute>
                 </RoleBasedRoute>
               }
             />
@@ -146,7 +154,9 @@ function App() {
               path="/lab-results/:documentId"
               element={
                 <RoleBasedRoute allowedRoles={["Patient"]}>
-                  <LabResultDetailPage />
+                  <PlanRestrictedRoute feature="hasDocuments">
+                    <LabResultDetailPage />
+                  </PlanRestrictedRoute>
                 </RoleBasedRoute>
               }
             />
@@ -154,7 +164,9 @@ function App() {
               path="/my-prescriptions"
               element={
                 <RoleBasedRoute allowedRoles={["Patient"]}>
-                  <Navigate to="/my-documents?filter=prescriptions" replace />
+                  <PlanRestrictedRoute feature="hasPrescriptions">
+                    <Navigate to="/my-documents?filter=prescriptions" replace />
+                  </PlanRestrictedRoute>
                 </RoleBasedRoute>
               }
             />
@@ -168,6 +180,7 @@ function App() {
                 </RoleBasedRoute>
               }
             />
+            {/* ... other doctor routes ... */}
             <Route
               path="/todays-appointments"
               element={
@@ -260,7 +273,9 @@ function App() {
                 <RoleBasedRoute
                   allowedRoles={["Patient", "Doctor", "Receptionist"]}
                 >
-                  <SimpleMessagesPage />
+                  <PlanRestrictedRoute feature="hasMessaging">
+                    <SimpleMessagesPage />
+                  </PlanRestrictedRoute>
                 </RoleBasedRoute>
               }
             />

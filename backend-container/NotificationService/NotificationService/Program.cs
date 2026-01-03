@@ -28,6 +28,10 @@ builder.Services.AddControllers();
 builder.AddRabbitMQClient("rabbitmq");
 builder.Services.AddHostedService<NotificationService.Services.NotificationConsumerService>();
 
+// Email service configuration
+builder.Services.Configure<NotificationService.Services.SmtpSettings>(builder.Configuration.GetSection("Smtp"));
+builder.Services.AddScoped<NotificationService.Services.IEmailService, NotificationService.Services.GmailEmailService>();
+
 builder.Services.AddDbContext<NotificationsDbContext>((sp, options) =>
 {
     // Suppress EF Core 9 PendingModelChangesWarning for local development

@@ -15,6 +15,7 @@ public class BillingDbContext : DbContext
     public DbSet<SubscriptionPayment> SubscriptionPayments => Set<SubscriptionPayment>();
     public DbSet<PspWebhookEvent> PspWebhookEvents => Set<PspWebhookEvent>();
     public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
+    public DbSet<Plan> Plans => Set<Plan>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -67,6 +68,16 @@ public class BillingDbContext : DbContext
             e.Property(p => p.Id).HasDefaultValueSql(SqlGuid);
             e.Property(p => p.OccurredAt).HasDefaultValueSql(SysUtc);
             e.HasIndex(p => p.PublishedAt);
+        });
+        modelBuilder.Entity<Plan>(e =>
+        {
+            e.HasKey(p => p.Code);
+            e.Property(p => p.Code).HasMaxLength(50);
+            e.Property(p => p.Name).HasMaxLength(100).IsRequired();
+            e.Property(p => p.Description).HasMaxLength(500);
+            e.Property(p => p.Currency).HasMaxLength(3).HasDefaultValue("PLN");
+            e.Property(p => p.BillingPeriod).HasMaxLength(20).HasDefaultValue("monthly");
+            e.Property(p => p.IsActive).HasDefaultValue(true);
         });
 
         // View mappings - views are created at startup in Program.cs

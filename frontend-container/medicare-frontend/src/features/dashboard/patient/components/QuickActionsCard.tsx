@@ -3,6 +3,7 @@ import {
   Calendar,
   CreditCard,
   FileText,
+  Lock,
   MapPin,
   MessageSquare,
   Pill,
@@ -29,6 +30,11 @@ interface QuickActionsCardProps {
   onViewMedications?: () => void;
   onViewBilling?: () => void;
   onManageProfile?: () => void;
+  features?: {
+    hasMessaging: boolean;
+    hasDocuments: boolean;
+    hasPrescriptions: boolean;
+  };
 }
 
 export default function QuickActionsCard({
@@ -38,6 +44,7 @@ export default function QuickActionsCard({
   onViewMedications,
   onViewBilling,
   onManageProfile,
+  features,
 }: QuickActionsCardProps) {
   const quickActions: QuickAction[] = [
     {
@@ -51,29 +58,52 @@ export default function QuickActionsCard({
     {
       id: "messages",
       title: "Messages",
-      description: "Chat with your doctor",
-      icon: <MessageSquare className="w-5 h-5" />,
-      action: onViewMessages || (() => {}),
-      color:
-        "bg-purple-50 hover:bg-purple-100 text-purple-600 border-purple-200",
+      description: features?.hasMessaging
+        ? "Chat with your doctor"
+        : "Upgrade to unlock",
+      icon: features?.hasMessaging ? (
+        <MessageSquare className="w-5 h-5" />
+      ) : (
+        <Lock className="w-4 h-4" />
+      ),
+      action: features?.hasMessaging ? onViewMessages || (() => {}) : () => {},
+      color: features?.hasMessaging
+        ? "bg-purple-50 hover:bg-purple-100 text-purple-600 border-purple-200"
+        : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70",
     },
     {
       id: "prescriptions",
       title: "Prescriptions",
-      description: "View medications",
-      icon: <Pill className="w-5 h-5" />,
-      action: onViewMedications || (() => {}),
-      color:
-        "bg-orange-50 hover:bg-orange-100 text-orange-600 border-orange-200",
+      description: features?.hasPrescriptions
+        ? "View medications"
+        : "Upgrade to unlock",
+      icon: features?.hasPrescriptions ? (
+        <Pill className="w-5 h-5" />
+      ) : (
+        <Lock className="w-4 h-4" />
+      ),
+      action: features?.hasPrescriptions
+        ? onViewMedications || (() => {})
+        : () => {},
+      color: features?.hasPrescriptions
+        ? "bg-orange-50 hover:bg-orange-100 text-orange-600 border-orange-200"
+        : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70",
     },
     {
       id: "documents",
       title: "Medical Records",
-      description: "Access your files",
-      icon: <FileText className="w-5 h-5" />,
-      action: onViewDocuments || (() => {}),
-      color:
-        "bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border-indigo-200",
+      description: features?.hasDocuments
+        ? "Access your files"
+        : "Upgrade to unlock",
+      icon: features?.hasDocuments ? (
+        <FileText className="w-5 h-5" />
+      ) : (
+        <Lock className="w-4 h-4" />
+      ),
+      action: features?.hasDocuments ? onViewDocuments || (() => {}) : () => {},
+      color: features?.hasDocuments
+        ? "bg-indigo-50 hover:bg-indigo-100 text-indigo-600 border-indigo-200"
+        : "bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed opacity-70",
     },
     {
       id: "billing",

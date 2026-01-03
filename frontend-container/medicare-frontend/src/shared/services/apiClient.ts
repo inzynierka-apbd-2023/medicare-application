@@ -59,7 +59,19 @@ apiClient.interceptors.response.use(
   (r: AxiosResponse) => r,
   async (error: AxiosError) => {
     const original = error.config as RetriableRequestConfig;
-    if (error.response?.status === 401 && !original?._retry) {
+    const url = original?.url || "";
+
+    // Skip refresh logic for auth endpoints - these handle their own errors
+    const isAuthEndpoint =
+      url.includes("/auth/login") ||
+      url.includes("/auth/register") ||
+      url.includes("/auth/refresh");
+
+    if (
+      error.response?.status === 401 &&
+      !original?._retry &&
+      !isAuthEndpoint
+    ) {
       original._retry = true;
       if (isRefreshing) {
         return new Promise((resolve, reject) => {

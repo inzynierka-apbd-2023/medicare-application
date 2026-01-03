@@ -5,26 +5,27 @@ namespace AppointmentService.Data;
 
 /// <summary>
 /// Shared deterministic IDs for cross-service mock data references
+/// Patient/Doctor IDs match User IDs from UserService for seamless auth integration
 /// </summary>
 public static class MockIds
 {
-    // Patient IDs (from PatientService)
-    public static readonly Guid Patient1 = Guid.Parse("11111111-1111-1111-1111-000000000001");
-    public static readonly Guid Patient2 = Guid.Parse("11111111-1111-1111-1111-000000000002");
-    public static readonly Guid Patient3 = Guid.Parse("11111111-1111-1111-1111-000000000003");
-    public static readonly Guid Patient4 = Guid.Parse("11111111-1111-1111-1111-000000000004");
-    public static readonly Guid Patient5 = Guid.Parse("11111111-1111-1111-1111-000000000005");
-    public static readonly Guid Patient6 = Guid.Parse("11111111-1111-1111-1111-000000000006");
-    public static readonly Guid Patient7 = Guid.Parse("11111111-1111-1111-1111-000000000007");
+    // Patient IDs (matching User IDs from UserService for login integration)
+    public static readonly Guid Patient1 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000001");
+    public static readonly Guid Patient2 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000002");
+    public static readonly Guid Patient3 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000003");
+    public static readonly Guid Patient4 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000004");
+    public static readonly Guid Patient5 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000005");
+    public static readonly Guid Patient6 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000006");
+    public static readonly Guid Patient7 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000007");
 
-    // Doctor IDs (from PractitionerService)
-    public static readonly Guid Doctor1 = Guid.Parse("22222222-2222-2222-2222-000000000001");
-    public static readonly Guid Doctor2 = Guid.Parse("22222222-2222-2222-2222-000000000002");
-    public static readonly Guid Doctor3 = Guid.Parse("22222222-2222-2222-2222-000000000003");
-    public static readonly Guid Doctor4 = Guid.Parse("22222222-2222-2222-2222-000000000004");
-    public static readonly Guid Doctor5 = Guid.Parse("22222222-2222-2222-2222-000000000005");
-    public static readonly Guid Doctor6 = Guid.Parse("22222222-2222-2222-2222-000000000006");
-    public static readonly Guid Doctor7 = Guid.Parse("22222222-2222-2222-2222-000000000007");
+    // Doctor IDs (matching User IDs from UserService for login integration)
+    public static readonly Guid Doctor1 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001");
+    public static readonly Guid Doctor2 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000002");
+    public static readonly Guid Doctor3 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000003");
+    public static readonly Guid Doctor4 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000004");
+    public static readonly Guid Doctor5 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000005");
+    public static readonly Guid Doctor6 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000006");
+    public static readonly Guid Doctor7 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000007");
 
     // Appointment IDs
     public static readonly Guid Appointment1 = Guid.Parse("55555555-5555-5555-5555-000000000001");

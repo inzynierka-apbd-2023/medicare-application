@@ -4,6 +4,8 @@ import { Calendar, CreditCard, Mail, MapPin, Phone, User } from "lucide-react";
 import { Button, Card } from "../../../shared/components";
 import type { ProfileDisplayProps } from "../types";
 
+import { SubscriptionCard } from "./SubscriptionCard";
+
 export const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
   profileData,
   onEdit,
@@ -99,6 +101,9 @@ export const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
           ))}
         </div>
       </Card>
+
+      {/* Subscription Information */}
+      <SubscriptionCard />
 
       {/* Security Section */}
       <Card

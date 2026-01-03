@@ -6,7 +6,6 @@ export const ROUTES = {
     LOGIN: "/login",
     REGISTER: "/register",
     FORGOT_PASSWORD: "/forgot-password",
-    FORGOT_CARD: "/forgot-card",
     CHOOSE_PLAN: "/choose-plan",
     SUBSCRIPTION_VIEW: "/subscription-view",
     LOGIN_SUCCESS: "/login-success",
@@ -238,8 +237,8 @@ export const getDefaultDashboard = (role: string): string => {
     Patient: ROUTES.DASHBOARDS.PATIENT,
     Doctor: ROUTES.DASHBOARDS.DOCTOR,
     Owner: ROUTES.DASHBOARDS.OWNER,
-  // Map Admins to the Owner dashboard for now
-  Admin: ROUTES.DASHBOARDS.OWNER,
+    // Map Admins to the Owner dashboard for now
+    Admin: ROUTES.DASHBOARDS.OWNER,
     Receptionist: ROUTES.DASHBOARDS.RECEPTIONIST,
   };
 

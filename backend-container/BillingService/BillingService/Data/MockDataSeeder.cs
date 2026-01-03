@@ -5,17 +5,18 @@ namespace BillingService.Data;
 
 /// <summary>
 /// Shared deterministic IDs for cross-service mock data references
+/// Patient IDs match User IDs from UserService for seamless auth integration
 /// </summary>
 public static class MockIds
 {
-    // Patient IDs (from PatientService)
-    public static readonly Guid Patient1 = Guid.Parse("11111111-1111-1111-1111-000000000001");
-    public static readonly Guid Patient2 = Guid.Parse("11111111-1111-1111-1111-000000000002");
-    public static readonly Guid Patient3 = Guid.Parse("11111111-1111-1111-1111-000000000003");
-    public static readonly Guid Patient4 = Guid.Parse("11111111-1111-1111-1111-000000000004");
-    public static readonly Guid Patient5 = Guid.Parse("11111111-1111-1111-1111-000000000005");
-    public static readonly Guid Patient6 = Guid.Parse("11111111-1111-1111-1111-000000000006");
-    public static readonly Guid Patient7 = Guid.Parse("11111111-1111-1111-1111-000000000007");
+    // Patient IDs (matching User IDs from UserService for login integration)
+    public static readonly Guid Patient1 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000001");
+    public static readonly Guid Patient2 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000002");
+    public static readonly Guid Patient3 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000003");
+    public static readonly Guid Patient4 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000004");
+    public static readonly Guid Patient5 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000005");
+    public static readonly Guid Patient6 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000006");
+    public static readonly Guid Patient7 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000007");
 
     // Appointment IDs (from AppointmentService)
     public static readonly Guid Appointment1 = Guid.Parse("55555555-5555-5555-5555-000000000001");
@@ -66,6 +67,96 @@ public static class MockDataSeeder
     {
         int created = 0;
 
+        // Seed Plan definitions (5 tiers including FREE)
+        var existingPlanCodes = await db.Plans.Select(p => p.Code).ToHashSetAsync();
+        var planDefinitions = new[]
+        {
+            new Plan
+            {
+                Code = "FREE",
+                Name = "Pay Per Visit",
+                Description = "No subscription required. Pay only when you book an appointment.",
+                PriceCents = 0, // Free - no subscription cost
+                Currency = "PLN",
+                BillingPeriod = "none",
+                FreeVisitsPerMonth = 0,
+                HasMessaging = false,
+                HasPrescriptions = false,
+                HasDocuments = false,
+                IsActive = true,
+                SortOrder = 0
+            },
+            new Plan
+            {
+                Code = "BASIC_MONTHLY",
+                Name = "Basic Monthly",
+                Description = "5 free visits per month. Additional visits paid separately.",
+                PriceCents = 4900, // 49 PLN
+                Currency = "PLN",
+                BillingPeriod = "monthly",
+                FreeVisitsPerMonth = 5,
+                HasMessaging = false,
+                HasPrescriptions = false,
+                HasDocuments = false,
+                IsActive = true,
+                SortOrder = 1
+            },
+            new Plan
+            {
+                Code = "BASIC_YEARLY",
+                Name = "Basic Yearly",
+                Description = "5 free visits per month. Additional visits paid separately. Save 2 months!",
+                PriceCents = 49000, // 490 PLN
+                Currency = "PLN",
+                BillingPeriod = "yearly",
+                FreeVisitsPerMonth = 5,
+                HasMessaging = false,
+                HasPrescriptions = false,
+                HasDocuments = false,
+                IsActive = true,
+                SortOrder = 2
+            },
+            new Plan
+            {
+                Code = "PREMIUM_MONTHLY",
+                Name = "Premium Monthly",
+                Description = "Full access to all features. Every visit paid upfront.",
+                PriceCents = 14900, // 149 PLN
+                Currency = "PLN",
+                BillingPeriod = "monthly",
+                FreeVisitsPerMonth = 0,
+                HasMessaging = true,
+                HasPrescriptions = true,
+                HasDocuments = true,
+                IsActive = true,
+                SortOrder = 3
+            },
+            new Plan
+            {
+                Code = "PREMIUM_YEARLY",
+                Name = "Premium Yearly",
+                Description = "Full access to all features. Every visit paid upfront. Save 2 months!",
+                PriceCents = 149000, // 1490 PLN
+                Currency = "PLN",
+                BillingPeriod = "yearly",
+                FreeVisitsPerMonth = 0,
+                HasMessaging = true,
+                HasPrescriptions = true,
+                HasDocuments = true,
+                IsActive = true,
+                SortOrder = 4
+            }
+        };
+
+        foreach (var plan in planDefinitions)
+        {
+            if (!existingPlanCodes.Contains(plan.Code))
+            {
+                db.Plans.Add(plan);
+                created++;
+            }
+        }
+
         // Seed Payment Methods (7 patients with cards)
         var cardBrands = new[] { "Visa", "Mastercard", "Amex", "Visa", "Mastercard", "Discover", "Visa" };
         var last4s = new[] { "4242", "5555", "3782", "1234", "9876", "6011", "4444" };
@@ -92,7 +183,7 @@ public static class MockDataSeeder
         }
 
         // Seed Subscription Contracts (7 patients with various plans)
-        var planCodes = new[] { "PREMIUM", "BASIC", "PREMIUM", "FAMILY", "BASIC", "PREMIUM", "FAMILY" };
+        var subscriptionPlanCodes = new[] { "PREMIUM_MONTHLY", "BASIC_MONTHLY", "PREMIUM_YEARLY", "BASIC_YEARLY", "BASIC_MONTHLY", "PREMIUM_MONTHLY", "BASIC_YEARLY" };
         var statuses = new[] 
         { 
             SubscriptionStatus.Active, 
@@ -114,7 +205,7 @@ public static class MockDataSeeder
                 {
                     Id = subId,
                     PatientId = MockIds.AllPatientIds[i],
-                    PlanCode = planCodes[i],
+                    PlanCode = subscriptionPlanCodes[i],
                     PeriodStart = DateTime.UtcNow.AddMonths(-1).Date,
                     PeriodEnd = DateTime.UtcNow.AddMonths(1).Date,
                     Status = statuses[i],
@@ -219,7 +310,7 @@ public static class MockDataSeeder
                     Id = Guid.NewGuid(),
                     SubscriptionContractId = subId,
                     PatientId = MockIds.AllPatientIds[i],
-                    PlanCode = planCodes[i],
+                    PlanCode = subscriptionPlanCodes[i],
                     PeriodStart = DateTime.UtcNow.AddMonths(-1).Date,
                     PeriodEnd = DateTime.UtcNow.Date,
                     AmountCents = intentAmounts[i],

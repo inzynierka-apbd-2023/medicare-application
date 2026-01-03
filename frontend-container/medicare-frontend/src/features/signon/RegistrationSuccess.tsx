@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
+
 import { useAuth } from "../../shared/auth/AuthContext";
 
 export default function RegistrationSuccess() {
@@ -12,6 +13,7 @@ export default function RegistrationSuccess() {
       return `Welcome, ${user.firstName || ""}`;
     return "Registration Successful!";
   })();
+
   return (
     <div className="success-container">
       <div className="success-card">
@@ -21,17 +23,16 @@ export default function RegistrationSuccess() {
 
         <h1 className="success-title">{greeting}</h1>
 
-  <p className="success-text">Your account has been created successfully.</p>
+        <p className="success-text">
+          Your account has been created successfully.
+        </p>
 
         <div className="success-info">
           <h3 className="success-info-title">What's Next?</h3>
           <ul className="success-info-list">
-            <li>
-              � You'll receive your Medicare card by mail within 5-7 business
-              days
-            </li>
-            <li>� Check your email for your temporary login credentials</li>
-            <li>� Download our mobile app for easy access</li>
+            <li>You can now sign in with the credentials you just created</li>
+            <li>Book your first appointment from the dashboard</li>
+            <li>Complete your profile to get personalized care</li>
           </ul>
         </div>
 
@@ -39,16 +40,12 @@ export default function RegistrationSuccess() {
           <Link to="/login" className="btn-primary text-center">
             Sign In Now
           </Link>
-
-          <Link to="/choose-plan" className="btn-secondary text-center">
-            View Plans Again
-          </Link>
         </div>
 
         <p className="success-help">
           Need help? Contact our support team at{" "}
-          <a href="tel:1300555123" className="text-link">
-            1300 555 123
+          <a href="tel:+48111111111" className="text-link">
+            +48 111 111 111
           </a>
         </p>
       </div>

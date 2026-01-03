@@ -6,19 +6,40 @@ import type { BuySubscriptionModalProps, Plan } from "../types";
 
 const DEFAULT_PLANS: Plan[] = [
   {
-    id: "monthly",
-    name: "Monthly",
-    description: "Full access for one month",
+    id: "FREE",
+    name: "Pay Per Visit",
+    description: "No subscription. Pay only when you book an appointment.",
+    price: 0,
+    currency: "PLN",
+  },
+  {
+    id: "BASIC_MONTHLY",
+    name: "Basic Monthly",
+    description: "5 free visits per month. Additional visits paid separately.",
     price: 49,
     currency: "PLN",
   },
   {
-    id: "yearly",
-    name: "Yearly",
-    description: "Full access for one year",
-    price: 499,
+    id: "BASIC_YEARLY",
+    name: "Basic Yearly",
+    description: "5 free visits per month. Save 2 months!",
+    price: 490,
     currency: "PLN",
     best: true,
+  },
+  {
+    id: "PREMIUM_MONTHLY",
+    name: "Premium Monthly",
+    description: "Full access to all features. All visits paid upfront.",
+    price: 149,
+    currency: "PLN",
+  },
+  {
+    id: "PREMIUM_YEARLY",
+    name: "Premium Yearly",
+    description: "Full access to all features. Save 2 months!",
+    price: 1490,
+    currency: "PLN",
   },
 ];
 

@@ -69,11 +69,15 @@ export const profileService = {
 
   async changePassword(
     _userId: string,
-    _currentPassword: string,
-    _newPassword: string
+    currentPassword: string,
+    newPassword: string
   ): Promise<void> {
-    // Not implemented yet server-side.
-    return Promise.resolve();
+    const { apiClient } = await import("../services/apiClient");
+    await apiClient.post("/auth/change-password", {
+      currentPassword,
+      newPassword,
+      confirmPassword: newPassword,
+    });
   },
 };
 

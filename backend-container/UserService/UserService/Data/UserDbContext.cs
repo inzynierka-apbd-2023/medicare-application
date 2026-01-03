@@ -12,6 +12,7 @@ public class UserDbContext : DbContext
     public DbSet<UserProfile> UserProfiles { get; set; }
     public DbSet<OutboxEvent> OutboxEvents { get; set; }
     public DbSet<RefreshToken> RefreshTokens { get; set; }
+    public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -75,6 +76,17 @@ public class UserDbContext : DbContext
             entity.Property(e => e.ExpiresAt).HasDefaultValueSql("DATEADD(day,7,SYSUTCDATETIME())");
             entity.Property(e => e.TokenHash).HasMaxLength(128).IsRequired();
             entity.HasIndex(e => new { e.UserId, e.ExpiresAt });
+        });
+
+        modelBuilder.Entity<PasswordResetToken>(entity =>
+        {
+            entity.ToTable("Password_Reset_Token", schema: "user");
+            entity.HasKey(e => e.Id);
+            entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
+            entity.Property(e => e.CreatedAt).HasDefaultValueSql(SysUtc);
+            entity.Property(e => e.TokenHash).HasMaxLength(100).IsRequired();
+            entity.HasIndex(e => e.TokenHash).IsUnique();
+            entity.HasOne(e => e.User).WithMany().HasForeignKey(e => e.UserId);
         });
     }
 }

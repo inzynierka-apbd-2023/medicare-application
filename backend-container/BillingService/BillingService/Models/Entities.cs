@@ -130,3 +130,36 @@ public class DoctorRevenueDashboard
     public long TotalRevenueCents { get; set; }
     public int PaidAppointments { get; set; }
 }
+
+/// <summary>
+/// Subscription plan definitions with feature flags
+/// </summary>
+[Table("Plan", Schema = "billing")]
+public class Plan
+{
+    [Key, MaxLength(50)]
+    public string Code { get; set; } = default!; // BASIC_MONTHLY, BASIC_YEARLY, PREMIUM_MONTHLY, PREMIUM_YEARLY
+    
+    [MaxLength(100)]
+    public string Name { get; set; } = default!;
+    
+    [MaxLength(500)]
+    public string? Description { get; set; }
+    
+    public int PriceCents { get; set; } // Price in cents (4900 = 49 PLN)
+    
+    [MaxLength(3)]
+    public string Currency { get; set; } = "PLN";
+    
+    [MaxLength(20)]
+    public string BillingPeriod { get; set; } = "monthly"; // monthly or yearly
+    
+    public int FreeVisitsPerMonth { get; set; } // 5 for Basic, 0 for Premium
+    
+    public bool HasMessaging { get; set; }
+    public bool HasPrescriptions { get; set; }
+    public bool HasDocuments { get; set; }
+    
+    public bool IsActive { get; set; } = true;
+    public int SortOrder { get; set; } // For UI ordering
+}

@@ -29,6 +29,9 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Progr
 // Add services
 builder.Services.AddScoped<BillingService.Services.IRevenueMetricsService, BillingService.Services.RevenueMetricsService>();
 
+builder.Services.Configure<BillingService.Infrastructure.Messaging.RabbitOptions>(builder.Configuration.GetSection("RabbitMQ"));
+builder.Services.AddHostedService<BillingService.Infrastructure.Messaging.BillingEventConsumer>();
+
 builder.Services.AddDbContext<BillingDbContext>((sp, options) =>
 {
     // Suppress EF Core 9 PendingModelChangesWarning for local development
