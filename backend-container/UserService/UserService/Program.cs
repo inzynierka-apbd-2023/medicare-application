@@ -112,6 +112,10 @@ try
 
     var app = builder.Build();
 
+    // Apply migrations and seed data BEFORE health checks are mapped
+    // This ensures data is ready before other services (e.g., PractitionerService) start
+    await ApplyMigrationsAndSeedAsync(app.Services, app.Environment.IsDevelopment());
+
     if (app.Environment.IsDevelopment())
     {
         app.UseSwagger();
@@ -124,9 +128,6 @@ try
     app.UseAuthorization();
     app.MapControllers();
     app.MapHealthChecks("/health");
-
-    // Always apply migrations to ensure DB exists in Azure (Production)
-    await ApplyMigrationsAndSeedAsync(app.Services, app.Environment.IsDevelopment());
 
     app.MapDefaultEndpoints();
 
@@ -211,7 +212,7 @@ END";
                 Console.WriteLine($"[Startup] Fallback Refresh_Token create failed: {ex.Message}");
             }
             await SeedRolesAsync(db);
-            await SeedDevelopmentUsersAsync(db);
+            // Use MockDataSeeder for all test users (removed old SeedDevelopmentUsersAsync)
             await UserService.Data.MockDataSeeder.SeedAsync(db);
             Console.WriteLine("[Startup] Migrations & seeding complete.");
             break;
@@ -250,58 +251,4 @@ static async Task SeedRolesAsync(UserDbContext db)
     }
 }
 
-static async Task SeedDevelopmentUsersAsync(UserDbContext db)
-{
-    // Development test users with known passwords and DETERMINISTIC IDs
-    // These IDs must match MockIds in other services for cross-service references
-    var testUsers = new[]
-    {
-        new { Id = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000001"), Username = "patient_a_20250818", Password = "P@ssw0rd!", Role = "Patient", FirstName = "Test", LastName = "Patient", Email = "patient@test.local" },
-        new { Id = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001"), Username = "doctor_a_20250818", Password = "P@ssw0rd!", Role = "Doctor", FirstName = "Test", LastName = "Doctor", Email = "doctor@test.local" },
-        new { Id = Guid.Parse("cccccccc-0003-0003-0003-000000000001"), Username = "reception_a_20250818", Password = "P@ssw0rd!", Role = "Receptionist", FirstName = "Test", LastName = "Receptionist", Email = "reception@test.local" },
-        new { Id = Guid.Parse("dddddddd-0004-0004-0004-000000000001"), Username = "admin_a_20250818", Password = "P@ssw0rd!", Role = "Admin", FirstName = "Test", LastName = "Admin", Email = "admin@test.local" },
-        new { Id = Guid.Parse("eeeeeeee-0005-0005-0005-000000000001"), Username = "owner@test.local", Password = "P@ssw0rd!", Role = "Owner", FirstName = "Test", LastName = "Owner", Email = "owner@test.local" },
-    };
-
-    var existingUsernames = await db.Users.Select(u => u.Username).ToListAsync();
-    var roles = await db.Roles.ToDictionaryAsync(r => r.Name, r => r.Id);
-    int created = 0;
-
-    foreach (var tu in testUsers)
-    {
-        if (existingUsernames.Contains(tu.Username)) continue;
-        if (!roles.TryGetValue(tu.Role, out var roleId)) continue;
-
-        db.Users.Add(new User
-        {
-            Id = tu.Id,
-            Username = tu.Username,
-            PasswordHash = BCrypt.Net.BCrypt.HashPassword(tu.Password),
-            RoleId = roleId,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow,
-            IsActive = true
-        });
-        db.UserProfiles.Add(new UserProfile
-        {
-            UserId = tu.Id,
-            FirstName = tu.FirstName,
-            LastName = tu.LastName,
-            Email = tu.Email,
-            CreatedAt = DateTime.UtcNow,
-            UpdatedAt = DateTime.UtcNow
-        });
-        created++;
-    }
-
-    if (created > 0)
-    {
-        await db.SaveChangesAsync();
-        Console.WriteLine($"[Startup] Seeded {created} development test users:");
-        foreach (var tu in testUsers)
-        {
-            if (!existingUsernames.Contains(tu.Username))
-                Console.WriteLine($"  - {tu.Username} / {tu.Password} ({tu.Role})");
-        }
-    }
-}
+// SeedDevelopmentUsersAsync removed - MockDataSeeder.SeedAsync handles all test users now
