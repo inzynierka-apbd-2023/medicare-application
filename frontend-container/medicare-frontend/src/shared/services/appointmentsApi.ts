@@ -11,60 +11,41 @@ const toUiAppointment = async (row: any): Promise<Appointment> => {
   const time = start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
   // Resolve doctor name via Practitioner directory or fallback to user profile
-  const doctorId = String(row.doctorId ?? "");
+  const doctorId = String(row.doctorId ?? "").toLowerCase();
   let doctorName = "Unknown Doctor";
+  let doctorUserId = "";
   try {
     const list = await api.get("/practitioner/doctors");
     const rows = Array.isArray(list.data) ? list.data : [];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const d = rows.find(
       (r: any) =>
-        String(r.DoctorId ?? r.doctorId) === doctorId ||
-        String(r.UserId ?? r.userId) === doctorId
+        String(r.DoctorId ?? r.doctorId ?? "").toLowerCase() === doctorId ||
+        String(r.UserId ?? r.userId ?? "").toLowerCase() === doctorId
     );
     if (d) {
       const first = String(d.FirstName ?? d.firstName ?? "");
       const last = String(d.LastName ?? d.lastName ?? "");
       const name = `${first} ${last}`.trim();
-      if (name) doctorName = name;
-    } else if (doctorId) {
-      // Fallback to practitioner entity then user profile
+      if (name) {
+        doctorName = name;
+      } else {
+        // Doctor found but no name in directory - get userId for fallback lookup
+        doctorUserId = String(d.UserId ?? d.userId ?? "");
+      }
+    }
+    
+    // Fallback: if still unknown, try fetching user profile directly
+    if (doctorName === "Unknown Doctor" && (doctorUserId || doctorId)) {
+      const userIdToFetch = doctorUserId || doctorId;
       try {
-        const dr = await api.get(`/practitioner/doctors/${doctorId}`);
-        const userId = String(dr.data?.userId ?? dr.data?.UserId ?? "");
-        if (userId) {
-          try {
-            const u = await api.get(`/users/${userId}`);
-            const first = String(u.data?.firstName ?? u.data?.FirstName ?? "");
-            const last = String(u.data?.lastName ?? u.data?.LastName ?? "");
-            const name = `${first} ${last}`.trim();
-            if (name) doctorName = name;
-          } catch {
-            // ignore user fetch failure
-          }
-        } else {
-          // If no userId in practitioner entity, attempt direct user fetch by doctorId
-          try {
-            const u = await api.get(`/users/${doctorId}`);
-            const first = String(u.data?.firstName ?? u.data?.FirstName ?? "");
-            const last = String(u.data?.lastName ?? u.data?.LastName ?? "");
-            const name = `${first} ${last}`.trim();
-            if (name) doctorName = name;
-          } catch {
-            // ignore
-          }
-        }
+        const u = await api.get(`/users/${userIdToFetch}`);
+        const first = String(u.data?.firstName ?? u.data?.FirstName ?? "");
+        const last = String(u.data?.lastName ?? u.data?.LastName ?? "");
+        const name = `${first} ${last}`.trim();
+        if (name) doctorName = name;
       } catch {
-        // Practitioner doctor not found; try treating doctorId as userId directly
-        try {
-          const u = await api.get(`/users/${doctorId}`);
-          const first = String(u.data?.firstName ?? u.data?.FirstName ?? "");
-          const last = String(u.data?.lastName ?? u.data?.LastName ?? "");
-          const name = `${first} ${last}`.trim();
-          if (name) doctorName = name;
-        } catch {
-          // ignore
-        }
+        // ignore user fetch failure
       }
     }
   } catch {

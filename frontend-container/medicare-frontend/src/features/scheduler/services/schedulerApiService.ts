@@ -33,12 +33,10 @@ const USE_REAL_APPOINTMENTS = true;
 const USE_REAL_DOCTORS = true;
 // Always use real, database-backed availability (Practitioner schedules + booked appointments)
 const USE_REAL_TIME_SLOTS = true;
-// When using real appointments but mock doctors, map to a real test doctor GUID
-const TEST_DOCTOR_ID: string = (import.meta as any).env?.VITE_TEST_DOCTOR_ID ||
-  "5a576dc0-cf45-4868-9112-9ae245461020"; // fallback known test doctor id
 
+// More permissive GUID validation - accepts any valid GUID format, not just RFC 4122 compliant
 const isGuid = (v: string): boolean =>
-  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-5][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}$/.test(
+  /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
     v
   );
 
@@ -301,9 +299,25 @@ export class SchedulerApiService {
 
     try {
       // Map to AppointmentService route via Nginx: /api/appointment/appointments/patient/{patientId}
-  const response = await api.get(`/appointment/appointments/patient/${patientId}`);
-  const items = Array.isArray(response.data) ? response.data : [];
-  return items.map((a: any) => this.mapBackendAppointmentToUi(a));
+      const response = await api.get(`/appointment/appointments/patient/${patientId}`);
+      const items = Array.isArray(response.data) ? response.data : [];
+      const appointments = items.map((a: any) => this.mapBackendAppointmentToUi(a));
+      
+      // Fetch doctors to enrich appointments
+      const doctors = await this.getDoctors();
+      for (const apt of appointments) {
+        if (apt.doctorUserId) {
+          // Match by userId (User GUID) or id (Doctor table Id)
+          const doctor = doctors.find(
+            (d) => d.userId === apt.doctorUserId || d.id === apt.doctorUserId
+          );
+          if (doctor) {
+            apt.doctor = doctor;
+          }
+        }
+      }
+      
+      return appointments;
     } catch (error) {
       // Be resilient: log and return empty list to avoid blocking the UX
       console.error("Error fetching patient appointments:", error);
@@ -359,7 +373,24 @@ export class SchedulerApiService {
       const response = await api.get(`/patients/${patientId}/appointments`, {
         params: { startDate, endDate },
       });
-      return response.data;
+      const appointments = Array.isArray(response.data) 
+        ? response.data.map((a: any) => this.mapBackendAppointmentToUi(a))
+        : [];
+      
+      // Fetch doctors to enrich appointments
+      const doctors = await this.getDoctors();
+      for (const apt of appointments) {
+        if (apt.doctorUserId) {
+          const doctor = doctors.find(
+            (d) => d.userId === apt.doctorUserId || d.id === apt.doctorUserId
+          );
+          if (doctor) {
+            apt.doctor = doctor;
+          }
+        }
+      }
+      
+      return appointments;
     } catch (error) {
       console.error("Error fetching appointments by date range:", error);
       throw new Error(
@@ -375,6 +406,7 @@ export class SchedulerApiService {
     patientId: string,
     appointmentData: CreateAppointmentRequest
   ): Promise<Appointment> {
+    console.log("[SchedulerApiService] createAppointment called with:", { patientId, appointmentData });
     await this.delay();
 
   if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
@@ -436,10 +468,11 @@ export class SchedulerApiService {
 
   try {
       // Translate to AppointmentService DTO
-      // Determine doctor guid
-      const doctorGuid = isGuid(appointmentData.doctorUserId)
-        ? appointmentData.doctorUserId
-        : TEST_DOCTOR_ID;
+      // Validate doctor guid - must be a valid GUID from the selected doctor
+      if (!appointmentData.doctorUserId || !isGuid(appointmentData.doctorUserId)) {
+        throw new Error("Invalid doctor selection. Please select a doctor before booking.");
+      }
+      const doctorGuid = appointmentData.doctorUserId;
 
       // Resolve selected time slot into exact start/end
       let start: Date | undefined;
@@ -511,11 +544,15 @@ export class SchedulerApiService {
         appointmentType: appointmentData.appointmentType,
         notes: appointmentData.description,
       };
+      console.log("[SchedulerApiService] Creating appointment with payload:", payload);
   const response = await api.post(`/appointment/appointments`, payload);
+      console.log("[SchedulerApiService] Appointment created successfully:", response.data);
   return this.mapBackendAppointmentToUi(response.data);
-    } catch (error) {
-      console.error("Error creating appointment:", error);
-      throw new Error("Failed to create appointment");
+    } catch (error: any) {
+      console.error("[SchedulerApiService] Error creating appointment:", error);
+      console.error("[SchedulerApiService] Error response:", error?.response?.data);
+      const message = error?.response?.data?.message || error?.response?.data?.title || error?.message || "Failed to create appointment";
+      throw new Error(message);
     }
   }
 
@@ -662,6 +699,47 @@ export class SchedulerApiService {
   // ===== DOCTORS =====
 
   /**
+   * Helper: Fetch user profile data for doctors with missing names (cross-database issue)
+   * This resolves the issue where PractitionerService's DoctorDirectory view can't access
+   * UserService's User_Profile table when services run in separate databases.
+   */
+  private static async enrichDoctorsWithUserProfiles(doctors: Doctor[]): Promise<Doctor[]> {
+    const doctorsWithMissingNames = doctors.filter(
+      (doc) => !doc.firstName && !doc.lastName && doc.userId
+    );
+    if (doctorsWithMissingNames.length === 0) {
+      return doctors;
+    }
+
+    const userProfiles = await Promise.all(
+      doctorsWithMissingNames.map(async (doc) => {
+        try {
+          const userRes = await api.get(`/users/${doc.userId}`);
+          const u = userRes.data || {};
+          return {
+            odId: doc.id,
+            firstName: String(u.firstName ?? u.FirstName ?? ""),
+            lastName: String(u.lastName ?? u.LastName ?? ""),
+          };
+        } catch {
+          return { odId: doc.id, firstName: "", lastName: "" };
+        }
+      })
+    );
+
+    const profileMap = new Map(userProfiles.map((p) => [p.odId, p]));
+    for (const doc of doctors) {
+      const profile = profileMap.get(doc.id);
+      if (profile && (!doc.firstName || !doc.lastName)) {
+        doc.firstName = profile.firstName || doc.firstName;
+        doc.lastName = profile.lastName || doc.lastName;
+      }
+    }
+
+    return doctors;
+  }
+
+  /**
    * Get all available doctors
    */
   static async getDoctors(): Promise<Doctor[]> {
@@ -704,7 +782,9 @@ export class SchedulerApiService {
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
       }) as any;
-      return mapped;
+
+      // Enrich doctors with user profile data for missing names
+      return this.enrichDoctorsWithUserProfiles(mapped);
     } catch (error) {
       console.error("Error fetching doctors:", error);
       throw new Error("Failed to fetch doctors");
@@ -759,7 +839,9 @@ export class SchedulerApiService {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
       }) as any;
-      return mapped;
+
+      // Enrich doctors with user profile data for missing names
+      return this.enrichDoctorsWithUserProfiles(mapped);
     } catch (error) {
       console.error("Error fetching doctors by specialization:", error);
       throw new Error(
@@ -812,7 +894,9 @@ export class SchedulerApiService {
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
         } as any;
       }) as any;
-      return mapped;
+
+      // Enrich doctors with user profile data for missing names
+      return this.enrichDoctorsWithUserProfiles(mapped);
     } catch (error) {
       console.error("Error fetching doctors by service:", error);
       throw new Error("Failed to fetch doctors for the specified service");
@@ -886,11 +970,27 @@ export class SchedulerApiService {
           String(d.UserId ?? d.userId) === doctorId
       );
       if (row) {
+        let firstName = String(row.FirstName ?? row.firstName ?? "");
+        let lastName = String(row.LastName ?? row.lastName ?? "");
+        const userId = String(row.UserId ?? row.userId ?? "");
+
+        // If names are missing, fetch from UserService (cross-database scenario)
+        if ((!firstName || !lastName) && userId) {
+          try {
+            const userRes = await api.get(`/users/${userId}`);
+            const u = userRes.data || {};
+            firstName = String(u.firstName ?? u.FirstName ?? firstName);
+            lastName = String(u.lastName ?? u.LastName ?? lastName);
+          } catch {
+            // ignore, use whatever we have
+          }
+        }
+
         return {
           id: String(row.DoctorId ?? row.doctorId ?? doctorId),
-          userId: String(row.UserId ?? row.userId ?? ""),
-          firstName: String(row.FirstName ?? row.firstName ?? ""),
-          lastName: String(row.LastName ?? row.lastName ?? ""),
+          userId,
+          firstName,
+          lastName,
           specializationId: "",
           // eslint-disable-next-line @typescript-eslint/no-explicit-any
           specialization: undefined as any,
@@ -946,8 +1046,8 @@ export class SchedulerApiService {
             isAvailable: true,
             workingHours: { start: "08:00", end: "17:00" },
           } as any;
-        } catch (e2) {
-          console.error("Doctor lookup failed by both doctorId and userId:", e2);
+        } catch (error_) {
+          console.error("Doctor lookup failed by both doctorId and userId:", error_);
           throw new Error("Failed to fetch doctor details");
         }
       }

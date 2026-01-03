@@ -350,9 +350,12 @@ public class DoctorsController : ControllerBase
     [HttpGet("{id}/availability")]
     public async Task<IActionResult> GetAvailability(Guid id)
     {
-        if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound("Doctor not found");
+        // Support lookup by either Doctor.Id or Doctor.UserId
+        var doctor = await _db.Doctors.FirstOrDefaultAsync(d => d.Id == id || d.UserId == id);
+        if (doctor == null) return NotFound("Doctor not found");
+        
         var schedules = await _db.DoctorSchedules
-            .Where(s => s.DoctorId == id)
+            .Where(s => s.DoctorId == doctor.Id)
             .OrderBy(s => s.DayOfWeek)
             .ThenBy(s => s.StartTime)
             .ToListAsync();

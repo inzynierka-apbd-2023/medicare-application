@@ -35,6 +35,7 @@ var practitionerService = builder.AddProject<Projects.PractitionerService>("prac
                                  .WithReference(rabbitmq)
                                  .WaitFor(sharedDb)
                                  .WaitFor(rabbitmq)
+                                 .WaitFor(userService) // Wait for UserService to create User_Profile table
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                  .WithEnvironment("Jwt__Issuer", "UserService")
                                  .WithEnvironment("Jwt__Audience", "MedicareApp");

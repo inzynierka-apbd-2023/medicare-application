@@ -4,61 +4,37 @@ using PractitionerService.Models;
 namespace PractitionerService.Data;
 
 /// <summary>
-/// Shared deterministic IDs for cross-service mock data references
-/// Doctor IDs match User IDs from UserService for seamless auth integration
+/// Shared deterministic IDs for cross-service mock data references.
+/// Only 2 doctors are seeded for simplified testing.
+/// Doctor.Id = Doctor.UserId for simplicity.
 /// </summary>
 public static class MockIds
 {
-    // Doctor User IDs (from UserService) - used as both User ID and Doctor entity ID
+    // ========== DOCTORS (only 2 fully seeded) ==========
+    // These IDs match UserService.MockIds.DoctorUser1/2
+    // Doctor.Id = Doctor.UserId = User.Id (same GUID everywhere)
     public static readonly Guid DoctorUser1 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001");
     public static readonly Guid DoctorUser2 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000002");
-    public static readonly Guid DoctorUser3 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000003");
-    public static readonly Guid DoctorUser4 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000004");
-    public static readonly Guid DoctorUser5 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000005");
-    public static readonly Guid DoctorUser6 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000006");
-    public static readonly Guid DoctorUser7 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000007");
-
-    // Receptionist Users (from UserService)
-    public static readonly Guid ReceptionistUser1 = Guid.Parse("cccccccc-0003-0003-0003-000000000001");
-    public static readonly Guid ReceptionistUser2 = Guid.Parse("cccccccc-0003-0003-0003-000000000002");
-    public static readonly Guid ReceptionistUser3 = Guid.Parse("cccccccc-0003-0003-0003-000000000003");
-    public static readonly Guid ReceptionistUser4 = Guid.Parse("cccccccc-0003-0003-0003-000000000004");
-    public static readonly Guid ReceptionistUser5 = Guid.Parse("cccccccc-0003-0003-0003-000000000005");
-    public static readonly Guid ReceptionistUser6 = Guid.Parse("cccccccc-0003-0003-0003-000000000006");
-    public static readonly Guid ReceptionistUser7 = Guid.Parse("cccccccc-0003-0003-0003-000000000007");
-
-    // Doctor entity IDs = User IDs (simplified: Doctor.Id == Doctor.UserId)
+    
+    // Doctor entity uses same ID as User ID
     public static readonly Guid Doctor1 = DoctorUser1;
     public static readonly Guid Doctor2 = DoctorUser2;
-    public static readonly Guid Doctor3 = DoctorUser3;
-    public static readonly Guid Doctor4 = DoctorUser4;
-    public static readonly Guid Doctor5 = DoctorUser5;
-    public static readonly Guid Doctor6 = DoctorUser6;
-    public static readonly Guid Doctor7 = DoctorUser7;
 
-    // Specialization IDs
+    // ========== RECEPTIONIST ==========
+    public static readonly Guid ReceptionistUser1 = Guid.Parse("cccccccc-0003-0003-0003-000000000001");
+
+    // ========== SPECIALIZATIONS ==========
     public static readonly Guid SpecCardiologist = Guid.Parse("33333333-3333-3333-3333-000000000001");
     public static readonly Guid SpecGeneralPractitioner = Guid.Parse("33333333-3333-3333-3333-000000000002");
-    public static readonly Guid SpecDermatologist = Guid.Parse("33333333-3333-3333-3333-000000000003");
-    public static readonly Guid SpecPediatrician = Guid.Parse("33333333-3333-3333-3333-000000000004");
-    public static readonly Guid SpecOrthopedist = Guid.Parse("33333333-3333-3333-3333-000000000005");
-    public static readonly Guid SpecNeurologist = Guid.Parse("33333333-3333-3333-3333-000000000006");
-    public static readonly Guid SpecEndocrinologist = Guid.Parse("33333333-3333-3333-3333-000000000007");
 
-    // Service IDs
+    // ========== SERVICES ==========
     public static readonly Guid ServiceConsultation = Guid.Parse("44444444-4444-4444-4444-000000000001");
     public static readonly Guid ServiceCardiology = Guid.Parse("44444444-4444-4444-4444-000000000002");
-    public static readonly Guid ServiceDermatology = Guid.Parse("44444444-4444-4444-4444-000000000003");
-    public static readonly Guid ServicePediatric = Guid.Parse("44444444-4444-4444-4444-000000000004");
-    public static readonly Guid ServiceOrthopedic = Guid.Parse("44444444-4444-4444-4444-000000000005");
-    public static readonly Guid ServiceNeurology = Guid.Parse("44444444-4444-4444-4444-000000000006");
-    public static readonly Guid ServiceEndocrinology = Guid.Parse("44444444-4444-4444-4444-000000000007");
 
-    public static readonly Guid[] AllDoctorUserIds = { DoctorUser1, DoctorUser2, DoctorUser3, DoctorUser4, DoctorUser5, DoctorUser6, DoctorUser7 };
-    public static readonly Guid[] AllReceptionistUserIds = { ReceptionistUser1, ReceptionistUser2, ReceptionistUser3, ReceptionistUser4, ReceptionistUser5, ReceptionistUser6, ReceptionistUser7 };
-    public static readonly Guid[] AllDoctorIds = { Doctor1, Doctor2, Doctor3, Doctor4, Doctor5, Doctor6, Doctor7 };
-    public static readonly Guid[] AllSpecializationIds = { SpecCardiologist, SpecGeneralPractitioner, SpecDermatologist, SpecPediatrician, SpecOrthopedist, SpecNeurologist, SpecEndocrinologist };
-    public static readonly Guid[] AllServiceIds = { ServiceConsultation, ServiceCardiology, ServiceDermatology, ServicePediatric, ServiceOrthopedic, ServiceNeurology, ServiceEndocrinology };
+    public static readonly Guid[] AllDoctorUserIds = { DoctorUser1, DoctorUser2 };
+    public static readonly Guid[] AllDoctorIds = { Doctor1, Doctor2 };
+    public static readonly Guid[] AllSpecializationIds = { SpecCardiologist, SpecGeneralPractitioner };
+    public static readonly Guid[] AllServiceIds = { ServiceConsultation, ServiceCardiology };
 }
 
 public static class MockDataSeeder
@@ -66,17 +42,15 @@ public static class MockDataSeeder
     public static async Task SeedAsync(PractitionerDbContext db)
     {
         int created = 0;
+        Console.WriteLine("[MockDataSeeder] Starting PractitionerService seeding...");
 
-        // Seed Specializations
+        // ========================================
+        // SEED SPECIALIZATIONS
+        // ========================================
         var specializations = new[]
         {
             (MockIds.SpecCardiologist, "Cardiologist"),
             (MockIds.SpecGeneralPractitioner, "General Practitioner"),
-            (MockIds.SpecDermatologist, "Dermatologist"),
-            (MockIds.SpecPediatrician, "Pediatrician"),
-            (MockIds.SpecOrthopedist, "Orthopedist"),
-            (MockIds.SpecNeurologist, "Neurologist"),
-            (MockIds.SpecEndocrinologist, "Endocrinologist")
         };
 
         var existingSpecIds = await db.Specializations.Select(s => s.Id).ToHashSetAsync();
@@ -86,101 +60,100 @@ public static class MockDataSeeder
             {
                 db.Specializations.Add(new Specialization { Id = id, Name = name });
                 created++;
+                Console.WriteLine($"[MockDataSeeder] Created specialization: {name} (ID: {id})");
             }
         }
 
-        // Seed Medical Services
+        // ========================================
+        // SEED MEDICAL SERVICES
+        // ========================================
         var services = new[]
         {
-            (MockIds.ServiceConsultation, "General Consultation", "Routine check-up and consultation"),
-            (MockIds.ServiceCardiology, "Cardiology Services", "Heart and cardiovascular examinations"),
-            (MockIds.ServiceDermatology, "Dermatology Services", "Skin conditions and treatments"),
-            (MockIds.ServicePediatric, "Pediatric Care", "Child and adolescent healthcare"),
-            (MockIds.ServiceOrthopedic, "Orthopedic Services", "Bone and joint treatments"),
-            (MockIds.ServiceNeurology, "Neurology Services", "Brain and nervous system care"),
-            (MockIds.ServiceEndocrinology, "Endocrinology Services", "Hormonal and metabolic treatments")
+            (MockIds.ServiceConsultation, "General Consultation", "Routine check-up and consultation", 30),
+            (MockIds.ServiceCardiology, "Cardiology Services", "Heart and cardiovascular examinations", 45),
         };
 
         var existingServiceIds = await db.Services.Select(s => s.Id).ToHashSetAsync();
-        foreach (var (id, name, description) in services)
+        foreach (var (id, name, description, _) in services)
         {
             if (!existingServiceIds.Contains(id))
             {
                 db.Services.Add(new MedicalService { Id = id, Name = name, Description = description });
                 created++;
+                Console.WriteLine($"[MockDataSeeder] Created service: {name} (ID: {id})");
             }
         }
 
-        // Seed Doctors
-        var doctorBios = new[]
+        // ========================================
+        // SEED 2 DOCTORS - FULLY COMPLETE
+        // ========================================
+        var doctorData = new[]
         {
-            "Cardiology specialist with 15 years of experience in interventional procedures.",
-            "General practitioner focused on preventive care and family medicine.",
-            "Dermatologist specializing in cosmetic and medical dermatology.",
-            "Pediatrician providing comprehensive care for children of all ages.",
-            "Orthopedic surgeon with expertise in joint replacement and sports medicine.",
-            "Neurologist treating epilepsy, stroke, and neurodegenerative diseases.",
-            "Endocrinologist managing diabetes, thyroid, and hormonal disorders."
+            (
+                MockIds.Doctor1, 
+                MockIds.DoctorUser1, 
+                "Cardiology specialist with 15 years of experience in interventional procedures."
+            ),
+            (
+                MockIds.Doctor2, 
+                MockIds.DoctorUser2, 
+                "General practitioner focused on preventive care and family medicine."
+            ),
         };
 
         var existingDoctorIds = await db.Doctors.Select(d => d.Id).ToHashSetAsync();
-        for (int i = 0; i < 7; i++)
+        foreach (var (doctorId, userId, bio) in doctorData)
         {
-            var doctorId = MockIds.AllDoctorIds[i];
-            var userId = MockIds.AllDoctorUserIds[i];
-
             if (!existingDoctorIds.Contains(doctorId))
             {
                 db.Doctors.Add(new Doctor
                 {
                     Id = doctorId,
                     UserId = userId,
-                    Bio = doctorBios[i],
+                    Bio = bio,
                     IsActive = true,
-                    CreatedAt = DateTime.UtcNow.AddDays(-60 + i),
+                    CreatedAt = DateTime.UtcNow.AddDays(-60),
                     UpdatedAt = DateTime.UtcNow
                 });
                 created++;
+                Console.WriteLine($"[MockDataSeeder] Created doctor entity: DoctorId={doctorId}, UserId={userId}");
             }
         }
 
-        // Seed Receptionists
+        // ========================================
+        // SEED 1 RECEPTIONIST
+        // ========================================
         var existingReceptionistUserIds = await db.Receptionists.Select(r => r.UserId).ToHashSetAsync();
-        for (int i = 0; i < 7; i++)
+        if (!existingReceptionistUserIds.Contains(MockIds.ReceptionistUser1))
         {
-            var userId = MockIds.AllReceptionistUserIds[i];
-            if (!existingReceptionistUserIds.Contains(userId))
+            db.Receptionists.Add(new Receptionist
             {
-                db.Receptionists.Add(new Receptionist
-                {
-                    Id = Guid.NewGuid(),
-                    UserId = userId,
-                    CreatedAt = DateTime.UtcNow.AddDays(-45 + i),
-                    UpdatedAt = DateTime.UtcNow
-                });
-                created++;
-            }
+                Id = Guid.NewGuid(),
+                UserId = MockIds.ReceptionistUser1,
+                CreatedAt = DateTime.UtcNow.AddDays(-45),
+                UpdatedAt = DateTime.UtcNow
+            });
+            created++;
+            Console.WriteLine($"[MockDataSeeder] Created receptionist: UserId={MockIds.ReceptionistUser1}");
         }
 
+        // Save doctors first so FK constraints work
         if (created > 0)
         {
             await db.SaveChangesAsync();
+            Console.WriteLine($"[MockDataSeeder] Saved base entities ({created} records)");
         }
 
-        // Seed Doctor-Specialization mappings (each doctor has 1-2 specializations)
+        // ========================================
+        // SEED DOCTOR-SPECIALIZATION MAPPINGS
+        // Doctor1 (John Carter): Cardiologist + General Practitioner
+        // Doctor2 (Sarah Chen): General Practitioner only
+        // ========================================
         var doctorSpecMappings = new[]
         {
             (MockIds.Doctor1, MockIds.SpecCardiologist),
             (MockIds.Doctor1, MockIds.SpecGeneralPractitioner),
             (MockIds.Doctor2, MockIds.SpecGeneralPractitioner),
-            (MockIds.Doctor3, MockIds.SpecDermatologist),
-            (MockIds.Doctor3, MockIds.SpecGeneralPractitioner),
-            (MockIds.Doctor4, MockIds.SpecPediatrician),
-            (MockIds.Doctor4, MockIds.SpecGeneralPractitioner),
-            (MockIds.Doctor5, MockIds.SpecOrthopedist),
-            (MockIds.Doctor6, MockIds.SpecNeurologist),
-            (MockIds.Doctor6, MockIds.SpecGeneralPractitioner),
-            (MockIds.Doctor7, MockIds.SpecEndocrinologist)
         };
 
         var existingDoctorSpecs = await db.DoctorSpecializations
@@ -198,23 +171,18 @@ public static class MockDataSeeder
                     SpecializationId = specId
                 });
                 created++;
+                Console.WriteLine($"[MockDataSeeder] Mapped doctor {doctorId} to specialization {specId}");
             }
         }
 
-        // Seed Specialization-Service mappings
+        // ========================================
+        // SEED SPECIALIZATION-SERVICE MAPPINGS
+        // ========================================
         var specServiceMappings = new[]
         {
             (MockIds.SpecCardiologist, MockIds.ServiceCardiology),
             (MockIds.SpecCardiologist, MockIds.ServiceConsultation),
             (MockIds.SpecGeneralPractitioner, MockIds.ServiceConsultation),
-            (MockIds.SpecDermatologist, MockIds.ServiceDermatology),
-            (MockIds.SpecDermatologist, MockIds.ServiceConsultation),
-            (MockIds.SpecPediatrician, MockIds.ServicePediatric),
-            (MockIds.SpecPediatrician, MockIds.ServiceConsultation),
-            (MockIds.SpecOrthopedist, MockIds.ServiceOrthopedic),
-            (MockIds.SpecNeurologist, MockIds.ServiceNeurology),
-            (MockIds.SpecEndocrinologist, MockIds.ServiceEndocrinology),
-            (MockIds.SpecEndocrinologist, MockIds.ServiceConsultation)
         };
 
         var existingSpecServices = await db.SpecializationServices
@@ -232,29 +200,26 @@ public static class MockDataSeeder
                     ServiceId = serviceId
                 });
                 created++;
+                Console.WriteLine($"[MockDataSeeder] Mapped specialization {specId} to service {serviceId}");
             }
         }
 
-        // Seed Doctor Schedules (each doctor has 2-3 schedule entries)
+        // ========================================
+        // SEED DOCTOR SCHEDULES (AVAILABILITY)
+        // Doctor1 (John Carter): Mon 9-13, Wed 14-18, Fri 9-12
+        // Doctor2 (Sarah Chen): Mon 8-16, Tue 8-16, Thu 8-16
+        // ========================================
         var scheduleEntries = new (Guid doctorId, int dayOfWeek, TimeSpan start, TimeSpan end)[]
         {
-            (MockIds.Doctor1, 1, new TimeSpan(9, 0, 0), new TimeSpan(13, 0, 0)),
-            (MockIds.Doctor1, 3, new TimeSpan(14, 0, 0), new TimeSpan(18, 0, 0)),
-            (MockIds.Doctor1, 5, new TimeSpan(9, 0, 0), new TimeSpan(12, 0, 0)),
-            (MockIds.Doctor2, 1, new TimeSpan(8, 0, 0), new TimeSpan(16, 0, 0)),
-            (MockIds.Doctor2, 2, new TimeSpan(8, 0, 0), new TimeSpan(16, 0, 0)),
-            (MockIds.Doctor2, 4, new TimeSpan(8, 0, 0), new TimeSpan(16, 0, 0)),
-            (MockIds.Doctor3, 2, new TimeSpan(10, 0, 0), new TimeSpan(18, 0, 0)),
-            (MockIds.Doctor3, 4, new TimeSpan(10, 0, 0), new TimeSpan(18, 0, 0)),
-            (MockIds.Doctor4, 1, new TimeSpan(9, 0, 0), new TimeSpan(17, 0, 0)),
-            (MockIds.Doctor4, 3, new TimeSpan(9, 0, 0), new TimeSpan(17, 0, 0)),
-            (MockIds.Doctor4, 5, new TimeSpan(9, 0, 0), new TimeSpan(13, 0, 0)),
-            (MockIds.Doctor5, 2, new TimeSpan(7, 0, 0), new TimeSpan(15, 0, 0)),
-            (MockIds.Doctor5, 4, new TimeSpan(7, 0, 0), new TimeSpan(15, 0, 0)),
-            (MockIds.Doctor6, 1, new TimeSpan(11, 0, 0), new TimeSpan(19, 0, 0)),
-            (MockIds.Doctor6, 3, new TimeSpan(11, 0, 0), new TimeSpan(19, 0, 0)),
-            (MockIds.Doctor7, 2, new TimeSpan(9, 0, 0), new TimeSpan(17, 0, 0)),
-            (MockIds.Doctor7, 5, new TimeSpan(9, 0, 0), new TimeSpan(14, 0, 0))
+            // Doctor1 - John Carter (Cardiologist)
+            (MockIds.Doctor1, 1, new TimeSpan(9, 0, 0), new TimeSpan(13, 0, 0)),   // Monday
+            (MockIds.Doctor1, 3, new TimeSpan(14, 0, 0), new TimeSpan(18, 0, 0)),  // Wednesday
+            (MockIds.Doctor1, 5, new TimeSpan(9, 0, 0), new TimeSpan(12, 0, 0)),   // Friday
+            
+            // Doctor2 - Sarah Chen (General Practitioner)
+            (MockIds.Doctor2, 1, new TimeSpan(8, 0, 0), new TimeSpan(16, 0, 0)),   // Monday
+            (MockIds.Doctor2, 2, new TimeSpan(8, 0, 0), new TimeSpan(16, 0, 0)),   // Tuesday
+            (MockIds.Doctor2, 4, new TimeSpan(8, 0, 0), new TimeSpan(16, 0, 0)),   // Thursday
         };
 
         var existingScheduleKeys = await db.DoctorSchedules
@@ -277,13 +242,24 @@ public static class MockDataSeeder
                     UpdatedAt = DateTime.UtcNow
                 });
                 created++;
+                var dayName = dayOfWeek switch { 1 => "Monday", 2 => "Tuesday", 3 => "Wednesday", 4 => "Thursday", 5 => "Friday", _ => $"Day{dayOfWeek}" };
+                Console.WriteLine($"[MockDataSeeder] Created schedule for doctor {doctorId}: {dayName} {start:hh\\:mm}-{end:hh\\:mm}");
             }
         }
 
         if (created > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Created {created} practitioner records (doctors, receptionists, specializations, services, schedules, mappings).");
+            Console.WriteLine($"[MockDataSeeder] ===== TOTAL: Created {created} practitioner records =====");
+            
+            // Summary
+            Console.WriteLine("[MockDataSeeder] Doctor Summary:");
+            Console.WriteLine($"  - Dr. John Carter (Cardiologist): DoctorId={MockIds.Doctor1}, UserId={MockIds.DoctorUser1}");
+            Console.WriteLine($"    Specializations: Cardiologist, General Practitioner");
+            Console.WriteLine($"    Schedule: Mon 9-13, Wed 14-18, Fri 9-12");
+            Console.WriteLine($"  - Dr. Sarah Chen (GP): DoctorId={MockIds.Doctor2}, UserId={MockIds.DoctorUser2}");
+            Console.WriteLine($"    Specializations: General Practitioner");
+            Console.WriteLine($"    Schedule: Mon 8-16, Tue 8-16, Thu 8-16");
         }
         else
         {

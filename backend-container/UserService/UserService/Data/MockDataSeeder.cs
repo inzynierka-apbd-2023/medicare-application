@@ -1,273 +1,226 @@
-using Microsoft.EntityFrameworkCore;
+using BCrypt.Net;
 using UserService.Models;
 
 namespace UserService.Data;
 
-/// <summary>
-/// Shared deterministic IDs for cross-service mock data references
-/// </summary>
-public static class MockIds
-{
-    // Patient Users (7)
-    public static readonly Guid PatientUser1 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000001");
-    public static readonly Guid PatientUser2 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000002");
-    public static readonly Guid PatientUser3 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000003");
-    public static readonly Guid PatientUser4 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000004");
-    public static readonly Guid PatientUser5 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000005");
-    public static readonly Guid PatientUser6 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000006");
-    public static readonly Guid PatientUser7 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000007");
-
-    // Doctor Users (7)
-    public static readonly Guid DoctorUser1 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001");
-    public static readonly Guid DoctorUser2 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000002");
-    public static readonly Guid DoctorUser3 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000003");
-    public static readonly Guid DoctorUser4 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000004");
-    public static readonly Guid DoctorUser5 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000005");
-    public static readonly Guid DoctorUser6 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000006");
-    public static readonly Guid DoctorUser7 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000007");
-
-    // Receptionist Users (7)
-    public static readonly Guid ReceptionistUser1 = Guid.Parse("cccccccc-0003-0003-0003-000000000001");
-    public static readonly Guid ReceptionistUser2 = Guid.Parse("cccccccc-0003-0003-0003-000000000002");
-    public static readonly Guid ReceptionistUser3 = Guid.Parse("cccccccc-0003-0003-0003-000000000003");
-    public static readonly Guid ReceptionistUser4 = Guid.Parse("cccccccc-0003-0003-0003-000000000004");
-    public static readonly Guid ReceptionistUser5 = Guid.Parse("cccccccc-0003-0003-0003-000000000005");
-    public static readonly Guid ReceptionistUser6 = Guid.Parse("cccccccc-0003-0003-0003-000000000006");
-    public static readonly Guid ReceptionistUser7 = Guid.Parse("cccccccc-0003-0003-0003-000000000007");
-
-    // Admin User
-    public static readonly Guid AdminUser1 = Guid.Parse("dddddddd-0004-0004-0004-000000000001");
-
-    // Owner User
-    public static readonly Guid OwnerUser1 = Guid.Parse("eeeeeeee-0005-0005-0005-000000000001");
-
-    // All User IDs for easy iteration
-    public static readonly Guid[] AllPatientUserIds = { PatientUser1, PatientUser2, PatientUser3, PatientUser4, PatientUser5, PatientUser6, PatientUser7 };
-    public static readonly Guid[] AllDoctorUserIds = { DoctorUser1, DoctorUser2, DoctorUser3, DoctorUser4, DoctorUser5, DoctorUser6, DoctorUser7 };
-    public static readonly Guid[] AllReceptionistUserIds = { ReceptionistUser1, ReceptionistUser2, ReceptionistUser3, ReceptionistUser4, ReceptionistUser5, ReceptionistUser6, ReceptionistUser7 };
-}
-
 public static class MockDataSeeder
 {
-    public static async Task SeedAsync(UserDbContext db)
+    // Shared IDs - must match across all services
+    private static readonly Guid Doctor1Id = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001");
+    private static readonly Guid Doctor2Id = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000002");
+    private static readonly Guid Patient1Id = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000001");
+    private static readonly Guid Patient2Id = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000002");
+    private static readonly Guid ReceptionistId = Guid.Parse("cccccccc-0003-0003-0003-000000000001");
+    private static readonly Guid AdminId = Guid.Parse("dddddddd-0004-0004-0004-000000000001");
+
+    // Role IDs
+    private static readonly Guid AdminRoleId = Guid.Parse("11111111-1111-1111-1111-000000000001");
+    private static readonly Guid DoctorRoleId = Guid.Parse("11111111-1111-1111-1111-000000000002");
+    private static readonly Guid PatientRoleId = Guid.Parse("11111111-1111-1111-1111-000000000003");
+    private static readonly Guid ReceptionistRoleId = Guid.Parse("11111111-1111-1111-1111-000000000004");
+
+    public static async Task SeedAsync(UserDbContext context)
     {
-        var roles = await db.Roles.ToDictionaryAsync(r => r.Name, r => r.Id);
-        if (!roles.Any())
+        Console.WriteLine("[UserService Seeder] Starting...");
+
+        await SeedRolesAsync(context);
+        await SeedUsersAsync(context);
+        await context.SaveChangesAsync();
+
+        Console.WriteLine("[UserService Seeder] Complete!");
+    }
+
+    private static async Task SeedRolesAsync(UserDbContext context)
+    {
+        var roles = new[]
         {
-            Console.WriteLine("[MockDataSeeder] No roles found! Skipping user seeding.");
-            return;
-        }
-
-        var existingUserIds = await db.Users.Select(u => u.Id).ToHashSetAsync();
-        int created = 0;
-
-        // Seed 7 Patient Users
-        var patientNames = new[] 
-        { 
-            ("Alice", "Johnson", "alice.johnson@medicare.local"),
-            ("Bob", "Smith", "bob.smith@medicare.local"),
-            ("Carol", "Williams", "carol.williams@medicare.local"),
-            ("David", "Brown", "david.brown@medicare.local"),
-            ("Emma", "Davis", "emma.davis@medicare.local"),
-            ("Frank", "Miller", "frank.miller@medicare.local"),
-            ("Grace", "Wilson", "grace.wilson@medicare.local")
+            new Role { Id = AdminRoleId, Name = "Admin", Description = "System administrator" },
+            new Role { Id = DoctorRoleId, Name = "Doctor", Description = "Medical practitioner" },
+            new Role { Id = PatientRoleId, Name = "Patient", Description = "Patient user" },
+            new Role { Id = ReceptionistRoleId, Name = "Receptionist", Description = "Front desk staff" }
         };
 
-        for (int i = 0; i < 7; i++)
+        foreach (var role in roles)
         {
-            var userId = MockIds.AllPatientUserIds[i];
-            if (existingUserIds.Contains(userId)) continue;
-            if (!roles.TryGetValue("Patient", out var roleId)) continue;
-
-            var (firstName, lastName, email) = patientNames[i];
-            db.Users.Add(new User
+            if (!context.Roles.Any(r => r.Id == role.Id))
             {
-                Id = userId,
-                Username = $"patient_{i + 1}@medicare.local",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("P@ssw0rd!"),
-                RoleId = roleId,
-                CreatedAt = DateTime.UtcNow.AddDays(-30 + i),
-                UpdatedAt = DateTime.UtcNow,
-                IsActive = true
-            });
-            db.UserProfiles.Add(new UserProfile
-            {
-                UserId = userId,
-                FirstName = firstName,
-                LastName = lastName,
-                Email = email,
-                Phone = $"+1-555-010{i + 1}",
-                DateOfBirth = new DateTime(1980 + i * 5, 3, 15),
-                Gender = i % 2 == 0 ? "Female" : "Male",
-                AddressLine1 = $"{100 + i * 10} Main Street",
-                City = "Springfield",
-                State = "IL",
-                ZipCode = $"6270{i}",
-                Country = "USA",
-                CreatedAt = DateTime.UtcNow.AddDays(-30 + i),
-                UpdatedAt = DateTime.UtcNow
-            });
-            created++;
+                context.Roles.Add(role);
+                Console.WriteLine($"[UserService Seeder] Added role: {role.Name}");
+            }
         }
+        await context.SaveChangesAsync();
+    }
 
-        // Seed 7 Doctor Users
-        var doctorNames = new[] 
-        { 
-            ("Dr. John", "Carter", "john.carter@medicare.local", "Cardiology specialist with 15 years of experience"),
-            ("Dr. Sarah", "Chen", "sarah.chen@medicare.local", "General practitioner focused on preventive care"),
-            ("Dr. Michael", "Roberts", "michael.roberts@medicare.local", "Dermatologist specializing in skin conditions"),
-            ("Dr. Emily", "Thompson", "emily.thompson@medicare.local", "Pediatrician providing comprehensive child care"),
-            ("Dr. James", "Wilson", "james.wilson@medicare.local", "Orthopedic surgeon with expertise in joint replacement"),
-            ("Dr. Lisa", "Anderson", "lisa.anderson@medicare.local", "Neurologist treating brain and nervous system disorders"),
-            ("Dr. Robert", "Martinez", "robert.martinez@medicare.local", "Endocrinologist managing hormonal conditions")
-        };
+    private static async Task SeedUsersAsync(UserDbContext context)
+    {
+        var passwordHash = BCrypt.Net.BCrypt.HashPassword("P@ssw0rd!");
 
-        for (int i = 0; i < 7; i++)
+        // Admin
+        await CreateUserWithProfile(context, new User
         {
-            var userId = MockIds.AllDoctorUserIds[i];
-            if (existingUserIds.Contains(userId)) continue;
-            if (!roles.TryGetValue("Doctor", out var roleId)) continue;
-
-            var (firstName, lastName, email, _) = doctorNames[i];
-            db.Users.Add(new User
-            {
-                Id = userId,
-                Username = $"doctor_{i + 1}@medicare.local",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("P@ssw0rd!"),
-                RoleId = roleId,
-                CreatedAt = DateTime.UtcNow.AddDays(-60 + i),
-                UpdatedAt = DateTime.UtcNow,
-                IsActive = true
-            });
-            db.UserProfiles.Add(new UserProfile
-            {
-                UserId = userId,
-                FirstName = firstName,
-                LastName = lastName,
-                Email = email,
-                Phone = $"+1-555-020{i + 1}",
-                DateOfBirth = new DateTime(1970 + i * 3, 6, 20),
-                Gender = i % 2 == 0 ? "Male" : "Female",
-                AddressLine1 = $"{200 + i * 10} Medical Plaza",
-                City = "Springfield",
-                State = "IL",
-                ZipCode = $"6271{i}",
-                Country = "USA",
-                CreatedAt = DateTime.UtcNow.AddDays(-60 + i),
-                UpdatedAt = DateTime.UtcNow
-            });
-            created++;
-        }
-
-        // Seed 7 Receptionist Users
-        var receptionistNames = new[] 
-        { 
-            ("Nancy", "Taylor", "nancy.taylor@medicare.local"),
-            ("Patricia", "Thomas", "patricia.thomas@medicare.local"),
-            ("Richard", "Jackson", "richard.jackson@medicare.local"),
-            ("Susan", "White", "susan.white@medicare.local"),
-            ("Thomas", "Harris", "thomas.harris@medicare.local"),
-            ("Jennifer", "Martin", "jennifer.martin@medicare.local"),
-            ("William", "Garcia", "william.garcia@medicare.local")
-        };
-
-        for (int i = 0; i < 7; i++)
+            Id = AdminId,
+            Username = "admin",
+            PasswordHash = passwordHash,
+            RoleId = AdminRoleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }, new UserProfile
         {
-            var userId = MockIds.AllReceptionistUserIds[i];
-            if (existingUserIds.Contains(userId)) continue;
-            if (!roles.TryGetValue("Receptionist", out var roleId)) continue;
+            UserId = AdminId,
+            FirstName = "System",
+            LastName = "Administrator",
+            Email = "admin@medicare.local",
+            DateOfBirth = new DateTime(1970, 1, 1, 0, 0, 0, DateTimeKind.Utc),
+            Gender = "Other",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
 
-            var (firstName, lastName, email) = receptionistNames[i];
-            db.Users.Add(new User
-            {
-                Id = userId,
-                Username = $"receptionist_{i + 1}@medicare.local",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("P@ssw0rd!"),
-                RoleId = roleId,
-                CreatedAt = DateTime.UtcNow.AddDays(-45 + i),
-                UpdatedAt = DateTime.UtcNow,
-                IsActive = true
-            });
-            db.UserProfiles.Add(new UserProfile
-            {
-                UserId = userId,
-                FirstName = firstName,
-                LastName = lastName,
-                Email = email,
-                Phone = $"+1-555-030{i + 1}",
-                DateOfBirth = new DateTime(1985 + i * 2, 9, 10),
-                Gender = i % 2 == 0 ? "Female" : "Male",
-                AddressLine1 = $"{300 + i * 10} Reception Way",
-                City = "Springfield",
-                State = "IL",
-                ZipCode = $"6272{i}",
-                Country = "USA",
-                CreatedAt = DateTime.UtcNow.AddDays(-45 + i),
-                UpdatedAt = DateTime.UtcNow
-            });
-            created++;
-        }
+        // Doctor 1 - Cardiologist
+        await CreateUserWithProfile(context, new User
+        {
+            Id = Doctor1Id,
+            Username = "doctor1",
+            PasswordHash = passwordHash,
+            RoleId = DoctorRoleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }, new UserProfile
+        {
+            UserId = Doctor1Id,
+            FirstName = "John",
+            LastName = "Carter",
+            Email = "doctor1@medicare.local",
+            DateOfBirth = new DateTime(1975, 3, 15, 0, 0, 0, DateTimeKind.Utc),
+            Gender = "Male",
+            Phone = "555-0101",
+            AddressLine1 = "100 Medical Plaza, Suite 200",
+            City = "Chicago",
+            State = "IL",
+            ZipCode = "60601",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
 
-        // Seed Admin User
-        if (!existingUserIds.Contains(MockIds.AdminUser1) && roles.TryGetValue("Admin", out var adminRoleId))
+        // Doctor 2 - General Practitioner
+        await CreateUserWithProfile(context, new User
         {
-            db.Users.Add(new User
-            {
-                Id = MockIds.AdminUser1,
-                Username = "admin@medicare.local",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("P@ssw0rd!"),
-                RoleId = adminRoleId,
-                CreatedAt = DateTime.UtcNow.AddDays(-90),
-                UpdatedAt = DateTime.UtcNow,
-                IsActive = true
-            });
-            db.UserProfiles.Add(new UserProfile
-            {
-                UserId = MockIds.AdminUser1,
-                FirstName = "System",
-                LastName = "Administrator",
-                Email = "admin@medicare.local",
-                Phone = "+1-555-0001",
-                CreatedAt = DateTime.UtcNow.AddDays(-90),
-                UpdatedAt = DateTime.UtcNow
-            });
-            created++;
-        }
+            Id = Doctor2Id,
+            Username = "doctor2",
+            PasswordHash = passwordHash,
+            RoleId = DoctorRoleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }, new UserProfile
+        {
+            UserId = Doctor2Id,
+            FirstName = "Sarah",
+            LastName = "Chen",
+            Email = "doctor2@medicare.local",
+            DateOfBirth = new DateTime(1982, 7, 22, 0, 0, 0, DateTimeKind.Utc),
+            Gender = "Female",
+            Phone = "555-0102",
+            AddressLine1 = "100 Medical Plaza, Suite 300",
+            City = "Chicago",
+            State = "IL",
+            ZipCode = "60601",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
 
-        // Seed Owner User
-        if (!existingUserIds.Contains(MockIds.OwnerUser1) && roles.TryGetValue("Owner", out var ownerRoleId))
+        // Patient 1
+        await CreateUserWithProfile(context, new User
         {
-            db.Users.Add(new User
-            {
-                Id = MockIds.OwnerUser1,
-                Username = "owner@medicare.local",
-                PasswordHash = BCrypt.Net.BCrypt.HashPassword("P@ssw0rd!"),
-                RoleId = ownerRoleId,
-                CreatedAt = DateTime.UtcNow.AddDays(-100),
-                UpdatedAt = DateTime.UtcNow,
-                IsActive = true
-            });
-            db.UserProfiles.Add(new UserProfile
-            {
-                UserId = MockIds.OwnerUser1,
-                FirstName = "Clinic",
-                LastName = "Owner",
-                Email = "owner@medicare.local",
-                Phone = "+1-555-0000",
-                CreatedAt = DateTime.UtcNow.AddDays(-100),
-                UpdatedAt = DateTime.UtcNow
-            });
-            created++;
-        }
+            Id = Patient1Id,
+            Username = "patient1",
+            PasswordHash = passwordHash,
+            RoleId = PatientRoleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }, new UserProfile
+        {
+            UserId = Patient1Id,
+            FirstName = "Alice",
+            LastName = "Johnson",
+            Email = "patient1@medicare.local",
+            DateOfBirth = new DateTime(1990, 5, 10, 0, 0, 0, DateTimeKind.Utc),
+            Gender = "Female",
+            Phone = "555-0201",
+            AddressLine1 = "456 Patient Ave",
+            City = "Chicago",
+            State = "IL",
+            ZipCode = "60602",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
 
-        if (created > 0)
+        // Patient 2
+        await CreateUserWithProfile(context, new User
         {
-            await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Created {created} mock users with profiles.");
-        }
-        else
+            Id = Patient2Id,
+            Username = "patient2",
+            PasswordHash = passwordHash,
+            RoleId = PatientRoleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }, new UserProfile
         {
-            Console.WriteLine("[MockDataSeeder] All mock users already exist.");
+            UserId = Patient2Id,
+            FirstName = "Bob",
+            LastName = "Smith",
+            Email = "patient2@medicare.local",
+            DateOfBirth = new DateTime(1985, 11, 25, 0, 0, 0, DateTimeKind.Utc),
+            Gender = "Male",
+            Phone = "555-0202",
+            AddressLine1 = "789 Health St",
+            City = "Chicago",
+            State = "IL",
+            ZipCode = "60603",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+
+        // Receptionist
+        await CreateUserWithProfile(context, new User
+        {
+            Id = ReceptionistId,
+            Username = "receptionist",
+            PasswordHash = passwordHash,
+            RoleId = ReceptionistRoleId,
+            IsActive = true,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        }, new UserProfile
+        {
+            UserId = ReceptionistId,
+            FirstName = "Mary",
+            LastName = "Williams",
+            Email = "receptionist@medicare.local",
+            DateOfBirth = new DateTime(1988, 9, 3, 0, 0, 0, DateTimeKind.Utc),
+            Gender = "Female",
+            Phone = "555-0301",
+            AddressLine1 = "100 Medical Plaza",
+            City = "Chicago",
+            State = "IL",
+            ZipCode = "60601",
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow
+        });
+    }
+
+    private static Task CreateUserWithProfile(UserDbContext context, User user, UserProfile profile)
+    {
+        if (!context.Users.Any(u => u.Id == user.Id))
+        {
+            context.Users.Add(user);
+            context.UserProfiles.Add(profile);
+            Console.WriteLine($"[UserService Seeder] Added user: {user.Username} with ID {user.Id}");
         }
+        return Task.CompletedTask;
     }
 }
