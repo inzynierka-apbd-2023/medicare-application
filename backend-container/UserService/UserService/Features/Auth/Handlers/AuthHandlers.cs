@@ -83,11 +83,12 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, Register
             // Send welcome email
             try
             {
-                using var channel = _rabbitConnection.CreateModel();
-                channel.QueueDeclare(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null);
+                await using var channel = await _rabbitConnection.CreateChannelAsync(cancellationToken: cancellationToken);
+                await channel.QueueDeclareAsync(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: cancellationToken);
                 var emailEvent = new { Type = "welcome", Email = user.Email, FirstName = user.FirstName };
                 var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(emailEvent));
-                channel.BasicPublish(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: null, body: body);
+                var props = new RabbitMQ.Client.BasicProperties();
+                await channel.BasicPublishAsync(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: props, body: body, cancellationToken: cancellationToken);
             }
             catch (Exception ex)
             {
@@ -341,8 +342,8 @@ public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, Forg
         // Send email
         try
         {
-            using var channel = _rabbitConnection.CreateModel();
-            channel.QueueDeclare(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null);
+            await using var channel = await _rabbitConnection.CreateChannelAsync(cancellationToken: cancellationToken);
+            await channel.QueueDeclareAsync(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: cancellationToken);
             var emailEvent = new
             {
                 Type = "password_reset",
@@ -351,7 +352,8 @@ public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, Forg
                 ResetToken = token
             };
             var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(emailEvent));
-            channel.BasicPublish(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: null, body: body);
+            var props = new RabbitMQ.Client.BasicProperties();
+            await channel.BasicPublishAsync(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: props, body: body, cancellationToken: cancellationToken);
         }
         catch (Exception ex)
         {

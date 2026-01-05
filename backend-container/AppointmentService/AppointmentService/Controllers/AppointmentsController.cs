@@ -65,7 +65,7 @@ public class AppointmentsController : ControllerBase
             await _db.SaveChangesAsync();
 
             // Publish event (still useful for other services, but not for billing loop)
-            PublishAppointmentCreated(appointment);
+            await PublishAppointmentCreatedAsync(appointment);
 
             return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment);
         }
@@ -209,12 +209,12 @@ public class AppointmentsController : ControllerBase
         }
     }
 
-    private void PublishAppointmentCreated(Appointment appointment)
+    private async Task PublishAppointmentCreatedAsync(Appointment appointment)
     {
         try
         {
-            using var channel = _mqConnection.CreateModel();
-            channel.ExchangeDeclare("appointment.events", ExchangeType.Topic, durable: true);
+            await using var channel = await _mqConnection.CreateChannelAsync();
+            await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
 
             var evt = new
             {
@@ -228,9 +228,11 @@ public class AppointmentsController : ControllerBase
             var json = JsonSerializer.Serialize(evt);
             var body = Encoding.UTF8.GetBytes(json);
 
-            channel.BasicPublish(exchange: "appointment.events",
+            var props = new BasicProperties();
+            await channel.BasicPublishAsync(exchange: "appointment.events",
                                  routingKey: "appointment.created",
-                                 basicProperties: null,
+                                 mandatory: false,
+                                 basicProperties: props,
                                  body: body);
             
             _logger.LogInformation("Published appointment.created for {Id}", appointment.Id);

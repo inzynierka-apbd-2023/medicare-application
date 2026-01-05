@@ -7,6 +7,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { useNavigate } from "react-router-dom";
 
 import { AuthResponse, authService, AuthUser } from "../services/authService";
 import { usersApi } from "../services/usersApi";
@@ -58,6 +59,7 @@ interface AuthState {
 const Ctx = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
+  const navigate = useNavigate();
   // === DEVELOPMENT MOCK SETUP ===
   const [user, setUser] = useState<AuthUser | null>(() => {
     if (DEV_MOCK_OWNER) {
@@ -231,6 +233,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     // We intentionally run only once on mount for initial hydration.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Listen for global auth:logout events from apiClient
+  useEffect(() => {
+    const handleAuthLogout = () => {
+      console.log(
+        "🔒 [AuthContext] Received auth:logout event. Logging out and redirecting..."
+      );
+      logout();
+      navigate("/login");
+    };
+    window.addEventListener("auth:logout", handleAuthLogout);
+    return () => window.removeEventListener("auth:logout", handleAuthLogout);
+  }, [logout, navigate]);
 
   const ctxValue = useMemo(
     () => ({

@@ -14,7 +14,7 @@ public class NotificationConsumerService : BackgroundService
     private readonly ILogger<NotificationConsumerService> _logger;
     private readonly IServiceProvider _sp;
     private readonly IConnection _conn;
-    private IModel? _channel;
+    private IChannel? _channel;
     private const string NotificationsQueue = "notifications.events";
     private const string EmailQueue = "email.events";
 
@@ -31,21 +31,21 @@ public class NotificationConsumerService : BackgroundService
         {
             try
             {
-                _channel = _conn.CreateModel();
+                _channel = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
                 
                 // Declare queues
-                _channel.QueueDeclare(queue: NotificationsQueue, durable: true, exclusive: false, autoDelete: false, arguments: null);
-                _channel.QueueDeclare(queue: EmailQueue, durable: true, exclusive: false, autoDelete: false, arguments: null);
+                await _channel.QueueDeclareAsync(queue: NotificationsQueue, durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
+                await _channel.QueueDeclareAsync(queue: EmailQueue, durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
 
                 // Consumer for in-app notifications
                 var notificationConsumer = new AsyncEventingBasicConsumer(_channel);
-                notificationConsumer.Received += HandleNotificationEvent;
-                _channel.BasicConsume(queue: NotificationsQueue, autoAck: true, consumer: notificationConsumer);
+                notificationConsumer.ReceivedAsync += HandleNotificationEvent;
+                await _channel.BasicConsumeAsync(queue: NotificationsQueue, autoAck: true, consumer: notificationConsumer, cancellationToken: stoppingToken);
 
                 // Consumer for email events
                 var emailConsumer = new AsyncEventingBasicConsumer(_channel);
-                emailConsumer.Received += HandleEmailEvent;
-                _channel.BasicConsume(queue: EmailQueue, autoAck: true, consumer: emailConsumer);
+                emailConsumer.ReceivedAsync += HandleEmailEvent;
+                await _channel.BasicConsumeAsync(queue: EmailQueue, autoAck: true, consumer: emailConsumer, cancellationToken: stoppingToken);
 
                 _logger.LogInformation("NotificationConsumerService started on queues: {Queue1}, {Queue2}", 
                     NotificationsQueue, EmailQueue);
@@ -68,7 +68,7 @@ public class NotificationConsumerService : BackgroundService
     {
         try
         {
-            var json = Encoding.UTF8.GetString(ea.Body.ToArray());
+            var json = Encoding.UTF8.GetString(ea.Body.Span);
             var evt = JsonSerializer.Deserialize<NotificationEvent>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
             if (evt != null)
             {
@@ -103,7 +103,7 @@ public class NotificationConsumerService : BackgroundService
     {
         try
         {
-            var json = Encoding.UTF8.GetString(ea.Body.ToArray());
+            var json = Encoding.UTF8.GetString(ea.Body.Span);
             _logger.LogInformation("[Email MQ] Received email event: {Json}", json);
             
             var evt = JsonSerializer.Deserialize<EmailEvent>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
@@ -138,8 +138,7 @@ public class NotificationConsumerService : BackgroundService
 
     public override void Dispose()
     {
-        _channel?.Close();
-        _channel?.Dispose();
+        // _channel?.Dispose(); // Not sync disposable
         base.Dispose();
     }
 }

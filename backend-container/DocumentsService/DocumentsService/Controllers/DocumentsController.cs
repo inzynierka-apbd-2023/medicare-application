@@ -530,19 +530,27 @@ public class DocumentsController : ControllerBase
 
     private async Task<byte[]?> RequestPdfOverRabbitAsync(object payload, string corrId, CancellationToken ct)
     {
-        using var channel = _rabbitConn.CreateModel();
-        var requestQueue = "pdf.generate.document";
-        channel.QueueDeclare(requestQueue, durable: false, exclusive: false, autoDelete: false);
+        // Create async channel for RPC
+        await using var channel = await _rabbitConn.CreateChannelAsync(cancellationToken: ct);
+        
+        const string requestQueue = "pdf.generate.document";
+        
+        // Declare request queue (durable for production reliability - must match PdfService)
+        await channel.QueueDeclareAsync(requestQueue, durable: true, exclusive: false, autoDelete: false, cancellationToken: ct);
 
-        var replyQueue = channel.QueueDeclare(queue: "", durable: false, exclusive: true, autoDelete: true).QueueName;
-        var consumer = new AsyncEventingBasicConsumer(channel);
+        // Declare exclusive reply queue for this request
+        var replyQueueResult = await channel.QueueDeclareAsync(queue: "", durable: false, exclusive: true, autoDelete: true, cancellationToken: ct);
+        var replyQueue = replyQueueResult.QueueName;
+        
         var tcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
         
-        consumer.Received += async (model, ea) =>
+        // Create async consumer for reply
+        var consumer = new AsyncEventingBasicConsumer(channel);
+        consumer.ReceivedAsync += async (model, ea) =>
         {
             try
             {
-                var incomingCorrId = ea.BasicProperties?.CorrelationId;
+                var incomingCorrId = ea.BasicProperties.CorrelationId;
                 if (incomingCorrId == corrId)
                 {
                     _logger.LogInformation("Received PDF response for CorrId={CorrId}, Bytes={Bytes}", incomingCorrId, ea.Body.Length);
@@ -553,32 +561,52 @@ public class DocumentsController : ControllerBase
                     _logger.LogWarning("Received mismatched PDF response. Expected={Expected}, Got={Got}", corrId, incomingCorrId);
                 }
             }
-            finally { await Task.CompletedTask; }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing PDF response for CorrId={CorrId}", corrId);
+                tcs.TrySetException(ex);
+            }
+            await Task.CompletedTask;
         };
-        channel.BasicConsume(consumer, queue: replyQueue, autoAck: true);
+        
+        await channel.BasicConsumeAsync(consumer: consumer, queue: replyQueue, autoAck: true, cancellationToken: ct);
 
-        var props = channel.CreateBasicProperties();
-        props.ReplyTo = replyQueue;
-        props.CorrelationId = corrId;
-        props.ContentType = "application/json";
+        // Prepare message properties
+        var props = new BasicProperties
+        {
+            ReplyTo = replyQueue,
+            CorrelationId = corrId,
+            ContentType = "application/json"
+        };
 
         var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = null });
         var body = Encoding.UTF8.GetBytes(json);
         
         _logger.LogInformation("Publishing PDF req to {Queue}, ReplyTo={ReplyTo}, CorrId={CorrId}", requestQueue, replyQueue, corrId);
-        channel.BasicPublish(exchange: "", routingKey: requestQueue, basicProperties: props, body: body);
+        
+        await channel.BasicPublishAsync(
+            exchange: string.Empty, 
+            routingKey: requestQueue, 
+            mandatory: false,
+            basicProperties: props, 
+            body: body,
+            cancellationToken: ct);
 
+        // Wait for response with timeout
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(TimeSpan.FromSeconds(15));
+        cts.CancelAfter(TimeSpan.FromSeconds(30)); // Increased timeout for PDF generation
         
         try 
         {
-            var task = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
-            if (task == tcs.Task) return await tcs.Task;
+            var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
+            if (completedTask == tcs.Task) 
+            {
+                return await tcs.Task;
+            }
         }
         catch (OperationCanceledException) 
         {
-            _logger.LogError("PDF generation timed out (15s) for CorrId={CorrId}", corrId);
+            _logger.LogError("PDF generation timed out (30s) for CorrId={CorrId}", corrId);
             return null;
         }
 

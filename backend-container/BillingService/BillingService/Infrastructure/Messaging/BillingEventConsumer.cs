@@ -19,7 +19,7 @@ public class BillingEventConsumer : BackgroundService
     private readonly IServiceProvider _sp;
     private readonly ILogger<BillingEventConsumer> _logger;
     private readonly IConnection _conn;
-    private IModel? _channel;
+    private IChannel? _channel;
 
     public BillingEventConsumer(IServiceProvider sp, IConnection conn, ILogger<BillingEventConsumer> logger)
     {
@@ -34,26 +34,26 @@ public class BillingEventConsumer : BackgroundService
         Console.WriteLine("[BillingConsumer] 🔌 Attempting to connect to RabbitMQ...");
         try
         {
-            _channel = _conn.CreateModel();
+            _channel = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
             Console.WriteLine("[BillingConsumer] ✅ Created RabbitMQ channel");
             
-            _channel.ExchangeDeclare("user.events", ExchangeType.Topic, durable: true);
+            await _channel.ExchangeDeclareAsync("user.events", ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
             Console.WriteLine("[BillingConsumer] ✅ Declared exchange 'user.events'");
             
-            _channel.QueueDeclare("billing.user_created", durable: true, exclusive: false, autoDelete: false);
+            await _channel.QueueDeclareAsync("billing.user_created", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
             Console.WriteLine("[BillingConsumer] ✅ Declared queue 'billing.user_created'");
             
-            _channel.QueueBind("billing.user_created", "user.events", "user.created");
+            await _channel.QueueBindAsync("billing.user_created", "user.events", "user.created", arguments: null, cancellationToken: stoppingToken);
             Console.WriteLine("[BillingConsumer] ✅ Bound queue to exchange with routing key 'user.created'");
 
             // Bind to appointment.events
-            _channel.ExchangeDeclare("appointment.events", ExchangeType.Topic, durable: true);
-            _channel.QueueDeclare("billing.appointment_created", durable: true, exclusive: false, autoDelete: false);
-            _channel.QueueBind("billing.appointment_created", "appointment.events", "appointment.created");
+            await _channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
+            await _channel.QueueDeclareAsync("billing.appointment_created", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
+            await _channel.QueueBindAsync("billing.appointment_created", "appointment.events", "appointment.created", arguments: null, cancellationToken: stoppingToken);
             Console.WriteLine("[BillingConsumer] ✅ Bound queue to exchange with routing key 'appointment.created'");
 
             // Declare exchange for billing events
-            _channel.ExchangeDeclare("billing.events", ExchangeType.Topic, durable: true);
+            await _channel.ExchangeDeclareAsync("billing.events", ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
             
             _logger.LogInformation("Connected to RabbitMQ");
             Console.WriteLine("[BillingConsumer] 🎉 Successfully connected and ready to consume messages!");
@@ -66,7 +66,7 @@ public class BillingEventConsumer : BackgroundService
         }
 
         var consumer = new AsyncEventingBasicConsumer(_channel);
-        consumer.Received += async (model, ea) =>
+        consumer.ReceivedAsync += async (model, ea) =>
         {
             try
             {
@@ -82,16 +82,16 @@ public class BillingEventConsumer : BackgroundService
                     await HandleUserCreatedAsync(evt);
                 }
                 
-                _channel.BasicAck(ea.DeliveryTag, false);
+                await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing message");
-                _channel.BasicNack(ea.DeliveryTag, false, false); // or true to requeue
+                await _channel.BasicNackAsync(ea.DeliveryTag, false, false, stoppingToken); // or true to requeue
             }
         };
 
-        _channel.BasicConsume("billing.user_created", false, consumer);
+        await _channel.BasicConsumeAsync("billing.user_created", false, consumer, cancellationToken: stoppingToken);
 
         // Keep running
         while (!stoppingToken.IsCancellationRequested)
@@ -162,7 +162,7 @@ public class BillingEventConsumer : BackgroundService
 
     public override void Dispose()
     {
-        _channel?.Dispose();
+        // _channel?.Dispose();
         // Note: _conn is managed by Aspire DI, don't dispose it here
         base.Dispose();
     }

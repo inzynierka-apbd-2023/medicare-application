@@ -18,7 +18,7 @@ public class DoctorArchiveConsumer : BackgroundService
     private readonly IConfiguration _config;
     private readonly IServiceProvider _sp;
     private readonly IConnection _connection;
-    private IModel? _channel;
+    private IChannel? _channel;
 
     public DoctorArchiveConsumer(ILogger<DoctorArchiveConsumer> logger, IServiceProvider sp, IConfiguration config, IConnection connection)
     {
@@ -33,10 +33,10 @@ public class DoctorArchiveConsumer : BackgroundService
         // Aspire connection is injected; just create channel
         try
         {
-            _channel = _connection.CreateModel();
-            _channel.ExchangeDeclare(exchange: "practitioner.events", type: ExchangeType.Topic, durable: true);
-            var queue = _channel.QueueDeclare(queue: "archive.doctor", durable: true, exclusive: false, autoDelete: false);
-            _channel.QueueBind(queue: queue.QueueName, exchange: "practitioner.events", routingKey: "doctor.remove.requested");
+            _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
+            await _channel.ExchangeDeclareAsync(exchange: "practitioner.events", type: ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
+            var queue = await _channel.QueueDeclareAsync(queue: "archive.doctor", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
+            await _channel.QueueBindAsync(queue: queue.QueueName, exchange: "practitioner.events", routingKey: "doctor.remove.requested", arguments: null, cancellationToken: stoppingToken);
             _logger.LogInformation("DoctorArchiveConsumer connected to RabbitMQ");
         }
         catch (Exception ex) 
@@ -48,7 +48,7 @@ public class DoctorArchiveConsumer : BackgroundService
                 try
                 {
                      await Task.Delay(5000, stoppingToken);
-                     _channel = _connection.CreateModel();
+                     _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
                      // Re-declare...
                 }
                 catch { }
@@ -59,22 +59,22 @@ public class DoctorArchiveConsumer : BackgroundService
 
 
         var consumer = new AsyncEventingBasicConsumer(_channel);
-        consumer.Received += async (_, ea) =>
+        consumer.ReceivedAsync += async (_, ea) =>
         {
             try
             {
                 var json = Encoding.UTF8.GetString(ea.Body.ToArray());
                 var evt = JsonSerializer.Deserialize<DoctorRemovalRequested>(json);
-                if (evt == null) { _channel!.BasicAck(ea.DeliveryTag, false); return; }
+                if (evt == null) { await _channel!.BasicAckAsync(ea.DeliveryTag, false, stoppingToken); return; }
 
                 using var scope = _sp.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<ArchiveDbContext>();
 
-                var existing = await db.ArchivedDoctors.FindAsync(evt.DoctorId);
+                var existing = await db.ArchivedDoctors.FindAsync(evt.DoctorId, stoppingToken);
                 if (existing != null)
                 {
                     _logger.LogInformation("Doctor {DoctorId} already archived", evt.DoctorId);
-                    _channel!.BasicAck(ea.DeliveryTag, false);
+                    await _channel!.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
                     return;
                 }
 
@@ -89,30 +89,32 @@ public class DoctorArchiveConsumer : BackgroundService
                     SnapshotJson = evt.SnapshotJson
                 };
                 db.ArchivedDoctors.Add(archived);
-                await db.SaveChangesAsync();
+                await db.SaveChangesAsync(stoppingToken);
 
                 var archivedEvent = new { DoctorId = evt.DoctorId, DoctorUserId = evt.DoctorUserId, Type = "DoctorArchived", At = DateTime.UtcNow };
                 var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(archivedEvent));
-                _channel.BasicPublish(exchange: "practitioner.events", routingKey: "doctor.archived", basicProperties: null, body: body);
+                
+                var props = new BasicProperties();
+                await _channel.BasicPublishAsync(exchange: "practitioner.events", routingKey: "doctor.archived", mandatory: false, basicProperties: props, body: body, cancellationToken: stoppingToken);
 
                 _logger.LogInformation("Archived doctor {DoctorId}", evt.DoctorId);
-                _channel!.BasicAck(ea.DeliveryTag, false);
+                await _channel!.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Failed to archive doctor");
-                _channel!.BasicNack(ea.DeliveryTag, false, true);
+                await _channel!.BasicNackAsync(ea.DeliveryTag, false, true, stoppingToken);
             }
         };
 
-        _channel.BasicConsume(queue: "archive.doctor", autoAck: false, consumer: consumer);
+        await _channel.BasicConsumeAsync(queue: "archive.doctor", autoAck: false, consumer: consumer, cancellationToken: stoppingToken);
         
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
     public override void Dispose()
     {
-        _channel?.Close(); _channel?.Dispose();
+        // _channel?.Dispose(); // Not sync disposable
         base.Dispose();
     }
 }

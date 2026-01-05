@@ -13,11 +13,11 @@ public class NotifierAdminController : ControllerBase
 {
     private readonly ILogger<NotifierAdminController> _logger;
     private readonly IServiceProvider _sp;
-    private readonly IConfiguration _config;
+    private readonly IConnection _rabbitConnection;
 
-    public NotifierAdminController(ILogger<NotifierAdminController> logger, IServiceProvider sp, IConfiguration config)
+    public NotifierAdminController(ILogger<NotifierAdminController> logger, IServiceProvider sp, IConnection rabbitConnection)
     {
-        _logger = logger; _sp = sp; _config = config;
+        _logger = logger; _sp = sp; _rabbitConnection = rabbitConnection;
     }
 
     [HttpPost("run-once")]
@@ -37,20 +37,10 @@ public class NotifierAdminController : ControllerBase
                 .Take(200)
                 .ToListAsync();
 
-            // Read RabbitMQ settings from configuration (env vars map __ -> :) 
-            var factory = new ConnectionFactory();
-            var cs = _config.GetConnectionString("rabbitmq");
-            if (!string.IsNullOrEmpty(cs)) { factory.Uri = new Uri(cs); }
-            else 
-            {
-                factory.HostName = _config["RABBITMQ:HOST"] ?? "rabbitmq";
-                factory.UserName = _config["RABBITMQ:USERNAME"] ?? "guest";
-                factory.Password = _config["RABBITMQ:PASSWORD"] ?? "guest";
-            }
-            using var conn = factory.CreateConnection();
-            using var ch = conn.CreateModel();
+            // Use injected connection
+            await using var ch = await _rabbitConnection.CreateChannelAsync();
             var queue = "notifications.events";
-            ch.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false);
+            await ch.QueueDeclareAsync(queue, durable: true, exclusive: false, autoDelete: false);
 
             int published = 0;
             foreach (var appt in due)
@@ -62,8 +52,9 @@ public class NotifierAdminController : ControllerBase
 
                 var evt = new { RecipientUserId = appt.PatientId, Description = message, Type = (byte)1, SourceService = "appointment-service", ActionUrl = $"/appointments/{appt.Id}", PriorityLevel = "Normal", ExpiresAt = (DateTime?)null };
                 var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt));
-                var props = ch.CreateBasicProperties(); props.ContentType = "application/json"; props.DeliveryMode = 2;
-                ch.BasicPublish(exchange: "", routingKey: queue, basicProperties: props, body: body);
+                var props = new BasicProperties(); props.ContentType = "application/json"; props.DeliveryMode = DeliveryModes.Persistent; // 2
+                
+                await ch.BasicPublishAsync(exchange: "", routingKey: queue, mandatory: false, basicProperties: props, body: body);
                 appt.UpcomingNotificationSentAt = DateTime.UtcNow;
                 published++;
             }

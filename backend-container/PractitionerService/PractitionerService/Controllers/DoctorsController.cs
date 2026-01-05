@@ -21,10 +21,13 @@ public class DoctorsController : ControllerBase
     private readonly IHttpClientFactory _httpFactory;
     private const string DoctorNotFound = "Doctor not found";
 
-    public DoctorsController(PractitionerDbContext db, IHttpClientFactory httpFactory)
+    private readonly IConnection _rabbitConnection;
+
+    public DoctorsController(PractitionerDbContext db, IHttpClientFactory httpFactory, IConnection rabbitConnection)
     {
         _db = db;
         _httpFactory = httpFactory;
+        _rabbitConnection = rabbitConnection;
     }
 
     public record CreateDoctorFullRequest(
@@ -413,23 +416,15 @@ public class DoctorsController : ControllerBase
         };
 
         // Publish to RabbitMQ (best-effort)
+        // Publish to RabbitMQ (best-effort)
         try
         {
-            var config = HttpContext.RequestServices.GetService<IConfiguration>();
-            var factory = new RabbitMQ.Client.ConnectionFactory();
-            var cs = config?.GetConnectionString("rabbitmq");
-            if (!string.IsNullOrEmpty(cs)) { factory.Uri = new Uri(cs); }
-            else
-            {
-                factory.HostName = config?["RABBITMQ:HOST"] ?? "rabbitmq";
-                factory.UserName = config?["RABBITMQ:USERNAME"] ?? "medicare";
-                factory.Password = config?["RABBITMQ:PASSWORD"] ?? "medicare";
-            }
-            using var conn = factory.CreateConnection();
-            using var ch = conn.CreateModel();
-            ch.ExchangeDeclare(exchange: "practitioner.events", type: RabbitMQ.Client.ExchangeType.Topic, durable: true);
+            await using var ch = await _rabbitConnection.CreateChannelAsync();
+            await ch.ExchangeDeclareAsync(exchange: "practitioner.events", type: ExchangeType.Topic, durable: true);
             var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(evt));
-            ch.BasicPublish(exchange: "practitioner.events", routingKey: "doctor.remove.requested", basicProperties: null, body: body);
+            
+            var props = new BasicProperties();
+            await ch.BasicPublishAsync(exchange: "practitioner.events", routingKey: "doctor.remove.requested", mandatory: false, basicProperties: props, body: body);
         }
         catch { /* swallow to not block deletion */ }
 

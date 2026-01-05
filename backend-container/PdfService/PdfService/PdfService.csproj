@@ -7,7 +7,9 @@
   </PropertyGroup>
   <ItemGroup>
 
-    <PackageReference Include="Aspire.RabbitMQ.Client" Version="9.1.0" />
+    <!-- Use v7 package for RabbitMQ.Client 7.x compatibility -->
+    <PackageReference Include="Aspire.RabbitMQ.Client.v7" Version="9.1.0" /> 
+    <PackageReference Include="RabbitMQ.Client" Version="7.0.0" />
 
     <PackageReference Include="QuestPDF" Version="2025.12.0" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.0" />

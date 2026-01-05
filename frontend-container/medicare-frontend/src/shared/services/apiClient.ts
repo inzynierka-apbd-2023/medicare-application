@@ -88,6 +88,16 @@ apiClient.interceptors.response.use(
       isRefreshing = true;
       try {
         const newToken = await authService.refresh();
+
+        if (!newToken) {
+          authService.logout();
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new Event("auth:logout"));
+          }
+          await processQueue(null, null);
+          return Promise.reject(error);
+        }
+
         await processQueue(newToken, null);
         if (newToken && original.headers)
           original.headers.Authorization = `Bearer ${newToken}`;
@@ -95,6 +105,9 @@ apiClient.interceptors.response.use(
       } catch (e) {
         await processQueue(null, e);
         authService.logout();
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new Event("auth:logout"));
+        }
         return Promise.reject(e);
       } finally {
         isRefreshing = false;

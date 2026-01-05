@@ -15,58 +15,165 @@ public class Program
     public static async Task Main(string[] args)
     {
         var builder = Host.CreateApplicationBuilder(args);
+        
+        builder.AddServiceDefaults();
         builder.Logging.AddConsole();
+        
+        // Aspire.RabbitMQ.Client.v7 uses RabbitMQ.Client 7.0+ which is async by default.
+        // DispatchConsumersAsync is removed and implicit.
         builder.AddRabbitMQClient("rabbitmq");
 
+        // Register the background worker service
+        builder.Services.AddHostedService<PdfGenerationWorker>();
+
         var host = builder.Build();
-
-        var logger = host.Services.GetRequiredService<ILoggerFactory>().CreateLogger("PdfService");
-
-        // Use Aspire-injected connection
-        IConnection conn = host.Services.GetRequiredService<IConnection>();
-        IModel channel = conn.CreateModel();
-
-        var queue = "pdf.generate.document";
-        channel.QueueDeclare(queue, durable: false, exclusive: false, autoDelete: false);
-        channel.BasicQos(0, 1, false);
-
-        QuestPDF.Settings.License = LicenseType.Community;
-
-        var consumer = new AsyncEventingBasicConsumer(channel);
-        consumer.Received += async (ch, ea) =>
-        {
-            try
-            {
-                var replyTo = ea.BasicProperties?.ReplyTo;
-                var corrId = ea.BasicProperties?.CorrelationId;
-                logger.LogInformation("[PdfService] Received request CorrelationId={CorrelationId}, ReplyTo={ReplyTo}", corrId, replyTo);
-                var json = Encoding.UTF8.GetString(ea.Body.ToArray());
-                var payload = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                var pdf = BuildPdf(payload!);
-
-                if (!string.IsNullOrWhiteSpace(replyTo) && !string.IsNullOrWhiteSpace(corrId))
-                {
-                    var props = channel.CreateBasicProperties();
-                    props.CorrelationId = corrId;
-                    props.ContentType = "application/pdf";
-                    channel.BasicPublish(exchange: "", routingKey: replyTo, basicProperties: props, body: pdf);
-                    logger.LogInformation("[PdfService] Published response CorrelationId={CorrelationId}, SizeBytes={Size}", corrId, pdf?.Length ?? 0);
-                }
-            }
-            catch (Exception ex)
-            {
-                logger.LogError(ex, "Failed to generate PDF");
-            }
-            finally
-            {
-                channel.BasicAck(ea.DeliveryTag, multiple: false);
-                await Task.CompletedTask;
-            }
-        };
-        channel.BasicConsume(queue: queue, autoAck: false, consumer: consumer);
-
-        logger.LogInformation("PdfService is running and listening on {Queue}", queue);
         await host.RunAsync();
+    }
+}
+
+/// <summary>
+/// Background service that listens for PDF generation requests via RabbitMQ.
+/// Uses RPC pattern with reply-to queue for request/response messaging.
+/// </summary>
+public sealed class PdfGenerationWorker : BackgroundService
+{
+    private readonly ILogger<PdfGenerationWorker> _logger;
+    private readonly IConnection _connection;
+    private IChannel? _channel;
+    
+    private const string RequestQueue = "pdf.generate.document";
+
+    public PdfGenerationWorker(ILogger<PdfGenerationWorker> logger, IConnection connection)
+    {
+        _logger = logger;
+        _connection = connection;
+        
+        // Configure QuestPDF license
+        QuestPDF.Settings.License = LicenseType.Community;
+    }
+
+    protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+    {
+        _logger.LogInformation("[PdfService] Starting PDF generation worker (RabbitMQ 7.x Async with Aspire.v7)...");
+        
+        try
+        {
+            // RabbitMQ 7.x: CreateChannelAsync
+            _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
+            
+            // Declare the request queue (durable for production reliability)
+            await _channel.QueueDeclareAsync(
+                queue: RequestQueue,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: null,
+                cancellationToken: stoppingToken);
+            
+            // Set prefetch to 1 for fair dispatch (process one message at a time)
+            await _channel.BasicQosAsync(prefetchSize: 0, prefetchCount: 1, global: false, cancellationToken: stoppingToken);
+            
+            _logger.LogInformation("[PdfService] Listening on queue '{Queue}'", RequestQueue);
+
+            // Create async consumer
+            var consumer = new AsyncEventingBasicConsumer(_channel);
+            consumer.ReceivedAsync += async (sender, ea) =>
+            {
+                await ProcessMessageAsync(ea, stoppingToken);
+            };
+
+            // Start consuming (manual ack for reliability)
+            await _channel.BasicConsumeAsync(
+                queue: RequestQueue,
+                autoAck: false,
+                consumer: consumer,
+                cancellationToken: stoppingToken);
+
+            // Keep running until cancellation - handled by the hosting framework
+            // We return Task.CompletedTask as the consumer is event-based
+            await Task.Delay(Timeout.Infinite, stoppingToken);
+        }
+        catch (OperationCanceledException)
+        {
+            // Graceful shutdown
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PdfService] Fatal error in worker");
+            throw;
+        }
+    }
+
+    private async Task ProcessMessageAsync(BasicDeliverEventArgs ea, CancellationToken ct)
+    {
+        var replyTo = ea.BasicProperties.ReplyTo; // In 7.x BasicProperties are non-nullable or properties accessible directly
+        var corrId = ea.BasicProperties.CorrelationId;
+        
+        _logger.LogInformation("[PdfService] Received request CorrelationId={CorrelationId}, ReplyTo={ReplyTo}", corrId, replyTo);
+        
+        try
+        {
+            var json = Encoding.UTF8.GetString(ea.Body.ToArray());
+            var payload = JsonSerializer.Deserialize<Dictionary<string, object?>>(json, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+            
+            if (payload == null)
+            {
+                _logger.LogWarning("[PdfService] Received null payload for CorrelationId={CorrelationId}", corrId);
+                await AckMessageAsync(ea);
+                return;
+            }
+            
+            var pdf = BuildPdf(payload);
+
+            // Send response if reply-to is specified (RPC pattern)
+            if (!string.IsNullOrWhiteSpace(replyTo) && !string.IsNullOrWhiteSpace(corrId) && _channel != null)
+            {
+                var props = new BasicProperties();
+                props.CorrelationId = corrId;
+                props.ContentType = "application/pdf";
+                
+                await _channel.BasicPublishAsync(
+                    exchange: string.Empty,
+                    routingKey: replyTo,
+                    mandatory: false,
+                    basicProperties: props,
+                    body: pdf,
+                    cancellationToken: ct);
+                
+                _logger.LogInformation("[PdfService] Published response CorrelationId={CorrelationId}, SizeBytes={Size}", corrId, pdf?.Length ?? 0);
+            }
+            
+            // Acknowledge the message after successful processing
+            await AckMessageAsync(ea);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "[PdfService] Failed to generate PDF for CorrelationId={CorrelationId}", corrId);
+            
+            // Still acknowledge to avoid reprocessing failed messages indefinitely
+            await AckMessageAsync(ea);
+        }
+    }
+
+    private async Task AckMessageAsync(BasicDeliverEventArgs ea)
+    {
+        if (_channel != null)
+        {
+            await _channel.BasicAckAsync(ea.DeliveryTag, multiple: false);
+        }
+    }
+
+    public override async Task StopAsync(CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("[PdfService] Stopping worker...");
+        
+        if (_channel != null)
+        {
+            await _channel.CloseAsync(cancellationToken);
+            await _channel.DisposeAsync();
+        }
+        
+        await base.StopAsync(cancellationToken);
     }
 
     private static byte[] BuildPdf(Dictionary<string, object?> data)
@@ -74,16 +181,16 @@ public class Program
         var type = data.GetValueOrDefault("Type")?.ToString() ?? "Document";
         var docId = data.GetValueOrDefault("DocumentId")?.ToString();
         var createdAt = data.GetValueOrDefault("CreatedAt")?.ToString();
-    var patientId = data.GetValueOrDefault("PatientId")?.ToString();
-    var doctorId = data.GetValueOrDefault("DoctorId")?.ToString();
-    var patientName = data.GetValueOrDefault("PatientName")?.ToString();
-    var doctorName = data.GetValueOrDefault("DoctorName")?.ToString();
+        var patientId = data.GetValueOrDefault("PatientId")?.ToString();
+        var doctorId = data.GetValueOrDefault("DoctorId")?.ToString();
+        var patientName = data.GetValueOrDefault("PatientName")?.ToString();
+        var doctorName = data.GetValueOrDefault("DoctorName")?.ToString();
         var notes = data.GetValueOrDefault("Notes")?.ToString();
-    const string SignatureLabel = "Physician Signature: ______________________________";
-    // Unified accent color (prescription blue) for all document types
-    string accent = Colors.Blue.Medium;
+        const string SignatureLabel = "Physician Signature: ______________________________";
+        // Unified accent color (prescription blue) for all document types
+        string accent = Colors.Blue.Medium;
 
-    var bytes = Document.Create(c =>
+        var bytes = Document.Create(c =>
         {
             c.Page(p =>
             {
@@ -100,7 +207,7 @@ public class Program
                              r.RelativeItem().PaddingLeft(10).Column(col =>
                              {
                                  col.Item().Text("Medicare Clinic").Bold().FontSize(18);
-                                 col.Item().Text("123 Health St, Wellness City � (555) 123-4567").FontSize(10).FontColor(Colors.Grey.Darken1);
+                                 col.Item().Text("123 Health St, Wellness City · (555) 123-4567").FontSize(10).FontColor(Colors.Grey.Darken1);
                              });
                              r.AutoItem().AlignRight().Text(type.Replace('_',' ')).Bold().FontSize(14).FontColor(accent);
                          })
@@ -317,10 +424,10 @@ public class Program
                 p.Footer().AlignCenter().Text(x =>
                 {
                     x.DefaultTextStyle(s => s.FontSize(9).FontColor(Colors.Grey.Darken1));
-                    x.Span("Medicare Clinic � ");
-                    x.Span("Confidential Medical Document � ");
+                    x.Span("Medicare Clinic · ");
+                    x.Span("Confidential Medical Document · ");
                     x.Span(DateTime.UtcNow.ToString("u"));
-                    x.Span(" � Page ");
+                    x.Span(" · Page ");
                     x.CurrentPageNumber();
                     x.Span(" of ");
                     x.TotalPages();

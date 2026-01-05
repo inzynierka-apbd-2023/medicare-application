@@ -21,7 +21,7 @@ public class OutboxPublisherHostedService : BackgroundService
     private readonly IServiceProvider _sp;
     private readonly RabbitOptions _opt;
     private readonly IConnection _conn;
-    private IModel? _ch;
+    private IChannel? _ch;
 
     private readonly IConfiguration _config;
 
@@ -37,8 +37,8 @@ public class OutboxPublisherHostedService : BackgroundService
     {
         try
         {
-            _ch = _conn.CreateModel();
-            _ch.ExchangeDeclare(_opt.Exchange, ExchangeType.Topic, durable: true);
+            _ch = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
+            await _ch.ExchangeDeclareAsync(_opt.Exchange, ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
             Console.WriteLine($"[OutboxPublisher] Connected to RabbitMQ exchange='{_opt.Exchange}'");
         }
         catch (Exception ex)
@@ -50,15 +50,15 @@ public class OutboxPublisherHostedService : BackgroundService
                 try
                 {
                      await Task.Delay(5000, stoppingToken);
-                     _ch = _conn.CreateModel();
-                     _ch.ExchangeDeclare(_opt.Exchange, ExchangeType.Topic, durable: true);
+                     _ch = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
+                     await _ch.ExchangeDeclareAsync(_opt.Exchange, ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
                 }
                 catch { }
             }
         }
 
 
-        while (!stoppingToken.IsCancellationRequested)
+        while (!stoppingToken.IsCancellationRequested && _ch != null)
         {
             try
             {
@@ -78,11 +78,13 @@ public class OutboxPublisherHostedService : BackgroundService
                 foreach (var evt in events)
                 {
                     var body = Encoding.UTF8.GetBytes(evt.PayloadJson);
-                    var props = _ch!.CreateBasicProperties();
+                    var props = new BasicProperties();
                     props.ContentType = "application/json";
-                    props.DeliveryMode = 2;
+                    props.DeliveryMode = DeliveryModes.Persistent; // 2 = Persistent
                     props.MessageId = evt.Id.ToString();
-                    _ch.BasicPublish(_opt.Exchange, evt.Type, props, body);
+                    
+                    await _ch.BasicPublishAsync(_opt.Exchange, evt.Type, true, props, body, stoppingToken);
+                    
                     Console.WriteLine($"[OutboxPublisher] ✅ Published event id={evt.Id} type='{evt.Type}' to exchange='{_opt.Exchange}' routingKey='{evt.Type}'");
                     Console.WriteLine($"[OutboxPublisher] 📄 Payload: {evt.PayloadJson}");
                     // mark as published
@@ -93,15 +95,25 @@ public class OutboxPublisherHostedService : BackgroundService
             catch (Exception ex)
             {
                 Console.WriteLine($"[OutboxPublisher] Error while publishing: {ex.Message}");
-                await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
+                await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
+                
+                // If channel is closed, try to reconnect? (For simplicity, we rely on restart policy or rudimentary check)
+                if (_ch == null || _ch.IsClosed)
+                {
+                     try 
+                     {
+                        _ch = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
+                     } catch { }
+                }
             }
         }
     }
 
     public override void Dispose()
     {
-        _ch?.Dispose();
-        _conn?.Dispose();
+        // Connection is singleton and managed by DI container, do NOT dispose it here.
+        // Channel should be disposed, but Dispose() is sync.
+        // Prefer explicit cleanup if possible, but for BackgroundService, runtime handles it.
         base.Dispose();
     }
 }

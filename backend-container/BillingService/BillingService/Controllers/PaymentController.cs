@@ -70,18 +70,18 @@ public class PaymentController : ControllerBase
         _logger.LogInformation("Persisted Mock PaymentIntent {IntentId} for Appointment {ApptId} (Patient: {PatientId})", intent.Id, req.AppointmentId, req.PatientId);
 
         // 4. Publish Event
-        PublishPaymentProcessed(req.AppointmentId, true, paymentRecord.AmountCents); 
+        await PublishPaymentProcessedAsync(req.AppointmentId, true, paymentRecord.AmountCents); 
 
         return Ok(new { Success = true, Message = "Payment processed successfully" });
     }
 
-    private void PublishPaymentProcessed(Guid appointmentId, bool isPaid, long amountCents)
+    private async Task PublishPaymentProcessedAsync(Guid appointmentId, bool isPaid, long amountCents)
     {
         try
         {
-            using var channel = _mqConnection.CreateModel();
+            await using var channel = await _mqConnection.CreateChannelAsync();
             // Declare exchange to ensure it exists
-            channel.ExchangeDeclare("billing.events", ExchangeType.Topic, durable: true);
+            await channel.ExchangeDeclareAsync("billing.events", ExchangeType.Topic, durable: true);
 
             var evt = new
             {
@@ -95,9 +95,11 @@ public class PaymentController : ControllerBase
             var json = JsonSerializer.Serialize(evt);
             var body = Encoding.UTF8.GetBytes(json);
 
-            channel.BasicPublish(exchange: "billing.events",
+            var props = new BasicProperties();
+            await channel.BasicPublishAsync(exchange: "billing.events",
                                  routingKey: "billing.appointment_payment_processed",
-                                 basicProperties: null,
+                                 mandatory: false,
+                                 basicProperties: props,
                                  body: body);
             
             _logger.LogInformation("Published billing.appointment_payment_processed for {Id}", appointmentId);

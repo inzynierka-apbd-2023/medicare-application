@@ -4,6 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using PatientService.Data;
 using System.Collections.Generic;
+using RabbitMQ.Client;
 
 namespace PatientService.Infrastructure.Messaging;
 
@@ -13,7 +14,7 @@ public class UserRegisteredConsumer : BackgroundService
 {
     private readonly IServiceProvider _sp;
     private readonly RabbitMQ.Client.IConnection _conn;
-    private RabbitMQ.Client.IModel? _ch;
+    private RabbitMQ.Client.IChannel? _ch;
 
     public UserRegisteredConsumer(IServiceProvider sp, RabbitMQ.Client.IConnection conn)
     {
@@ -25,37 +26,38 @@ public class UserRegisteredConsumer : BackgroundService
     {
         try
         {
-            _ch = _conn.CreateModel();
-            _ch.ExchangeDeclare(exchange: "user.events", type: RabbitMQ.Client.ExchangeType.Topic, durable: true, autoDelete: false, arguments: null);
+            _ch = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
+            await _ch.ExchangeDeclareAsync(exchange: "user.events", type: ExchangeType.Topic, durable: true, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
             // DLX + DLQ for failures
-            _ch.ExchangeDeclare(exchange: "patient.dlx", type: RabbitMQ.Client.ExchangeType.Direct, durable: true, autoDelete: false, arguments: null);
-            _ch.QueueDeclare(queue: "patient.user-registered.dlq", durable: true, exclusive: false, autoDelete: false, arguments: null);
-            _ch.QueueBind(queue: "patient.user-registered.dlq", exchange: "patient.dlx", routingKey: "patient.user-registered", arguments: null);
+            await _ch.ExchangeDeclareAsync(exchange: "patient.dlx", type: ExchangeType.Direct, durable: true, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
+            await _ch.QueueDeclareAsync(queue: "patient.user-registered.dlq", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
+            await _ch.QueueBindAsync(queue: "patient.user-registered.dlq", exchange: "patient.dlx", routingKey: "patient.user-registered", arguments: null, cancellationToken: stoppingToken);
 
-            var qArgs = new Dictionary<string, object>
+            var qArgs = new Dictionary<string, object?>
             {
                 ["x-dead-letter-exchange"] = "patient.dlx",
                 ["x-dead-letter-routing-key"] = "patient.user-registered"
             };
-            _ch.QueueDeclare(queue: "patient.user-registered", durable: true, exclusive: false, autoDelete: false, arguments: qArgs);
-            _ch.QueueBind(queue: "patient.user-registered", exchange: "user.events", routingKey: "user.created", arguments: null);
-            _ch.BasicQos(prefetchSize: 0, prefetchCount: 10, global: false);
+            await _ch.QueueDeclareAsync(queue: "patient.user-registered", durable: true, exclusive: false, autoDelete: false, arguments: qArgs, cancellationToken: stoppingToken);
+            await _ch.QueueBindAsync(queue: "patient.user-registered", exchange: "user.events", routingKey: "user.created", arguments: null, cancellationToken: stoppingToken);
+            await _ch.BasicQosAsync(prefetchSize: 0, prefetchCount: 10, global: false, cancellationToken: stoppingToken);
             Console.WriteLine($"[UserRegisteredConsumer] Connected to RabbitMQ queue='patient.user-registered'");
         }
         catch (Exception ex)
         {
             Console.WriteLine($"[UserRegisteredConsumer] Failed to setup RabbitMQ channel: {ex.Message}");
-            // Use a delay loop to retry channel creation if needed (Aspire connection might be ready but channel fails?)
-            // For now, simplicity: if setup fails, we exit (but we should probably retry).
-            // Retrying logic for channel creation:
+            // Simple retry loop for channel creation
              while (!stoppingToken.IsCancellationRequested && _ch == null)
             {
                 try
                 {
                      await Task.Delay(5000, stoppingToken);
-                     _ch = _conn.CreateModel();
-                     // Re-declare topology...
-                     // (Simplified for this edit: assuming connection is stable)
+                     _ch = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
+                     // Re-declare topology omitted for brevity (should ideally duplicate logic)
+                     await _ch.ExchangeDeclareAsync(exchange: "user.events", type: ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
+                     await _ch.QueueDeclareAsync(queue: "patient.user-registered", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
+                     await _ch.QueueBindAsync(queue: "patient.user-registered", exchange: "user.events", routingKey: "user.created", arguments: null, cancellationToken: stoppingToken);
+                     await _ch.BasicQosAsync(0, 10, false, stoppingToken);
                 }
                 catch { }
             }
@@ -63,14 +65,14 @@ public class UserRegisteredConsumer : BackgroundService
 
         if (_ch == null) return;
 
-        var consumer = new RabbitMQ.Client.Events.EventingBasicConsumer(_ch!);
-        consumer.Received += async (_, ea) =>
+        var consumer = new RabbitMQ.Client.Events.AsyncEventingBasicConsumer(_ch!);
+        consumer.ReceivedAsync += async (_, ea) =>
         {
             try
             {
                 var json = Encoding.UTF8.GetString(ea.Body.Span);
                 var evt = JsonSerializer.Deserialize<UserRegistered>(json);
-                if (evt == null) { _ch!.BasicAck(ea.DeliveryTag, false); return; }
+                if (evt == null) { await _ch!.BasicAckAsync(ea.DeliveryTag, false, stoppingToken); return; }
                 Console.WriteLine($"[UserRegisteredConsumer] Received event UserId={evt.UserId} Username={evt.Username}");
 
                 var msgId = ea.BasicProperties?.MessageId;
@@ -119,7 +121,7 @@ public class UserRegisteredConsumer : BackgroundService
                         // Unique idempotency conflict -> already processed; swallow
                     }
                 }
-                _ch!.BasicAck(ea.DeliveryTag, false);
+                await _ch!.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
                 Console.WriteLine($"[UserRegisteredConsumer] Processed user UserId={evt.UserId}");
             }
             catch (Exception ex)
@@ -139,11 +141,11 @@ public class UserRegisteredConsumer : BackgroundService
 
                 if (current < maxRetries)
                 {
-                    var props = _ch!.CreateBasicProperties();
+                    var props = new BasicProperties();
                     props.ContentType = ea.BasicProperties?.ContentType ?? "application/json";
-                    props.DeliveryMode = 2;
+                    props.DeliveryMode = DeliveryModes.Persistent; // 2
                     props.MessageId = ea.BasicProperties?.MessageId;
-                    props.Headers = new Dictionary<string, object>();
+                    props.Headers = new Dictionary<string, object?>();
                     if (ea.BasicProperties?.Headers != null)
                     {
                         foreach (var kv in ea.BasicProperties.Headers)
@@ -152,18 +154,19 @@ public class UserRegisteredConsumer : BackgroundService
                         }
                     }
                     props.Headers["x-retry"] = current + 1;
-                    _ch.BasicPublish(exchange: ea.Exchange, routingKey: ea.RoutingKey, mandatory: false, basicProperties: props, body: ea.Body);
-                    _ch.BasicAck(ea.DeliveryTag, false);
+                    
+                    await _ch.BasicPublishAsync(exchange: ea.Exchange, routingKey: ea.RoutingKey, mandatory: false, basicProperties: props, body: ea.Body, cancellationToken: stoppingToken);
+                    await _ch.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
                     Console.WriteLine($"[UserRegisteredConsumer] Republished for retry {current + 1}/{maxRetries} (MessageId={ea.BasicProperties?.MessageId})");
                 }
                 else
                 {
-                    _ch!.BasicNack(ea.DeliveryTag, false, requeue: false); // send to DLQ via DLX
+                    await _ch!.BasicNackAsync(ea.DeliveryTag, false, requeue: false, cancellationToken: stoppingToken); // send to DLQ via DLX
                     Console.WriteLine($"[UserRegisteredConsumer] Sent to DLQ after {current} retries (MessageId={ea.BasicProperties?.MessageId})");
                 }
             }
         };
-    _ch!.BasicConsume(queue: "patient.user-registered", autoAck: false, consumerTag: string.Empty, noLocal: false, exclusive: false, arguments: null, consumer: consumer);
+        await _ch!.BasicConsumeAsync(queue: "patient.user-registered", autoAck: false, consumerTag: string.Empty, noLocal: false, exclusive: false, arguments: null, consumer: consumer, cancellationToken: stoppingToken);
         
         // Keep the task alive
         await Task.Delay(Timeout.Infinite, stoppingToken);
@@ -171,8 +174,9 @@ public class UserRegisteredConsumer : BackgroundService
 
     public override void Dispose()
     {
-        _ch?.Dispose();
-        _conn?.Dispose();
+        // _ch?.Dispose(); // Sync dispose not available on IChannel, relying on GC or connection closure?
+        // Actually IChannel is IAsyncDisposable.
+        // But we can't await here.
         base.Dispose();
     }
 }

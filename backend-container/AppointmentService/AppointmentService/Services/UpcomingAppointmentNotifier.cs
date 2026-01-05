@@ -14,7 +14,7 @@ public class UpcomingAppointmentNotifier : BackgroundService
     private readonly ILogger<UpcomingAppointmentNotifier> _logger;
     private readonly IServiceProvider _sp;
     private readonly IConnection _conn;
-    private IModel? _ch;
+    private IChannel? _ch;
     private readonly string _queue = "notifications.events";
 
     public UpcomingAppointmentNotifier(ILogger<UpcomingAppointmentNotifier> logger, IServiceProvider sp, IConnection conn)
@@ -24,13 +24,13 @@ public class UpcomingAppointmentNotifier : BackgroundService
         _conn = conn;
     }
 
-    private void EnsureRabbitChannel()
+    private async Task EnsureRabbitChannelAsync(CancellationToken cancellationToken)
     {
         if (_ch != null && _ch.IsOpen) return;
         try
         {
-            _ch = _conn.CreateModel();
-            _ch.QueueDeclare(_queue, durable: true, exclusive: false, autoDelete: false);
+            _ch = await _conn.CreateChannelAsync(cancellationToken: cancellationToken);
+            await _ch.QueueDeclareAsync(_queue, durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: cancellationToken);
             _logger.LogInformation("UpcomingAppointmentNotifier channel created for queue {Queue}", _queue);
         }
         catch (Exception ex)
@@ -43,7 +43,7 @@ public class UpcomingAppointmentNotifier : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
     // Initial connect (will also be retried each tick)
-        try { EnsureRabbitChannel(); } catch (Exception ex) { _logger.LogError(ex, "Initial RabbitMQ connection failed; will retry."); }
+        try { await EnsureRabbitChannelAsync(stoppingToken); } catch (Exception ex) { _logger.LogError(ex, "Initial RabbitMQ connection failed; will retry."); }
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -88,7 +88,7 @@ public class UpcomingAppointmentNotifier : BackgroundService
 
                     try
                     {
-                        EnsureRabbitChannel();
+                        await EnsureRabbitChannelAsync(stoppingToken);
                         if (_ch == null)
                         {
                             _logger.LogWarning("RabbitMQ channel not available; will retry next tick for appointment {Id}", appt.Id);
@@ -96,10 +96,11 @@ public class UpcomingAppointmentNotifier : BackgroundService
                         else
                         {
                             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt));
-                            var props = _ch.CreateBasicProperties();
+                            var props = new BasicProperties();
                             props.ContentType = "application/json";
-                            props.DeliveryMode = 2;
-                            _ch.BasicPublish(exchange: "", routingKey: _queue, basicProperties: props, body: body);
+                            props.DeliveryMode = DeliveryModes.Persistent; // 2
+                            
+                            await _ch.BasicPublishAsync(exchange: "", routingKey: _queue, mandatory: false, basicProperties: props, body: body, cancellationToken: stoppingToken);
 
                             appt.UpcomingNotificationSentAt = DateTime.UtcNow;
                             await db.SaveChangesAsync(stoppingToken);
@@ -147,7 +148,7 @@ public class UpcomingAppointmentNotifier : BackgroundService
 
                     try
                     {
-                        EnsureRabbitChannel();
+                        await EnsureRabbitChannelAsync(stoppingToken);
                         if (_ch == null)
                         {
                             _logger.LogWarning("RabbitMQ channel not available; will retry next tick for 30-min reminder appointment {Id}", appt.Id);
@@ -155,10 +156,11 @@ public class UpcomingAppointmentNotifier : BackgroundService
                         else
                         {
                             var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt));
-                            var props = _ch.CreateBasicProperties();
+                            var props = new BasicProperties();
                             props.ContentType = "application/json";
-                            props.DeliveryMode = 2;
-                            _ch.BasicPublish(exchange: "", routingKey: _queue, basicProperties: props, body: body);
+                            props.DeliveryMode = DeliveryModes.Persistent; // 2
+                            
+                            await _ch.BasicPublishAsync(exchange: "", routingKey: _queue, mandatory: false, basicProperties: props, body: body, cancellationToken: stoppingToken);
 
                             appt.ThirtyMinNotificationSentAt = DateTime.UtcNow;
                             await db.SaveChangesAsync(stoppingToken);
@@ -182,7 +184,6 @@ public class UpcomingAppointmentNotifier : BackgroundService
     public override void Dispose()
     {
         base.Dispose();
-        try { _ch?.Close(); _ch?.Dispose(); } catch { }
         // Do not dispose injected _conn!
     }
 }

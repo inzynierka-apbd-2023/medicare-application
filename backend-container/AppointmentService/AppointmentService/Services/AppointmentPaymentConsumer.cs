@@ -15,7 +15,7 @@ public class AppointmentPaymentConsumer : BackgroundService
     private readonly IServiceProvider _sp;
     private readonly ILogger<AppointmentPaymentConsumer> _logger;
     private readonly IConnection _conn;
-    private IModel? _channel;
+    private IChannel? _channel;
 
     public AppointmentPaymentConsumer(IServiceProvider sp, IConnection conn, ILogger<AppointmentPaymentConsumer> logger)
     {
@@ -29,10 +29,10 @@ public class AppointmentPaymentConsumer : BackgroundService
         Console.WriteLine("[ApptPaymentConsumer] 🔌 Connecting...");
         try
         {
-            _channel = _conn.CreateModel();
-            _channel.ExchangeDeclare("billing.events", ExchangeType.Topic, durable: true);
-            _channel.QueueDeclare("appointment.billing.updates", durable: true, exclusive: false, autoDelete: false);
-            _channel.QueueBind("appointment.billing.updates", "billing.events", "billing.appointment_payment_processed");
+            _channel = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
+            await _channel.ExchangeDeclareAsync("billing.events", ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
+            await _channel.QueueDeclareAsync("appointment.billing.updates", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
+            await _channel.QueueBindAsync("appointment.billing.updates", "billing.events", "billing.appointment_payment_processed", arguments: null, cancellationToken: stoppingToken);
             
             Console.WriteLine("[ApptPaymentConsumer] ✅ Connected and bound to billing.appointment_payment_processed");
         }
@@ -43,7 +43,7 @@ public class AppointmentPaymentConsumer : BackgroundService
         }
 
         var consumer = new AsyncEventingBasicConsumer(_channel);
-        consumer.Received += async (model, ea) =>
+        consumer.ReceivedAsync += async (model, ea) =>
         {
             try
             {
@@ -57,19 +57,19 @@ public class AppointmentPaymentConsumer : BackgroundService
                 {
                     Console.WriteLine($"[ApptPaymentConsumer] 🔄 Updating Appt {evt.AppointmentId} -> IsPaid={evt.IsPaid}");
                     _logger.LogInformation("Processing payment update for appt {Id}: IsPaid={IsPaid}", evt.AppointmentId, evt.IsPaid);
-                    await UpdateAppointmentAsync(evt);
+                    await UpdateAppointmentAsync(evt, stoppingToken);
                 }
                 
-                _channel.BasicAck(ea.DeliveryTag, false);
+                await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing message");
-                _channel.BasicNack(ea.DeliveryTag, false, false);
+                await _channel.BasicNackAsync(ea.DeliveryTag, false, false, stoppingToken);
             }
         };
 
-        _channel.BasicConsume("appointment.billing.updates", false, consumer);
+        await _channel.BasicConsumeAsync("appointment.billing.updates", false, consumer, cancellationToken: stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -77,12 +77,12 @@ public class AppointmentPaymentConsumer : BackgroundService
         }
     }
 
-    private async Task UpdateAppointmentAsync(AppointmentBillingProcessed evt)
+    private async Task UpdateAppointmentAsync(AppointmentBillingProcessed evt, CancellationToken stoppingToken)
     {
         using var scope = _sp.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<AppointmentDbContext>();
 
-        var appt = await db.Appointments.FindAsync(evt.AppointmentId);
+        var appt = await db.Appointments.FindAsync(new object[] { evt.AppointmentId }, stoppingToken);
         if (appt == null)
         {
             _logger.LogWarning("Appointment {Id} not found during payment update", evt.AppointmentId);
@@ -93,13 +93,13 @@ public class AppointmentPaymentConsumer : BackgroundService
         appt.PaymentProcessed = true; // Use this to stop showing "Pending" if we wanted
         appt.UpdatedAt = DateTime.UtcNow;
 
-        await db.SaveChangesAsync();
+        await db.SaveChangesAsync(stoppingToken);
         _logger.LogInformation("Updated Appointment {Id} -> IsPaid: {IsPaid}", appt.Id, appt.IsPaid);
     }
     
     public override void Dispose()
     {
-        _channel?.Dispose();
+        // _channel?.Dispose();
         base.Dispose();
     }
 }

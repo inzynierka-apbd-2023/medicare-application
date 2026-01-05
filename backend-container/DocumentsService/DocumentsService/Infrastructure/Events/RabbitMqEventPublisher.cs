@@ -23,31 +23,36 @@ public sealed class RabbitMqEventPublisher : IEventPublisher
         _connection = connection;
     }
 
-    public Task PublishAsync<TEvent>(TEvent @event, CancellationToken ct = default)
+    public async Task PublishAsync<TEvent>(TEvent @event, CancellationToken ct = default)
     {
         try
         {
-            // Use injected connection; CreateModel is cheap enough to do per publish or we could pool channels.
-            // For now, using per-publish channel is standard enough unless high throughput is needed.
-            using var channel = _connection.CreateModel();
+            // RabbitMQ 7.x: CreateChannelAsync
+            await using var channel = await _connection.CreateChannelAsync(cancellationToken: ct);
 
             // Publish the raw domain event to an events exchange (fanout for now)
             const string domainExchange = "documents.events";
-            channel.ExchangeDeclare(domainExchange, ExchangeType.Fanout, durable: false, autoDelete: false);
+            await channel.ExchangeDeclareAsync(domainExchange, ExchangeType.Fanout, durable: false, autoDelete: false, cancellationToken: ct);
             var evtJson = JsonSerializer.Serialize(@event);
-            channel.BasicPublish(exchange: domainExchange, routingKey: string.Empty, basicProperties: null, body: Encoding.UTF8.GetBytes(evtJson));
+            
+            await channel.BasicPublishAsync(
+                exchange: domainExchange, 
+                routingKey: string.Empty, 
+                mandatory: false, 
+                basicProperties: new BasicProperties(), 
+                body: Encoding.UTF8.GetBytes(evtJson), 
+                cancellationToken: ct);
 
             // Additionally, map certain events to user notifications (single, idempotent-worthy actions)
-            TryPublishNotificationIfApplicable(channel, @event);
+            await TryPublishNotificationIfApplicableAsync(channel, @event, ct);
         }
         catch (Exception ex)
         {
             _logger.LogError(ex, "Failed to publish event {EventType}", typeof(TEvent).Name);
         }
-        return Task.CompletedTask;
     }
 
-    private void TryPublishNotificationIfApplicable<TEvent>(IModel channel, TEvent @event)
+    private async Task TryPublishNotificationIfApplicableAsync<TEvent>(IChannel channel, TEvent @event, CancellationToken ct)
     {
         try
         {
@@ -60,7 +65,7 @@ public sealed class RabbitMqEventPublisher : IEventPublisher
                 {
                     using var scope = _services.CreateScope();
                     var db = scope.ServiceProvider.GetRequiredService<DocumentsDbContext>();
-                    var doc = db.Documents.Find(docId.Value);
+                    var doc = await db.Documents.FindAsync([docId.Value], cancellationToken: ct);
                     if (doc != null) recipientUserId = doc.PatientId;
                 }
                 catch { /* best-effort only */ }
@@ -72,7 +77,7 @@ public sealed class RabbitMqEventPublisher : IEventPublisher
             }
 
             var queue = "notifications.events";
-            channel.QueueDeclare(queue, durable: true, exclusive: false, autoDelete: false);
+            await channel.QueueDeclareAsync(queue, durable: true, exclusive: false, autoDelete: false, cancellationToken: ct);
             var payload = new
             {
                 RecipientUserId = recipientUserId.ToString(),
@@ -86,7 +91,14 @@ public sealed class RabbitMqEventPublisher : IEventPublisher
             var json = JsonSerializer.Serialize(payload);
             _logger.LogInformation("[Docs->Notif] Publishing notification: recipient={RecipientUserId}, type={Type}, docId={DocumentId}, action={ActionUrl}, desc='{Description}'",
                 recipientUserId, type, docId, actionUrl, description);
-            channel.BasicPublish(exchange: string.Empty, routingKey: queue, basicProperties: null, body: Encoding.UTF8.GetBytes(json));
+            
+            await channel.BasicPublishAsync(
+                exchange: string.Empty, 
+                routingKey: queue, 
+                mandatory: false, 
+                basicProperties: new BasicProperties(), 
+                body: Encoding.UTF8.GetBytes(json), 
+                cancellationToken: ct);
         }
         catch (Exception ex)
         {

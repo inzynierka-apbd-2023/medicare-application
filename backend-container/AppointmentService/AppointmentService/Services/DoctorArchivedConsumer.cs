@@ -14,7 +14,7 @@ public class DoctorArchivedConsumer : BackgroundService
     private readonly ILogger<DoctorArchivedConsumer> _logger;
     private readonly IServiceProvider _sp;
     private readonly IConnection _conn;
-    private IModel? _ch;
+    private IChannel? _ch;
 
     public DoctorArchivedConsumer(ILogger<DoctorArchivedConsumer> logger, IServiceProvider sp, IConnection conn)
     {
@@ -30,13 +30,13 @@ public class DoctorArchivedConsumer : BackgroundService
             try
             {
                 // Aspire connection used
-                _ch = _conn.CreateModel();
-                _ch.ExchangeDeclare("practitioner.events", ExchangeType.Topic, durable: true);
-                var q = _ch.QueueDeclare("appointment.purge.on-doctor-archived", durable: true, exclusive: false, autoDelete: false);
-                _ch.QueueBind(q.QueueName, "practitioner.events", "doctor.archived");
+                _ch = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
+                await _ch.ExchangeDeclareAsync("practitioner.events", ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
+                var q = await _ch.QueueDeclareAsync("appointment.purge.on-doctor-archived", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
+                await _ch.QueueBindAsync(q.QueueName, "practitioner.events", "doctor.archived", arguments: null, cancellationToken: stoppingToken);
 
                 var consumer = new AsyncEventingBasicConsumer(_ch);
-                consumer.Received += async (_, ea) =>
+                consumer.ReceivedAsync += async (_, ea) =>
                 {
                     try
                     {
@@ -44,7 +44,7 @@ public class DoctorArchivedConsumer : BackgroundService
                         var doc = JsonDocument.Parse(json);
                         if (!doc.RootElement.TryGetProperty("DoctorId", out var idEl)) 
                         { 
-                            _ch!.BasicAck(ea.DeliveryTag, false); 
+                            await _ch!.BasicAckAsync(ea.DeliveryTag, false, stoppingToken); 
                             return; 
                         }
                         var archivedDoctorEntityId = idEl.GetGuid();
@@ -63,15 +63,15 @@ public class DoctorArchivedConsumer : BackgroundService
                             await db.SaveChangesAsync(stoppingToken);
                             _logger.LogInformation("Purged {Count} appointments for archived doctor entity {DoctorEntityId}", appts.Count, archivedDoctorEntityId);
                         }
-                        _ch!.BasicAck(ea.DeliveryTag, false);
+                        await _ch!.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "Failed to purge appointments on doctor archived");
-                        _ch!.BasicNack(ea.DeliveryTag, false, true);
+                        await _ch!.BasicNackAsync(ea.DeliveryTag, false, true, stoppingToken);
                     }
                 };
-                _ch.BasicConsume(q.QueueName, autoAck: false, consumer);
+                await _ch.BasicConsumeAsync(q.QueueName, autoAck: false, consumer: consumer, cancellationToken: stoppingToken);
 
                 // Keep running until cancelled
                 await Task.Delay(Timeout.Infinite, stoppingToken);
@@ -87,7 +87,7 @@ public class DoctorArchivedConsumer : BackgroundService
 
     public override void Dispose()
     {
-        _ch?.Close(); _ch?.Dispose();
+        // _ch?.Dispose();
         // Do not dispose injected _conn!
         base.Dispose();
     }
