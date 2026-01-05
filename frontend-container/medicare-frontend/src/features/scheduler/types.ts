@@ -66,11 +66,11 @@ export interface Appointment {
   patientId: string;
   patient: Patient;
   doctorUserId: string;
-  doctor: Doctor;
+  doctor?: Doctor | undefined;
   serviceId: string;
   service: Service;
   timeSlotId: string;
-  timeSlot: TimeSlot;
+  timeSlot?: TimeSlot | undefined;
   day: string;
   durationMinutes: number;
   appointmentType: AppointmentType;
