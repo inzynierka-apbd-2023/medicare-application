@@ -129,7 +129,9 @@ var notificationService = builder.AddProject<Projects.NotificationService>("noti
 var messagingService = builder.AddProject<Projects.MessagingService>("messagingservice")
                               .WithReference(sharedDb)
                               .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
+                              .WithReference(rabbitmq)
                               .WaitFor(sharedDb)
+                              .WaitFor(rabbitmq)
                               .WithEnvironment("Jwt__SecretKey", jwtSecret)
                               .WithEnvironment("Jwt__Issuer", "UserService")
                               .WithEnvironment("Jwt__Audience", "MedicareApp");

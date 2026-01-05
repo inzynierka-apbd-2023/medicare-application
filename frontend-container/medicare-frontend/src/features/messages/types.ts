@@ -84,7 +84,11 @@ export interface ConversationItemProps {
 export interface NewMessageModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onStartConversation: (recipientId: string, initialMessage: string) => void;
+  onStartConversation: (
+    recipientId: string,
+    recipientName: string,
+    initialMessage: string
+  ) => void;
   availableDoctors: User[];
   isLoading?: boolean;
 }

@@ -4,6 +4,7 @@ using MessagingService.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace MessagingService.Migrations
 {
     [DbContext(typeof(MessagingDbContext))]
-    partial class MessagingDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260105192144_AddNamesToMessage")]
+    partial class AddNamesToMessage
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -171,58 +174,6 @@ namespace MessagingService.Migrations
                     b.HasIndex("InitiatorId");
 
                     b.ToTable("Message_Thread", "messaging");
-                });
-
-            modelBuilder.Entity("MessagingService.Models.PatientDoctorContact", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("DoctorName")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid?>("DoctorProfileId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("DoctorSpecialization")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<Guid>("DoctorUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("FirstContactAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime>("LastContactAt")
-                        .HasColumnType("datetime2");
-
-                    b.Property<Guid>("PatientUserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("DoctorUserId");
-
-                    b.HasIndex("PatientUserId");
-
-                    b.HasIndex("PatientUserId", "DoctorUserId")
-                        .IsUnique();
-
-                    b.ToTable("Patient_Doctor_Contact", "messaging");
                 });
 
             modelBuilder.Entity("MessagingService.Models.ThreadMessage", b =>

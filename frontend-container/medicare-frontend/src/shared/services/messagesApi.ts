@@ -16,22 +16,24 @@ export const messagesApi = {
 
       const conversations: Conversation[] = res.data.map(
         (dto: {
+          id: string;
           participantId: string;
+          participantName: string;
+          participantType: string;
           lastMessageContent: string;
-          lastMessageDate: string;
+          updatedAt: string;
           unreadCount: number;
         }) => ({
-          id: dto.participantId, // Use 'other user id' as conversation id
+          id: dto.id || dto.participantId, // Use conversation ID from backend
           participantId: dto.participantId,
-          participantName: "User " + dto.participantId.substring(0, 5), // Placeholder name until we have resolution
-          participantType: "unknown", // Placeholder
-          participants: [], // Populated if needed, but list view mostly needs name
+          participantName: dto.participantName || "Unknown User",
+          participantType: dto.participantType || "unknown",
+          participants: [],
           lastMessage: {
-            id: "latest", // Placeholder
-            content: dto.lastMessageContent,
-            timestamp: dto.lastMessageDate,
+            id: "latest",
+            content: dto.lastMessageContent || "",
+            timestamp: dto.updatedAt,
             isRead: dto.unreadCount === 0,
-            // minimal fields for preview
             conversationId: dto.participantId,
             senderId: "",
             senderName: "",
@@ -42,8 +44,8 @@ export const messagesApi = {
           } as Message,
           unreadCount: dto.unreadCount,
           isActive: true,
-          createdAt: dto.lastMessageDate,
-          updatedAt: dto.lastMessageDate,
+          createdAt: dto.updatedAt,
+          updatedAt: dto.updatedAt,
         })
       );
 
@@ -109,7 +111,8 @@ export const messagesApi = {
     senderId: string,
     senderName: string,
     senderType: "patient" | "doctor",
-    receiverId: string,
+    // receiverId is not directly used in API call if conversationId is used as recipient
+    _receiverId: string,
     receiverName: string,
     receiverType: "patient" | "doctor",
     content: string
@@ -127,6 +130,8 @@ export const messagesApi = {
         content,
         messageType: "General",
         priority: "Normal",
+        senderName,
+        recipientName: receiverName,
       };
 
       const res = await api.post("/messaging/messages", payload);
@@ -205,24 +210,26 @@ export const messagesApi = {
    * Mark message as read
    */
   markMessageAsRead: async (
-    _messageId: string
+    messageId: string,
+    userId: string
   ): Promise<ApiResponse<boolean>> => {
-    // API requires UserId to verify ownership/recipient
-    // We don't have userID here easily unless passed.
-    // But let's assume valid for MVP or skip
-    // Backend: [HttpPut("{id}/read")] public async Task<IActionResult> MarkAsRead(string id, [FromBody] MarkAsReadRequest req)
-    // We need current user ID.
-    // Current implementation in hook calls this without user ID.
-    // I will skip implementation or Try to fix Hook.
-    // Returning success to avoid errors.
-    return { data: true, success: true };
+    try {
+      await api.put(`/messaging/messages/${messageId}/read`, { userId });
+      return { data: true, success: true };
+    } catch (error) {
+      console.error("Failed to mark message as read", error);
+      return { data: false, success: false, error: "Failed to mark as read" };
+    }
   },
 
   /**
-   * Get available recipients
+   * Get available recipients from the backend.
+   * Uses the MessagingService's local PatientDoctorContacts table,
+   * which is populated via RabbitMQ events when appointments are created.
    */
   getAvailableRecipients: async (
-    userType: "patient" | "doctor"
+    userRole: "patient" | "doctor",
+    currentUserId?: string
   ): Promise<
     ApiResponse<
       Array<{
@@ -234,30 +241,37 @@ export const messagesApi = {
     >
   > => {
     try {
-      if (userType === "patient") {
-        // Try to get doctors
-        // Guessing route: /api/practitioner/doctors
-        const res = await api.get("/practitioner/doctors");
-        return {
-          data: res.data.map(
-            (d: {
-              userId: string;
-              firstName: string;
-              lastName: string;
-              specializations?: string;
-            }) => ({
-              id: d.userId, // Messaging uses User ID
-              name: d.firstName + " " + d.lastName,
-              type: "doctor",
-              specialization: d.specializations || "",
-            })
-          ),
-          success: true,
-        };
+      if (!currentUserId) {
+        console.warn("getAvailableRecipients: currentUserId is required");
+        return { data: [], success: true };
       }
-    } catch (_e) {
-      // Fallback
+
+      // Call the new backend endpoint
+      const res = await api.get(
+        `/messaging/messages/recipients/${currentUserId}?userRole=${userRole}`
+      );
+
+      const recipients = Array.isArray(res.data) ? res.data : [];
+
+      return {
+        data: recipients.map(
+          (r: {
+            id: string;
+            name: string;
+            type: string;
+            specialization?: string;
+          }) => ({
+            id: r.id,
+            name: r.name,
+            type: r.type as "patient" | "doctor",
+            specialization: r.specialization || "General",
+          })
+        ),
+        success: true,
+      };
+    } catch (e) {
+      console.error("Failed to fetch recipients", e);
+      return { data: [], success: false, error: "Failed to fetch recipients" };
     }
-    return { data: [], success: true };
   },
 };

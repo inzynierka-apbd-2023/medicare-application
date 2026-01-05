@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { Button } from "@shared/components";
+import { messagesApi } from "@shared/services/messagesApi";
 
 import { useMessages } from "./hooks/useMessages";
 import {
@@ -30,34 +31,36 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
   const [availableDoctors, setAvailableDoctors] = useState<User[]>([]);
 
-  // Mock available doctors - in real app this would come from API
+  // Load available doctors/recipients
   useEffect(() => {
-    if (userType === "patient") {
-      setAvailableDoctors([
-        {
-          id: "doc1",
-          name: "Dr. Anna Kowalska",
-          role: "doctor",
-          email: "anna.kowalska@clinic.com",
-          specialty: "Cardiologist",
-        },
-        {
-          id: "doc2",
-          name: "Dr. Piotr Nowak",
-          role: "doctor",
-          email: "piotr.nowak@clinic.com",
-          specialty: "Dermatologist",
-        },
-        {
-          id: "doc3",
-          name: "Dr. Maria Wiśniewska",
-          role: "doctor",
-          email: "maria.wisniewska@clinic.com",
-          specialty: "Neurologist",
-        },
-      ]);
-    }
-  }, [userType]);
+    const fetchRecipients = async () => {
+      if (userId) {
+        try {
+          const res = await messagesApi.getAvailableRecipients(
+            userType,
+            userId
+          );
+          if (res.success) {
+            setAvailableDoctors(
+              res.data.map(
+                (d) =>
+                  ({
+                    id: d.id,
+                    name: d.name,
+                    role: d.type,
+                    specialty: d.specialization || "General",
+                  }) as User
+              )
+            );
+          }
+        } catch (e) {
+          console.error("Failed to load recipients", e);
+        }
+      }
+    };
+
+    fetchRecipients();
+  }, [userId, userType]);
 
   // Auto-select conversation if provided in props
   useEffect(() => {
@@ -74,15 +77,35 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
   const handleStartConversation = async (
     recipientId: string,
+    recipientName: string,
     initialMessage: string
   ) => {
     try {
       const conversationId = await createConversation(
         recipientId,
+        recipientName,
         initialMessage
       );
       selectConversation(conversationId);
       setIsNewMessageModalOpen(false);
+
+      // Refresh available doctors list to exclude the one we just messaged
+      if (userId) {
+        const res = await messagesApi.getAvailableRecipients(userType, userId);
+        if (res.success) {
+          setAvailableDoctors(
+            res.data.map(
+              (d) =>
+                ({
+                  id: d.id,
+                  name: d.name,
+                  role: d.type,
+                  specialty: d.specialization || "General",
+                }) as User
+            )
+          );
+        }
+      }
     } catch (error) {
       console.error("Failed to start conversation:", error);
     }
@@ -174,8 +197,6 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
                       </h2>
                       <p className="text-sm text-gray-500 capitalize">
                         {conversation.participantType}
-                        {conversation.participantType === "doctor" &&
-                          " • Online"}
                       </p>
                     </div>
                   </div>

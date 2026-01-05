@@ -107,12 +107,7 @@ export default defineConfig(({ mode }) => {
         },
 
         // MessagingService
-        "/api/messages": {
-          target: env.VITE_MESSAGING_SERVICE_URL || "http://localhost:8984",
-          changeOrigin: true,
-          secure: false,
-        },
-        "/api/threads": {
+        "/api/messaging": {
           target: env.VITE_MESSAGING_SERVICE_URL || "http://localhost:8984",
           changeOrigin: true,
           secure: false,

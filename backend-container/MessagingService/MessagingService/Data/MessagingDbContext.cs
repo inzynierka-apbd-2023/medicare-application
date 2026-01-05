@@ -12,6 +12,7 @@ public class MessagingDbContext : DbContext
     public DbSet<ThreadParticipant> ThreadParticipants => Set<ThreadParticipant>();
     public DbSet<ThreadMessage> ThreadMessages => Set<ThreadMessage>();
     public DbSet<MessageReceipt> MessageReceipts => Set<MessageReceipt>();
+    public DbSet<PatientDoctorContact> PatientDoctorContacts => Set<PatientDoctorContact>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -88,6 +89,22 @@ public class MessagingDbContext : DbContext
             e.HasIndex(r => r.MessageId);
             e.HasIndex(r => r.UserId);
             e.HasIndex(r => new { r.MessageId, r.UserId }).IsUnique();
+        });
+
+        modelBuilder.Entity<PatientDoctorContact>(e =>
+        {
+            e.ToTable("Patient_Doctor_Contact", schema: "messaging");
+            e.HasKey(c => c.Id);
+            e.Property(c => c.Id).HasDefaultValueSql("NEWID()");
+            e.Property(c => c.PatientUserId).IsRequired();
+            e.Property(c => c.DoctorUserId).IsRequired();
+            e.Property(c => c.DoctorName).HasMaxLength(200);
+            e.Property(c => c.DoctorSpecialization).HasMaxLength(200);
+            e.Property(c => c.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(c => c.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(c => c.PatientUserId);
+            e.HasIndex(c => c.DoctorUserId);
+            e.HasIndex(c => new { c.PatientUserId, c.DoctorUserId }).IsUnique();
         });
     }
 }

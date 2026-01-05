@@ -14,6 +14,7 @@ export interface UseMessagesReturn {
   markAsRead: (messageId: string) => void;
   createConversation: (
     recipientId: string,
+    recipientName: string,
     initialMessage: string
   ) => Promise<string>;
 }
@@ -158,31 +159,40 @@ export const useMessages = (
     [userId, userType, conversations]
   );
 
-  // Mark message as read - simplified version without API call
+  // Mark message as read
   const markAsRead = useCallback(
     async (messageId: string) => {
-      try {
-        // Since there's no markAsRead API endpoint, just update local state
-        setMessages((prev) => {
-          const updated = { ...prev };
-          Object.keys(updated).forEach((conversationId) => {
-            updated[conversationId] = updated[conversationId].map((msg) =>
-              msg.id === messageId ? { ...msg, isRead: true } : msg
-            );
-          });
-          return updated;
-        });
+      if (!userId) return;
 
-        // Update unread count in conversations
-        setConversations((prev) =>
-          prev.map((conv) => {
-            const conversationMessages = messages[conv.id] || [];
-            const unreadCount = conversationMessages.filter(
-              (msg) => !msg.isRead && msg.senderId !== userId
-            ).length;
-            return { ...conv, unreadCount };
-          })
-        );
+      try {
+        const response = await messagesApi.markMessageAsRead(messageId, userId);
+
+        if (response.success) {
+          // Update local state to reflect change immediately
+          setMessages((prev) => {
+            const updated = { ...prev };
+            Object.keys(updated).forEach((conversationId) => {
+              updated[conversationId] = updated[conversationId].map((msg) =>
+                msg.id === messageId ? { ...msg, isRead: true } : msg
+              );
+            });
+            return updated;
+          });
+
+          // Update unread count in conversations
+          setConversations((prev) =>
+            prev.map((conv) => {
+              // Simple optimistic update
+              if (conv.unreadCount > 0) {
+                return {
+                  ...conv,
+                  unreadCount: Math.max(0, conv.unreadCount - 1),
+                };
+              }
+              return conv;
+            })
+          );
+        }
       } catch (err) {
         console.error("Error marking message as read:", err);
       }
@@ -192,16 +202,19 @@ export const useMessages = (
 
   // Create new conversation
   const createConversation = useCallback(
-    async (recipientId: string, initialMessage: string): Promise<string> => {
+    async (
+      recipientId: string,
+      recipientName: string,
+      initialMessage: string
+    ): Promise<string> => {
       if (!userId) throw new Error("User ID required");
 
       try {
         setIsLoading(true);
 
-        // Mock recipient info - in real app this would come from user API
+        // Use the actual recipient name passed from the selected doctor
         const senderName =
           userType === "patient" ? "Current Patient" : "Current Doctor";
-        const recipientName = "Doctor"; // Would be fetched from user API
         const recipientType: "patient" | "doctor" =
           userType === "patient" ? "doctor" : "patient";
 
@@ -210,7 +223,7 @@ export const useMessages = (
           senderName,
           userType,
           recipientId,
-          recipientName,
+          recipientName, // Use actual name
           recipientType,
           initialMessage
         );

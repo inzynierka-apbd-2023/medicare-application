@@ -24,7 +24,11 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (selectedDoctor && message.trim()) {
-      onStartConversation(selectedDoctor.id, message.trim());
+      onStartConversation(
+        selectedDoctor.id,
+        selectedDoctor.name,
+        message.trim()
+      );
       handleClose();
     }
   };

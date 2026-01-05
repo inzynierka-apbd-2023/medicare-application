@@ -21,7 +21,15 @@ var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
 
 LogConnectionInfo(connectionString, "Config");
 
+// RabbitMQ
+builder.AddRabbitMQClient("rabbitmq");
+builder.Services.AddSingleton<MessagingService.Infrastructure.Messaging.IMessagePublisher, MessagingService.Infrastructure.Messaging.RabbitMqMessagePublisher>();
+
+// Background service to consume appointment.created events and build PatientDoctorContacts
+builder.Services.AddHostedService<MessagingService.Messaging.AppointmentCreatedConsumer>();
+
 builder.Services.AddControllers();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
 
 

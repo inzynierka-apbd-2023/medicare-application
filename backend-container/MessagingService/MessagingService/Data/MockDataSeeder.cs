@@ -251,5 +251,102 @@ public static class MockDataSeeder
         {
             Console.WriteLine("[MockDataSeeder] All messaging mock data already exists.");
         }
+
+        // Seed PatientDoctorContacts (for message recipient lookup)
+        // This maps which doctors a patient can message (based on appointments)
+        var patientDoctorContactData = new (Guid patientUserId, Guid doctorUserId, string doctorName, string specialization)[]
+        {
+            // Mock doctor names matching PractitionerService mock data
+            (MockIds.PatientUser1, MockIds.DoctorUser1, "Dr. John Carter", "Internal Medicine"),
+            (MockIds.PatientUser1, MockIds.DoctorUser2, "Dr. Sarah Chen", "Cardiology"),
+            (MockIds.PatientUser2, MockIds.DoctorUser2, "Dr. Sarah Chen", "Cardiology"),
+            (MockIds.PatientUser2, MockIds.DoctorUser3, "Dr. Michael Brown", "Dermatology"),
+            (MockIds.PatientUser3, MockIds.DoctorUser3, "Dr. Michael Brown", "Dermatology"),
+            (MockIds.PatientUser3, MockIds.DoctorUser1, "Dr. John Carter", "Internal Medicine"),
+            (MockIds.PatientUser4, MockIds.DoctorUser4, "Dr. Emily Thompson", "Pediatrics"),
+            (MockIds.PatientUser5, MockIds.DoctorUser5, "Dr. David Wilson", "Orthopedics"),
+            (MockIds.PatientUser6, MockIds.DoctorUser6, "Dr. Lisa Anderson", "Neurology"),
+            (MockIds.PatientUser7, MockIds.DoctorUser7, "Dr. Robert Martinez", "Psychiatry"),
+        };
+
+        var existingContacts = await db.PatientDoctorContacts
+            .Select(c => new { c.PatientUserId, c.DoctorUserId })
+            .ToListAsync();
+        var existingContactSet = existingContacts.Select(x => (x.PatientUserId, x.DoctorUserId)).ToHashSet();
+
+        int contactsCreated = 0;
+        foreach (var (patientUserId, doctorUserId, doctorName, specialization) in patientDoctorContactData)
+        {
+            if (!existingContactSet.Contains((patientUserId, doctorUserId)))
+            {
+                var now = DateTime.UtcNow;
+                db.PatientDoctorContacts.Add(new PatientDoctorContact
+                {
+                    Id = Guid.NewGuid(),
+                    PatientUserId = patientUserId,
+                    DoctorUserId = doctorUserId,
+                    DoctorName = doctorName,
+                    DoctorSpecialization = specialization,
+                    FirstContactAt = now.AddDays(-30),
+                    LastContactAt = now.AddDays(-1),
+                    CreatedAt = now,
+                    UpdatedAt = now
+                });
+                contactsCreated++;
+            }
+        }
+
+        if (contactsCreated > 0)
+        {
+            await db.SaveChangesAsync();
+            Console.WriteLine($"[MockDataSeeder] Created {contactsCreated} PatientDoctorContact records.");
+        }
+
+        // Update existing contacts that have empty/generic names
+        // Query User_Profile table to get real names
+        try
+        {
+            var contactsNeedingUpdate = await db.PatientDoctorContacts
+                .Where(c => c.DoctorName == null || c.DoctorName == "Doctor" || c.DoctorName == "")
+                .ToListAsync();
+
+            if (contactsNeedingUpdate.Any())
+            {
+                Console.WriteLine($"[MockDataSeeder] Found {contactsNeedingUpdate.Count} contacts needing name update.");
+                
+                foreach (var contact in contactsNeedingUpdate)
+                {
+                    try
+                    {
+                        // Query shared user.User_Profile table
+                        var userProfile = await db.Database.SqlQueryRaw<UserProfileQueryResult>(
+                            "SELECT FirstName, LastName FROM [user].[User_Profile] WHERE Id = {0}",
+                            contact.DoctorUserId)
+                            .FirstOrDefaultAsync();
+
+                        if (userProfile != null && (!string.IsNullOrEmpty(userProfile.FirstName) || !string.IsNullOrEmpty(userProfile.LastName)))
+                        {
+                            contact.DoctorName = $"Dr. {userProfile.FirstName} {userProfile.LastName}".Trim();
+                            contact.UpdatedAt = DateTime.UtcNow;
+                            Console.WriteLine($"[MockDataSeeder] Updated contact for doctor {contact.DoctorUserId}: {contact.DoctorName}");
+                        }
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"[MockDataSeeder] Failed to fetch name for {contact.DoctorUserId}: {ex.Message}");
+                    }
+                }
+
+                await db.SaveChangesAsync();
+                Console.WriteLine("[MockDataSeeder] Finished updating contact names.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MockDataSeeder] Error updating contact names: {ex.Message}");
+        }
     }
 }
+
+// DTO for SQL query result
+public record UserProfileQueryResult(string? FirstName, string? LastName);
