@@ -31,7 +31,7 @@ export interface Plan {
 
 export interface WalletProps {
   wallet: WalletData | null;
-  onPayAppointment: (appointmentId: string) => Promise<void>;
+  onPayAppointment: (appointmentId: string) => void | Promise<void>;
   onNavigateToSubscription: () => void;
   payingAppointmentId?: string | null;
 }

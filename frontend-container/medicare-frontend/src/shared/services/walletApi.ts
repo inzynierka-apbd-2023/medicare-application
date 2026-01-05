@@ -51,25 +51,39 @@ export const walletApi = {
   /**
    * Process payment for an appointment
    */
+  /**
+   * Process payment for an appointment (Mock)
+   */
   payAppointment: async (
     appointmentId: string,
-    patientId: string,
-    amountCents: number
-  ): Promise<ApiResponse<PaymentIntentResponse>> => {
+    _patientId: string,
+    _amountCents: number
+  ): Promise<ApiResponse<boolean>> => {
     try {
-      // Create a payment intent for the appointment
-      const response = await apiClient.post<PaymentIntentResponse>(
-        "/payments/intents",
+      await apiClient.post("/billing/payment/mock", {
+        appointmentId,
+        paymentMethod: "BLIK", // Default or passed? For now defaulting or we can add param
+      });
+      return { success: true, data: true };
+    } catch (_error) {
+      return createErrorResponse("Payment processing failed");
+    }
+  },
+
+  mockPayAppointment: async (
+    appointmentId: string,
+    patientId: string,
+    method: "BLIK" | "Card"
+  ): Promise<ApiResponse<boolean>> => {
+    try {
+      await apiClient.post(
+        `/appointment/appointments/${appointmentId}/mock-payment`,
         {
-          kind: "Appointment",
-          subjectId: appointmentId,
-          patientId: patientId,
-          provider: "mock",
-          amountCents: amountCents,
-          currency: "PLN",
+          patientId,
+          paymentMethod: method,
         }
       );
-      return { success: true, data: response.data };
+      return { success: true, data: true };
     } catch (_error) {
       return createErrorResponse("Payment processing failed");
     }

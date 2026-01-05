@@ -3,7 +3,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.Data.SqlClient;
-
+using BillingService.Services;
 using System.Text;
 using System.Security.Claims;
 using BillingService.Data;
@@ -33,6 +33,7 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Progr
 builder.Services.AddScoped<BillingService.Services.IRevenueMetricsService, BillingService.Services.RevenueMetricsService>();
 
 // RabbitMQ consumer - uses the IConnection provided by Aspire
+builder.Services.AddScoped<AppointmentBillingService>();
 builder.Services.AddHostedService<BillingService.Infrastructure.Messaging.BillingEventConsumer>();
 
 builder.Services.AddDbContext<BillingDbContext>((sp, options) =>
@@ -137,61 +138,21 @@ static void LogConnectionInfo(string conn, string source)
     }
 }
 
-static async Task ApplyMigrationsAsync(IServiceProvider services)
-{
-    using var scope = services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
-    try
+    static async Task ApplyMigrationsAsync(IServiceProvider services)
     {
-        Console.WriteLine("[Startup] Applying EF Core migrations (Billing)...");
-        await db.Database.MigrateAsync();
-        await CreateViewsAsync(db);
-        await BillingService.Data.MockDataSeeder.SeedAsync(db);
-        Console.WriteLine("[Startup] Billing migrations complete.");
+        using var scope = services.CreateScope();
+        var db = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
+        try
+        {
+            Console.WriteLine("[Startup] Applying EF Core migrations (Billing)...");
+            await db.Database.MigrateAsync();
+            await BillingService.Data.MockDataSeeder.SeedAsync(db);
+            
+            Console.WriteLine("[Startup] Billing migrations complete.");
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[Startup] Billing migration failed: {ex.Message}");
+            if (ex.InnerException != null) Console.WriteLine($"[Startup] Inner: {ex.InnerException.Message}");
+        }
     }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[Startup] Billing migration failed: {ex.Message}");
-        if (ex.InnerException != null) Console.WriteLine($"[Startup] Inner: {ex.InnerException.Message}");
-    }
-}
-
-static async Task CreateViewsAsync(BillingDbContext db)
-{
-    try
-    {
-        // Create billing summary views - these are simple aggregates on billing tables only
-        // Note: Status enum - 0=Pending, 1=RequiresAction, 2=Failed, 3=Succeeded, 4=Cancelled, 5=RefundedFull, 6=RefundedPartial
-        var patientSummaryView = @"
-CREATE OR ALTER VIEW billing.vw_Patient_Billing_Summary AS
-SELECT 
-    pm.PatientId,
-    COUNT(DISTINCT pi.Id) AS TotalPaymentIntents,
-    SUM(CASE WHEN pi.Status = 3 THEN pi.AmountCents ELSE 0 END) AS TotalPaidAmount,
-    SUM(CASE WHEN pi.Status = 0 THEN pi.AmountCents ELSE 0 END) AS TotalPendingAmount,
-    MAX(pi.CreatedAt) AS LastPaymentDate
-FROM billing.Payment_Method pm
-LEFT JOIN billing.Payment_Intent pi ON pi.PatientId = pm.PatientId
-GROUP BY pm.PatientId;
-";
-        await db.Database.ExecuteSqlRawAsync(patientSummaryView);
-
-        var doctorRevenueView = @"
-CREATE OR ALTER VIEW billing.vw_Doctor_Revenue_Dashboard AS
-SELECT 
-    CAST('00000000-0000-0000-0000-000000000000' AS uniqueidentifier) AS DoctorId,
-    COUNT(ap.Id) AS TotalAppointmentPayments,
-    SUM(ap.AmountCents) AS TotalRevenue,
-    AVG(ap.AmountCents) AS AveragePaymentAmount
-FROM billing.Appointment_Payment ap
-GROUP BY PatientId;
-";
-        await db.Database.ExecuteSqlRawAsync(doctorRevenueView);
-        
-        Console.WriteLine("[Startup] Billing views created.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[Startup] View creation warning: {ex.Message}");
-    }
-}

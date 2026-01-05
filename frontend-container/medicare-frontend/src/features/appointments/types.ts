@@ -14,6 +14,7 @@ export interface Appointment {
   time: string;
   doctor: string;
   specialization?: string;
+  serviceName?: string;
   description?: string;
   status: AppointmentStatus;
   paymentStatus: PaymentStatus;

@@ -1,14 +1,47 @@
 import type { Appointment } from "../../features/appointments/types";
+import type { Service } from "../../features/scheduler/types";
 
 import { type ApiResponse, createErrorResponse } from "./api";
 import { apiClient as api } from "./apiClient";
+import { schedulerApi } from "./schedulerApi";
+
+// Interface for backend appointment row
+interface BackendAppointmentRow {
+  id: string;
+  scheduledAt: string;
+  doctorId?: string;
+  notes?: string;
+  status?: string;
+  isPaid?: boolean;
+  IsPaid?: boolean;
+  serviceId?: string;
+  ServiceId?: string;
+}
+
+// Interface for doctor directory response
+interface DoctorDirectoryRow {
+  DoctorId?: string;
+  doctorId?: string;
+  UserId?: string;
+  userId?: string;
+  FirstName?: string;
+  firstName?: string;
+  LastName?: string;
+  lastName?: string;
+}
 
 // Map backend AppointmentService entity -> Appointments page Appointment type
-const toUiAppointment = async (row: any): Promise<Appointment> => {
+const toUiAppointment = async (
+  row: BackendAppointmentRow,
+  services: Service[] = []
+): Promise<Appointment> => {
   const start = new Date(row.scheduledAt);
   // Store ISO date to ensure UI parsing with new Date(date) works reliably
   const date = start.toISOString();
-  const time = start.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+  const time = start.toLocaleTimeString([], {
+    hour: "2-digit",
+    minute: "2-digit",
+  });
 
   // Resolve doctor name via Practitioner directory or fallback to user profile
   const doctorId = String(row.doctorId ?? "").toLowerCase();
@@ -16,10 +49,11 @@ const toUiAppointment = async (row: any): Promise<Appointment> => {
   let doctorUserId = "";
   try {
     const list = await api.get("/practitioner/doctors");
-    const rows = Array.isArray(list.data) ? list.data : [];
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rows = Array.isArray(list.data)
+      ? (list.data as DoctorDirectoryRow[])
+      : [];
     const d = rows.find(
-      (r: any) =>
+      (r) =>
         String(r.DoctorId ?? r.doctorId ?? "").toLowerCase() === doctorId ||
         String(r.UserId ?? r.userId ?? "").toLowerCase() === doctorId
     );
@@ -34,7 +68,7 @@ const toUiAppointment = async (row: any): Promise<Appointment> => {
         doctorUserId = String(d.UserId ?? d.userId ?? "");
       }
     }
-    
+
     // Fallback: if still unknown, try fetching user profile directly
     if (doctorName === "Unknown Doctor" && (doctorUserId || doctorId)) {
       const userIdToFetch = doctorUserId || doctorId;
@@ -67,8 +101,11 @@ const toUiAppointment = async (row: any): Promise<Appointment> => {
     specialization: "General",
     description: row.notes || "",
     status,
-    paymentStatus: "not_paid",
-    total: 0,
+    paymentStatus: row.isPaid || row.IsPaid ? "paid" : "not_paid",
+    total: row.isPaid || row.IsPaid ? 0 : 300,
+    serviceName:
+      services.find((s) => s.id === (row.serviceId || row.ServiceId))?.name ||
+      "General Consultation",
   };
 };
 
@@ -78,9 +115,18 @@ export const appointmentsApi = {
     patientId: string
   ): Promise<ApiResponse<Appointment[]>> => {
     try {
-      const resp = await api.get(`/appointment/appointments/patient/${patientId}`);
+      const resp = await api.get(
+        `/appointment/appointments/patient/${patientId}`
+      );
       const items = Array.isArray(resp.data) ? resp.data : [];
-      const mapped = await Promise.all(items.map(toUiAppointment));
+
+      // Fetch services to map definitions
+      const servicesRes = await schedulerApi.getServices();
+      const services = servicesRes.success ? servicesRes.data : [];
+
+      const mapped = await Promise.all(
+        items.map((item) => toUiAppointment(item, services))
+      );
       return { data: mapped, success: true };
     } catch (error) {
       console.error("Failed to fetch appointments", error);
@@ -89,13 +135,24 @@ export const appointmentsApi = {
   },
 
   // Cancel an appointment via AppointmentService
-  cancelAppointment: async (
-    id: string
-  ): Promise<ApiResponse<Appointment>> => {
+  cancelAppointment: async (id: string): Promise<ApiResponse<Appointment>> => {
     try {
-      await api.put(`/appointment/appointments/${id}/status`, { status: "Cancelled" });
+      await api.put(`/appointment/appointments/${id}/status`, {
+        status: "Cancelled",
+      });
       // Return minimal shape; caller updates local state
-      return { data: { id, date: "", time: "", doctor: "", status: "cancelled", paymentStatus: "not_paid", total: 0 }, success: true } as ApiResponse<Appointment>;
+      return {
+        data: {
+          id,
+          date: "",
+          time: "",
+          doctor: "",
+          status: "cancelled",
+          paymentStatus: "not_paid",
+          total: 0,
+        },
+        success: true,
+      } as ApiResponse<Appointment>;
     } catch (error) {
       console.error("Failed to cancel appointment", error);
       return createErrorResponse("Failed to cancel appointment");

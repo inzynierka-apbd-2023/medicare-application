@@ -10,6 +10,9 @@ namespace BillingService.Infrastructure.Messaging;
 
 // Minimal record matching the one published by UserService
 public record UserRegistered(Guid UserId, string Username, string Email, DateTime OccurredAtUtc, string? PlanId);
+// Record from AppointmentService
+public record AppointmentCreated(Guid AppointmentId, Guid PatientId, Guid DoctorId, DateTime ScheduledAt, DateTime OccurredAt);
+public record AppointmentBillingProcessed(Guid AppointmentId, bool IsPaid, long AmountCents, string? PlanCode);
 
 public class BillingEventConsumer : BackgroundService
 {
@@ -42,8 +45,17 @@ public class BillingEventConsumer : BackgroundService
             
             _channel.QueueBind("billing.user_created", "user.events", "user.created");
             Console.WriteLine("[BillingConsumer] ✅ Bound queue to exchange with routing key 'user.created'");
+
+            // Bind to appointment.events
+            _channel.ExchangeDeclare("appointment.events", ExchangeType.Topic, durable: true);
+            _channel.QueueDeclare("billing.appointment_created", durable: true, exclusive: false, autoDelete: false);
+            _channel.QueueBind("billing.appointment_created", "appointment.events", "appointment.created");
+            Console.WriteLine("[BillingConsumer] ✅ Bound queue to exchange with routing key 'appointment.created'");
+
+            // Declare exchange for billing events
+            _channel.ExchangeDeclare("billing.events", ExchangeType.Topic, durable: true);
             
-            _logger.LogInformation("Connected to RabbitMQ user.created");
+            _logger.LogInformation("Connected to RabbitMQ");
             Console.WriteLine("[BillingConsumer] 🎉 Successfully connected and ready to consume messages!");
         }
         catch (Exception ex)
@@ -64,14 +76,10 @@ public class BillingEventConsumer : BackgroundService
                 
                 var evt = JsonSerializer.Deserialize<UserRegistered>(msg, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
-                if (evt != null)
+                if (evt != null && evt.UserId != Guid.Empty)
                 {
                     Console.WriteLine($"[BillingConsumer] 📋 Parsed event - UserId: {evt.UserId}, PlanId: '{evt.PlanId ?? "(null)"}'");
                     await HandleUserCreatedAsync(evt);
-                }
-                else
-                {
-                    Console.WriteLine($"[BillingConsumer] ⚠️ Failed to parse event from message");
                 }
                 
                 _channel.BasicAck(ea.DeliveryTag, false);

@@ -17,7 +17,7 @@ interface UseWalletReturn {
   refetch: () => Promise<void>;
   payAppointment: (
     appointmentId: string,
-    amountCents?: number
+    method?: "BLIK" | "Card"
   ) => Promise<boolean>;
   renewSubscription: () => Promise<boolean>;
 }
@@ -86,7 +86,7 @@ export const useWallet = (): UseWalletReturn => {
 
   const payAppointment = async (
     appointmentId: string,
-    amountCents: number = 10000
+    method: "BLIK" | "Card" = "BLIK"
   ): Promise<boolean> => {
     if (!user?.id) {
       setError("User not authenticated");
@@ -94,10 +94,10 @@ export const useWallet = (): UseWalletReturn => {
     }
 
     try {
-      const response = await walletApi.payAppointment(
+      const response = await walletApi.mockPayAppointment(
         appointmentId,
         user.id,
-        amountCents
+        method
       );
 
       if (response.success) {

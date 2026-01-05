@@ -27,21 +27,17 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
   isLoading = false,
 }) => {
   const handleSpecializationChange = (specializationId: string) => {
-    onFiltersChange({
-      specialization: specializationId || undefined,
-      // Do not clear service/doctor here; hook will clear incompatible ones after narrowing
-    });
+    onFiltersChange(
+      specializationId ? { specialization: specializationId } : {}
+    );
   };
 
   const handleServiceChange = (serviceId: string) => {
-    onFiltersChange({
-      service: serviceId || undefined,
-      // Do not clear doctor here; hook will clear incompatible one after narrowing
-    });
+    onFiltersChange(serviceId ? { service: serviceId } : {});
   };
 
   const handleDoctorChange = (doctorId: string) => {
-    onFiltersChange({ doctor: doctorId || undefined });
+    onFiltersChange(doctorId ? { doctor: doctorId } : {});
   };
 
   const handleAppointmentTypeChange = (type: string) => {
@@ -61,17 +57,18 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
   };
 
   const handleClearDateRange = () => {
-    onFiltersChange({ dateRange: undefined });
+    // Spread to create a new filters object without dateRange
+    const { dateRange: _removed, ...rest } = filters;
+    void _removed;
+    onFiltersChange({
+      ...rest,
+      appointmentType: rest.appointmentType ?? "all",
+    });
   };
 
   const clearFilters = () => {
-    onFiltersChange({
-      specialization: undefined,
-      service: undefined,
-      doctor: undefined,
-      appointmentType: "all",
-      dateRange: undefined,
-    });
+    // Create a fresh object with only the required property
+    onFiltersChange({ appointmentType: "all" });
   };
 
   const hasActiveFilters =
@@ -114,7 +111,9 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
           </label>
           <select
             value={filters.specialization || ""}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleSpecializationChange(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+              handleSpecializationChange(e.target.value)
+            }
             disabled={isLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
           >
@@ -134,7 +133,9 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
           </label>
           <select
             value={filters.service || ""}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleServiceChange(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+              handleServiceChange(e.target.value)
+            }
             disabled={isLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
           >
@@ -154,7 +155,9 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
           </label>
           <select
             value={filters.doctor || ""}
-            onChange={(e: ChangeEvent<HTMLSelectElement>) => handleDoctorChange(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+              handleDoctorChange(e.target.value)
+            }
             disabled={isLoading}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
           >
@@ -193,7 +196,7 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
           <div className="space-y-2">
             <input
               type="date"
-              value={filters.dateRange?.start || ""}
+              value={filters.dateRange?.start?.split("T")[0] || ""}
               onChange={(e) => handleDateRangeChange("start", e.target.value)}
               disabled={isLoading}
               className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
@@ -201,10 +204,10 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
             />
             <input
               type="date"
-              value={filters.dateRange?.end || ""}
+              value={filters.dateRange?.end?.split("T")[0] || ""}
               onChange={(e) => handleDateRangeChange("end", e.target.value)}
               disabled={isLoading}
-              min={filters.dateRange?.start || undefined}
+              min={filters.dateRange?.start?.split("T")[0] || undefined}
               className="w-full px-3 py-1 text-sm border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-100"
               placeholder="End date"
             />

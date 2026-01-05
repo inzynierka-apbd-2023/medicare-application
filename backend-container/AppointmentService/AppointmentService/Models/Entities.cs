@@ -23,6 +23,9 @@ public class Appointment
     [MaxLength(500)]
     public string? Notes { get; set; }
     public Guid? RoomId { get; set; }
+    public Guid? ServiceId { get; set; }
+    public bool IsPaid { get; set; }
+    public bool PaymentProcessed { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     // Tracks when an upcoming notification was sent to avoid duplicate MQ messages

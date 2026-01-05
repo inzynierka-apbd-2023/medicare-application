@@ -11,6 +11,7 @@ using AppointmentService.Features.DoctorDashboard.Services;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using System.Reflection;
+using AppointmentService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -27,6 +28,12 @@ LogConnectionInfo(connectionString, "Config");
 
 builder.Services.AddControllers();
 builder.AddRabbitMQClient("rabbitmq");
+
+builder.Services.AddHttpClient<AppointmentService.Services.IBillingServiceClient, AppointmentService.Services.BillingServiceClient>(client =>
+{
+    client.BaseAddress = new("http://billingservice"); 
+});
+
 
 // Add MediatR for CQRS
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
@@ -124,7 +131,8 @@ builder.Services.AddHealthChecks().AddDbContextCheck<AppointmentDbContext>();
 // Background services
 builder.Services.AddHostedService<OverdueStatusUpdater>();
 builder.Services.AddHostedService<UpcomingAppointmentNotifier>();
-builder.Services.AddHostedService<AppointmentService.Services.DoctorArchivedConsumer>();
+builder.Services.AddHostedService<DoctorArchivedConsumer>();
+builder.Services.AddHostedService<AppointmentPaymentConsumer>();
 
 var app = builder.Build();
 

@@ -82,8 +82,10 @@ var appointmentService = builder.AddProject<Projects.AppointmentService>("appoin
                                 .WithReference(sharedDb)
                                 .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
                                 .WithReference(rabbitmq)
+                                .WithReference(billingService)
                                 .WaitFor(sharedDb)
                                 .WaitFor(rabbitmq)
+                                .WaitFor(billingService)
                                 .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                 .WithEnvironment("Jwt__Issuer", "UserService")
                                 .WithEnvironment("Jwt__Audience", "MedicareApp");

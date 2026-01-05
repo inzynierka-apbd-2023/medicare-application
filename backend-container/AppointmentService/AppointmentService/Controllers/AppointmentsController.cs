@@ -3,6 +3,9 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AppointmentService.Data;
 using AppointmentService.Models;
+using RabbitMQ.Client;
+using System.Text;
+using System.Text.Json;
 
 namespace AppointmentService.Controllers;
 
@@ -10,8 +13,19 @@ namespace AppointmentService.Controllers;
 [Route("api/appointment/[controller]")]
 public class AppointmentsController : ControllerBase
 {
+
     private readonly AppointmentDbContext _db;
-    public AppointmentsController(AppointmentDbContext db) => _db = db;
+    private readonly IConnection _mqConnection;
+    private readonly ILogger<AppointmentsController> _logger;
+    private readonly AppointmentService.Services.IBillingServiceClient _billingClient;
+
+    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, ILogger<AppointmentsController> logger, AppointmentService.Services.IBillingServiceClient billingClient)
+    {
+        _db = db;
+        _mqConnection = mqConnection;
+        _logger = logger;
+        _billingClient = billingClient;
+    }
 
     [HttpPost]
     [Authorize]
@@ -24,21 +38,34 @@ public class AppointmentsController : ControllerBase
 
         try
         {
+            // 0. Pre-generate ID
+            var apptId = Guid.NewGuid();
+
+            // 1. Sync Call to Billing Service
+            var billingResult = await _billingClient.EvaluateAppointmentAsync(apptId, req.PatientId, req.ScheduledAt);
+            _logger.LogInformation("Billing Check for {Id}: IsPaid={IsPaid}, Amount={Amount}", apptId, billingResult.IsPaid, billingResult.AmountCents);
+
             var appointment = new Appointment
             {
-                Id = Guid.NewGuid(),
+                Id = apptId,
                 PatientId = req.PatientId,
                 DoctorId = req.DoctorId,
                 ScheduledAt = req.ScheduledAt,
                 ScheduledEndAt = req.ScheduledEndAt,
                 AppointmentType = req.AppointmentType,
                 Notes = req.Notes,
+                ServiceId = req.ServiceId,
                 CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow
+                UpdatedAt = DateTime.UtcNow,
+                IsPaid = billingResult.IsPaid,
+                PaymentProcessed = true // Flag processed immediately
             };
 
             _db.Appointments.Add(appointment);
             await _db.SaveChangesAsync();
+
+            // Publish event (still useful for other services, but not for billing loop)
+            PublishAppointmentCreated(appointment);
 
             return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment);
         }
@@ -130,6 +157,35 @@ public class AppointmentsController : ControllerBase
 
         return Ok(appointment);
     }
+    
+    [HttpPost("{id}/mock-payment")]
+    [Authorize]
+    public async Task<IActionResult> ProcessMockPayment(Guid id, [FromBody] MockPaymentRequest req)
+    {
+        var appointment = await _db.Appointments.FindAsync(id);
+        if (appointment == null) return NotFound("Appointment not found");
+
+        if (appointment.IsPaid) return BadRequest("Appointment is already paid");
+
+        // 1. Call Billing Service to record sync payment
+        var success = await _billingClient.RecordMockPaymentAsync(id, req.PatientId, req.PaymentMethod);
+        
+        if (!success)
+        {
+            return BadRequest("Billing service failed to record payment");
+        }
+
+        // 2. Update local state immediately
+        appointment.IsPaid = true;
+        // Optionally update payment processed if not set
+        appointment.PaymentProcessed = true; 
+        appointment.UpdatedAt = DateTime.UtcNow;
+        
+        await _db.SaveChangesAsync();
+        _logger.LogInformation("Successfully processed mock payment for {Id}. Local DB updated.", id);
+
+        return Ok(new { Success = true });
+    }
 
     [HttpGet("analytics/today")]
     public async Task<IActionResult> GetTodaysAnalytics()
@@ -152,7 +208,40 @@ public class AppointmentsController : ControllerBase
             return Ok(new { Date = DateTime.Today, Statistics = Array.Empty<object>() });
         }
     }
+
+    private void PublishAppointmentCreated(Appointment appointment)
+    {
+        try
+        {
+            using var channel = _mqConnection.CreateModel();
+            channel.ExchangeDeclare("appointment.events", ExchangeType.Topic, durable: true);
+
+            var evt = new
+            {
+                AppointmentId = appointment.Id,
+                PatientId = appointment.PatientId,
+                DoctorId = appointment.DoctorId,
+                ScheduledAt = appointment.ScheduledAt,
+                OccurredAt = DateTime.UtcNow
+            };
+
+            var json = JsonSerializer.Serialize(evt);
+            var body = Encoding.UTF8.GetBytes(json);
+
+            channel.BasicPublish(exchange: "appointment.events",
+                                 routingKey: "appointment.created",
+                                 basicProperties: null,
+                                 body: body);
+            
+            _logger.LogInformation("Published appointment.created for {Id}", appointment.Id);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish appointment.created for {Id}", appointment.Id);
+        }
+    }
 }
 
-public record CreateAppointmentRequest(Guid PatientId, Guid DoctorId, DateTime ScheduledAt, DateTime ScheduledEndAt, string? AppointmentType, string? Notes);
+public record CreateAppointmentRequest(Guid PatientId, Guid DoctorId, DateTime ScheduledAt, DateTime ScheduledEndAt, string? AppointmentType, string? Notes, Guid? ServiceId);
 public record UpdateStatusRequest(string Status);
+public record MockPaymentRequest(Guid PatientId, string PaymentMethod);

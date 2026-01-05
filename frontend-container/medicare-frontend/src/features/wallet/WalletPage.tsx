@@ -5,6 +5,7 @@ import Header from "../../layout/Header";
 import { ErrorDisplay, Loading } from "../../shared/components";
 import { useWallet } from "../../shared/hooks/useWallet";
 
+import { MockPaymentModal } from "./components/MockPaymentModal";
 import { Wallet } from "./components/Wallet";
 
 export const WalletPage: React.FC = () => {
@@ -13,15 +14,25 @@ export const WalletPage: React.FC = () => {
     null
   );
 
+  const [isPaymentModalOpen, setIsPaymentModalOpen] = useState(false);
+
   const { wallet, loading, error, refetch, payAppointment } = useWallet();
 
-  const handlePayAppointment = async (appointmentId: string) => {
+  const handlePayAppointment = (appointmentId: string) => {
     setPayingAppointmentId(appointmentId);
+    setIsPaymentModalOpen(true);
+  };
+
+  const handleConfirmPayment = async (method: "BLIK" | "Card") => {
+    if (!payingAppointmentId) return;
+
+    // Close first or handle loading state?
+    // VisitCard shows "Processing..." if payingAppointmentId matches.
+    setIsPaymentModalOpen(false);
 
     try {
-      const success = await payAppointment(appointmentId);
+      const success = await payAppointment(payingAppointmentId, method);
       if (!success) {
-        // Error handling is done in the hook
         console.error("Payment failed");
       }
     } catch (error) {
@@ -31,9 +42,19 @@ export const WalletPage: React.FC = () => {
     }
   };
 
+  const handleCloseModal = () => {
+    setIsPaymentModalOpen(false);
+    setPayingAppointmentId(null);
+  };
+
   const handleNavigateToSubscription = () => {
     navigate("/user/wallet/subscription");
   };
+
+  // Find amount for modal
+  const payingAmount =
+    wallet?.unpaidAppointments.find((a) => a.id === payingAppointmentId)
+      ?.total || 300.0;
 
   if (loading) {
     return (
@@ -72,6 +93,13 @@ export const WalletPage: React.FC = () => {
           payingAppointmentId={payingAppointmentId}
         />
       </main>
+
+      <MockPaymentModal
+        isOpen={isPaymentModalOpen}
+        onClose={handleCloseModal}
+        onConfirm={handleConfirmPayment}
+        amount={payingAmount}
+      />
     </div>
   );
 };

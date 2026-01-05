@@ -120,11 +120,11 @@ public static class MockDataSeeder
             {
                 Code = "PREMIUM_MONTHLY",
                 Name = "Premium Monthly",
-                Description = "Full access to all features. Every visit paid upfront.",
+                Description = "Unlimited free visits per month. Full access to all features.",
                 PriceCents = 14900, // 149 PLN
                 Currency = "PLN",
                 BillingPeriod = "monthly",
-                FreeVisitsPerMonth = 0,
+                FreeVisitsPerMonth = int.MaxValue,
                 HasMessaging = true,
                 HasPrescriptions = true,
                 HasDocuments = true,
@@ -135,11 +135,11 @@ public static class MockDataSeeder
             {
                 Code = "PREMIUM_YEARLY",
                 Name = "Premium Yearly",
-                Description = "Full access to all features. Every visit paid upfront. Save 2 months!",
+                Description = "Unlimited free visits per month. Full access to all features. Save 2 months!",
                 PriceCents = 149000, // 1490 PLN
                 Currency = "PLN",
                 BillingPeriod = "yearly",
-                FreeVisitsPerMonth = 0,
+                FreeVisitsPerMonth = int.MaxValue,
                 HasMessaging = true,
                 HasPrescriptions = true,
                 HasDocuments = true,
@@ -150,10 +150,22 @@ public static class MockDataSeeder
 
         foreach (var plan in planDefinitions)
         {
-            if (!existingPlanCodes.Contains(plan.Code))
+            var existingPlan = await db.Plans.FirstOrDefaultAsync(p => p.Code == plan.Code);
+            if (existingPlan == null)
             {
                 db.Plans.Add(plan);
                 created++;
+            }
+            else
+            {
+                // Update definitions for dev sync
+                if (existingPlan.FreeVisitsPerMonth != plan.FreeVisitsPerMonth || 
+                    existingPlan.Description != plan.Description)
+                {
+                    existingPlan.FreeVisitsPerMonth = plan.FreeVisitsPerMonth;
+                    existingPlan.Description = plan.Description;
+                    created++;
+                }
             }
         }
 

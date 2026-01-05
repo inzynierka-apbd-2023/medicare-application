@@ -1,5 +1,4 @@
 import { apiClient as api } from "../../../shared/services/apiClient";
-import { getStatusColors } from "../utils/statusColors";
 import type {
   Appointment,
   AppointmentStatus,
@@ -13,6 +12,7 @@ import type {
   TimeSlot,
   UpdateAppointmentRequest,
 } from "../types";
+import { getStatusColors } from "../utils/statusColors";
 
 import {
   mockAppointments,
@@ -24,6 +24,56 @@ import {
   mockSpecializations,
   mockTimeSlots,
 } from "./mockData";
+
+// Backend response interfaces for type safety
+interface BackendAppointment {
+  id: string;
+  patientId: string;
+  doctorId: string;
+  scheduledAt: string;
+  scheduledEndAt?: string;
+  status?: string;
+  notes?: string;
+  appointmentType?: string;
+  serviceId?: string;
+  isPaid?: boolean;
+  requiresPayment?: boolean;
+}
+
+// Backend doctor directory response (handles both camelCase and PascalCase from .NET)
+interface BackendDoctor {
+  id?: string;
+  Id?: string;
+  doctorId?: string;
+  DoctorId?: string;
+  userId?: string;
+  UserId?: string;
+  firstName?: string;
+  FirstName?: string;
+  lastName?: string;
+  LastName?: string;
+  specializations?: string;
+  Specializations?: string;
+}
+
+// Backend service/specialization response
+interface BackendService {
+  id?: string;
+  Id?: string;
+  name?: string;
+  Name?: string;
+  description?: string;
+  Description?: string;
+  durationMinutes?: number;
+  DurationMinutes?: number;
+}
+
+interface BackendSpecialization {
+  id?: string;
+  Id?: string;
+  name?: string;
+  Name?: string;
+}
 
 // Configuration flag to enable/disable mock mode (kept for non-critical catalogs)
 const USE_MOCK_DATA = true; // Keep mock by default for catalogs where real endpoints are optional
@@ -66,22 +116,31 @@ export class SchedulerApiService {
   // For naive values, interpret as local wall-clock time to match how the server stores datetime without TZ.
   private static parseBackendDate(input: unknown): Date {
     if (input instanceof Date) return new Date(input);
-    const s = (input === null || input === undefined) ? "" : String(input);
+    const s = input === null || input === undefined ? "" : String(input);
     // Explicit timezone designator: keep as-is (will be parsed as UTC/with offset)
-    if (/Z$|[+\-]\d{2}:\d{2}$/.test(s)) return new Date(s);
+    if (/Z$|[+-]\d{2}:\d{2}$/.test(s)) return new Date(s);
     // Naive formats we often see from .NET/EF: allow space or T, optional seconds and fractional seconds
     // Interpret as local time (no timezone adjustment)
-    const naive = s.match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::(\d{2})(?:\.\d{1,7})?)?$/);
+    const naive = s.match(
+      /^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})(?::(\d{2})(?:\.\d{1,7})?)?$/
+    );
     if (naive) return new Date(s.replace(" ", "T"));
     // Fallback
     return new Date(s);
   }
 
   // Map backend AppointmentService entity to UI Appointment shape
-  private static mapBackendAppointmentToUi(backend: any): Appointment {
+  private static mapBackendAppointmentToUi(
+    backend: BackendAppointment
+  ): Appointment {
     const start = this.parseBackendDate(backend.scheduledAt);
-    const end = this.parseBackendDate(backend.scheduledEndAt ?? backend.scheduledAt);
-    const durationMinutes = Math.max(15, Math.round((end.getTime() - start.getTime()) / 60000) || 30);
+    const end = this.parseBackendDate(
+      backend.scheduledEndAt ?? backend.scheduledAt
+    );
+    const durationMinutes = Math.max(
+      15,
+      Math.round((end.getTime() - start.getTime()) / 60000) || 30
+    );
 
     const backendStatusName = String(backend.status || "Scheduled");
     const matchedStatus =
@@ -101,37 +160,41 @@ export class SchedulerApiService {
     // Default to a general service
     const service = mockServices[2] || mockServices[0];
 
+    const patient: Patient = {
+      id: String(backend.patientId),
+      userId: String(backend.patientId),
+      firstName: "",
+      lastName: "",
+      email: "",
+      phone: "",
+      dateOfBirth: new Date(0).toISOString(),
+    };
+
     const ui: Appointment = {
       id: String(backend.id),
       patientId: String(backend.patientId),
-      patient: {
-        id: String(backend.patientId),
-        userId: String(backend.patientId),
-        firstName: "",
-        lastName: "",
-        email: "",
-        phone: "",
-        dateOfBirth: new Date(0).toISOString(),
-      } as any,
-      doctorUserId: String(backend.doctorId) as any,
+      patient,
+      doctorUserId: String(backend.doctorId),
       // Minimal associations; detailed doctor/timeSlot may be populated elsewhere
-      doctor: undefined as any,
-      serviceId: service.id,
-      service: service as any,
+      doctor: undefined,
+      serviceId: backend.serviceId || service.id,
+      service,
       timeSlotId: "",
-      timeSlot: undefined as any,
-  // Store as local ISO (no Z) so calendar renders at the intended wall-clock time
-  day: this.toLocalIso(start),
+      timeSlot: undefined,
+      // Store as local ISO (no Z) so calendar renders at the intended wall-clock time
+      day: this.toLocalIso(start),
       durationMinutes,
-      appointmentType: (backend.appointmentType) === "virtual" || (backend.appointmentType) === "phone"
-        ? backend.appointmentType
-        : ("in-person" as const),
+      appointmentType:
+        backend.appointmentType === "virtual" ||
+        backend.appointmentType === "phone"
+          ? backend.appointmentType
+          : ("in-person" as const),
       appointmentCategory: undefined as unknown as string,
       description: backend.notes || "",
       statusId: status.id,
-      status: status as any,
-  createdAt: this.parseBackendDate(backend.createdAt || backend.scheduledAt).toISOString(),
-  updatedAt: this.parseBackendDate(backend.updatedAt || backend.scheduledAt).toISOString(),
+      status,
+      createdAt: this.parseBackendDate(backend.scheduledAt).toISOString(),
+      updatedAt: this.parseBackendDate(backend.scheduledAt).toISOString(),
     };
 
     return ui;
@@ -272,10 +335,14 @@ export class SchedulerApiService {
   ): Promise<Appointment[]> {
     await this.delay();
 
-  if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
+    if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
       // Filter appointments for the specific patient and add populated fields
       const patientAppointments = this.appointments
-    .filter((apt) => (apt as any).patientUserId === patientId)
+        .filter(
+          (apt) =>
+            (apt as Appointment & { patientUserId?: string }).patientUserId ===
+            patientId
+        )
         .map((appointment) => {
           const result: Appointment = {
             ...appointment,
@@ -299,10 +366,14 @@ export class SchedulerApiService {
 
     try {
       // Map to AppointmentService route via Nginx: /api/appointment/appointments/patient/{patientId}
-      const response = await api.get(`/appointment/appointments/patient/${patientId}`);
+      const response = await api.get(
+        `/appointment/appointments/patient/${patientId}`
+      );
       const items = Array.isArray(response.data) ? response.data : [];
-      const appointments = items.map((a: any) => this.mapBackendAppointmentToUi(a));
-      
+      const appointments = items.map((a: BackendAppointment) =>
+        this.mapBackendAppointmentToUi(a)
+      );
+
       // Fetch doctors to enrich appointments
       const doctors = await this.getDoctors();
       for (const apt of appointments) {
@@ -316,7 +387,7 @@ export class SchedulerApiService {
           }
         }
       }
-      
+
       return appointments;
     } catch (error) {
       // Be resilient: log and return empty list to avoid blocking the UX
@@ -335,7 +406,7 @@ export class SchedulerApiService {
   ): Promise<Appointment[]> {
     await this.delay();
 
-  if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
+    if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
       const start = new Date(startDate);
       const end = new Date(endDate);
 
@@ -343,7 +414,8 @@ export class SchedulerApiService {
         .filter((apt) => {
           const aptDate = new Date(apt.day);
           return (
-      (apt as any).patientUserId === patientId &&
+            (apt as Appointment & { patientUserId?: string }).patientUserId ===
+              patientId &&
             aptDate >= start &&
             aptDate <= end
           );
@@ -373,10 +445,12 @@ export class SchedulerApiService {
       const response = await api.get(`/patients/${patientId}/appointments`, {
         params: { startDate, endDate },
       });
-      const appointments = Array.isArray(response.data) 
-        ? response.data.map((a: any) => this.mapBackendAppointmentToUi(a))
+      const appointments = Array.isArray(response.data)
+        ? response.data.map((a: BackendAppointment) =>
+            this.mapBackendAppointmentToUi(a)
+          )
         : [];
-      
+
       // Fetch doctors to enrich appointments
       const doctors = await this.getDoctors();
       for (const apt of appointments) {
@@ -389,7 +463,7 @@ export class SchedulerApiService {
           }
         }
       }
-      
+
       return appointments;
     } catch (error) {
       console.error("Error fetching appointments by date range:", error);
@@ -406,10 +480,13 @@ export class SchedulerApiService {
     patientId: string,
     appointmentData: CreateAppointmentRequest
   ): Promise<Appointment> {
-    console.log("[SchedulerApiService] createAppointment called with:", { patientId, appointmentData });
+    console.log("[SchedulerApiService] createAppointment called with:", {
+      patientId,
+      appointmentData,
+    });
     await this.delay();
 
-  if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
+    if (USE_MOCK_DATA && !USE_REAL_APPOINTMENTS) {
       // Find the selected time slot
       const timeSlot = this.timeSlots.find(
         (slot) => slot.id === appointmentData.timeSlotId
@@ -427,8 +504,8 @@ export class SchedulerApiService {
         description: appointmentData.description || "",
         appointmentType: appointmentData.appointmentType,
         doctorUserId: appointmentData.doctorUserId,
-    // @ts-expect-error mock field not in type
-    patientUserId: patientId,
+        // @ts-expect-error mock field not in type
+        patientUserId: patientId,
         statusId: "status-1", // Scheduled
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -466,11 +543,16 @@ export class SchedulerApiService {
       return result;
     }
 
-  try {
+    try {
       // Translate to AppointmentService DTO
       // Validate doctor guid - must be a valid GUID from the selected doctor
-      if (!appointmentData.doctorUserId || !isGuid(appointmentData.doctorUserId)) {
-        throw new Error("Invalid doctor selection. Please select a doctor before booking.");
+      if (
+        !appointmentData.doctorUserId ||
+        !isGuid(appointmentData.doctorUserId)
+      ) {
+        throw new Error(
+          "Invalid doctor selection. Please select a doctor before booking."
+        );
       }
       const doctorGuid = appointmentData.doctorUserId;
 
@@ -484,7 +566,9 @@ export class SchedulerApiService {
 
       // 2) If not found, try fetch by day parsed from slot id
       if (!resolvedSlot && selectedSlotId) {
-        const m = selectedSlotId.match(/^(.+)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})$/);
+        const m = selectedSlotId.match(
+          /^(.+)-(\d{4}-\d{2}-\d{2})-(\d{2})(\d{2})$/
+        );
         const dayStr = m ? m[2] : undefined;
         const hh = m ? m[3] : undefined;
         const mm = m ? m[4] : undefined;
@@ -504,7 +588,11 @@ export class SchedulerApiService {
                 const d = new Date(s.startDateTime);
                 const h = String(d.getHours()).padStart(2, "0");
                 const m2 = String(d.getMinutes()).padStart(2, "0");
-                return s.doctorId === doctorGuid && s.startDateTime.startsWith(dayStr) && `${h}:${m2}` === target;
+                return (
+                  s.doctorId === doctorGuid &&
+                  s.startDateTime.startsWith(dayStr) &&
+                  `${h}:${m2}` === target
+                );
               });
             }
           } catch {
@@ -529,7 +617,10 @@ export class SchedulerApiService {
       if (!start || !end) {
         const now = new Date();
         const minutes = now.getMinutes();
-        const add = minutes === 0 || minutes <= 30 ? 30 - (minutes % 30 || 30) : 60 - (minutes % 30);
+        const add =
+          minutes === 0 || minutes <= 30
+            ? 30 - (minutes % 30 || 30)
+            : 60 - (minutes % 30);
         start = new Date(now);
         start.setMinutes(minutes + add, 0, 0);
         end = new Date(start.getTime() + 30 * 60000);
@@ -543,15 +634,33 @@ export class SchedulerApiService {
         scheduledEndAt: this.toLocalIso(end),
         appointmentType: appointmentData.appointmentType,
         notes: appointmentData.description,
+        serviceId: appointmentData.serviceId || null,
       };
-      console.log("[SchedulerApiService] Creating appointment with payload:", payload);
-  const response = await api.post(`/appointment/appointments`, payload);
-      console.log("[SchedulerApiService] Appointment created successfully:", response.data);
-  return this.mapBackendAppointmentToUi(response.data);
-    } catch (error: any) {
+      console.log(
+        "[SchedulerApiService] Creating appointment with payload:",
+        payload
+      );
+      const response = await api.post(`/appointment/appointments`, payload);
+      console.log(
+        "[SchedulerApiService] Appointment created successfully:",
+        response.data
+      );
+      return this.mapBackendAppointmentToUi(response.data);
+    } catch (error: unknown) {
+      const err = error as {
+        response?: { data?: { message?: string; title?: string } };
+        message?: string;
+      };
       console.error("[SchedulerApiService] Error creating appointment:", error);
-      console.error("[SchedulerApiService] Error response:", error?.response?.data);
-      const message = error?.response?.data?.message || error?.response?.data?.title || error?.message || "Failed to create appointment";
+      console.error(
+        "[SchedulerApiService] Error response:",
+        err?.response?.data
+      );
+      const message =
+        err?.response?.data?.message ||
+        err?.response?.data?.title ||
+        err?.message ||
+        "Failed to create appointment";
       throw new Error(message);
     }
   }
@@ -703,7 +812,9 @@ export class SchedulerApiService {
    * This resolves the issue where PractitionerService's DoctorDirectory view can't access
    * UserService's User_Profile table when services run in separate databases.
    */
-  private static async enrichDoctorsWithUserProfiles(doctors: Doctor[]): Promise<Doctor[]> {
+  private static async enrichDoctorsWithUserProfiles(
+    doctors: Doctor[]
+  ): Promise<Doctor[]> {
     const doctorsWithMissingNames = doctors.filter(
       (doc) => !doc.firstName && !doc.lastName && doc.userId
     );
@@ -753,35 +864,32 @@ export class SchedulerApiService {
       const response = await api.get("/practitioner/doctors");
       const rows = Array.isArray(response.data) ? response.data : [];
       // Map DoctorDirectory -> UI Doctor
-      const mapped: Doctor[] = rows.map((d: any) => {
+      const mapped: Doctor[] = rows.map((d: BackendDoctor) => {
         const specIdsCsv = String(d.specializations ?? d.Specializations ?? "");
         const specIds = specIdsCsv
           .split(",")
           .map((s: string) => s.trim())
           .filter((s: string) => s.length > 0);
-        const specializations = specIds.map((id: string) => ({
+        const specializations: Specialization[] = specIds.map((id: string) => ({
           id,
           name: "",
           description: "",
           serviceId: "",
-          service: undefined as any,
+          service: undefined as unknown as Service,
           isActive: true,
         }));
         return {
-        id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
-        userId: String(d.userId ?? d.UserId ?? ""),
-        firstName: String(d.firstName ?? d.FirstName ?? ""),
-        lastName: String(d.lastName ?? d.LastName ?? ""),
-        specializationId: "",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        specialization: undefined as any,
-        specializations,
-        isAvailable: true,
-        workingHours: { start: "08:00", end: "17:00" },
-        // extra field for filters compatibility in UI code
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any;
-      }) as any;
+          id: String(d.doctorId ?? d.DoctorId ?? d.id ?? d.Id),
+          userId: String(d.userId ?? d.UserId ?? ""),
+          firstName: String(d.firstName ?? d.FirstName ?? ""),
+          lastName: String(d.lastName ?? d.LastName ?? ""),
+          specializationId: "",
+          specialization: undefined as unknown as Specialization,
+          specializations,
+          isAvailable: true,
+          workingHours: { start: "08:00", end: "17:00" },
+        } as Doctor;
+      });
 
       // Enrich doctors with user profile data for missing names
       return this.enrichDoctorsWithUserProfiles(mapped);
@@ -801,7 +909,9 @@ export class SchedulerApiService {
 
     if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
       return mockDoctors.filter((doctor) =>
-        (doctor as any).specializations?.some((spec: any) => spec.id === specializationId)
+        doctor.specializations?.some(
+          (spec: Specialization) => spec.id === specializationId
+        )
       );
     }
 
@@ -811,8 +921,10 @@ export class SchedulerApiService {
         params: { specializationId },
       });
       const rows = Array.isArray(response.data) ? response.data : [];
-      const mapped: Doctor[] = rows.map((d: any) => {
-        const specIdsCsv = String(d.specializations ?? d.Specializations ?? specializationId ?? "");
+      const mapped: Doctor[] = rows.map((d: BackendDoctor) => {
+        const specIdsCsv = String(
+          d.specializations ?? d.Specializations ?? specializationId ?? ""
+        );
         const specIds = specIdsCsv
           .split(",")
           .map((s: string) => s.trim())
@@ -822,7 +934,7 @@ export class SchedulerApiService {
           name: "",
           description: "",
           serviceId: "",
-          service: undefined as any,
+          service: undefined as unknown as Service,
           isActive: true,
         }));
         return {
@@ -831,14 +943,13 @@ export class SchedulerApiService {
           firstName: String(d.firstName ?? d.FirstName ?? ""),
           lastName: String(d.lastName ?? d.LastName ?? ""),
           specializationId: specializationId || "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          specialization: undefined as any,
+
+          specialization: undefined as unknown as Specialization,
           specializations,
           isAvailable: true,
           workingHours: { start: "08:00", end: "17:00" },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any;
-      }) as any;
+        } as Doctor;
+      });
 
       // Enrich doctors with user profile data for missing names
       return this.enrichDoctorsWithUserProfiles(mapped);
@@ -866,7 +977,7 @@ export class SchedulerApiService {
         params: { serviceId },
       });
       const rows = Array.isArray(response.data) ? response.data : [];
-      const mapped: Doctor[] = rows.map((d: any) => {
+      const mapped: Doctor[] = rows.map((d: BackendDoctor) => {
         const specIdsCsv = String(d.specializations ?? d.Specializations ?? "");
         const specIds = specIdsCsv
           .split(",")
@@ -877,7 +988,7 @@ export class SchedulerApiService {
           name: "",
           description: "",
           serviceId: "",
-          service: undefined as any,
+          service: undefined as unknown as Service,
           isActive: true,
         }));
         return {
@@ -886,14 +997,13 @@ export class SchedulerApiService {
           firstName: String(d.firstName ?? d.FirstName ?? ""),
           lastName: String(d.lastName ?? d.LastName ?? ""),
           specializationId: "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          specialization: undefined as any,
+
+          specialization: undefined as unknown as Specialization,
           specializations,
           isAvailable: true,
           workingHours: { start: "08:00", end: "17:00" },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any;
-      }) as any;
+        } as Doctor;
+      });
 
       // Enrich doctors with user profile data for missing names
       return this.enrichDoctorsWithUserProfiles(mapped);
@@ -906,21 +1016,26 @@ export class SchedulerApiService {
   /**
    * Get doctors filtered by optional specialization and/or service
    */
-  static async getDoctorsFiltered(params: { specializationId?: string; serviceId?: string }): Promise<Doctor[]> {
+  static async getDoctorsFiltered(params: {
+    specializationId?: string;
+    serviceId?: string;
+  }): Promise<Doctor[]> {
     await this.delay();
 
     // Mock path falls back to getDoctors / getDoctorsByX where possible
     if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
       const { specializationId, serviceId } = params || {};
-      if (specializationId && !serviceId) return this.getDoctorsBySpecialization(specializationId);
-      if (serviceId && !specializationId) return this.getDoctorsByService(serviceId);
+      if (specializationId && !serviceId)
+        return this.getDoctorsBySpecialization(specializationId);
+      if (serviceId && !specializationId)
+        return this.getDoctorsByService(serviceId);
       return mockDoctors;
     }
 
     try {
       const response = await api.get("/practitioner/doctors", { params });
       const rows = Array.isArray(response.data) ? response.data : [];
-      const mapped: Doctor[] = rows.map((d: any) => {
+      const mapped: Doctor[] = rows.map((d: BackendDoctor) => {
         const specIdsCsv = String(d.specializations ?? d.Specializations ?? "");
         const specIds = specIdsCsv
           .split(",")
@@ -931,7 +1046,7 @@ export class SchedulerApiService {
           name: "",
           description: "",
           serviceId: "",
-          service: undefined as any,
+          service: undefined as unknown as Service,
           isActive: true,
         }));
         return {
@@ -940,14 +1055,13 @@ export class SchedulerApiService {
           firstName: String(d.firstName ?? d.FirstName ?? ""),
           lastName: String(d.lastName ?? d.LastName ?? ""),
           specializationId: "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          specialization: undefined as any,
+
+          specialization: undefined as unknown as Specialization,
           specializations,
           isAvailable: true,
           workingHours: { start: "08:00", end: "17:00" },
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        } as any;
-      }) as any;
+        } as Doctor;
+      });
       return mapped;
     } catch (error) {
       console.error("Error fetching filtered doctors:", error);
@@ -964,8 +1078,7 @@ export class SchedulerApiService {
       const listResp = await api.get("/practitioner/doctors");
       const rows = Array.isArray(listResp.data) ? listResp.data : [];
       const row = rows.find(
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        (d: any) =>
+        (d: BackendDoctor) =>
           String(d.DoctorId ?? d.doctorId) === doctorId ||
           String(d.UserId ?? d.userId) === doctorId
       );
@@ -992,12 +1105,12 @@ export class SchedulerApiService {
           firstName,
           lastName,
           specializationId: "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          specialization: undefined as any,
+
+          specialization: undefined as unknown as Specialization,
           specializations: [],
           isAvailable: true,
           workingHours: { start: "08:00", end: "17:00" },
-        } as any;
+        } as Doctor;
       }
 
       // Try practitioner entity by Id (doctorId)
@@ -1023,12 +1136,12 @@ export class SchedulerApiService {
           firstName,
           lastName,
           specializationId: "",
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          specialization: undefined as any,
+
+          specialization: undefined as unknown as Specialization,
           specializations: [],
           isAvailable: true,
           workingHours: { start: "08:00", end: "17:00" },
-        } as any;
+        } as Doctor;
       } catch {
         // Not found by doctor entity; treat input as a userId and fetch names
         try {
@@ -1040,14 +1153,17 @@ export class SchedulerApiService {
             firstName: String(u.firstName ?? u.FirstName ?? ""),
             lastName: String(u.lastName ?? u.LastName ?? ""),
             specializationId: "",
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            specialization: undefined as any,
+
+            specialization: undefined as unknown as Specialization,
             specializations: [],
             isAvailable: true,
             workingHours: { start: "08:00", end: "17:00" },
-          } as any;
+          } as Doctor;
         } catch (error_) {
-          console.error("Doctor lookup failed by both doctorId and userId:", error_);
+          console.error(
+            "Doctor lookup failed by both doctorId and userId:",
+            error_
+          );
           throw new Error("Failed to fetch doctor details");
         }
       }
@@ -1073,7 +1189,7 @@ export class SchedulerApiService {
       // Practitioner catalog services
       const response = await api.get("/practitioner/catalog/services");
       const rows = Array.isArray(response.data) ? response.data : [];
-      return rows.map((s: any) => ({
+      return rows.map((s: BackendService) => ({
         id: String(s.id ?? s.Id),
         name: String(s.name ?? s.Name ?? "Service"),
         description: String(s.description ?? s.Description ?? ""),
@@ -1106,9 +1222,11 @@ export class SchedulerApiService {
     }
 
     try {
-      const response = await api.get("/practitioner/catalog/services", { params: { specializationId } });
+      const response = await api.get("/practitioner/catalog/services", {
+        params: { specializationId },
+      });
       const rows = Array.isArray(response.data) ? response.data : [];
-      return rows.map((s: any) => ({
+      return rows.map((s: BackendService) => ({
         id: String(s.id ?? s.Id),
         name: String(s.name ?? s.Name ?? "Service"),
         description: String(s.description ?? s.Description ?? ""),
@@ -1126,7 +1244,9 @@ export class SchedulerApiService {
   /**
    * Get specializations by service
    */
-  static async getSpecializationsByService(serviceId: string): Promise<Specialization[]> {
+  static async getSpecializationsByService(
+    serviceId: string
+  ): Promise<Specialization[]> {
     await this.delay();
 
     if (USE_MOCK_DATA && !USE_REAL_DOCTORS) {
@@ -1135,20 +1255,24 @@ export class SchedulerApiService {
     }
 
     try {
-      const response = await api.get("/practitioner/catalog/specializations", { params: { serviceId } });
+      const response = await api.get("/practitioner/catalog/specializations", {
+        params: { serviceId },
+      });
       const rows = Array.isArray(response.data) ? response.data : [];
-      return rows.map((r: any) => ({
+      return rows.map((r: BackendSpecialization) => ({
         id: String(r.id ?? r.Id),
         name: String(r.name ?? r.Name ?? "Specialization"),
         description: "",
         serviceId: "",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        service: undefined as any,
+
+        service: undefined as unknown as Service,
         isActive: true,
       })) as Specialization[];
     } catch (error) {
       console.error("Error fetching specializations by service:", error);
-      throw new Error("Failed to fetch specializations for the specified service");
+      throw new Error(
+        "Failed to fetch specializations for the specified service"
+      );
     }
   }
 
@@ -1167,13 +1291,13 @@ export class SchedulerApiService {
     try {
       const response = await api.get("/practitioner/catalog/specializations");
       const rows = Array.isArray(response.data) ? response.data : [];
-      return rows.map((r: any) => ({
+      return rows.map((r: BackendSpecialization) => ({
         id: String(r.id ?? r.Id),
         name: String(r.name ?? r.Name ?? "Specialization"),
         description: "",
         serviceId: "",
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        service: undefined as any,
+
+        service: undefined as unknown as Service,
         isActive: true,
       })) as Specialization[];
     } catch (error) {
@@ -1214,41 +1338,62 @@ export class SchedulerApiService {
 
       // 1) Load recurring availability for the doctor
       //    GET /api/practitioner/doctors/{id}/availability => [{ dayOfWeek, startTime, endTime }]
-      const availabilityResp = await api.get(`/practitioner/doctors/${request.doctorId}/availability`);
-      const availability: Array<{ dayOfWeek: number; startTime: string; endTime: string } | { DayOfWeek: number; StartTime: string; EndTime: string }> = availabilityResp.data || [];
+      const availabilityResp = await api.get(
+        `/practitioner/doctors/${request.doctorId}/availability`
+      );
+      const availability: Array<
+        | { dayOfWeek: number; startTime: string; endTime: string }
+        | { DayOfWeek: number; StartTime: string; EndTime: string }
+      > = availabilityResp.data || [];
 
       // 2) Load existing appointments for the doctor to filter out occupied time
       //    GET /api/appointment/appointments/doctor/{doctorId}
-      const aptResp = await api.get(`/appointment/appointments/doctor/${request.doctorId}`);
-      const appointments: any[] = Array.isArray(aptResp.data) ? aptResp.data : [];
+      const aptResp = await api.get(
+        `/appointment/appointments/doctor/${request.doctorId}`
+      );
+      const appointments: BackendAppointment[] = Array.isArray(aptResp.data)
+        ? aptResp.data
+        : [];
 
-      const appts = appointments.map((a: any) => ({
-        start: this.parseBackendDate(a.scheduledAt || a.ScheduledAt),
-        end: this.parseBackendDate(a.scheduledEndAt || a.ScheduledEndAt || a.scheduledAt || a.ScheduledAt),
+      const appts = appointments.map((a: BackendAppointment) => ({
+        start: this.parseBackendDate(a.scheduledAt),
+        end: this.parseBackendDate(a.scheduledEndAt || a.scheduledAt),
       }));
 
       // Helper to test overlap
-      const overlaps = (s: Date, e: Date) => appts.some((apt) => Math.max(apt.start.getTime(), s.getTime()) < Math.min(apt.end.getTime(), e.getTime()));
+      const overlaps = (s: Date, e: Date) =>
+        appts.some(
+          (apt) =>
+            Math.max(apt.start.getTime(), s.getTime()) <
+            Math.min(apt.end.getTime(), e.getTime())
+        );
 
       // Determine slot length: from service if provided (default 30)
       let durationMinutes = 30;
       try {
         if (request.serviceId) {
           // Fetch service for duration if catalogs carry it
-          const svcResp = await api.get("/practitioner/catalog/services", { params: { serviceId: request.serviceId } });
-          const svc = Array.isArray(svcResp.data) ? svcResp.data[0] : svcResp.data;
+          const svcResp = await api.get("/practitioner/catalog/services", {
+            params: { serviceId: request.serviceId },
+          });
+          const svc = Array.isArray(svcResp.data)
+            ? svcResp.data[0]
+            : svcResp.data;
           const dur = Number(svc?.durationMinutes ?? svc?.DurationMinutes);
-          if (!Number.isNaN(dur) && dur > 0 && dur <= 240) durationMinutes = dur;
+          if (!Number.isNaN(dur) && dur > 0 && dur <= 240)
+            durationMinutes = dur;
         }
       } catch {
         // ignore; keep default
       }
 
       // Normalize availability rows into simple objects
-      const availRows = availability.map((r: any) => ({
-        dayOfWeek: Number(r.dayOfWeek ?? r.DayOfWeek ?? 0),
-        start: String(r.startTime ?? r.StartTime ?? "09:00:00"),
-        end: String(r.endTime ?? r.EndTime ?? "17:00:00"),
+      const availRows = availability.map((r) => ({
+        dayOfWeek: Number("dayOfWeek" in r ? r.dayOfWeek : (r.DayOfWeek ?? 0)),
+        start: String(
+          "startTime" in r ? r.startTime : (r.StartTime ?? "09:00:00")
+        ),
+        end: String("endTime" in r ? r.endTime : (r.EndTime ?? "17:00:00")),
       }));
 
       // Parse HH:mm or HH:mm:ss to minutes from midnight
@@ -1259,7 +1404,7 @@ export class SchedulerApiService {
         return h * 60 + m;
       };
 
-  const slots: TimeSlot[] = [];
+      const slots: TimeSlot[] = [];
       const day = new Date(rangeStart);
       while (day <= rangeEnd) {
         const jsDow = day.getDay(); // 0=Sun .. 6=Sat
@@ -1273,17 +1418,21 @@ export class SchedulerApiService {
             const sm = m % 60;
             const eh = Math.floor((m + durationMinutes) / 60);
             const em = (m + durationMinutes) % 60;
-    // Build as local wall-clock time (no trailing Z)
-    const startLocal = new Date(`${dayStr}T${String(sh).padStart(2, "0")}:${String(sm).padStart(2, "0")}:00`);
-    const endLocal = new Date(`${dayStr}T${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}:00`);
+            // Build as local wall-clock time (no trailing Z)
+            const startLocal = new Date(
+              `${dayStr}T${String(sh).padStart(2, "0")}:${String(sm).padStart(2, "0")}:00`
+            );
+            const endLocal = new Date(
+              `${dayStr}T${String(eh).padStart(2, "0")}:${String(em).padStart(2, "0")}:00`
+            );
             // Exclude if overlapping an existing appointment
-    if (!overlaps(startLocal, endLocal)) {
+            if (!overlaps(startLocal, endLocal)) {
               const id = `${request.doctorId}-${dayStr}-${String(sh).padStart(2, "0")}${String(sm).padStart(2, "0")}`;
               slots.push({
                 id,
                 doctorId: request.doctorId,
-        startDateTime: this.toLocalIso(startLocal),
-        endDateTime: this.toLocalIso(endLocal),
+                startDateTime: this.toLocalIso(startLocal),
+                endDateTime: this.toLocalIso(endLocal),
                 isAvailable: true,
                 durationMinutes,
                 slotType: "standard",
@@ -1315,7 +1464,9 @@ export class SchedulerApiService {
 
     try {
       // PractitionerService exposes recurring availability
-      const response = await api.get(`/practitioner/doctors/${doctorId}/availability`);
+      const response = await api.get(
+        `/practitioner/doctors/${doctorId}/availability`
+      );
       return response.data;
     } catch (error) {
       console.error("Error fetching doctor schedule:", error);

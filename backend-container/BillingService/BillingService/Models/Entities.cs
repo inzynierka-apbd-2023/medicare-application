@@ -77,6 +77,8 @@ public class AppointmentPayment
     public long AmountCents { get; set; }
     [MaxLength(3)] public string Currency { get; set; } = "USD";
     public Guid? PaymentIntentId { get; set; }
+    public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
+    public DateTime ForDate { get; set; } = DateTime.UtcNow; // The date for which this payment applies (e.g. Scheduled Date of appointment)
 }
 
 [Table("Subscription_Payment", Schema = "billing")]

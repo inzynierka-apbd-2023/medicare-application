@@ -1,5 +1,5 @@
 import React from "react";
-import { Calendar, CreditCard, FileText, User } from "lucide-react";
+import { Activity, Calendar, CreditCard, FileText, User } from "lucide-react";
 
 import { Badge, Modal } from "../../../shared/components";
 import type { Appointment } from "../types";
@@ -60,6 +60,19 @@ const AppointmentsDetailsModal: React.FC<AppointmentsDetailsModalProps> = ({
             <div className="text-blue-600">{appointment.time}</div>
           </div>
         </div>
+
+        {/* Service Information */}
+        {appointment.serviceName && (
+          <div className="flex items-center justify-center gap-3 p-4 bg-indigo-50 rounded-lg">
+            <Activity className="text-indigo-600 flex-shrink-0" size={20} />
+            <div>
+              <div className="font-semibold text-indigo-700">
+                {appointment.serviceName}
+              </div>
+              <div className="text-indigo-600 text-sm">Service</div>
+            </div>
+          </div>
+        )}
 
         {/* Doctor Information */}
         <div className="flex items-center justify-center gap-3 p-4 bg-gray-50 rounded-lg">

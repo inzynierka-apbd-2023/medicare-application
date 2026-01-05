@@ -20,7 +20,15 @@ public class DocumentsController : ControllerBase
     private readonly DocumentsDbContext _db;
     private readonly IEventPublisher _events;
     private readonly ILogger<DocumentsController> _logger;
-    public DocumentsController(DocumentsDbContext db, IEventPublisher events, ILogger<DocumentsController> logger) { _db = db; _events = events; _logger = logger; }
+    private readonly IConnection _rabbitConn;
+
+    public DocumentsController(DocumentsDbContext db, IEventPublisher events, ILogger<DocumentsController> logger, IConnection rabbitConn) 
+    { 
+        _db = db; 
+        _events = events; 
+        _logger = logger; 
+        _rabbitConn = rabbitConn;
+    }
 
     [HttpPost]
     [Authorize]
@@ -522,32 +530,27 @@ public class DocumentsController : ControllerBase
 
     private async Task<byte[]?> RequestPdfOverRabbitAsync(object payload, string corrId, CancellationToken ct)
     {
-        var config = HttpContext.RequestServices.GetRequiredService<IConfiguration>();
-        var factory = new ConnectionFactory();
-        var cs = config.GetConnectionString("rabbitmq");
-        if (!string.IsNullOrEmpty(cs)) { factory.Uri = new Uri(cs); }
-        else 
-        {
-            factory.HostName = config["RABBITMQ:HOST"] ?? "rabbitmq";
-            factory.UserName = config["RABBITMQ:USERNAME"] ?? "guest";
-            factory.Password = config["RABBITMQ:PASSWORD"] ?? "guest";
-        }
-        factory.DispatchConsumersAsync = true;
-        using var conn = factory.CreateConnection();
-        using var channel = conn.CreateModel();
+        using var channel = _rabbitConn.CreateModel();
         var requestQueue = "pdf.generate.document";
         channel.QueueDeclare(requestQueue, durable: false, exclusive: false, autoDelete: false);
 
         var replyQueue = channel.QueueDeclare(queue: "", durable: false, exclusive: true, autoDelete: true).QueueName;
         var consumer = new AsyncEventingBasicConsumer(channel);
         var tcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
+        
         consumer.Received += async (model, ea) =>
         {
             try
             {
-                if (ea.BasicProperties?.CorrelationId == corrId)
+                var incomingCorrId = ea.BasicProperties?.CorrelationId;
+                if (incomingCorrId == corrId)
                 {
+                    _logger.LogInformation("Received PDF response for CorrId={CorrId}, Bytes={Bytes}", incomingCorrId, ea.Body.Length);
                     tcs.TrySetResult(ea.Body.ToArray());
+                }
+                else
+                {
+                    _logger.LogWarning("Received mismatched PDF response. Expected={Expected}, Got={Got}", corrId, incomingCorrId);
                 }
             }
             finally { await Task.CompletedTask; }
@@ -561,13 +564,26 @@ public class DocumentsController : ControllerBase
 
         var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = null });
         var body = Encoding.UTF8.GetBytes(json);
+        
+        _logger.LogInformation("Publishing PDF req to {Queue}, ReplyTo={ReplyTo}, CorrId={CorrId}", requestQueue, replyQueue, corrId);
         channel.BasicPublish(exchange: "", routingKey: requestQueue, basicProperties: props, body: body);
 
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(15));
-        var task = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
-        if (task != tcs.Task) return null;
-        return await tcs.Task;
+        
+        try 
+        {
+            var task = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
+            if (task == tcs.Task) return await tcs.Task;
+        }
+        catch (OperationCanceledException) 
+        {
+            _logger.LogError("PDF generation timed out (15s) for CorrId={CorrId}", corrId);
+            return null;
+        }
+
+        _logger.LogError("PDF generation timed out (task mismatch) for CorrId={CorrId}", corrId);
+        return null;
     }
 
     // Helpers
