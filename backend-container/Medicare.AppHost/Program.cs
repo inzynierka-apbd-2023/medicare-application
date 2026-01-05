@@ -18,6 +18,12 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq")
 // Generated cryptographically secure 64-character key (change for production!)
 var jwtSecret = builder.AddParameter("jwt-secret", secret: true);
 
+// SMTP Configuration for email sending (password reset, welcome emails)
+// For production: set via 'azd env set' or Azure Key Vault
+var smtpUsername = builder.AddParameter("smtp-username", secret: true);
+var smtpPassword = builder.AddParameter("smtp-password", secret: true);
+var frontendBaseUrl = builder.AddParameter("frontend-base-url");
+
 // Services - ALL share the same 'sharedDb'
 var userService = builder.AddProject<Projects.UserService>("userservice")
                          .WithReference(sharedDb)
@@ -122,6 +128,13 @@ var notificationService = builder.AddProject<Projects.NotificationService>("noti
                                  .WithReference(rabbitmq)
                                  .WaitFor(sharedDb)
                                  .WaitFor(rabbitmq)
+                                 .WithEnvironment("Smtp__Host", "smtp.gmail.com")
+                                 .WithEnvironment("Smtp__Port", "587")
+                                 .WithEnvironment("Smtp__Username", smtpUsername)
+                                 .WithEnvironment("Smtp__Password", smtpPassword)
+                                 .WithEnvironment("Smtp__FromEmail", smtpUsername)
+                                 .WithEnvironment("Smtp__FromName", "Medicare App")
+                                 .WithEnvironment("FrontendBaseUrl", frontendBaseUrl)
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                  .WithEnvironment("Jwt__Issuer", "UserService")
                                  .WithEnvironment("Jwt__Audience", "MedicareApp");

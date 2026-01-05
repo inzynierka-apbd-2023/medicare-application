@@ -23,6 +23,13 @@ export interface PatientPlanResponse {
   } | null;
 }
 
+export interface UpdateSubscriptionResponse {
+  success: boolean;
+  errorMessage?: string;
+  newPlanCode?: string;
+  newPlanName?: string;
+}
+
 export const plansApi = {
   /**
    * Get all available plans
@@ -46,6 +53,20 @@ export const plansApi = {
   async getPatientPlan(patientId: string): Promise<PatientPlanResponse> {
     const response = await apiClient.get<PatientPlanResponse>(
       `/billing/plans/patient/${patientId}`
+    );
+    return response.data;
+  },
+
+  /**
+   * Update subscription plan (upgrade/downgrade)
+   */
+  async updateSubscription(
+    patientId: string,
+    newPlanCode: string
+  ): Promise<UpdateSubscriptionResponse> {
+    const response = await apiClient.put<UpdateSubscriptionResponse>(
+      `/billing/plans/patient/${patientId}/subscription`,
+      { newPlanCode }
     );
     return response.data;
   },

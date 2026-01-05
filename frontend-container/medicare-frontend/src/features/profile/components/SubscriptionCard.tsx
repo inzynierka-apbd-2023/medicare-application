@@ -55,7 +55,7 @@ export const SubscriptionCard: React.FC = () => {
             <p className="text-gray-600 font-medium">{planPrice}</p>
           </div>
           {isFree && (
-            <Link to="/choose-plan">
+            <Link to="/user/wallet">
               <Button
                 size="sm"
                 variant="primary"
@@ -68,7 +68,7 @@ export const SubscriptionCard: React.FC = () => {
           {!isFree && (
             <Link to="/user/wallet">
               <Button size="sm" variant="outline">
-                Manage Auto-Renewal
+                Manage Subscription
               </Button>
             </Link>
           )}

@@ -3,6 +3,7 @@ using Microsoft.AspNetCore.Mvc;
 using MediatR;
 using BillingService.Features.Plans.DTOs;
 using BillingService.Features.Plans.Queries;
+using BillingService.Features.Plans.Commands;
 
 namespace BillingService.Controllers;
 
@@ -75,4 +76,35 @@ public class PlansController : ControllerBase
         
         return Ok(result);
     }
+
+    /// <summary>
+    /// Update a patient's subscription plan (upgrade/downgrade)
+    /// </summary>
+    [HttpPut("patient/{patientId}/subscription")]
+    [Authorize]
+    [ProducesResponseType(typeof(UpdateSubscriptionResponse), StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    public async Task<ActionResult<UpdateSubscriptionResponse>> UpdateSubscription(
+        Guid patientId, 
+        [FromBody] UpdateSubscriptionRequest request)
+    {
+        _logger.LogInformation("UpdateSubscription request received for patient: {PatientId}, new plan: {NewPlanCode}", 
+            patientId, request.NewPlanCode);
+        
+        var command = new UpdateSubscriptionCommand
+        {
+            PatientId = patientId,
+            NewPlanCode = request.NewPlanCode
+        };
+        
+        var result = await _mediator.Send(command);
+        
+        if (!result.Success)
+        {
+            return BadRequest(new { message = result.ErrorMessage });
+        }
+        
+        return Ok(result);
+    }
 }
+

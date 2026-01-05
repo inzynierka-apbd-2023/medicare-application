@@ -377,10 +377,12 @@ public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, Forg
 public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand, ResetPasswordResponse>
 {
     private readonly UserDbContext _db;
+    private readonly ILogger<ResetPasswordHandler> _logger;
 
-    public ResetPasswordHandler(UserDbContext db)
+    public ResetPasswordHandler(UserDbContext db, ILogger<ResetPasswordHandler> logger)
     {
         _db = db;
+        _logger = logger;
     }
 
     public async Task<ResetPasswordResponse> Handle(ResetPasswordCommand request, CancellationToken cancellationToken)
@@ -394,9 +396,27 @@ public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand, ResetP
             return new ResetPasswordResponse { Success = false, ErrorMessage = "Invalid or expired reset token" };
 
         var user = resetToken.User!;
+        
+        // Check if new password is same as current password
+        if (BCrypt.Net.BCrypt.Verify(request.NewPassword, user.PasswordHash))
+            return new ResetPasswordResponse { Success = false, ErrorMessage = "New password cannot be the same as your current password" };
+        
         user.PasswordHash = BCrypt.Net.BCrypt.HashPassword(request.NewPassword);
         user.UpdatedAt = DateTime.UtcNow;
         resetToken.UsedAt = DateTime.UtcNow;
+
+        // Invalidate all existing refresh tokens (force re-login on all devices)
+        var activeTokens = await _db.RefreshTokens
+            .Where(t => t.UserId == user.Id && t.RevokedAt == null)
+            .ToListAsync(cancellationToken);
+        
+        foreach (var token in activeTokens)
+        {
+            token.RevokedAt = DateTime.UtcNow;
+            token.RevokedByIp = "password-reset";
+        }
+        
+        _logger.LogInformation("Password reset for user {UserId}. Invalidated {TokenCount} refresh tokens.", user.Id, activeTokens.Count);
 
         await _db.SaveChangesAsync(cancellationToken);
         return new ResetPasswordResponse { Success = true };

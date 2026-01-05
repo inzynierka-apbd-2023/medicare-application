@@ -16,6 +16,14 @@ export default function ResetPassword() {
   const [error, setError] = useState("");
   const [isSuccess, setIsSuccess] = useState(false);
 
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) return "Password must be at least 8 characters";
+    if (!/[A-Z]/.test(pwd)) return "Password must contain an uppercase letter";
+    if (!/[a-z]/.test(pwd)) return "Password must contain a lowercase letter";
+    if (!/[0-9]/.test(pwd)) return "Password must contain a number";
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -25,8 +33,9 @@ export default function ResetPassword() {
       return;
     }
 
-    if (password.length < 6) {
-      setError("Password must be at least 6 characters");
+    const validationError = validatePassword(password);
+    if (validationError) {
+      setError(validationError);
       return;
     }
 

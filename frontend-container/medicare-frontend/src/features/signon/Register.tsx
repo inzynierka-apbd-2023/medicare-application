@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
 
 import { useAuth } from "../../shared/auth/AuthContext";
+import { getDefaultDashboard } from "../../shared/constants/routes";
 import { availabilityApi } from "../../shared/services/availabilityApi";
 
 interface RegisterFormData {
@@ -34,8 +35,15 @@ const Register: React.FC = () => {
     "weak" | "medium" | "strong" | null
   >(null);
   const emailCheckAbort = useRef<AbortController | null>(null);
-  const { loading } = useAuth();
+  const { loading, user } = useAuth();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    if (user && !loading) {
+      const dashboard = getDefaultDashboard(user.role);
+      navigate(dashboard);
+    }
+  }, [user, loading, navigate]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;

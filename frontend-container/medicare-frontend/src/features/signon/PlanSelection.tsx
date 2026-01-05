@@ -1,7 +1,10 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { Button } from "@shared/components";
-import { ArrowLeft, Check, ShieldCheck, Star } from "lucide-react";
+import { AlertCircle, ArrowLeft, Check, ShieldCheck, Star } from "lucide-react";
+
+import { useAuth } from "../../shared/auth/AuthContext";
+import { plansApi } from "../../shared/services/plansApi";
 
 interface Plan {
   id: string;
@@ -106,6 +109,7 @@ const freePlan: Plan = {
 export default function PlanSelection() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user } = useAuth();
   const queryParams = new URLSearchParams(location.search);
   const selectedPlanId = queryParams.get("plan") || "FREE";
 
@@ -114,22 +118,82 @@ export default function PlanSelection() {
     allPlans.find((p) => p.id === selectedPlanId) || freePlan
   );
   const [isLoading, setIsLoading] = useState(false);
+  const [currentPlanCode, setCurrentPlanCode] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const isLoggedIn = !!user;
+  // Only mark as current plan if logged in AND plan matches
+  const isCurrentPlan =
+    isLoggedIn &&
+    currentPlanCode !== null &&
+    currentPlanCode === selectedPlan.id;
+
+  // Fetch current plan for logged-in users
+  useEffect(() => {
+    if (user?.id) {
+      plansApi
+        .getPatientPlan(user.id)
+        .then((response) => {
+          setCurrentPlanCode(response.plan?.code || "FREE");
+        })
+        .catch(() => {
+          setCurrentPlanCode("FREE");
+        });
+    }
+  }, [user?.id]);
 
   const handleContinue = () => {
     localStorage.setItem("selectedPlan", JSON.stringify(selectedPlan));
     navigate("/register");
   };
 
-  const handleBuyNow = async () => {
+  const handleUpdateSubscription = async () => {
+    if (!user?.id) return;
+
     setIsLoading(true);
+    setError(null);
+    setSuccess(null);
+
     try {
-      localStorage.setItem("selectedPlan", JSON.stringify(selectedPlan));
-      localStorage.setItem("purchaseIntent", "immediate");
-      navigate("/register?purchase=true");
-    } catch (error) {
-      console.error("Error initiating purchase:", error);
+      const result = await plansApi.updateSubscription(
+        user.id,
+        selectedPlan.id
+      );
+      if (result.success) {
+        setSuccess(
+          `Successfully updated to ${result.newPlanName || selectedPlan.name}!`
+        );
+        setCurrentPlanCode(selectedPlan.id);
+        setTimeout(() => navigate("/user/wallet"), 2000);
+      } else {
+        setError(result.errorMessage || "Failed to update subscription");
+      }
+    } catch (err: unknown) {
+      const error = err as { response?: { data?: { message?: string } } };
+      setError(
+        error.response?.data?.message ||
+          "Failed to update subscription. Please try again."
+      );
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleBuyNow = async () => {
+    if (isLoggedIn) {
+      await handleUpdateSubscription();
+    } else {
+      setIsLoading(true);
+      try {
+        localStorage.setItem("selectedPlan", JSON.stringify(selectedPlan));
+        localStorage.setItem("purchaseIntent", "immediate");
+        navigate("/register?purchase=true");
+      } catch (error) {
+        console.error("Error initiating purchase:", error);
+      } finally {
+        setIsLoading(false);
+      }
     }
   };
 
@@ -264,6 +328,11 @@ export default function PlanSelection() {
         <div className="border border-blue-200 bg-blue-50 rounded-xl p-6 mb-8">
           <h3 className="font-semibold text-blue-800 mb-4 text-lg">
             Selected Plan: {selectedPlan.name}
+            {isCurrentPlan && (
+              <span className="ml-2 bg-green-100 text-green-800 text-xs font-semibold px-2.5 py-0.5 rounded">
+                Current Plan
+              </span>
+            )}
           </h3>
           <div className="grid md:grid-cols-2 gap-6">
             <div>
@@ -297,47 +366,95 @@ export default function PlanSelection() {
           </div>
         </div>
 
+        {/* Error/Success Messages */}
+        {error && (
+          <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2 text-red-700">
+            <AlertCircle className="w-5 h-5" />
+            {error}
+          </div>
+        )}
+        {success && (
+          <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-lg flex items-center gap-2 text-green-700">
+            <Check className="w-5 h-5" />
+            {success}
+          </div>
+        )}
+
         {/* Action Buttons */}
         <div className="flex flex-col sm:flex-row gap-4">
-          <Button
-            variant="secondary"
-            onClick={handleContinue}
-            className="flex-1"
-            size="lg"
-          >
-            Continue to Registration
-          </Button>
+          {isLoggedIn ? (
+            /* Logged-in user: Show update subscription button */
+            <>
+              <Button
+                variant="secondary"
+                onClick={() => navigate(-1)}
+                className="flex-1"
+                size="lg"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="primary"
+                onClick={handleBuyNow}
+                disabled={isLoading || isCurrentPlan}
+                className="flex-1"
+                size="lg"
+              >
+                {isLoading
+                  ? "Processing..."
+                  : isCurrentPlan
+                    ? "Current Plan"
+                    : selectedPlan.id === "FREE"
+                      ? "Downgrade to Free"
+                      : `Update to ${selectedPlan.name}`}
+              </Button>
+            </>
+          ) : (
+            /* Not logged-in: Show registration buttons */
+            <>
+              <Button
+                variant="secondary"
+                onClick={handleContinue}
+                className="flex-1"
+                size="lg"
+              >
+                Continue to Registration
+              </Button>
 
-          {selectedPlan.id !== "FREE" && (
-            <Button
-              variant="primary"
-              onClick={handleBuyNow}
-              disabled={isLoading}
-              className="flex-1"
-              size="lg"
-            >
-              {isLoading ? "Processing..." : `Buy ${selectedPlan.name} Now`}
-            </Button>
+              {selectedPlan.id !== "FREE" && (
+                <Button
+                  variant="primary"
+                  onClick={handleBuyNow}
+                  disabled={isLoading}
+                  className="flex-1"
+                  size="lg"
+                >
+                  {isLoading ? "Processing..." : `Buy ${selectedPlan.name} Now`}
+                </Button>
+              )}
+            </>
           )}
         </div>
 
-        <div className="mt-6 text-center">
-          <p className="text-sm text-gray-600 mb-2">
-            Already have an account?{" "}
-            <Link to="/login" className="text-blue-600 hover:underline">
-              Sign in here
-            </Link>
-          </p>
-          <p className="text-xs text-gray-500">
-            Need help choosing? Call us at{" "}
-            <a
-              href="tel:+48111111111"
-              className="text-blue-600 hover:underline"
-            >
-              +48 111 111 111
-            </a>
-          </p>
-        </div>
+        {!isLoggedIn && (
+          <div className="mt-6 text-center">
+            <p className="text-sm text-gray-600 mb-2">
+              Already have an account?{" "}
+              <Link to="/login" className="text-blue-600 hover:underline">
+                Sign in here
+              </Link>
+            </p>
+            <p className="text-xs text-gray-500">
+              Need help choosing? Call us at{" "}
+              <a
+                href="tel:+48111111111"
+                className="text-blue-600 hover:underline"
+              >
+                +48 111 111 111
+              </a>
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );

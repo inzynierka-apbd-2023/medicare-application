@@ -172,7 +172,7 @@ public class AppointmentCreatedConsumer : BackgroundService
                 // Query the shared user.User_Profile table directly
                 // Since all services share the same DB, we can access it
                 var userProfile = await db.Database.SqlQueryRaw<UserProfileDto>(
-                    "SELECT FirstName, LastName FROM [user].[User_Profile] WHERE Id = {0}", 
+                    "SELECT FirstName, LastName FROM [user].[User_Profile] WHERE [User_Id] = {0}", 
                     evt.DoctorId)
                     .FirstOrDefaultAsync(ct);
                 
@@ -194,8 +194,8 @@ public class AppointmentCreatedConsumer : BackgroundService
             existing.LastContactAt = now;
             existing.UpdatedAt = now;
             
-            // Update name/specialization if we have values and current is empty
-            if (!string.IsNullOrEmpty(doctorName) && string.IsNullOrEmpty(existing.DoctorName))
+            // Update name/specialization if we have values and current is empty or generic
+            if (!string.IsNullOrEmpty(doctorName) && (string.IsNullOrEmpty(existing.DoctorName) || existing.DoctorName == "Doctor"))
             {
                 existing.DoctorName = doctorName;
             }

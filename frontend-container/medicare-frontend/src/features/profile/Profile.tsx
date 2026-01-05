@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React from "react";
+import { useNavigate } from "react-router-dom";
 
-import { ChangePasswordModal, ProfileDisplay, ProfileForm } from "./components";
+import { ProfileDisplay, ProfileForm } from "./components";
 import type { ProfileProps } from "./types";
 
 export const Profile: React.FC<ProfileProps> = ({
@@ -8,27 +9,12 @@ export const Profile: React.FC<ProfileProps> = ({
   isEditing,
   onEditToggle,
   onSave,
-  onPasswordChange,
   isLoading = false,
 }) => {
-  const [showPasswordModal, setShowPasswordModal] = useState(false);
+  const navigate = useNavigate();
 
   const handlePasswordChangeClick = () => {
-    setShowPasswordModal(true);
-  };
-
-  const handlePasswordSubmit = async (
-    currentPassword: string,
-    newPassword: string
-  ) => {
-    try {
-      // Call the actual password change function passed as prop
-      await onPasswordChange(currentPassword, newPassword);
-      setShowPasswordModal(false);
-    } catch (error) {
-      console.error("Password change error:", error);
-      throw error;
-    }
+    navigate("/forgot-password");
   };
 
   const handleSave = async (data: Partial<typeof profileData>) => {
@@ -58,13 +44,6 @@ export const Profile: React.FC<ProfileProps> = ({
         profileData={profileData}
         onEdit={onEditToggle}
         onPasswordChange={handlePasswordChangeClick}
-      />
-
-      <ChangePasswordModal
-        isOpen={showPasswordModal}
-        onClose={() => setShowPasswordModal(false)}
-        onSubmit={handlePasswordSubmit}
-        isLoading={isLoading}
       />
     </>
   );

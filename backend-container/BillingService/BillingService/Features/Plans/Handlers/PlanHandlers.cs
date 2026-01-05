@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore;
 using BillingService.Data;
 using BillingService.Features.Plans.DTOs;
 using BillingService.Features.Plans.Queries;
+using BillingService.Features.Plans.Commands;
+using BillingService.Models;
 
 namespace BillingService.Features.Plans.Handlers;
 
@@ -175,3 +177,109 @@ public class GetPatientPlanHandler : IRequestHandler<GetPatientPlanQuery, GetPat
         };
     }
 }
+
+/// <summary>
+/// Handler for UpdateSubscriptionCommand - allows upgrade/downgrade of plans
+/// </summary>
+public class UpdateSubscriptionHandler : IRequestHandler<UpdateSubscriptionCommand, UpdateSubscriptionResponse>
+{
+    private readonly BillingDbContext _db;
+    private readonly ILogger<UpdateSubscriptionHandler> _logger;
+
+    public UpdateSubscriptionHandler(BillingDbContext db, ILogger<UpdateSubscriptionHandler> logger)
+    {
+        _db = db;
+        _logger = logger;
+    }
+
+    public async Task<UpdateSubscriptionResponse> Handle(UpdateSubscriptionCommand request, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Handling UpdateSubscriptionCommand for patient: {PatientId}, new plan: {NewPlanCode}", 
+            request.PatientId, request.NewPlanCode);
+
+        // Validate new plan exists
+        var newPlan = await _db.Plans
+            .Where(p => p.Code == request.NewPlanCode && p.IsActive)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (newPlan == null)
+        {
+            return new UpdateSubscriptionResponse
+            {
+                Success = false,
+                ErrorMessage = $"Plan '{request.NewPlanCode}' not found"
+            };
+        }
+
+        // Get current subscription
+        var currentSubscription = await _db.SubscriptionContracts
+            .Where(s => s.PatientId == request.PatientId && s.Status == SubscriptionStatus.Active)
+            .FirstOrDefaultAsync(cancellationToken);
+
+        var currentPlanCode = currentSubscription?.PlanCode ?? "FREE";
+
+        // Check if trying to update to same plan
+        if (currentPlanCode == request.NewPlanCode)
+        {
+            return new UpdateSubscriptionResponse
+            {
+                Success = false,
+                ErrorMessage = "You already have this plan. Please select a different plan."
+            };
+        }
+
+        var now = DateTime.UtcNow;
+        var isYearly = request.NewPlanCode.Contains("YEARLY", StringComparison.OrdinalIgnoreCase);
+        var periodEnd = isYearly ? now.AddYears(1) : now.AddMonths(1);
+
+        if (currentSubscription != null)
+        {
+            // Update existing subscription
+            if (request.NewPlanCode == "FREE")
+            {
+                // Downgrading to FREE - cancel subscription
+                currentSubscription.Status = SubscriptionStatus.Canceled;
+                currentSubscription.PlanCode = "FREE";
+                _logger.LogInformation("Cancelled subscription for patient {PatientId}, downgraded to FREE", request.PatientId);
+            }
+            else
+            {
+                // Upgrade/change to different paid plan
+                currentSubscription.PlanCode = request.NewPlanCode;
+                currentSubscription.PeriodStart = now;
+                currentSubscription.PeriodEnd = periodEnd;
+                _logger.LogInformation("Updated subscription for patient {PatientId} from {OldPlan} to {NewPlan}", 
+                    request.PatientId, currentPlanCode, request.NewPlanCode);
+            }
+        }
+        else
+        {
+            // No subscription - create new one
+            if (request.NewPlanCode != "FREE")
+            {
+                var newSubscription = new SubscriptionContract
+                {
+                    Id = Guid.NewGuid(),
+                    PatientId = request.PatientId,
+                    PlanCode = request.NewPlanCode,
+                    PeriodStart = now,
+                    PeriodEnd = periodEnd,
+                    Status = SubscriptionStatus.Active
+                };
+                _db.SubscriptionContracts.Add(newSubscription);
+                _logger.LogInformation("Created new subscription for patient {PatientId} with plan {NewPlan}", 
+                    request.PatientId, request.NewPlanCode);
+            }
+        }
+
+        await _db.SaveChangesAsync(cancellationToken);
+
+        return new UpdateSubscriptionResponse
+        {
+            Success = true,
+            NewPlanCode = request.NewPlanCode,
+            NewPlanName = newPlan.Name
+        };
+    }
+}
+

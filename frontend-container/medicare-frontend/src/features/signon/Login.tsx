@@ -1,8 +1,9 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 
 import { useAuth } from "../../shared/auth/AuthContext";
+import { getDefaultDashboard } from "../../shared/constants/routes";
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState<string>("");
@@ -10,7 +11,15 @@ const Login: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
 
-  const { login, loading, error } = useAuth();
+  const { login, loading, error, user } = useAuth();
+
+  useEffect(() => {
+    if (user && !loading) {
+      // Redirect to appropriate dashboard based on role
+      const dashboard = getDefaultDashboard(user.role);
+      navigate(dashboard);
+    }
+  }, [user, loading, navigate]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -69,6 +78,13 @@ const Login: React.FC = () => {
                 {showPassword ? <EyeOff size={20} /> : <Eye size={20} />}
               </button>
             </div>
+            <Link
+              to="/forgot-password"
+              className="text-link text-sm mt-1"
+              style={{ display: "block", textAlign: "right" }}
+            >
+              Forgot Password?
+            </Link>
           </div>
 
           {error && <div className="text-red-600 text-sm mb-2">{error}</div>}

@@ -1,4 +1,5 @@
 import React from "react";
+import { Link } from "react-router-dom";
 import { CheckCircle, HeartPulse, XCircle } from "lucide-react";
 
 import { Button } from "../../../shared/components";
@@ -8,10 +9,18 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
   subscription,
   onBuySubscription,
 }) => {
-  const isActive = subscription?.active;
-  const renewal = subscription?.renewalDate
-    ? new Date(subscription.renewalDate).toLocaleDateString()
-    : null;
+  // FREE/Pay Per Visit plan should show as inactive (no renewal, show upgrade button)
+  const isFreeOrPayPerVisit =
+    !subscription ||
+    subscription.type === "Pay Per Visit" ||
+    subscription.type === "FREE" ||
+    subscription.type?.toLowerCase().includes("free");
+
+  const isActive = subscription?.active && !isFreeOrPayPerVisit;
+  const renewal =
+    !isFreeOrPayPerVisit && subscription?.renewalDate
+      ? new Date(subscription.renewalDate).toLocaleDateString()
+      : null;
 
   return (
     <div className="space-y-10">
@@ -89,7 +98,7 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
           </div>
 
           {/* Button */}
-          {!isActive && (
+          {!isActive ? (
             <Button
               variant="primary"
               size="lg"
@@ -98,6 +107,16 @@ export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
             >
               Buy Subscription
             </Button>
+          ) : (
+            <Link to="/choose-plan">
+              <Button
+                variant="outline"
+                size="lg"
+                className="px-10 py-4 text-lg font-semibold shadow-md hover:shadow-lg transition-shadow mx-auto block mt-6"
+              >
+                Change Plan
+              </Button>
+            </Link>
           )}
         </div>
       </div>
