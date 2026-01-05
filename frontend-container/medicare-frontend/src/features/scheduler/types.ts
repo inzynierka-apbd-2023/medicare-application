@@ -138,14 +138,16 @@ export interface AppointmentFilters {
 
 // Scheduler filters used by patient/receptionist schedulers
 export interface SchedulerFilters {
-  specialization?: string;
-  service?: string;
-  doctor?: string;
+  specialization?: string | undefined;
+  service?: string | undefined;
+  doctor?: string | undefined;
   appointmentType?: "all" | AppointmentType;
-  dateRange?: {
-    start: string;
-    end: string;
-  };
+  dateRange?:
+    | {
+        start: string;
+        end: string;
+      }
+    | undefined;
 }
 
 export type AppointmentType = "in-person" | "virtual" | "phone";

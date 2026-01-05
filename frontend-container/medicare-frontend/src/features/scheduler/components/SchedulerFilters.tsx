@@ -27,17 +27,43 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
   isLoading = false,
 }) => {
   const handleSpecializationChange = (specializationId: string) => {
-    onFiltersChange(
-      specializationId ? { specialization: specializationId } : {}
-    );
+    if (specializationId) {
+      onFiltersChange({ specialization: specializationId });
+    } else {
+      // Explicitly create new filters without the specialization key
+      const { specialization: _, ...rest } = filters;
+      void _;
+      onFiltersChange({
+        ...rest,
+        specialization: undefined,
+      } as Partial<SchedulerFilters>);
+    }
   };
 
   const handleServiceChange = (serviceId: string) => {
-    onFiltersChange(serviceId ? { service: serviceId } : {});
+    if (serviceId) {
+      onFiltersChange({ service: serviceId });
+    } else {
+      const { service: _, ...rest } = filters;
+      void _;
+      onFiltersChange({
+        ...rest,
+        service: undefined,
+      } as Partial<SchedulerFilters>);
+    }
   };
 
   const handleDoctorChange = (doctorId: string) => {
-    onFiltersChange(doctorId ? { doctor: doctorId } : {});
+    if (doctorId) {
+      onFiltersChange({ doctor: doctorId });
+    } else {
+      const { doctor: _, ...rest } = filters;
+      void _;
+      onFiltersChange({
+        ...rest,
+        doctor: undefined,
+      } as Partial<SchedulerFilters>);
+    }
   };
 
   const handleAppointmentTypeChange = (type: string) => {
@@ -67,8 +93,14 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
   };
 
   const clearFilters = () => {
-    // Create a fresh object with only the required property
-    onFiltersChange({ appointmentType: "all" });
+    // Reset all filters - pass with undefined to trigger clearing logic in useScheduler
+    onFiltersChange({
+      specialization: undefined,
+      service: undefined,
+      doctor: undefined,
+      appointmentType: "all",
+      dateRange: undefined,
+    } as Partial<SchedulerFilters>);
   };
 
   const hasActiveFilters =
@@ -270,8 +302,9 @@ export const SchedulerFiltersComponent: React.FC<SchedulerFiltersProps> = ({
             {filters.dateRange &&
               (filters.dateRange.start || filters.dateRange.end) && (
                 <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-gray-100 text-gray-800">
-                  {filters.dateRange.start}{" "}
-                  {filters.dateRange.end && `- ${filters.dateRange.end}`}
+                  {filters.dateRange.start?.split("T")[0]}{" "}
+                  {filters.dateRange.end &&
+                    `- ${filters.dateRange.end.split("T")[0]}`}
                   <button
                     onClick={handleClearDateRange}
                     className="ml-1.5 text-gray-600 hover:text-gray-800"

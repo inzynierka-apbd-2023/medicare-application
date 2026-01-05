@@ -1406,7 +1406,18 @@ export class SchedulerApiService {
 
       const slots: TimeSlot[] = [];
       const day = new Date(rangeStart);
+
+      // Get today's date at midnight for comparison (same-day booking restriction)
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+
       while (day <= rangeEnd) {
+        // Skip today - patients can only book from tomorrow onwards
+        if (day.getTime() <= today.getTime()) {
+          day.setDate(day.getDate() + 1);
+          continue;
+        }
+
         const jsDow = day.getDay(); // 0=Sun .. 6=Sat
         const dayStr = `${day.getFullYear()}-${String(day.getMonth() + 1).padStart(2, "0")}-${String(day.getDate()).padStart(2, "0")}`;
         const todays = availRows.filter((a) => a.dayOfWeek === jsDow);

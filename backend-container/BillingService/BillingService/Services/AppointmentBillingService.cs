@@ -75,7 +75,7 @@ public class AppointmentBillingService
             Currency = "PLN",
             CreatedAt = DateTime.UtcNow, // Record created now
             ForDate = occurredAt         // Applies to the usage in that month
-        };ś
+        };
 
         _db.AppointmentPayments.Add(payment);
         await _db.SaveChangesAsync();

@@ -752,14 +752,24 @@ export const useScheduler = ({
         return false;
       }
 
-      // Filter by date range
+      // Filter by date range - only compare valid boundaries
       if (dateRange) {
         const appointmentDate = new Date(appointment.day);
-        const startDate = new Date(dateRange.start);
-        const endDate = new Date(dateRange.end);
 
-        if (appointmentDate < startDate || appointmentDate > endDate) {
-          return false;
+        if (dateRange.start) {
+          const startDate = new Date(dateRange.start);
+          if (!isNaN(startDate.getTime()) && appointmentDate < startDate) {
+            return false;
+          }
+        }
+
+        if (dateRange.end) {
+          const endDate = new Date(dateRange.end);
+          // Add 1 day to end date to include the entire end day
+          endDate.setDate(endDate.getDate() + 1);
+          if (!isNaN(endDate.getTime()) && appointmentDate >= endDate) {
+            return false;
+          }
         }
       }
 
