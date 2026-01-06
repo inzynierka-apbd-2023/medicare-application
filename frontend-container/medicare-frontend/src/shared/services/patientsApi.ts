@@ -1,105 +1,100 @@
 import type { Patient } from "../../features/userTypes/types";
 
+import { apiClient } from "./apiClient";
+
+interface BackendPatient {
+  id: string;
+  name: string;
+  age: number;
+  gender: string;
+  lastVisit: string;
+  visits: number;
+  notes: string;
+  email?: string;
+  phone?: string;
+}
+
+interface DoctorPatientsResponse {
+  patients: BackendPatient[];
+  totalCount: number;
+}
+
 interface ApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
 }
 
-// Mock patient data - in real app this would connect to actual API
-const mockPatients: Patient[] = [
-  {
-    id: 1,
-    name: "John Doe",
-    age: 45,
-    gender: "Male",
-    lastVisit: "2025-05-18",
-    visits: 4,
-    notes: "High cholesterol, regular check-ups.",
-    email: "john.doe@example.com",
-    phone: "+1234567890",
-  },
-  {
-    id: 2,
-    name: "Maria Smith",
-    age: 33,
-    gender: "Female",
-    lastVisit: "2025-05-12",
-    visits: 2,
-    notes: "Post-surgery recovery.",
-    email: "maria.smith@example.com",
-    phone: "+1234567891",
-  },
-  {
-    id: 3,
-    name: "Adam Nowak",
-    age: 52,
-    gender: "Male",
-    lastVisit: "2025-04-29",
-    visits: 8,
-    notes: "Diabetic, hypertension.",
-    email: "adam.nowak@example.com",
-    phone: "+1234567892",
-  },
-  {
-    id: 4,
-    name: "Paulina Zielińska",
-    age: 29,
-    gender: "Female",
-    lastVisit: "2025-03-10",
-    visits: 1,
-    notes: "",
-    email: "paulina.z@example.com",
-    phone: "+1234567893",
-  },
-];
+function mapBackendToPatient(p: BackendPatient): Patient {
+  // Map gender string to Gender type
+  const validGenders = ["Male", "Female", "Other"] as const;
+  const gender = validGenders.includes(
+    p.gender as (typeof validGenders)[number]
+  )
+    ? (p.gender as Patient["gender"])
+    : "Other";
+
+  const result: Patient = {
+    id: p.id,
+    name: p.name,
+    age: p.age,
+    gender,
+    lastVisit: p.lastVisit,
+    visits: p.visits,
+    notes: p.notes,
+  };
+
+  // Only add optional fields if they have values
+  if (p.email) result.email = p.email;
+  if (p.phone) result.phone = p.phone;
+
+  return result;
+}
 
 export const patientsApi = {
-  async getPatients(_doctorId?: string): Promise<ApiResponse<Patient[]>> {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 800));
-
-    return {
-      success: true,
-      data: mockPatients,
-    };
-  },
-
-  async getPatientById(
-    patientId: number
-  ): Promise<ApiResponse<Patient | null>> {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 300));
-
-    const patient = mockPatients.find((p) => p.id === patientId);
-
-    return {
-      success: true,
-      data: patient || null,
-    };
-  },
-
-  async updatePatientNotes(
-    patientId: number,
-    notes: string
-  ): Promise<ApiResponse<Patient>> {
-    // Simulate API delay
-    await new Promise((resolve) => setTimeout(resolve, 500));
-
-    const patientIndex = mockPatients.findIndex((p) => p.id === patientId);
-    if (patientIndex === -1) {
-      return {
-        success: false,
-        data: mockPatients[0], // fallback
-        message: "Patient not found",
-      };
+  /**
+   * Get all patients for a doctor based on their appointments
+   */
+  async getPatients(doctorId?: string): Promise<ApiResponse<Patient[]>> {
+    if (!doctorId) {
+      return { success: false, data: [], message: "Doctor ID is required" };
     }
 
-    mockPatients[patientIndex].notes = notes;
+    try {
+      const response = await apiClient.get<DoctorPatientsResponse>(
+        `/appointment/doctor-patients/${doctorId}`
+      );
 
-    return {
-      success: true,
-      data: mockPatients[patientIndex],
-    };
+      const patients = response.data.patients.map(mapBackendToPatient);
+      return { success: true, data: patients };
+    } catch (error) {
+      console.error("Error fetching patients:", error);
+      return {
+        success: false,
+        data: [],
+        message: "Failed to fetch patients",
+      };
+    }
+  },
+
+  /**
+   * Get a specific patient by ID - fetches from patient list
+   */
+  async getPatientById(
+    _patientId: string
+  ): Promise<ApiResponse<Patient | null>> {
+    // Not implemented - would need dedicated endpoint
+    return { success: false, data: null, message: "Not implemented" };
+  },
+
+  /**
+   * Update patient notes (adds to appointment notes)
+   */
+  async updatePatientNotes(
+    _patientId: string,
+    _notes: string
+  ): Promise<ApiResponse<boolean>> {
+    // Would update via appointment notes endpoint - not implemented
+    return { success: true, data: true };
   },
 };

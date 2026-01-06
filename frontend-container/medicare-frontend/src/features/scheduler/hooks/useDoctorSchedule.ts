@@ -43,7 +43,11 @@ export const useDoctorSchedule = ({
   const [todaysAppointments, setTodaysAppointments] = useState<
     DoctorScheduleEvent[]
   >([]);
-  const [isLoading, setIsLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(
+    !!doctorId &&
+      doctorId !== "current-doctor-id" &&
+      doctorId !== "mock-doctor-id"
+  );
   const [error, setError] = useState<string | null>(null);
 
   // Convert schedule to calendar events
@@ -105,27 +109,38 @@ export const useDoctorSchedule = ({
       doctorId === "current-doctor-id" ||
       doctorId === "mock-doctor-id"
     ) {
+      console.log(
+        `[useDoctorSchedule] Skipping fetch - invalid doctorId: ${doctorId}`
+      );
       return;
     }
 
+    console.log(`[useDoctorSchedule] Starting fetch for doctorId: ${doctorId}`);
     setIsLoading(true);
     setError(null);
 
     try {
-      // Get the current week's schedule
+      // Get both schedule and today's appointments in parallel for faster loading
       const startOfWeek = new Date();
       startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
       const endOfWeek = new Date(startOfWeek);
       endOfWeek.setDate(endOfWeek.getDate() + 6);
 
-      const scheduleResponse = await DoctorScheduleApiService.getDoctorSchedule(
-        doctorId,
-        startOfWeek.toISOString().split("T")[0],
-        endOfWeek.toISOString().split("T")[0]
+      console.log(
+        `[useDoctorSchedule] Fetching schedule from ${startOfWeek.toISOString().split("T")[0]} to ${endOfWeek.toISOString().split("T")[0]}`
       );
 
-      const todaysResponse =
-        await DoctorScheduleApiService.getTodaysAppointments(doctorId);
+      const [scheduleResponse, todaysResponse] = await Promise.all([
+        DoctorScheduleApiService.getDoctorSchedule(
+          doctorId,
+          startOfWeek.toISOString().split("T")[0],
+          endOfWeek.toISOString().split("T")[0]
+        ),
+        DoctorScheduleApiService.getTodaysAppointments(doctorId),
+      ]);
+
+      console.log(`[useDoctorSchedule] Schedule response:`, scheduleResponse);
+      console.log(`[useDoctorSchedule] Today's response:`, todaysResponse);
 
       if (scheduleResponse.success && todaysResponse.success) {
         setSchedule(scheduleResponse.data);
@@ -138,10 +153,12 @@ export const useDoctorSchedule = ({
         );
       }
     } catch (err) {
+      console.error(`[useDoctorSchedule] Error:`, err);
       setError(
         err instanceof Error ? err.message : "An unexpected error occurred"
       );
     } finally {
+      console.log(`[useDoctorSchedule] Fetch complete`);
       setIsLoading(false);
     }
   }, [doctorId]);

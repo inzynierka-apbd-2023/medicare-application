@@ -7,7 +7,7 @@ interface UsePatientsResult {
   patients: Patient[];
   isLoading: boolean;
   error: string | null;
-  updatePatientNotes: (patientId: number, notes: string) => Promise<void>;
+  updatePatientNotes: (patientId: string, notes: string) => Promise<void>;
   refetch: () => Promise<void>;
 }
 
@@ -36,7 +36,7 @@ export const usePatients = (doctorId?: string): UsePatientsResult => {
     }
   };
 
-  const updatePatientNotes = async (patientId: number, notes: string) => {
+  const updatePatientNotes = async (patientId: string, notes: string) => {
     try {
       const response = await patientsApi.updatePatientNotes(patientId, notes);
 

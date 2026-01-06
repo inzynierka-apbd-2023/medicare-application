@@ -47,6 +47,7 @@ export interface MessagesPageProps {
   userId?: string;
   userType?: "patient" | "doctor";
   conversationId?: string;
+  recipientId?: string; // For starting/opening chat with specific user
 }
 
 export interface ConversationListProps {
@@ -91,6 +92,7 @@ export interface NewMessageModalProps {
   ) => void;
   availableDoctors: User[];
   isLoading?: boolean;
+  preSelectedRecipientId?: string;
 }
 
 export interface MessagesState {

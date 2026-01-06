@@ -86,15 +86,15 @@ public class AppointmentDbContext : DbContext
             e.HasIndex(c => c.Name);
         });
 
-        // Configure analytics entities (read-only, no schema prefix as they reference main DB)
+        // Configure analytics entities (read-only from other service schemas)
         modelBuilder.Entity<User>(e =>
         {
             e.HasKey(u => u.Id);
             e.Property(u => u.Id);
             e.Property(u => u.Role_Id);
             e.Property(u => u.Schedule_Id);
-            // Do not let EF migrations manage this table (exists in main DB)
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            // Do not let EF migrations manage this table (exists in user schema)
+            e.ToTable("User", "user", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<UserProfile>(e =>
@@ -104,21 +104,21 @@ public class AppointmentDbContext : DbContext
             e.Property(up => up.FirstName).HasMaxLength(100);
             e.Property(up => up.LastName).HasMaxLength(100);
             e.Property(up => up.Email).HasMaxLength(255);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("User_Profile", "user", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Doctor>(e =>
         {
             e.HasKey(d => d.Id);
             e.Property(d => d.Id);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("Doctor", "practitioner", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Patient>(e =>
         {
             e.HasKey(p => p.Id);
             e.Property(p => p.Id);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("Patient", "patient", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Specialization>(e =>
@@ -126,14 +126,14 @@ public class AppointmentDbContext : DbContext
             e.HasKey(s => s.Id);
             e.Property(s => s.Id);
             e.Property(s => s.Name).HasMaxLength(200);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("Specialization", "practitioner", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<DoctorSpecialization>(e =>
         {
             e.HasKey(ds => ds.Id);
             e.Property(ds => ds.Id);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("Doctor_Specialization", "practitioner", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<ScheduleAppointment>(e =>

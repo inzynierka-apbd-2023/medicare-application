@@ -80,7 +80,7 @@ public static class MockDataSeeder
             }
         }
 
-        // Add more notifications to reach 7+ per user (additional notifications for patients)
+        // Add more notifications to reach 7+ per user (additional notifications for patients and doctors)
         var additionalNotifications = new[]
         {
             (Guid.NewGuid(), MockIds.PatientUser1, "Your insurance claim has been submitted", (byte)6, "BillingService", false, "/billing/claims", "Normal"),
@@ -89,7 +89,16 @@ public static class MockDataSeeder
             (Guid.NewGuid(), MockIds.PatientUser2, "Flu vaccination reminder for this season", (byte)7, "AppointmentService", false, "/appointments/book", "Normal"),
             (Guid.NewGuid(), MockIds.DoctorUser2, "New patient registration: Bob Smith", (byte)5, "PatientService", false, "/patients/new", "Normal"),
             (Guid.NewGuid(), MockIds.DoctorUser3, "Lab results require your review", (byte)3, "LabService", false, "/lab/review", "High"),
-            (Guid.NewGuid(), MockIds.PatientUser7, "Your prescription refill is ready for pickup", (byte)4, "DocumentsService", false, "/prescriptions", "Normal")
+            (Guid.NewGuid(), MockIds.PatientUser7, "Your prescription refill is ready for pickup", (byte)4, "DocumentsService", false, "/prescriptions", "Normal"),
+            // Doctor-specific notifications for DoctorUser1 (Dr. John Carter)
+            (Guid.NewGuid(), MockIds.DoctorUser1, "Patient Alice Johnson has arrived for 10:00 AM appointment", (byte)1, "AppointmentService", false, "/todays-appointments", "High"),
+            (Guid.NewGuid(), MockIds.DoctorUser1, "Lab results for Bob Smith are now available", (byte)3, "LabService", false, "/lab-results", "Normal"),
+            (Guid.NewGuid(), MockIds.DoctorUser1, "Patient Carol Davis sent a new message", (byte)2, "MessagingService", false, "/messages", "Normal"),
+            (Guid.NewGuid(), MockIds.DoctorUser1, "Prescription renewal request from Alice Johnson", (byte)4, "DocumentsService", false, "/prescriptions", "Normal"),
+            // Doctor-specific notifications for DoctorUser2 (Dr. Sarah Chen)
+            (Guid.NewGuid(), MockIds.DoctorUser2, "Patient Bob Smith has arrived for 2:00 PM appointment", (byte)1, "AppointmentService", false, "/todays-appointments", "High"),
+            (Guid.NewGuid(), MockIds.DoctorUser2, "New appointment request from patient David Wilson", (byte)1, "AppointmentService", false, "/doctor-scheduler", "Normal"),
+            (Guid.NewGuid(), MockIds.DoctorUser2, "Lab results for patient Emily Brown require review", (byte)3, "LabService", false, "/lab-results", "High")
         };
 
         foreach (var (id, recipientId, description, type, source, isRead, actionUrl, priority) in additionalNotifications)

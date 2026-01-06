@@ -5,7 +5,7 @@ export type Gender = "Male" | "Female" | "Other";
 export type SortKey = "name" | "lastVisit" | "visits" | "age";
 
 export interface Patient {
-  id: number;
+  id: string; // GUID - patient's user ID
   name: string;
   age: number;
   gender: Gender;

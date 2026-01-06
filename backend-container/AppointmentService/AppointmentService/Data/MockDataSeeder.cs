@@ -133,6 +133,48 @@ public static class MockDataSeeder
                 "in-person", 
                 "New patient consultation for back pain"
             ),
+            // TODAY's appointments for Doctor1
+            (
+                Guid.Parse("55555555-5555-5555-5555-000000000003"), 
+                MockIds.Patient1,  // Alice Johnson
+                MockIds.Doctor1,   // Dr. John Carter
+                DateTime.UtcNow.Date.AddHours(9),  // Today at 9:00 AM
+                30, 
+                "Scheduled", 
+                "in-person", 
+                "Follow-up appointment for blood pressure check"
+            ),
+            (
+                Guid.Parse("55555555-5555-5555-5555-000000000004"), 
+                MockIds.Patient2,  // Bob Smith
+                MockIds.Doctor1,   // Dr. John Carter
+                DateTime.UtcNow.Date.AddHours(10).AddMinutes(30),  // Today at 10:30 AM
+                30, 
+                "Scheduled", 
+                "video", 
+                "Video consultation for test results"
+            ),
+            (
+                Guid.Parse("55555555-5555-5555-5555-000000000005"), 
+                MockIds.Patient1,  // Alice Johnson
+                MockIds.Doctor1,   // Dr. John Carter
+                DateTime.UtcNow.Date.AddHours(14),  // Today at 2:00 PM
+                45, 
+                "Scheduled", 
+                "in-person", 
+                "Annual wellness exam"
+            ),
+            // TODAY's appointments for Doctor2
+            (
+                Guid.Parse("55555555-5555-5555-5555-000000000006"), 
+                MockIds.Patient2,  // Bob Smith
+                MockIds.Doctor2,   // Dr. Sarah Chen
+                DateTime.UtcNow.Date.AddHours(11),  // Today at 11:00 AM
+                30, 
+                "Scheduled", 
+                "in-person", 
+                "New patient intake"
+            ),
         };
 
         var existingAppointmentIds = await db.Appointments.Select(a => a.Id).ToHashSetAsync();

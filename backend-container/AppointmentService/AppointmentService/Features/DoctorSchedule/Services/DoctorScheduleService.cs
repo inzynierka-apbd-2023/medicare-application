@@ -4,20 +4,18 @@ using AppointmentService.Features.DoctorSchedule.DTOs;
 
 namespace AppointmentService.Features.DoctorSchedule.Services;
 
+/// <summary>
+/// Doctor schedule service - simplified to match patient pattern.
+/// Returns appointments without cross-schema enrichment.
+/// Frontend can enrich with patient data if needed (same as patient view enriches doctor data).
+/// </summary>
 public class DoctorScheduleService : IDoctorScheduleService
 {
     private readonly AppointmentDbContext _context;
-    private readonly IPatientService _patientService;
-    private readonly IMedicalRecordsService _medicalRecordsService;
 
-    public DoctorScheduleService(
-        AppointmentDbContext context,
-        IPatientService patientService,
-        IMedicalRecordsService medicalRecordsService)
+    public DoctorScheduleService(AppointmentDbContext context)
     {
         _context = context;
-        _patientService = patientService;
-        _medicalRecordsService = medicalRecordsService;
     }
 
     public async Task<DoctorScheduleResponse> GetDoctorScheduleAsync(
@@ -42,13 +40,18 @@ public class DoctorScheduleService : IDoctorScheduleService
             .OrderBy(a => a.ScheduledAt)
             .ToListAsync(cancellationToken);
 
-        var scheduleEvents = new List<DoctorScheduleEventDto>();
-
-        foreach (var appointment in appointments)
+        // Update overdue status in-memory (same as AppointmentsController does)
+        var now = DateTime.Now;
+        foreach (var a in appointments)
         {
-            var scheduleEvent = await EnrichAppointmentWithPatientDataAsync(appointment, cancellationToken);
-            scheduleEvents.Add(scheduleEvent);
+            if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
+            {
+                a.Status = "Overdue";
+            }
         }
+
+        // Map to DTO - simplified without cross-schema patient enrichment
+        var scheduleEvents = appointments.Select(MapToScheduleEvent).ToList();
 
         return new DoctorScheduleResponse
         {
@@ -75,7 +78,7 @@ public class DoctorScheduleService : IDoctorScheduleService
         if (appointment == null)
             return null;
 
-        return await EnrichAppointmentWithPatientDataAsync(appointment, cancellationToken);
+        return MapToScheduleEvent(appointment);
     }
 
     public async Task<bool> UpdateAppointmentStatusAsync(
@@ -122,24 +125,21 @@ public class DoctorScheduleService : IDoctorScheduleService
         return true;
     }
 
-    private async Task<DoctorScheduleEventDto> EnrichAppointmentWithPatientDataAsync(
-        AppointmentService.Models.Appointment appointment,
-        CancellationToken cancellationToken = default)
+    /// <summary>
+    /// Maps appointment to DTO without cross-schema patient enrichment.
+    /// Patient name/phone will show "Unknown" - frontend can enrich from UserService if needed.
+    /// This matches how patient scheduler works (it enriches doctor name from PractitionerService on frontend).
+    /// </summary>
+    private static DoctorScheduleEventDto MapToScheduleEvent(AppointmentService.Models.Appointment appointment)
     {
-        // Fetch patient data
-        var patient = await _patientService.GetPatientAsync(appointment.PatientId, cancellationToken);
-
-        // Fetch medical records
-        var medicalRecord = await _medicalRecordsService.GetMedicalRecordAsync(appointment.PatientId, cancellationToken);
-
         return new DoctorScheduleEventDto
         {
             Id = appointment.Id,
             PatientId = appointment.PatientId,
-            PatientName = patient != null ? $"{patient.FirstName} {patient.LastName}" : "Unknown Patient",
-            PatientAge = patient?.Age ?? 0,
-            PatientPhone = patient?.PhoneNumber ?? "Not Available",
-            PatientEmail = patient?.Email,
+            PatientName = "Patient", // Frontend can enrich from UserService
+            PatientAge = 0,
+            PatientPhone = "",
+            PatientEmail = null,
             AppointmentType = appointment.AppointmentType ?? "General",
             Date = appointment.ScheduledAt.ToString("yyyy-MM-dd"),
             Time = appointment.ScheduledAt.ToString("HH:mm"),
@@ -147,9 +147,9 @@ public class DoctorScheduleService : IDoctorScheduleService
             Status = appointment.Status.ToLower(),
             ChiefComplaint = appointment.ChiefComplaint,
             Notes = appointment.Notes,
-            MedicalHistory = medicalRecord?.MedicalHistory ?? new List<string>(),
-            Allergies = medicalRecord?.Allergies ?? new List<string>(),
-            CurrentMedications = medicalRecord?.CurrentMedications ?? new List<string>()
+            MedicalHistory = new List<string>(),
+            Allergies = new List<string>(),
+            CurrentMedications = new List<string>()
         };
     }
 }

@@ -8,6 +8,8 @@ import { Card, Modal } from "../../../shared/components";
 import doctorDashboardApiService, {
   DoctorQuickStat,
 } from "../../../shared/services/doctorDashboardApi";
+import { messagesApi } from "../../../shared/services/messagesApi";
+import { notificationsApi } from "../../../shared/services/notificationsApi";
 import {
   DashboardCard,
   DashboardLayout,
@@ -18,7 +20,7 @@ import {
 import { DashboardScheduler } from "./components";
 
 interface PatientMessage {
-  id: number;
+  id: string;
   patient: string;
   text: string;
 }
@@ -27,7 +29,10 @@ export default function DoctorDashboard() {
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [quickStats, setQuickStats] = useState<DoctorQuickStat[]>([]);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [recentMessages, setRecentMessages] = useState<PatientMessage[]>([]);
   const [loading, setLoading] = useState(true);
+  const [messagesLoading, setMessagesLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
   const doctorLastName =
@@ -51,13 +56,57 @@ export default function DoctorDashboard() {
 
         if (profileRes.success && profileRes.data?.id) {
           const realDoctorId = profileRes.data.id;
+          console.log(
+            `[DoctorDashboard] user.id=${user.id}, realDoctorId=${realDoctorId}`
+          );
           setDoctorId(realDoctorId);
-          // Load stats...
-          const response =
-            await doctorDashboardApiService.getQuickStats(realDoctorId);
-          if (response.success) {
-            setQuickStats(response.data);
+          // Load stats, notifications, and messages in parallel
+          const [statsRes, notifRes, msgRes] = await Promise.all([
+            doctorDashboardApiService.getQuickStats(realDoctorId),
+            notificationsApi.getForRecipient(user.id, false),
+            messagesApi.getConversations(user.id, "doctor"),
+          ]);
+
+          if (statsRes.success) {
+            console.log("[DoctorDashboard] Quick stats:", statsRes.data);
+            setQuickStats(statsRes.data);
           }
+
+          if (notifRes.success && notifRes.data) {
+            console.log("[DoctorDashboard] Notifications:", notifRes.data);
+            setNotifications(notifRes.data as Notification[]);
+          } else {
+            console.log(
+              "[DoctorDashboard] Notifications API failed or empty:",
+              notifRes
+            );
+          }
+
+          if (msgRes.success && msgRes.data) {
+            console.log("[DoctorDashboard] Conversations:", msgRes.data);
+            // Transform conversations to PatientMessage format - show only unread
+            const unreadConversations = msgRes.data
+              .filter((conv) => conv.unreadCount > 0)
+              .slice(0, 5);
+            console.log(
+              "[DoctorDashboard] Unread conversations:",
+              unreadConversations
+            );
+            const messages: PatientMessage[] = unreadConversations.map(
+              (conv) => ({
+                id: conv.participantId,
+                patient: conv.participantName || "Unknown Patient",
+                text: conv.lastMessage?.content || "New message",
+              })
+            );
+            setRecentMessages(messages);
+          } else {
+            console.log(
+              "[DoctorDashboard] Messages API failed or empty:",
+              msgRes
+            );
+          }
+          setMessagesLoading(false);
         } else {
           // Auto-recovery: If 404/not found, try to register the doctor
           console.log(
@@ -69,12 +118,34 @@ export default function DoctorDashboard() {
           if (regRes.success && regRes.data?.id) {
             const newDoctorId = regRes.data.id;
             setDoctorId(newDoctorId);
-            // Retry stats load
-            const response =
-              await doctorDashboardApiService.getQuickStats(newDoctorId);
-            if (response.success) {
-              setQuickStats(response.data);
+            // Retry stats and data load
+            const [statsRes, notifRes, msgRes] = await Promise.all([
+              doctorDashboardApiService.getQuickStats(newDoctorId),
+              notificationsApi.getForRecipient(user.id, false),
+              messagesApi.getConversations(user.id, "doctor"),
+            ]);
+
+            if (statsRes.success) {
+              setQuickStats(statsRes.data);
             }
+            if (notifRes.success && notifRes.data) {
+              setNotifications(notifRes.data as Notification[]);
+            }
+            if (msgRes.success && msgRes.data) {
+              // Transform conversations to PatientMessage format - show only unread
+              const unreadConversations = msgRes.data
+                .filter((conv) => conv.unreadCount > 0)
+                .slice(0, 5);
+              const messages: PatientMessage[] = unreadConversations.map(
+                (conv) => ({
+                  id: conv.participantId,
+                  patient: conv.participantName || "Unknown Patient",
+                  text: conv.lastMessage?.content || "New message",
+                })
+              );
+              setRecentMessages(messages);
+            }
+            setMessagesLoading(false);
           } else {
             setError(
               "Doctor profile not found and auto-creation failed. Please contact support."
@@ -92,43 +163,21 @@ export default function DoctorDashboard() {
     initDashboard();
   }, [user?.id]);
 
-  // Sample data - in real app this would come from API/props
-  const notifications: Notification[] = [
-    {
-      id: "1",
-      message: "Appointment with John Doe at 10:30 AM today.",
-    },
-    {
-      id: "2",
-      message: "Lab result for Maria Smith is now available.",
-    },
-    {
-      id: "3",
-      message: "Patient Adam Nowak sent a new message.",
-    },
-    {
-      id: "4",
-      message: "Follow-up reminder: 2 patients need summary reports.",
-    },
-  ];
-
-  const recentMessages: PatientMessage[] = [
-    {
-      id: 2,
-      patient: "Maria Smith",
-      text: "Can I move my appointment to Friday?",
-    },
-    {
-      id: 3,
-      patient: "Adam Nowak",
-      text: "Uploaded my recent blood test results.",
-    },
-    {
-      id: 1,
-      patient: "John Doe",
-      text: "Thank you for the prescription.",
-    },
-  ];
+  // Mark notification as read
+  const handleMarkNotificationAsRead = async (notificationId: string) => {
+    try {
+      const response = await notificationsApi.markAsRead(notificationId);
+      if (response.success) {
+        setNotifications((prev) =>
+          prev.map((notif) =>
+            notif.id === notificationId ? { ...notif, read: true } : notif
+          )
+        );
+      }
+    } catch (err) {
+      console.error("Failed to mark notification as read:", err);
+    }
+  };
 
   const handleViewAllNotifications = () => {
     setShowNotifications(true);
@@ -154,7 +203,7 @@ export default function DoctorDashboard() {
     navigate("/doctor-scheduler");
   };
 
-  const handleMessagePatient = (patientId: number) => {
+  const handleMessagePatient = (patientId: string) => {
     navigate(`/messages?patientId=${patientId}`);
   };
 
@@ -170,26 +219,36 @@ export default function DoctorDashboard() {
 
             <Card variant="medical" padding="md">
               <h3 className="text-lg font-semibold text-blue-600 mb-2">
-                Recent Messages from Patients
+                Unread Messages from Patients
               </h3>
-              <ul className="space-y-2 w-full">
-                {recentMessages.map((msg) => (
-                  <li
-                    key={msg.id}
-                    className="flex items-center text-sm text-gray-700"
-                  >
-                    <span className="font-medium">{msg.patient}: </span>
-                    <span className="ml-1 flex-1">{msg.text}</span>
-                    <button
-                      title={`Message ${msg.patient}`}
-                      className="ml-3 p-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 transition"
-                      onClick={() => handleMessagePatient(msg.id)}
+              {messagesLoading ? (
+                <div className="w-full flex justify-center items-center py-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                </div>
+              ) : recentMessages.length === 0 ? (
+                <p className="text-gray-500 text-sm py-4">
+                  No unread messages.
+                </p>
+              ) : (
+                <ul className="space-y-2 w-full">
+                  {recentMessages.map((msg) => (
+                    <li
+                      key={msg.id}
+                      className="flex items-center text-sm text-gray-700"
                     >
-                      <MessageCircle size={16} />
-                    </button>
-                  </li>
-                ))}
-              </ul>
+                      <span className="font-medium">{msg.patient}: </span>
+                      <span className="ml-1 flex-1">{msg.text}</span>
+                      <button
+                        title={`Message ${msg.patient}`}
+                        className="ml-3 p-1 rounded-lg bg-blue-100 hover:bg-blue-200 text-blue-700 transition"
+                        onClick={() => handleMessagePatient(msg.id)}
+                      >
+                        <MessageCircle size={16} />
+                      </button>
+                    </li>
+                  ))}
+                </ul>
+              )}
             </Card>
           </div>
 
@@ -231,7 +290,11 @@ export default function DoctorDashboard() {
                 variant: "outline",
               }}
             >
-              <NotificationsList notifications={notifications} maxVisible={3} />
+              <NotificationsList
+                notifications={notifications}
+                maxVisible={3}
+                onNotificationClick={handleMarkNotificationAsRead}
+              />
             </DashboardCard>
 
             <DashboardCard
@@ -295,6 +358,7 @@ export default function DoctorDashboard() {
             notifications={notifications}
             maxVisible={notifications.length}
             className="space-y-3"
+            onNotificationClick={handleMarkNotificationAsRead}
           />
         </div>
       </Modal>

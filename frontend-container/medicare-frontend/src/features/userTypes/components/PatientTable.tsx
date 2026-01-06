@@ -5,20 +5,24 @@ import type { PatientAction, PatientTableProps } from "../types";
 
 import { PatientActionButton } from "./PatientActionButton";
 
-const actionConfigs: Record<PatientAction, string> = {
-  appointments: "/my-appointments",
-  "medical-records": "/my-documents",
-  prescription: "/prescriptions-management",
-  message: "/messages",
-  notes: "/notes",
+// Action routes with query parameter patterns
+const actionConfigs: Record<
+  PatientAction,
+  { route: string; paramName: string }
+> = {
+  appointments: { route: "/doctor-scheduler", paramName: "patientId" },
+  "medical-records": { route: "/medical-records", paramName: "patientId" },
+  prescription: { route: "/prescriptions-management", paramName: "patientId" },
+  message: { route: "/messages", paramName: "recipientId" }, // Opens chat with this patient
+  notes: { route: "/notes", paramName: "patientId" },
 };
 
 export const PatientTable: React.FC<PatientTableProps> = ({ patients }) => {
   const navigate = useNavigate();
 
-  const handleAction = (action: PatientAction, patientId: number) => {
-    const baseRoute = actionConfigs[action];
-    navigate(`${baseRoute}?patientId=${patientId}`);
+  const handleAction = (action: PatientAction, patientId: string) => {
+    const config = actionConfigs[action];
+    navigate(`${config.route}?${config.paramName}=${patientId}`);
   };
 
   if (patients.length === 0) {

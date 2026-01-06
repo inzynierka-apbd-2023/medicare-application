@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 
 import Header from "../../layout/Header";
+import { useAuth } from "../../shared/auth/AuthContext";
 import { ErrorDisplay, LoadingOverlay } from "../../shared/components";
 import { usePatients } from "../../shared/hooks/usePatients";
 
@@ -13,8 +14,13 @@ import type {
 } from "./types";
 
 export const PatientListPage: React.FC<PatientListPageProps> = ({
-  doctorId,
+  doctorId: propDoctorId,
 }) => {
+  const { user } = useAuth();
+  // Use prop if available, otherwise fallback to auth user id if role is Doctor
+  const doctorId =
+    propDoctorId || (user?.role === "Doctor" ? user.id : undefined);
+
   const {
     patients,
     isLoading,

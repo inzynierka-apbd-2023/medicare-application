@@ -1,4 +1,5 @@
 import React from "react";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "@shared/auth/AuthContext";
 
 import Header from "../../layout/Header";
@@ -6,8 +7,11 @@ import { DashboardLayout } from "../dashboard/shared/components";
 
 import { MessagesPage } from "./MessagesPage";
 
-const TestMessagesPage: React.FC = () => {
+const SimpleMessagesPage: React.FC = () => {
   const { user } = useAuth();
+  const [searchParams] = useSearchParams();
+  const recipientId = searchParams.get("recipientId") || undefined;
+  const conversationId = searchParams.get("conversationId") || undefined;
 
   if (!user) return <div>Loading...</div>;
 
@@ -22,6 +26,8 @@ const TestMessagesPage: React.FC = () => {
           <MessagesPage
             userId={user.id}
             userType={user.role.toLowerCase() as "patient" | "doctor"}
+            {...(recipientId ? { recipientId } : {})}
+            {...(conversationId ? { conversationId } : {})}
           />
         </div>
       </DashboardLayout>
@@ -29,4 +35,4 @@ const TestMessagesPage: React.FC = () => {
   );
 };
 
-export default TestMessagesPage;
+export default SimpleMessagesPage;

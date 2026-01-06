@@ -48,11 +48,8 @@ builder.Services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
 // Add doctor dashboard service
 builder.Services.AddScoped<IDoctorDashboardService, DoctorDashboardService>();
 
-// Add HTTP clients for external services
-builder.Services.AddHttpClient<IPatientService, PatientService>();
-builder.Services.AddHttpClient<IMedicalRecordsService, MedicalRecordsService>();
-
-builder.Services.AddHttpClient<IMedicalRecordsService, MedicalRecordsService>();
+// Doctor schedule service now uses direct database queries (UserProfiles table)
+// instead of HTTP calls - no external service dependencies needed
 
 builder.Services.AddDbContext<AppointmentDbContext>((sp, options) =>
 {

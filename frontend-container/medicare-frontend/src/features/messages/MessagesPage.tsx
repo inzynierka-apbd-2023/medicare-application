@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@shared/components";
 import { messagesApi } from "@shared/services/messagesApi";
 
@@ -15,6 +15,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   userId,
   userType = "patient",
   conversationId,
+  recipientId,
 }) => {
   const {
     conversations,
@@ -30,6 +31,48 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
   const [availableDoctors, setAvailableDoctors] = useState<User[]>([]);
+
+  // Track if we've handled the initial recipientId to prevent loop/re-opening
+  const hasHandledRecipientRef = useRef(false);
+
+  // Auto-select conversation OR open new message modal for recipient
+  useEffect(() => {
+    // Only proceed if we have a recipientId, haven't handled it yet, and conversations are loaded
+    if (
+      recipientId &&
+      !isLoading &&
+      !hasHandledRecipientRef.current &&
+      conversations
+    ) {
+      // Check if conversation exists with this participant
+      const existingConv = conversations.find(
+        (c) => c.participantId === recipientId
+      );
+
+      if (existingConv) {
+        if (selectedConversationId !== existingConv.id) {
+          selectConversation(existingConv.id);
+          console.log(
+            `[MessagesPage] Selected existing conversation with ${recipientId}`
+          );
+        }
+      } else {
+        // Open new message modal with pre-selected recipient
+        setIsNewMessageModalOpen(true);
+        console.log(
+          `[MessagesPage] Opening new message modal for ${recipientId}`
+        );
+      }
+
+      hasHandledRecipientRef.current = true;
+    }
+  }, [
+    recipientId,
+    conversations,
+    isLoading,
+    selectedConversationId,
+    selectConversation,
+  ]);
 
   // Load available doctors/recipients
   useEffect(() => {
@@ -252,6 +295,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         onStartConversation={handleStartConversation}
         availableDoctors={availableDoctors}
         isLoading={isLoading}
+        {...(recipientId ? { preSelectedRecipientId: recipientId } : {})}
       />
     </div>
   );

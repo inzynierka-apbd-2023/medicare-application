@@ -1,5 +1,6 @@
-import React, { useState } from "react";
-import { Calendar, Clock, Users } from "lucide-react";
+import React, { useMemo, useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { Calendar, Clock, Filter, Users } from "lucide-react";
 
 import Header from "../../layout/Header";
 import { Card, ErrorDisplay, LoadingOverlay } from "../../shared/components";
@@ -21,10 +22,13 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
   const [selectedAppointment, setSelectedAppointment] =
     useState<DoctorScheduleEvent | null>(null);
 
+  const [searchParams] = useSearchParams();
+  const patientIdFilter = searchParams.get("patientId");
+
   const {
     schedule,
-    calendarEvents,
-    todaysAppointments,
+    calendarEvents: rawCalendarEvents,
+    todaysAppointments: rawTodaysAppointments,
     isLoading,
     error,
     refreshSchedule,
@@ -36,6 +40,21 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     autoRefresh: true,
     refreshInterval: 60000, // Refresh every minute
   });
+
+  // Filter events if patientId param is present
+  const calendarEvents = useMemo(() => {
+    if (!patientIdFilter) return rawCalendarEvents;
+    return rawCalendarEvents.filter(
+      (e) => e.extendedProps.appointment.patientId === patientIdFilter
+    );
+  }, [rawCalendarEvents, patientIdFilter]);
+
+  const todaysAppointments = useMemo(() => {
+    if (!patientIdFilter) return rawTodaysAppointments;
+    return rawTodaysAppointments.filter(
+      (appt) => appt.patientId === patientIdFilter
+    );
+  }, [rawTodaysAppointments, patientIdFilter]);
 
   const handleEventClick = (event: {
     extendedProps: { appointment: DoctorScheduleEvent };
@@ -118,6 +137,12 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
             </h1>
             <p className="text-gray-600 mt-2">
               View and manage your patient appointments
+              {patientIdFilter && (
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                  <Filter className="w-3 h-3 mr-1" />
+                  Filtered by patient
+                </span>
+              )}
             </p>
           </div>
 

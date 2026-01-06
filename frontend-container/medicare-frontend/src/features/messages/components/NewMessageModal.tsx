@@ -9,8 +9,27 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
   onStartConversation,
   availableDoctors,
   isLoading = false,
+  preSelectedRecipientId,
 }) => {
-  const [selectedDoctor, setSelectedDoctor] = useState<User | null>(null);
+  const [selectedDoctor, setSelectedDoctor] = useState<User | null>(() => {
+    if (preSelectedRecipientId) {
+      return (
+        availableDoctors.find((d) => d.id === preSelectedRecipientId) || null
+      );
+    }
+    return null;
+  });
+
+  // Update selected doctor when preSelectedRecipientId or availableDoctors changes
+  React.useEffect(() => {
+    if (preSelectedRecipientId && isOpen) {
+      const found = availableDoctors.find(
+        (d) => d.id === preSelectedRecipientId
+      );
+      if (found) setSelectedDoctor(found);
+    }
+  }, [preSelectedRecipientId, availableDoctors, isOpen]);
+
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
