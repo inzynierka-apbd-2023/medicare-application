@@ -6,6 +6,7 @@ using PatientService.Features.Patients.Commands.RegisterPatient;
 using PatientService.Features.Patients.Commands.UpdatePatient;
 using PatientService.Features.Patients.Queries.GetPatient;
 using PatientService.Features.Patients.Queries.ListPatients;
+using PatientService.Data;
 
 namespace PatientService.Controllers;
 
@@ -68,7 +69,7 @@ public class PatientsController : ControllerBase
     public async Task<IActionResult> SetEmergencyContacts(Guid id, [FromBody] List<EmergencyContactRequest> contacts)
     {
         // Map request DTO to Command DTO
-        var commandContacts = contacts.Select(c => new EmergencyContactDto(c.Name, c.Relation, c.Phone)).ToList();
+        var commandContacts = contacts.Select(c => new PatientService.Data.EmergencyContactDto(c.Name, c.Relation, c.Phone)).ToList();
         var success = await _mediator.Send(new SetEmergencyContactsCommand(id, commandContacts));
         if (!success) return NotFound("Patient not found");
         return NoContent();

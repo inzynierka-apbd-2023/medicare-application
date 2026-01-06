@@ -331,13 +331,19 @@ export default function DoctorDashboard() {
                   </button>
                 </li>
                 <li>
-                  <button className="w-full text-left px-4 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 text-blue-700 font-medium transition">
+                  <button
+                    onClick={() => navigate("/prescriptions-management")}
+                    className="w-full text-left px-4 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 text-blue-700 font-medium transition"
+                  >
                     Prescriptions
                   </button>
                 </li>
                 <li>
-                  <button className="w-full text-left px-4 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 text-blue-700 font-medium transition">
-                    Reports
+                  <button
+                    onClick={() => navigate("/lab-results-review")}
+                    className="w-full text-left px-4 py-2 bg-blue-50 rounded-lg hover:bg-blue-100 text-blue-700 font-medium transition"
+                  >
+                    Lab Results
                   </button>
                 </li>
               </ul>

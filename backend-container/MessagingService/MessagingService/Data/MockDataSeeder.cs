@@ -62,19 +62,19 @@ public static class MockDataSeeder
         int created = 0;
 
         // Seed Direct Messages (patient <-> doctor communication)
-        var messageData = new (Guid id, Guid senderId, Guid recipientId, string subject, string content, string msgType, string priority, bool isRead, Guid? relatedId, string? relatedType)[]
+        var messageData = new (Guid id, Guid senderId, string senderName, Guid recipientId, string recipientName, string subject, string content, string msgType, string priority, bool isRead, Guid? relatedId, string? relatedType)[]
         {
-            (MockIds.Message1, MockIds.PatientUser1, MockIds.DoctorUser1, "Question about medication", "Dr. Carter, I have a question about the dosage of my new medication. Should I take it before or after meals?", "Medical", "Normal", true, MockIds.Appointment1, "Appointment"),
-            (MockIds.Message2, MockIds.DoctorUser1, MockIds.PatientUser1, "RE: Question about medication", "Hello Alice, please take the medication with food to minimize stomach upset. Let me know if you have any other questions.", "Medical", "Normal", true, MockIds.Appointment1, "Appointment"),
-            (MockIds.Message3, MockIds.PatientUser2, MockIds.DoctorUser2, "Appointment reschedule request", "Hello Dr. Chen, I need to reschedule my appointment next week. Is Friday available?", "Appointment", "Normal", false, MockIds.Appointment2, "Appointment"),
-            (MockIds.Message4, MockIds.DoctorUser3, MockIds.PatientUser3, "Lab results ready", "Your recent lab results are now available. Everything looks normal. We can discuss at your next visit.", "Medical", "High", true, null, null),
-            (MockIds.Message5, MockIds.PatientUser4, MockIds.DoctorUser4, "Follow-up question", "Dr. Thompson, my child still has a mild cough after the visit. Should I be concerned?", "Medical", "Normal", false, null, null),
-            (MockIds.Message6, MockIds.DoctorUser5, MockIds.PatientUser5, "Post-procedure instructions", "Please remember to keep the knee elevated and apply ice for 20 minutes every 2 hours.", "Medical", "High", true, MockIds.Appointment3, "Appointment"),
-            (MockIds.Message7, MockIds.PatientUser6, MockIds.DoctorUser6, "Insurance question", "Dr. Anderson, I have a question about my insurance coverage for the MRI. Can your office help?", "General", "Normal", false, null, null)
+            (MockIds.Message1, MockIds.PatientUser1, "Alice Johnson", MockIds.DoctorUser1, "Dr. John Carter", "Question about medication", "Dr. Carter, I have a question about the dosage of my new medication. Should I take it before or after meals?", "Medical", "Normal", true, MockIds.Appointment1, "Appointment"),
+            (MockIds.Message2, MockIds.DoctorUser1, "Dr. John Carter", MockIds.PatientUser1, "Alice Johnson", "RE: Question about medication", "Hello Alice, please take the medication with food to minimize stomach upset. Let me know if you have any other questions.", "Medical", "Normal", true, MockIds.Appointment1, "Appointment"),
+            (MockIds.Message3, MockIds.PatientUser2, "Bob Smith", MockIds.DoctorUser2, "Dr. Sarah Chen", "Appointment reschedule request", "Hello Dr. Chen, I need to reschedule my appointment next week. Is Friday available?", "Appointment", "Normal", false, MockIds.Appointment2, "Appointment"),
+            (MockIds.Message4, MockIds.DoctorUser3, "Dr. Michael Brown", MockIds.PatientUser3, "Charlie Davis", "Lab results ready", "Your recent lab results are now available. Everything looks normal. We can discuss at your next visit.", "Medical", "High", true, null, null),
+            (MockIds.Message5, MockIds.PatientUser4, "Diana Evans", MockIds.DoctorUser4, "Dr. Emily Thompson", "Follow-up question", "Dr. Thompson, my child still has a mild cough after the visit. Should I be concerned?", "Medical", "Normal", false, null, null),
+            (MockIds.Message6, MockIds.DoctorUser5, "Dr. David Wilson", MockIds.PatientUser5, "Evan Foster", "Post-procedure instructions", "Please remember to keep the knee elevated and apply ice for 20 minutes every 2 hours.", "Medical", "High", true, MockIds.Appointment3, "Appointment"),
+            (MockIds.Message7, MockIds.PatientUser6, "Fiona Green", MockIds.DoctorUser6, "Dr. Lisa Anderson", "Insurance question", "Dr. Anderson, I have a question about my insurance coverage for the MRI. Can your office help?", "General", "Normal", false, null, null)
         };
 
         var existingMessageIds = await db.Messages.Select(m => m.Id).ToHashSetAsync();
-        foreach (var (id, senderId, recipientId, subject, content, msgType, priority, isRead, relatedId, relatedType) in messageData)
+        foreach (var (id, senderId, senderName, recipientId, recipientName, subject, content, msgType, priority, isRead, relatedId, relatedType) in messageData)
         {
             if (!existingMessageIds.Contains(id))
             {
@@ -83,6 +83,8 @@ public static class MockDataSeeder
                     Id = id,
                     SenderId = senderId,
                     RecipientId = recipientId,
+                    SenderName = senderName,
+                    RecipientName = recipientName,
                     Subject = subject,
                     Content = content,
                     MessageType = msgType,
@@ -95,6 +97,17 @@ public static class MockDataSeeder
                     CreatedAt = DateTime.UtcNow.AddDays(-7)
                 });
                 created++;
+            }
+            else
+            {
+                // Update existing message if names are missing
+                var existingMsg = await db.Messages.FindAsync(id);
+                if (existingMsg != null && (string.IsNullOrEmpty(existingMsg.SenderName) || string.IsNullOrEmpty(existingMsg.RecipientName)))
+                {
+                    existingMsg.SenderName = senderName;
+                    existingMsg.RecipientName = recipientName;
+                    created++; // Increment to trigger SaveChanges
+                }
             }
         }
 

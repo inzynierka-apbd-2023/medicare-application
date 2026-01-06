@@ -20,6 +20,9 @@ try
 
     builder.AddServiceDefaults();
 
+    // Register MediatR for CQRS pattern
+    builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
+
 
 
     var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"] 

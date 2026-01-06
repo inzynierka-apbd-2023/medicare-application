@@ -1,8 +1,7 @@
-using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
-using LabService.Data;
-using LabService.Models;
+using MediatR;
+using LabService.Features.LabResults.Queries;
+using LabService.Features.LabResults.Commands;
 
 namespace LabService.Controllers;
 
@@ -10,122 +9,93 @@ namespace LabService.Controllers;
 [Route("api/lab/[controller]")]
 public class LabResultsController : ControllerBase
 {
-    private readonly LabDbContext _db;
-    public LabResultsController(LabDbContext db) => _db = db;
+    private readonly IMediator _mediator;
+    public LabResultsController(IMediator mediator) => _mediator = mediator;
 
-    [HttpGet("patient/{patientId}")]
-    public async Task<IActionResult> GetByPatientId(Guid patientId)
+    /// <summary>
+    /// Get all lab results pending review
+    /// </summary>
+    [HttpGet("pending-review")]
+    public async Task<IActionResult> GetPendingReview()
     {
-        var results = await _db.LabResults
-            .Where(r => r.PatientId == patientId)
-            .OrderByDescending(r => r.ResultDate)
-            .ToListAsync();
+        var results = await _mediator.Send(new GetPendingLabResultsQuery());
         return Ok(results);
     }
 
+    /// <summary>
+    /// Get lab result by ID
+    /// </summary>
     [HttpGet("{id}")]
     public async Task<IActionResult> GetById(Guid id)
     {
-        var result = await _db.LabResults.FindAsync(id);
-        if (result == null) return NotFound();
-        return Ok(result);
+        var detail = await _mediator.Send(new GetLabResultDetailQuery(id));
+        if (detail == null) return NotFound();
+        return Ok(detail.Result);
     }
 
+    /// <summary>
+    /// Get full lab result detail with test, order, and reviews
+    /// </summary>
     [HttpGet("{id}/detail")]
     public async Task<IActionResult> GetDetailById(Guid id)
     {
-        var result = await _db.LabResults.FindAsync(id);
-        if (result == null) return NotFound();
-
-        var test = await _db.LabTests.FindAsync(result.LabTestId);
-        var order = test != null ? await _db.LabOrders.FindAsync(test.LabOrderId) : null;
-        var reviews = await _db.LabResultReviews
-            .Where(r => r.LabResultId == id)
-            .OrderByDescending(r => r.ReviewedAt)
-            .ToListAsync();
-
+        var detail = await _mediator.Send(new GetLabResultDetailQuery(id));
+        if (detail == null) return NotFound();
         return Ok(new
         {
-            Result = result,
-            Test = test,
-            Order = order,
-            Reviews = reviews
+            Result = detail.Result,
+            Test = detail.Test,
+            Order = detail.Order,
+            Reviews = detail.Reviews
         });
     }
 
-    [HttpPost]
-    [Authorize]
-    public async Task<IActionResult> CreateResult([FromBody] CreateLabResultRequest req)
-    {
-        var result = new LabResult
-        {
-            LabTestId = req.LabTestId,
-            PatientId = req.PatientId,
-            Value = req.Value,
-            Unit = req.Unit,
-            ReferenceRange = req.ReferenceRange,
-            Flag = req.Flag,
-            Comments = req.Comments,
-            ResultDate = req.ResultDate,
-            CreatedAt = DateTime.UtcNow
-        };
-
-        _db.LabResults.Add(result);
-        await _db.SaveChangesAsync();
-
-        return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
-    }
-
-    [HttpGet("pending-review")]
-    [Authorize]
-    public async Task<IActionResult> GetPendingReview()
-    {
-        var pendingResults = await _db.LabResults
-            .Where(r => r.ReviewStatus == "Pending")
-            .OrderBy(r => r.ResultDate)
-            .ToListAsync();
-        return Ok(pendingResults);
-    }
-
+    /// <summary>
+    /// Submit a review for a lab result
+    /// </summary>
     [HttpPost("{id}/review")]
-    [Authorize]
     public async Task<IActionResult> ReviewResult(Guid id, [FromBody] ReviewLabResultRequest req)
     {
-        var result = await _db.LabResults.FindAsync(id);
-        if (result == null) return NotFound();
-
-        var review = new LabResultReview
+        try
         {
-            LabResultId = id,
-            ReviewedByDoctorId = req.ReviewedByDoctorId,
-            ReviewedAt = DateTime.UtcNow,
-            ReviewStatus = req.ReviewStatus,
-            ReviewNotes = req.ReviewNotes,
-            Recommendations = req.Recommendations,
-            CreatedAt = DateTime.UtcNow
-        };
+            var review = await _mediator.Send(new SubmitLabResultReviewCommand(
+                id,
+                req.ReviewedByDoctorId,
+                req.ReviewStatus,
+                req.ReviewNotes,
+                req.Recommendations
+            ));
+            return Ok(review);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
+    }
 
-        result.ReviewedByDoctorId = req.ReviewedByDoctorId;
-        result.ReviewedAt = DateTime.UtcNow;
-        result.ReviewStatus = "Reviewed";
-
-        _db.LabResultReviews.Add(review);
-        await _db.SaveChangesAsync();
-
-        return Ok(review);
+    /// <summary>
+    /// Quick approve a lab result
+    /// </summary>
+    [HttpPost("{id}/quick-approve")]
+    public async Task<IActionResult> QuickApprove(Guid id, [FromBody] QuickApproveRequest req)
+    {
+        try
+        {
+            var review = await _mediator.Send(new SubmitLabResultReviewCommand(
+                id,
+                req.DoctorId,
+                "Reviewed",
+                "Quick approval - results within normal limits",
+                null
+            ));
+            return Ok(review);
+        }
+        catch (KeyNotFoundException)
+        {
+            return NotFound();
+        }
     }
 }
-
-public record CreateLabResultRequest(
-    Guid LabTestId,
-    Guid PatientId,
-    string? Value,
-    string? Unit,
-    string? ReferenceRange,
-    string? Flag,
-    string? Comments,
-    DateTime ResultDate
-);
 
 public record ReviewLabResultRequest(
     Guid ReviewedByDoctorId,
@@ -133,3 +103,5 @@ public record ReviewLabResultRequest(
     string? ReviewNotes,
     string? Recommendations
 );
+
+public record QuickApproveRequest(Guid DoctorId);

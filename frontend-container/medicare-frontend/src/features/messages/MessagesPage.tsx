@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Button } from "@shared/components";
 import { messagesApi } from "@shared/services/messagesApi";
+import { patientsApi } from "@shared/services/patientsApi";
 
 import { useMessages } from "./hooks/useMessages";
 import {
@@ -30,7 +31,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   } = useMessages(userId, userType);
 
   const [isNewMessageModalOpen, setIsNewMessageModalOpen] = useState(false);
-  const [availableDoctors, setAvailableDoctors] = useState<User[]>([]);
+  const [availableRecipients, setAvailableRecipients] = useState<User[]>([]);
 
   // Track if we've handled the initial recipientId to prevent loop/re-opening
   const hasHandledRecipientRef = useRef(false);
@@ -74,28 +75,49 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
     selectConversation,
   ]);
 
-  // Load available doctors/recipients
+  // Load available recipients (doctors or patients)
   useEffect(() => {
     const fetchRecipients = async () => {
       if (userId) {
         try {
+          const recipients: User[] = [];
+
+          // 1. Fetch from Messaging Service (Contacts)
           const res = await messagesApi.getAvailableRecipients(
             userType,
             userId
           );
           if (res.success) {
-            setAvailableDoctors(
-              res.data.map(
-                (d) =>
-                  ({
-                    id: d.id,
-                    name: d.name,
-                    role: d.type,
-                    specialty: d.specialization || "General",
-                  }) as User
-              )
-            );
+            res.data.forEach((d) => {
+              recipients.push({
+                id: d.id,
+                name: d.name,
+                role: d.type,
+                specialty: d.specialization || "General",
+                email: "", // API doesn't return email, placeholder
+              } as User);
+            });
           }
+
+          // 2. If Doctor, also fetch Patients from Patient Service (to ensure all patients are visible)
+          if (userType === "doctor") {
+            const patientsRes = await patientsApi.getPatients(userId);
+            if (patientsRes.success) {
+              patientsRes.data.forEach((p) => {
+                // Check if already in list
+                if (!recipients.find((r) => r.id === p.id)) {
+                  recipients.push({
+                    id: p.id,
+                    name: p.name,
+                    role: "patient",
+                    email: p.email || "",
+                  } as User);
+                }
+              });
+            }
+          }
+
+          setAvailableRecipients(recipients);
         } catch (e) {
           console.error("Failed to load recipients", e);
         }
@@ -124,33 +146,31 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
     initialMessage: string
   ) => {
     try {
-      const conversationId = await createConversation(
-        recipientId,
-        recipientName,
-        initialMessage
+      // Check if conversation already exists with this user
+      const existingConv = conversations.find(
+        (c) => c.participantId === recipientId
       );
-      selectConversation(conversationId);
-      setIsNewMessageModalOpen(false);
 
-      // Refresh available doctors list to exclude the one we just messaged
-      if (userId) {
-        const res = await messagesApi.getAvailableRecipients(userType, userId);
-        if (res.success) {
-          setAvailableDoctors(
-            res.data.map(
-              (d) =>
-                ({
-                  id: d.id,
-                  name: d.name,
-                  role: d.type,
-                  specialty: d.specialization || "General",
-                }) as User
-            )
-          );
-        }
+      if (existingConv) {
+        // Reuse existing conversation
+        await sendMessage(existingConv.id, initialMessage);
+        selectConversation(existingConv.id);
+        setIsNewMessageModalOpen(false);
+        console.log(
+          `[MessagesPage] Reused existing conversation ${existingConv.id}`
+        );
+      } else {
+        // Create new conversation
+        const conversationId = await createConversation(
+          recipientId,
+          recipientName,
+          initialMessage
+        );
+        selectConversation(conversationId);
+        setIsNewMessageModalOpen(false);
       }
-    } catch (error) {
-      console.error("Failed to start conversation:", error);
+    } catch (e) {
+      console.error("Failed to start conversation", e);
     }
   };
 
@@ -183,17 +203,15 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         <div className="p-4 border-b border-gray-200">
           <div className="flex items-center justify-between mb-3">
             <h1 className="text-xl font-semibold text-gray-800">Messages</h1>
-            {userType === "patient" && (
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => setIsNewMessageModalOpen(true)}
-                className="flex items-center space-x-1"
-              >
-                <span>+</span>
-                <span>New</span>
-              </Button>
-            )}
+            <Button
+              variant="primary"
+              size="sm"
+              onClick={() => setIsNewMessageModalOpen(true)}
+              className="flex items-center space-x-1"
+            >
+              <span>+</span>
+              <span>New</span>
+            </Button>
           </div>
 
           {conversations.length > 0 && (
@@ -275,7 +293,7 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
               <p className="text-gray-500 mb-4">
                 Choose a conversation from the sidebar to start messaging
               </p>
-              {userType === "patient" && conversations.length === 0 && (
+              {conversations.length === 0 && (
                 <Button
                   variant="primary"
                   onClick={() => setIsNewMessageModalOpen(true)}
@@ -293,9 +311,10 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         isOpen={isNewMessageModalOpen}
         onClose={() => setIsNewMessageModalOpen(false)}
         onStartConversation={handleStartConversation}
-        availableDoctors={availableDoctors}
+        availableRecipients={availableRecipients}
         isLoading={isLoading}
         {...(recipientId ? { preSelectedRecipientId: recipientId } : {})}
+        userRole={userType}
       />
     </div>
   );

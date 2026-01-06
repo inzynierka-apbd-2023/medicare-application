@@ -189,48 +189,82 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
 
 static async Task CreateViewsAsync(PatientDbContext db)
 {
+
+
     try
     {
-        // Create PatientOverview view with cross-database compatibility
-        var viewSql = @"
-IF OBJECT_ID('[user].[User_Profile]', 'U') IS NOT NULL
-BEGIN
-    -- Shared database scenario (e.g., Azure) - create full view with join
-    EXEC('CREATE OR ALTER VIEW patient.PatientOverview AS
-    SELECT p.Id AS PatientId,
-           p.UserId,
-           up.FirstName,
-           up.LastName,
-           up.Email,
-           up.Phone,
-           (SELECT TOP 1 s.Status FROM patient.Patient_Status s WHERE s.PatientId = p.Id ORDER BY s.EffectiveAt DESC) AS CurrentStatus,
-           (SELECT TOP 1 ec.Name FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactName,
-           (SELECT TOP 1 ec.Phone FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactPhone
-    FROM patient.Patient p
-    LEFT JOIN [user].[User_Profile] up ON up.User_Id = p.UserId;');
-END
-ELSE
-BEGIN
-    -- Separate databases scenario (local dev) - create view without user join
-    EXEC('CREATE OR ALTER VIEW patient.PatientOverview AS
-    SELECT p.Id AS PatientId,
-           p.UserId,
-           NULL AS FirstName,
-           NULL AS LastName,
-           NULL AS Email,
-           NULL AS Phone,
-           (SELECT TOP 1 s.Status FROM patient.Patient_Status s WHERE s.PatientId = p.Id ORDER BY s.EffectiveAt DESC) AS CurrentStatus,
-           (SELECT TOP 1 ec.Name FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactName,
-           (SELECT TOP 1 ec.Phone FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactPhone
-    FROM patient.Patient p;');
-END
-";
-        await db.Database.ExecuteSqlRawAsync(viewSql);
-        Console.WriteLine("[Startup] PatientOverview view created.");
+        // Try to create the full view with JOIN.
+        // We wrap this in a retry loop using Polly or simple loop if Polly isn't available.
+        // Since we don't have Polly installed by default, using a simple loop.
+        
+        int retries = 0;
+        bool created = false;
+        
+        while (!created && retries < 15)
+        {
+            try 
+            {
+                var viewSql = @"
+                CREATE OR ALTER VIEW patient.PatientOverview AS
+                SELECT p.Id AS PatientId,
+                       p.UserId,
+                       up.FirstName,
+                       up.LastName,
+                       up.Email,
+                       up.Phone,
+                       up.DateOfBirth,
+                       up.Gender,
+                       up.Address_Line1 AS Address,
+                       (SELECT TOP 1 s.Status FROM patient.Patient_Status s WHERE s.PatientId = p.Id ORDER BY s.EffectiveAt DESC) AS CurrentStatus,
+                       (SELECT TOP 1 ec.Name FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactName,
+                       (SELECT TOP 1 ec.Phone FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactPhone
+                FROM patient.Patient p
+                LEFT JOIN [user].[User_Profile] up ON up.User_Id = p.UserId;";
+                
+                // We execute this. If [user].[User_Profile] doesn't exist, SQL Server might throw an error or create an invalid view.
+                // However, cross-schema dependencies usually require the object to exist if we want it to work.
+                // Actually, let's explicitly check for the table existence using a robust check.
+                
+                var checkTableSql = "SELECT OBJECT_ID('[user].[User_Profile]', 'U')";
+                var userTableId = await db.Database.ExecuteSqlRawAsync($"DECLARE @id INT = ({checkTableSql}); IF @id IS NULL THROW 50000, 'User table not found', 1;");
+                
+                await db.Database.ExecuteSqlRawAsync(viewSql);
+                Console.WriteLine("[Startup] PatientOverview view created successfully (Full Version).");
+                created = true;
+            }
+            catch (Exception ex)
+            {
+                retries++;
+                Console.WriteLine($"[Startup] View creation failed (Attempt {retries}): {ex.Message}. Waiting for User service...");
+                await Task.Delay(2000); // 2 second delay
+            }
+        }
+
+        if (!created)
+        {
+             Console.WriteLine("[Startup] WARNING: Could not create full joined view after retries. Falling back to local view (Names will be unknown).");
+             // Fallback SQL
+             var fallbackSql = @"
+                CREATE OR ALTER VIEW patient.PatientOverview AS
+                SELECT p.Id AS PatientId,
+                       p.UserId,
+                       NULL AS FirstName,
+                       NULL AS LastName,
+                       NULL AS Email,
+                       NULL AS Phone,
+                       NULL AS DateOfBirth,
+                       NULL AS Gender,
+                       NULL AS Address,
+                       (SELECT TOP 1 s.Status FROM patient.Patient_Status s WHERE s.PatientId = p.Id ORDER BY s.EffectiveAt DESC) AS CurrentStatus,
+                       (SELECT TOP 1 ec.Name FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactName,
+                       (SELECT TOP 1 ec.Phone FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactPhone
+                FROM patient.Patient p;";
+             await db.Database.ExecuteSqlRawAsync(fallbackSql);
+        }
     }
     catch (Exception ex)
     {
-        Console.WriteLine($"[Startup] View creation warning: {ex.Message}");
+        Console.WriteLine($"[Startup] View creation CRITICAL failure: {ex.Message}");
     }
 }
 

@@ -63,6 +63,9 @@ public class PatientOverview
     public string? LastName { get; set; }
     public string? Email { get; set; }
     public string? Phone { get; set; }
+    public DateTime? DateOfBirth { get; set; }
+    public string? Gender { get; set; }
+    public string? Address { get; set; }
     public string? CurrentStatus { get; set; }
     public string? EmergencyContactName { get; set; }
     public string? EmergencyContactPhone { get; set; }

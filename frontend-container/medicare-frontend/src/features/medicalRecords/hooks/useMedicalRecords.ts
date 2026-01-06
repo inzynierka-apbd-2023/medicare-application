@@ -1,6 +1,22 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
-import type { PatientMedicalRecord } from "../types";
+import { useAuth } from "../../../shared/auth/AuthContext";
+import {
+  BackendPatientHistory,
+  medicalRecordsApi,
+} from "../../../shared/services/medicalRecordsApi";
+import type { BackendPatientProfile } from "../../../shared/services/patientsApi";
+import { patientsApi } from "../../../shared/services/patientsApi";
+import { staffApi } from "../../../shared/services/staffApi";
+import type {
+  EmergencyContact,
+  InsuranceInfo,
+  MedicalCondition,
+  MedicalVisit,
+  Medication,
+  PatientMedicalRecord,
+  VitalSigns,
+} from "../types";
 
 interface UseMedicalRecordsResult {
   records: PatientMedicalRecord[];
@@ -12,345 +28,260 @@ interface UseMedicalRecordsResult {
   refetch: () => Promise<void>;
 }
 
-// Mock data for demonstration - adjusted to match database schema
-const mockMedicalRecords: PatientMedicalRecord[] = [
-  {
-    id: "mr-001",
-    patientId: "patient-001",
-    name: "John Doe",
-    dateOfBirth: "1985-03-15",
-    gender: "Male",
-    bloodType: "A+",
-    medicalRecordNumber: "MR-2024-001",
-    phone: "+1234567890",
-    email: "john.doe@email.com",
-    address: "123 Main St, City, State 12345",
-
-    emergencyContacts: [
-      {
-        id: "ec-001",
-        name: "Jane Doe",
-        relationship: "Spouse",
-        phone: "+1234567891",
-        isPrimary: true,
-      },
-      {
-        id: "ec-002",
-        name: "Bob Doe",
-        relationship: "Father",
-        phone: "+1234567892",
-        isPrimary: false,
-      },
-    ],
-
-    insurance: [
-      {
-        id: "ins-001",
-        provider: "Blue Cross Blue Shield",
-        policyNumber: "BCBS-123456789",
-        groupNumber: "GRP-001",
-        validFrom: "2024-01-01",
-        isPrimary: true,
-      },
-    ],
-
-    medicalConditions: [
-      {
-        id: "cond-001",
-        code: "I10",
-        name: "Essential Hypertension",
-        diagnosedDate: "2023-05-15",
-        status: "Active",
-        severity: "Moderate",
-        notes: "Well controlled with medication",
-      },
-      {
-        id: "cond-002",
-        code: "E11.9",
-        name: "Type 2 Diabetes Mellitus",
-        diagnosedDate: "2022-08-20",
-        status: "Active",
-        severity: "Mild",
-        notes: "Managed with diet and metformin",
-      },
-    ],
-
-    currentMedications: [
-      {
-        id: "med-001",
-        name: "Lisinopril",
-        dosage: "10mg",
-        frequency: "Once daily",
-        prescribedDate: "2023-05-15",
-        prescribedBy: "Dr. Smith",
-        status: "Active",
-        instructions: "Take with food",
-      },
-      {
-        id: "med-002",
-        name: "Metformin",
-        dosage: "500mg",
-        frequency: "Twice daily",
-        prescribedDate: "2022-08-20",
-        prescribedBy: "Dr. Johnson",
-        status: "Active",
-        instructions: "Take with meals",
-      },
-    ],
-
-    visits: [
-      {
-        id: "visit-001",
-        date: "2024-01-15",
-        doctorName: "Dr. Smith",
-        specialty: "Internal Medicine",
-        chiefComplaint: "Routine follow-up for hypertension",
-        diagnosis: "Essential hypertension - stable",
-        treatment: "Continue current medication",
-        notes: "Blood pressure well controlled. No side effects reported.",
-        followUpDate: "2024-04-15",
-        vitalSigns: {
-          bloodPressureSystolic: 135,
-          bloodPressureDiastolic: 85,
-          heartRate: 72,
-          temperature: 98.6,
-          weight: 180,
-          height: 70,
-        },
-      },
-      {
-        id: "visit-002",
-        date: "2023-12-10",
-        doctorName: "Dr. Johnson",
-        specialty: "Endocrinology",
-        chiefComplaint: "Diabetes management check-up",
-        diagnosis: "Type 2 diabetes mellitus - well controlled",
-        treatment: "Continue metformin, dietary counseling",
-        notes: "HbA1c improved to 6.8%. Patient compliant with medication.",
-        followUpDate: "2024-03-10",
-      },
-    ],
-
-    lastUpdated: "2024-01-15T10:30:00Z",
-    createdDate: "2022-01-01T00:00:00Z",
-  },
-  {
-    id: "mr-002",
-    patientId: "patient-002",
-    name: "Maria Garcia",
-    dateOfBirth: "1978-07-22",
-    gender: "Female",
-    bloodType: "O-",
-    medicalRecordNumber: "MR-2024-002",
-    phone: "+1234567893",
-    email: "maria.garcia@email.com",
-    address: "456 Oak Ave, City, State 12345",
-
-    emergencyContacts: [
-      {
-        id: "ec-003",
-        name: "Carlos Garcia",
-        relationship: "Husband",
-        phone: "+1234567894",
-        isPrimary: true,
-      },
-    ],
-
-    insurance: [
-      {
-        id: "ins-002",
-        provider: "Aetna",
-        policyNumber: "AET-987654321",
-        validFrom: "2024-01-01",
-        isPrimary: true,
-      },
-    ],
-
-    medicalConditions: [
-      {
-        id: "cond-003",
-        code: "M79.1",
-        name: "Fibromyalgia",
-        diagnosedDate: "2021-03-10",
-        status: "Active",
-        severity: "Moderate",
-        notes: "Responds well to exercise therapy",
-      },
-    ],
-
-    currentMedications: [
-      {
-        id: "med-004",
-        name: "Pregabalin",
-        dosage: "75mg",
-        frequency: "Twice daily",
-        prescribedDate: "2021-03-15",
-        prescribedBy: "Dr. Wilson",
-        status: "Active",
-        instructions: "May cause drowsiness",
-      },
-    ],
-
-    visits: [
-      {
-        id: "visit-003",
-        date: "2024-01-10",
-        doctorName: "Dr. Wilson",
-        specialty: "Rheumatology",
-        chiefComplaint: "Fibromyalgia follow-up",
-        diagnosis: "Fibromyalgia - stable",
-        treatment: "Continue current regimen, physical therapy",
-        notes: "Pain levels manageable with current treatment.",
-        followUpDate: "2024-04-10",
-        vitalSigns: {
-          bloodPressureSystolic: 120,
-          bloodPressureDiastolic: 80,
-          heartRate: 68,
-          temperature: 98.2,
-          weight: 140,
-          height: 65,
-        },
-      },
-    ],
-
-    lastUpdated: "2024-01-10T14:20:00Z",
-    createdDate: "2021-01-01T00:00:00Z",
-  },
-];
-
 export const useMedicalRecords = (
   initialPatientId?: string
 ): UseMedicalRecordsResult => {
+  const { user } = useAuth();
   const [records, setRecords] = useState<PatientMedicalRecord[]>([]);
   const [selectedRecord, setSelectedRecord] =
     useState<PatientMedicalRecord | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchRecords = async () => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 800));
-      setRecords(mockMedicalRecords);
-
-      // If initial patient ID is provided, select that patient
-      if (initialPatientId) {
-        const initialRecord = mockMedicalRecords.find(
-          (r) =>
-            r.patientId === initialPatientId ||
-            r.id === initialPatientId ||
-            r.medicalRecordNumber === initialPatientId
-        );
-        if (initialRecord) {
-          setSelectedRecord(initialRecord);
+  // Helper to map backend data to frontend model
+  const mapToPatientMedicalRecord = useCallback(
+    (
+      profile: BackendPatientProfile,
+      history: BackendPatientHistory,
+      doctorMap: Map<string, string> // Map of doctorId -> doctorName
+    ): PatientMedicalRecord => {
+      // Map Visits
+      const visits: MedicalVisit[] = history.records.map((r) => {
+        // Find vitals for this record
+        const v = history.vitals.find((v) => v.medicalRecordId === r.id);
+        let vitalSigns: VitalSigns | undefined;
+        if (v) {
+          vitalSigns = {};
+          if (v.systolicBP !== undefined)
+            vitalSigns.bloodPressureSystolic = v.systolicBP;
+          if (v.diastolicBP !== undefined)
+            vitalSigns.bloodPressureDiastolic = v.diastolicBP;
+          if (v.heartRate !== undefined) vitalSigns.heartRate = v.heartRate;
+          if (v.temperature !== undefined)
+            vitalSigns.temperature = v.temperature;
+          if (v.weight !== undefined) vitalSigns.weight = v.weight;
+          if (v.height !== undefined) vitalSigns.height = v.height;
         }
+
+        const visit: MedicalVisit = {
+          id: r.id,
+          date: r.visitDate,
+          doctorName: doctorMap.get(r.doctorId) || "Dr. Unknown",
+          specialty: "General Practice",
+          chiefComplaint: r.chiefComplaint || "",
+          diagnosis: r.assessment || "",
+          treatment: r.plan || "",
+          notes: r.notes || "",
+          vitalSigns: vitalSigns || {},
+        };
+
+        return visit;
+      });
+
+      // Map Conditions
+      const medicalConditions: MedicalCondition[] = history.conditions.map(
+        (c) => ({
+          id: c.id,
+          code: c.icd10Code,
+          name: c.description,
+          diagnosedDate: c.createdAt,
+          status: "Active",
+          severity: "Moderate",
+          notes: c.type,
+        })
+      );
+
+      // Map Medications
+      const currentMedications: Medication[] = history.medications.map((m) => {
+        const med: Medication = {
+          id: m.id,
+          name: m.medicationName,
+          dosage: m.dosage,
+          frequency: m.frequency,
+          prescribedDate: m.prescribedDate,
+          prescribedBy: doctorMap.get(m.doctorId) || "Unknown",
+          status: m.status as Medication["status"],
+        };
+        if (m.instructions) med.instructions = m.instructions;
+        return med;
+      });
+
+      // Map Contacts
+      const emergencyContacts: EmergencyContact[] = (
+        profile.emergencyContacts || []
+      ).map(
+        (
+          c: { name: string; relation?: string; phone?: string },
+          idx: number
+        ) => ({
+          id: `ec-${idx}`,
+          name: c.name,
+          relationship: c.relation || "",
+          phone: c.phone || "",
+          isPrimary: idx === 0,
+        })
+      );
+
+      // Map Insurance
+      const insurance: InsuranceInfo[] = (profile.insurance || []).map(
+        (
+          i: {
+            provider?: string;
+            policyNumber?: string;
+            validFrom?: string;
+            validTo?: string;
+          },
+          idx: number
+        ) => {
+          const ins: InsuranceInfo = {
+            id: `ins-${idx}`,
+            provider: i.provider || "",
+            policyNumber: i.policyNumber || "",
+            validFrom: i.validFrom || "",
+            isPrimary: idx === 0,
+          };
+          if (i.validTo) ins.validTo = i.validTo;
+          return ins;
+        }
+      );
+
+      return {
+        id: "mr-" + profile.id,
+        patientId: profile.id,
+        name: profile.name,
+        dateOfBirth: profile.dateOfBirth || "",
+        gender: (profile.gender as PatientMedicalRecord["gender"]) || "Other",
+        medicalRecordNumber: "MRN-" + profile.id.substring(0, 8).toUpperCase(),
+        phone: profile.phone,
+        email: profile.email,
+        address: profile.address,
+        emergencyContacts,
+        insurance,
+        medicalConditions,
+        currentMedications,
+        visits,
+        lastUpdated: new Date().toISOString(),
+        createdDate: new Date().toISOString(),
+      };
+    },
+    []
+  );
+
+  const fetchFullPatientRecord = useCallback(
+    async (patientId: string) => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        // Fetch profile, history, and doctors in parallel
+        const [profileRes, historyRes, doctorsRes] = await Promise.all([
+          patientsApi.getPatientProfile(patientId),
+          medicalRecordsApi.getPatientHistory(patientId),
+          staffApi.getStaff({ role: "Doctor" }),
+        ]);
+
+        if (!profileRes.success || !profileRes.data) {
+          // If profile fetch fails, we can't show anything.
+          throw new Error(
+            profileRes.message || "Failed to fetch patient profile"
+          );
+        }
+
+        // Create doctor lookup map
+        const doctorMap = new Map<string, string>();
+        if (doctorsRes.success && doctorsRes.data) {
+          for (const doc of doctorsRes.data) {
+            if (doc.role === "Doctor") {
+              const name =
+                `Dr. ${doc.profile.firstName} ${doc.profile.lastName}`.trim();
+              doctorMap.set(doc.id, name);
+            }
+          }
+        }
+
+        const profile = profileRes.data;
+        // History might be null if 404 (new patient), that's fine.
+        const history = historyRes.data || {
+          patientId,
+          records: [],
+          conditions: [],
+          medications: [],
+          vitals: [],
+        };
+
+        const record = mapToPatientMedicalRecord(profile, history, doctorMap);
+        setSelectedRecord(record);
+        setRecords([record]);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : "Failed to load record");
+        // Console log removed as per request
+      } finally {
+        setIsLoading(false);
       }
-    } catch (err) {
-      setError("Failed to load medical records");
-      console.error("Medical records fetch error:", err);
-    } finally {
-      setIsLoading(false);
+    },
+    [mapToPatientMedicalRecord]
+  );
+
+  const selectPatient = async (patientId: string) => {
+    await fetchFullPatientRecord(patientId);
+  };
+
+  const refetch = async () => {
+    if (selectedRecord) {
+      await fetchFullPatientRecord(selectedRecord.patientId);
     }
   };
 
   const searchPatient = async (query: string) => {
-    if (!query.trim()) {
+    if (!query) {
       setSelectedRecord(null);
       return;
     }
 
     setIsLoading(true);
     setError(null);
+
     try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const matchingRecord = mockMedicalRecords.find(
-        (record) =>
-          record.name.toLowerCase().includes(query.toLowerCase()) ||
-          record.medicalRecordNumber
-            .toLowerCase()
-            .includes(query.toLowerCase()) ||
-          record.patientId.toLowerCase().includes(query.toLowerCase())
-      );
-
-      if (matchingRecord) {
-        setSelectedRecord(matchingRecord);
+      // If query is a UUID, try to fetch directly
+      if (query.match(/^[0-9a-fA-F-]{36}$/)) {
+        await fetchFullPatientRecord(query);
       } else {
-        setSelectedRecord(null);
-        setError(`No patient found matching "${query}"`);
+        // Implemented search via existing Patient List
+        if (user?.id) {
+          const res = await patientsApi.getPatients(user.id);
+          if (res.success && res.data.length > 0) {
+            // Find ANY matching patient, not just case-sensitive or exact.
+            // User complains "alice" didn't work. Lowercase check is good.
+            const found = res.data.find((p) =>
+              p.name.toLowerCase().includes(query.toLowerCase())
+            );
+
+            if (found) {
+              await fetchFullPatientRecord(found.id);
+            } else {
+              // Explicitly set error/state so UI knows
+              setSelectedRecord(null);
+              setError(`No patient found matching "${query}"`);
+            }
+          } else {
+            // No patients in list at all
+            setSelectedRecord(null);
+            setError("No patients found in your list");
+          }
+        }
       }
-    } catch (err) {
-      setError("Failed to search patient records");
-      console.error("Patient search error:", err);
+    } catch (_e) {
+      setError("Search failed");
+      // Console log removed
     } finally {
       setIsLoading(false);
     }
-  };
-
-  const selectPatient = async (patientId: string) => {
-    setIsLoading(true);
-    setError(null);
-    try {
-      // Simulate API delay
-      await new Promise((resolve) => setTimeout(resolve, 300));
-
-      const record = mockMedicalRecords.find(
-        (r) =>
-          r.patientId === patientId ||
-          r.id === patientId ||
-          r.medicalRecordNumber === patientId
-      );
-      if (record) {
-        setSelectedRecord(record);
-      } else {
-        setError("Patient record not found");
-      }
-    } catch (err) {
-      setError("Failed to load patient record");
-      console.error("Patient selection error:", err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  const refetch = async () => {
-    await fetchRecords();
   };
 
   useEffect(() => {
-    const initFetch = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        // Simulate API delay
-        await new Promise((resolve) => setTimeout(resolve, 800));
-        setRecords(mockMedicalRecords);
-
-        // If initial patient ID is provided, select that patient
-        if (initialPatientId) {
-          const initialRecord = mockMedicalRecords.find(
-            (r) =>
-              r.patientId === initialPatientId ||
-              r.id === initialPatientId ||
-              r.medicalRecordNumber === initialPatientId
-          );
-          if (initialRecord) {
-            setSelectedRecord(initialRecord);
-          }
-        }
-      } catch (err) {
-        setError("Failed to load medical records");
-        console.error("Medical records fetch error:", err);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    initFetch();
-  }, [initialPatientId]);
+    if (initialPatientId) {
+      fetchFullPatientRecord(initialPatientId);
+    }
+  }, [initialPatientId, fetchFullPatientRecord]);
 
   return {
     records,

@@ -29,7 +29,7 @@ public class ChangePatientStatusHandler : IRequestHandler<ChangePatientStatusCom
 }
 
 public record SetEmergencyContactsCommand(Guid Id, List<EmergencyContactDto> Contacts) : IRequest<bool>;
-public record EmergencyContactDto(string Name, string? Relation, string? Phone);
+
 
 public class SetEmergencyContactsHandler : IRequestHandler<SetEmergencyContactsCommand, bool>
 {

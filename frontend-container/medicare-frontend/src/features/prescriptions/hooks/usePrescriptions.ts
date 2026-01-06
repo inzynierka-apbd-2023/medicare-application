@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
-import { useLoadingService } from "../../../shared/hooks/useLoadingService";
+import { useAuth } from "../../../shared/auth/AuthContext";
+import { patientsApi } from "../../../shared/services/patientsApi";
+import { prescriptionsApi } from "../../../shared/services/prescriptionsApi";
 import {
   Patient,
   Prescription,
@@ -8,105 +10,68 @@ import {
   PrescriptionFormData,
 } from "../types";
 
-// Mock data for now
-const mockPrescriptions: Prescription[] = [
-  {
-    id: "rx1",
-    patientId: "1",
-    doctorId: "doc1",
-    medications: [
-      {
-        id: "med1",
-        name: "Lisinopril",
-        genericName: "Lisinopril",
-        dosage: "10mg",
-        frequency: "Once daily",
-        duration: "30 days",
-        instructions: "Take with or without food",
-        quantity: 30,
-        unit: "tablets",
-        refills: 5,
-        isGenericAllowed: true,
-      },
-    ],
-    diagnosis: "Hypertension",
-    notes: "Monitor blood pressure regularly",
-    status: "active",
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-01-15"),
-    validUntil: new Date("2024-07-15"),
-    issuedAt: new Date("2024-01-15"),
-  },
-];
-
-const mockPatients: Patient[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john.doe@email.com",
-    phone: "+1-555-0123",
-    dateOfBirth: new Date("1985-03-15"),
-    allergies: ["Penicillin", "Shellfish"],
-    medicalHistory: ["Hypertension", "Type 2 Diabetes"],
-  },
-];
-
 export const usePrescriptions = () => {
-  const [prescriptions, setPrescriptions] =
-    useState<Prescription[]>(mockPrescriptions);
-  const [patients, setPatients] = useState<Patient[]>(mockPatients);
+  const { user } = useAuth();
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [patients, setPatients] = useState<Patient[]>([]);
   const [selectedPrescription, setSelectedPrescription] =
     useState<Prescription | null>(null);
   const [filters, setFilters] = useState<PrescriptionFilter>({});
   const [error, setError] = useState<string | null>(null);
-  const { isLoading } = useLoadingService();
+  const [isLoading, setIsLoading] = useState(false);
 
   const fetchPrescriptions = useCallback(async () => {
     try {
       setError(null);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 300));
-      setPrescriptions(mockPrescriptions);
+      setIsLoading(true);
+      const data = await prescriptionsApi.getPrescriptions(filters);
+      setPrescriptions(data);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to fetch prescriptions"
       );
+    } finally {
+      setIsLoading(false);
     }
-  }, []);
+  }, [filters]);
 
   const fetchPatients = useCallback(async () => {
     try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 200));
-      setPatients(mockPatients);
+      if (!user?.id) return;
+
+      // Fetch patients using the patientsApi
+      const response = await patientsApi.getPatients(user.id);
+      if (response.success && response.data) {
+        // Map to the Patient type expected by prescriptions
+        // Backend returns 'age', calculate approximate dateOfBirth
+        const mappedPatients: Patient[] = response.data.map((p) => {
+          // Calculate approximate DOB from age
+          const today = new Date();
+          const year = today.getFullYear() - (p.age || 0);
+          const approximateDob = new Date(year, 0, 1);
+
+          return {
+            id: p.id,
+            name: p.name,
+            email: p.email || "",
+            phone: p.phone || "",
+            dateOfBirth: approximateDob,
+            allergies: [],
+            medicalHistory: [],
+          };
+        });
+        setPatients(mappedPatients);
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch patients");
     }
-  }, []);
+  }, [user?.id]);
 
   const createPrescription = useCallback(async (data: PrescriptionFormData) => {
     try {
       setError(null);
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 500));
-
-      const newPrescription: Prescription = {
-        id: `rx${Date.now()}`,
-        patientId: data.patientId,
-        doctorId: "doc1",
-        medications: data.medications.map((med, index) => ({
-          id: `med${Date.now()}_${index}`,
-          ...med,
-        })),
-        diagnosis: data.diagnosis,
-        ...(data.notes && { notes: data.notes }),
-        status: "active",
-        createdAt: new Date(),
-        updatedAt: new Date(),
-        validUntil: data.validUntil,
-        issuedAt: new Date(),
-      };
-
+      setIsLoading(true);
+      const newPrescription = await prescriptionsApi.createPrescription(data);
       setPrescriptions((prev) => [newPrescription, ...prev]);
       return newPrescription;
     } catch (err) {
@@ -114,6 +79,8 @@ export const usePrescriptions = () => {
         err instanceof Error ? err.message : "Failed to create prescription"
       );
       throw err;
+    } finally {
+      setIsLoading(false);
     }
   }, []);
 
@@ -121,23 +88,8 @@ export const usePrescriptions = () => {
     async (id: string, data: Partial<PrescriptionFormData>) => {
       try {
         setError(null);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 500));
-
-        const updatedPrescription = prescriptions.find((p) => p.id === id);
-        if (!updatedPrescription) throw new Error("Prescription not found");
-
-        const updated: Prescription = {
-          ...updatedPrescription,
-          ...data,
-          medications: data.medications
-            ? data.medications.map((med, index) => ({
-                id: `med${Date.now()}_${index}`,
-                ...med,
-              }))
-            : updatedPrescription.medications,
-          updatedAt: new Date(),
-        };
+        setIsLoading(true);
+        const updated = await prescriptionsApi.updatePrescription(id, data);
 
         setPrescriptions((prev) =>
           prev.map((prescription) =>
@@ -154,17 +106,19 @@ export const usePrescriptions = () => {
           err instanceof Error ? err.message : "Failed to update prescription"
         );
         throw err;
+      } finally {
+        setIsLoading(false);
       }
     },
-    [prescriptions, selectedPrescription?.id]
+    [selectedPrescription?.id]
   );
 
   const deletePrescription = useCallback(
     async (id: string) => {
       try {
         setError(null);
-        // Simulate API call
-        await new Promise((resolve) => setTimeout(resolve, 300));
+        setIsLoading(true);
+        await prescriptionsApi.deletePrescription(id);
 
         setPrescriptions((prev) =>
           prev.filter((prescription) => prescription.id !== id)
@@ -177,6 +131,8 @@ export const usePrescriptions = () => {
           err instanceof Error ? err.message : "Failed to delete prescription"
         );
         throw err;
+      } finally {
+        setIsLoading(false);
       }
     },
     [selectedPrescription?.id]

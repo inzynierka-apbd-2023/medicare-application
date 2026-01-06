@@ -60,7 +60,7 @@ const TodaysAppointmentsPage: React.FC = () => {
   };
 
   const handleContactPatient = (patientId: string) => {
-    navigate(`/messages?patientId=${patientId}`);
+    navigate(`/messages?recipientId=${patientId}`);
   };
 
   if (loading) {

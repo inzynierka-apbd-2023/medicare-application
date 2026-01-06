@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router-dom";
 import { Calendar, Clock, Filter, Users } from "lucide-react";
 
 import Header from "../../layout/Header";
+import { useAuth } from "../../shared/auth/AuthContext";
 import { Card, ErrorDisplay, LoadingOverlay } from "../../shared/components";
 
 import { DoctorScheduleCalendar } from "./components/DoctorScheduleCalendar";
@@ -14,9 +15,16 @@ import type {
 } from "./types/doctorScheduler";
 
 export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
-  doctorId = "current-doctor-id",
+  doctorId: propDoctorId,
   isReadOnly: _isReadOnly = true,
 }) => {
+  const { user } = useAuth();
+  // Use prop if provided, otherwise fallback to current user's ID
+  const doctorId =
+    propDoctorId && propDoctorId !== "current-doctor-id"
+      ? propDoctorId
+      : user?.id;
+
   const [selectedDate, setSelectedDate] = useState<string | undefined>();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] =
@@ -36,7 +44,7 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     markAppointmentNoShow,
     addAppointmentNotes,
   } = useDoctorSchedule({
-    doctorId,
+    ...(doctorId ? { doctorId } : {}),
     autoRefresh: true,
     refreshInterval: 60000, // Refresh every minute
   });

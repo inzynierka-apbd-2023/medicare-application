@@ -1,46 +1,34 @@
 import React, { useState } from "react";
 
-import {
-  Medication,
-  Patient,
-  PrescriptionFormData,
-  PrescriptionFormProps,
-} from "../types";
+import { Patient, PrescriptionFormData, PrescriptionFormProps } from "../types";
 
 export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
   prescription,
   patients,
+  preSelectedPatientId,
   onSubmit,
   onCancel,
   isLoading = false,
 }) => {
+  const isEditMode = !!prescription;
+
   const [formData, setFormData] = useState<PrescriptionFormData>(() => ({
-    patientId: prescription?.patientId || "",
+    patientId: prescription?.patientId || preSelectedPatientId || "",
     diagnosis: prescription?.diagnosis || "",
     notes: prescription?.notes || "",
-    medications: prescription?.medications.map((med) => ({
-      name: med.name,
-      ...(med.genericName && { genericName: med.genericName }),
-      dosage: med.dosage,
-      frequency: med.frequency,
-      duration: med.duration,
-      instructions: med.instructions,
-      quantity: med.quantity,
-      unit: med.unit,
-      refills: med.refills,
-      isGenericAllowed: med.isGenericAllowed,
-    })) || [
+    medications: [
       {
-        name: "",
-        genericName: "",
-        dosage: "",
-        frequency: "",
-        duration: "",
-        instructions: "",
-        quantity: 1,
-        unit: "tablets",
-        refills: 0,
-        isGenericAllowed: true,
+        name: prescription?.medications[0]?.name || "",
+        genericName: prescription?.medications[0]?.genericName || "",
+        dosage: prescription?.medications[0]?.dosage || "",
+        frequency: prescription?.medications[0]?.frequency || "",
+        duration: prescription?.medications[0]?.duration || "30",
+        instructions: prescription?.medications[0]?.instructions || "",
+        quantity: prescription?.medications[0]?.quantity || 1,
+        unit: prescription?.medications[0]?.unit || "tablets",
+        refills: prescription?.medications[0]?.refills || 0,
+        isGenericAllowed:
+          prescription?.medications[0]?.isGenericAllowed ?? true,
       },
     ],
     validUntil:
@@ -53,50 +41,23 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
     onSubmit(formData);
   };
 
-  const addMedication = () => {
+  const updateMedication = (field: string, value: unknown) => {
     setFormData((prev) => ({
       ...prev,
-      medications: [
-        ...prev.medications,
-        {
-          name: "",
-          genericName: "",
-          dosage: "",
-          frequency: "",
-          duration: "",
-          instructions: "",
-          quantity: 1,
-          unit: "tablets",
-          refills: 0,
-          isGenericAllowed: true,
-        },
-      ],
+      medications: [{ ...prev.medications[0], [field]: value }],
     }));
   };
 
-  const removeMedication = (index: number) => {
-    setFormData((prev) => ({
-      ...prev,
-      medications: prev.medications.filter((_, i) => i !== index),
-    }));
-  };
-
-  const updateMedication = (index: number, field: string, value: unknown) => {
-    setFormData((prev) => ({
-      ...prev,
-      medications: prev.medications.map((med, i) =>
-        i === index ? { ...med, [field]: value } : med
-      ),
-    }));
-  };
+  // Get selected patient name for display in edit mode
+  const selectedPatient = patients.find((p) => p.id === formData.patientId);
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full max-h-screen overflow-y-auto">
+      <div className="bg-white rounded-lg max-w-2xl w-full max-h-screen overflow-y-auto">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="text-xl font-semibold text-gray-900">
-              {prescription ? "Edit Prescription" : "Create New Prescription"}
+              {isEditMode ? "Edit Prescription" : "Create New Prescription"}
             </h2>
             <button
               onClick={onCancel}
@@ -107,64 +68,115 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
-            {/* Patient Selection */}
+            {/* Patient Selection - disabled in edit mode */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Patient
               </label>
-              <select
-                value={formData.patientId}
-                onChange={(e) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    patientId: e.target.value,
-                  }))
-                }
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-              >
-                <option value="">Select a patient</option>
-                {patients.map((patient: Patient) => (
-                  <option key={patient.id} value={patient.id}>
-                    {patient.name} - {patient.email}
-                  </option>
-                ))}
-              </select>
+              {isEditMode ? (
+                <div className="w-full px-3 py-2 border border-gray-200 rounded-md bg-gray-50 text-gray-700">
+                  {selectedPatient?.name || "Unknown Patient"} -{" "}
+                  {selectedPatient?.email || ""}
+                </div>
+              ) : (
+                <select
+                  value={formData.patientId}
+                  onChange={(e) =>
+                    setFormData((prev) => ({
+                      ...prev,
+                      patientId: e.target.value,
+                    }))
+                  }
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="">Select a patient</option>
+                  {patients.map((patient: Patient) => (
+                    <option key={patient.id} value={patient.id}>
+                      {patient.name} - {patient.email}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
 
-            {/* Diagnosis */}
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Diagnosis
-              </label>
-              <input
-                type="text"
-                value={formData.diagnosis}
-                onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                  setFormData((prev) => ({
-                    ...prev,
-                    diagnosis: e.target.value,
-                  }))
-                }
-                required
-                placeholder="Enter diagnosis"
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-              />
+            {/* Medication Details - single medication per prescription */}
+            <div className="border border-gray-200 rounded-lg p-4">
+              <h3 className="text-lg font-medium text-gray-900 mb-4">
+                Medication Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <input
+                  type="text"
+                  placeholder="Medication Name *"
+                  value={formData.medications[0].name}
+                  onChange={(e) => updateMedication("name", e.target.value)}
+                  required
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Generic Name (Optional)"
+                  value={formData.medications[0].genericName || ""}
+                  onChange={(e) =>
+                    updateMedication("genericName", e.target.value)
+                  }
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Dosage (e.g., 10mg) *"
+                  value={formData.medications[0].dosage}
+                  onChange={(e) => updateMedication("dosage", e.target.value)}
+                  required
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Frequency (e.g., Once daily) *"
+                  value={formData.medications[0].frequency}
+                  onChange={(e) =>
+                    updateMedication("frequency", e.target.value)
+                  }
+                  required
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="number"
+                  placeholder="Duration (days)"
+                  value={formData.medications[0].duration}
+                  onChange={(e) => updateMedication("duration", e.target.value)}
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                <input
+                  type="text"
+                  placeholder="Instructions"
+                  value={formData.medications[0].instructions}
+                  onChange={(e) =>
+                    updateMedication("instructions", e.target.value)
+                  }
+                  className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+              </div>
             </div>
 
             {/* Notes */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Notes (Optional)
+                Diagnosis / Notes
               </label>
               <textarea
                 value={formData.notes}
                 onChange={(e) =>
-                  setFormData((prev) => ({ ...prev, notes: e.target.value }))
+                  setFormData((prev) => ({
+                    ...prev,
+                    notes: e.target.value,
+                    diagnosis: e.target.value,
+                  }))
                 }
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                placeholder="Additional notes or instructions"
+                placeholder="Diagnosis and additional notes"
               />
             </div>
 
@@ -187,94 +199,6 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
               />
             </div>
 
-            {/* Medications */}
-            <div>
-              <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-gray-900">
-                  Medications
-                </h3>
-                <button
-                  type="button"
-                  className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-                  onClick={addMedication}
-                >
-                  Add Medication
-                </button>
-              </div>
-
-              <div className="space-y-4">
-                {formData.medications.map(
-                  (medication: Omit<Medication, "id">, index: number) => (
-                    <div
-                      key={index}
-                      className="border border-gray-200 rounded-lg p-4"
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-medium text-gray-900">
-                          Medication {index + 1}
-                        </h4>
-                        {formData.medications.length > 1 && (
-                          <button
-                            type="button"
-                            className="px-3 py-1 text-sm border border-red-300 text-red-600 rounded hover:bg-red-50 transition-colors"
-                            onClick={() => removeMedication(index)}
-                          >
-                            Remove
-                          </button>
-                        )}
-                      </div>
-
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <input
-                          type="text"
-                          placeholder="Medication Name"
-                          value={medication.name}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            updateMedication(index, "name", e.target.value)
-                          }
-                          required
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Generic Name (Optional)"
-                          value={medication.genericName || ""}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            updateMedication(
-                              index,
-                              "genericName",
-                              e.target.value
-                            )
-                          }
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Dosage (e.g., 10mg)"
-                          value={medication.dosage}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            updateMedication(index, "dosage", e.target.value)
-                          }
-                          required
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                        <input
-                          type="text"
-                          placeholder="Frequency (e.g., Once daily)"
-                          value={medication.frequency}
-                          onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
-                            updateMedication(index, "frequency", e.target.value)
-                          }
-                          required
-                          className="px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                        />
-                      </div>
-                    </div>
-                  )
-                )}
-              </div>
-            </div>
-
             {/* Form Actions */}
             <div className="flex items-center justify-end gap-3 pt-6 border-t">
               <button
@@ -292,7 +216,7 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
               >
                 {isLoading
                   ? "Saving..."
-                  : prescription
+                  : isEditMode
                     ? "Update Prescription"
                     : "Create Prescription"}
               </button>

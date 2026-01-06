@@ -100,6 +100,7 @@ export interface PrescriptionCardProps {
 export interface PrescriptionFormProps {
   prescription?: Prescription | undefined;
   patients: Patient[];
+  preSelectedPatientId?: string | null;
   onSubmit: (data: PrescriptionFormData) => void;
   onCancel: () => void;
   isLoading?: boolean;

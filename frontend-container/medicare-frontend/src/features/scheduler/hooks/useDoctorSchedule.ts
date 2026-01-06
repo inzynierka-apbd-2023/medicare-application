@@ -104,14 +104,10 @@ export const useDoctorSchedule = ({
 
   const refreshSchedule = useCallback(async () => {
     // Prevent fetching if doctorId is invalid or a placeholder
-    if (
-      !doctorId ||
-      doctorId === "current-doctor-id" ||
-      doctorId === "mock-doctor-id"
-    ) {
-      console.log(
-        `[useDoctorSchedule] Skipping fetch - invalid doctorId: ${doctorId}`
-      );
+    // We allow fetching even for "current-doctor-id" as the layout might resolve it,
+    // but typically we want a real ID. For now, we'll try to fetch if it's not empty.
+    if (!doctorId) {
+      console.log(`[useDoctorSchedule] Skipping fetch - no doctorId`);
       return;
     }
 
@@ -120,21 +116,26 @@ export const useDoctorSchedule = ({
     setError(null);
 
     try {
-      // Get both schedule and today's appointments in parallel for faster loading
-      const startOfWeek = new Date();
-      startOfWeek.setDate(startOfWeek.getDate() - startOfWeek.getDay());
-      const endOfWeek = new Date(startOfWeek);
-      endOfWeek.setDate(endOfWeek.getDate() + 6);
+      // Get both schedule and today's appointments in parallel
+      // Calculate start and end of current month to ensure we cover enough range for the calendar
+      // Or at least a reasonable window around the current view.
+      // For simplicity, let's fetch the current month + previous/next week buffer
+      const now = new Date();
+      const startRange = new Date(now.getFullYear(), now.getMonth(), 1);
+      startRange.setDate(startRange.getDate() - 7); // Buffer
+
+      const endRange = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+      endRange.setDate(endRange.getDate() + 7); // Buffer
 
       console.log(
-        `[useDoctorSchedule] Fetching schedule from ${startOfWeek.toISOString().split("T")[0]} to ${endOfWeek.toISOString().split("T")[0]}`
+        `[useDoctorSchedule] Fetching schedule from ${startRange.toISOString().split("T")[0]} to ${endRange.toISOString().split("T")[0]}`
       );
 
       const [scheduleResponse, todaysResponse] = await Promise.all([
         DoctorScheduleApiService.getDoctorSchedule(
           doctorId,
-          startOfWeek.toISOString().split("T")[0],
-          endOfWeek.toISOString().split("T")[0]
+          startRange.toISOString().split("T")[0],
+          endRange.toISOString().split("T")[0]
         ),
         DoctorScheduleApiService.getTodaysAppointments(doctorId),
       ]);

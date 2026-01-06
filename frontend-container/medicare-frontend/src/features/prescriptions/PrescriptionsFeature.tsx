@@ -1,10 +1,14 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 
 import { usePrescriptions } from "./hooks/usePrescriptions";
 import { PrescriptionForm, PrescriptionList } from "./components";
 import { Prescription, PrescriptionFormData } from "./types";
 
 export const PrescriptionsFeature: React.FC = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const patientIdFromUrl = searchParams.get("patientId");
+
   const {
     prescriptions,
     patients,
@@ -20,7 +24,25 @@ export const PrescriptionsFeature: React.FC = () => {
   const [showForm, setShowForm] = useState(false);
   const [editingPrescription, setEditingPrescription] =
     useState<Prescription | null>(null);
+  const [preSelectedPatientId, setPreSelectedPatientId] = useState<
+    string | null
+  >(null);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Auto-open form when patientId is in URL
+  useEffect(() => {
+    if (patientIdFromUrl && patients.length > 0) {
+      // Check if the patient exists in the list
+      const patientExists = patients.some((p) => p.id === patientIdFromUrl);
+      if (patientExists) {
+        setPreSelectedPatientId(patientIdFromUrl);
+        setEditingPrescription(null);
+        setShowForm(true);
+        // Clear the URL param after opening the modal
+        setSearchParams({});
+      }
+    }
+  }, [patientIdFromUrl, patients, setSearchParams]);
 
   // Filter prescriptions based on search term
   const filteredPrescriptions = prescriptions.filter(
@@ -63,6 +85,7 @@ export const PrescriptionsFeature: React.FC = () => {
   const handleFormCancel = () => {
     setShowForm(false);
     setEditingPrescription(null);
+    setPreSelectedPatientId(null);
   };
 
   const handleDeletePrescription = async (prescriptionId: string) => {
@@ -155,6 +178,7 @@ export const PrescriptionsFeature: React.FC = () => {
         <PrescriptionForm
           prescription={editingPrescription || undefined}
           patients={patients}
+          preSelectedPatientId={preSelectedPatientId}
           onSubmit={handleFormSubmit}
           onCancel={handleFormCancel}
           isLoading={isLoading}

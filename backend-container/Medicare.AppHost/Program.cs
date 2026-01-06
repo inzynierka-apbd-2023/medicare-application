@@ -52,6 +52,7 @@ var patientService = builder.AddProject<Projects.PatientService>("patientservice
                             .WithReference(rabbitmq)
                             .WaitFor(sharedDb)
                             .WaitFor(rabbitmq)
+                            .WaitFor(userService)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");

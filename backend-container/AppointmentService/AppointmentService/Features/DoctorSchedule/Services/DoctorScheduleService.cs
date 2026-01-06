@@ -1,6 +1,8 @@
+using System.Linq;
 using Microsoft.EntityFrameworkCore;
 using AppointmentService.Data;
 using AppointmentService.Features.DoctorSchedule.DTOs;
+using AppointmentService.Models;
 
 namespace AppointmentService.Features.DoctorSchedule.Services;
 
@@ -40,6 +42,12 @@ public class DoctorScheduleService : IDoctorScheduleService
             .OrderBy(a => a.ScheduledAt)
             .ToListAsync(cancellationToken);
 
+        // Fetch patient profiles
+        var patientIds = appointments.Select(a => a.PatientId).Distinct().ToList();
+        var profiles = await _context.UserProfiles
+            .Where(p => patientIds.Contains(p.User_Id))
+            .ToDictionaryAsync(p => p.User_Id, cancellationToken);
+
         // Update overdue status in-memory (same as AppointmentsController does)
         var now = DateTime.Now;
         foreach (var a in appointments)
@@ -50,8 +58,8 @@ public class DoctorScheduleService : IDoctorScheduleService
             }
         }
 
-        // Map to DTO - simplified without cross-schema patient enrichment
-        var scheduleEvents = appointments.Select(MapToScheduleEvent).ToList();
+        // Map to DTO with patient enrichment
+        var scheduleEvents = appointments.Select(a => MapToScheduleEvent(a, profiles.ContainsKey(a.PatientId) ? profiles[a.PatientId] : null)).ToList();
 
         return new DoctorScheduleResponse
         {
@@ -78,7 +86,10 @@ public class DoctorScheduleService : IDoctorScheduleService
         if (appointment == null)
             return null;
 
-        return MapToScheduleEvent(appointment);
+        var profile = await _context.UserProfiles
+            .FirstOrDefaultAsync(p => p.User_Id == appointment.PatientId, cancellationToken);
+
+        return MapToScheduleEvent(appointment, profile);
     }
 
     public async Task<bool> UpdateAppointmentStatusAsync(
@@ -126,20 +137,40 @@ public class DoctorScheduleService : IDoctorScheduleService
     }
 
     /// <summary>
-    /// Maps appointment to DTO without cross-schema patient enrichment.
-    /// Patient name/phone will show "Unknown" - frontend can enrich from UserService if needed.
-    /// This matches how patient scheduler works (it enriches doctor name from PractitionerService on frontend).
+    /// Maps appointment to DTO with patient enrichment from UserProfile.
     /// </summary>
-    private static DoctorScheduleEventDto MapToScheduleEvent(AppointmentService.Models.Appointment appointment)
+    private static DoctorScheduleEventDto MapToScheduleEvent(AppointmentService.Models.Appointment appointment, AppointmentService.Models.UserProfile? profile)
     {
+        string patientName = "Unknown Patient";
+        int patientAge = 0;
+        string patientPhone = "";
+        string? patientEmail = null;
+
+        if (profile != null)
+        {
+            patientName = $"{profile.FirstName} {profile.LastName}".Trim();
+            if (string.IsNullOrEmpty(patientName)) patientName = "Unknown Patient";
+            
+            if (profile.DateOfBirth.HasValue)
+            {
+                var today = DateTime.Today;
+                var age = today.Year - profile.DateOfBirth.Value.Year;
+                if (profile.DateOfBirth.Value.Date > today.AddYears(-age)) age--;
+                patientAge = age;
+            }
+            
+            patientPhone = profile.Phone ?? "";
+            patientEmail = profile.Email;
+        }
+
         return new DoctorScheduleEventDto
         {
             Id = appointment.Id,
             PatientId = appointment.PatientId,
-            PatientName = "Patient", // Frontend can enrich from UserService
-            PatientAge = 0,
-            PatientPhone = "",
-            PatientEmail = null,
+            PatientName = patientName,
+            PatientAge = patientAge,
+            PatientPhone = patientPhone,
+            PatientEmail = patientEmail,
             AppointmentType = appointment.AppointmentType ?? "General",
             Date = appointment.ScheduledAt.ToString("yyyy-MM-dd"),
             Time = appointment.ScheduledAt.ToString("HH:mm"),
@@ -147,9 +178,9 @@ public class DoctorScheduleService : IDoctorScheduleService
             Status = appointment.Status.ToLower(),
             ChiefComplaint = appointment.ChiefComplaint,
             Notes = appointment.Notes,
-            MedicalHistory = new List<string>(),
-            Allergies = new List<string>(),
-            CurrentMedications = new List<string>()
+            MedicalHistory = new List<string>(), // Not in DB yet
+            Allergies = new List<string>(),      // Not in DB yet
+            CurrentMedications = new List<string>() // Not in DB yet
         };
     }
 }

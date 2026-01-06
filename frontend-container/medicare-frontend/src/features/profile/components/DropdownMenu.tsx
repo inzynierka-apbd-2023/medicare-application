@@ -1,10 +1,13 @@
 import React from "react";
 import { Link, useNavigate } from "react-router-dom";
+
 import { useAuth } from "../../../shared/auth/AuthContext";
 
 export const DropdownMenu: React.FC = () => {
   const navigate = useNavigate();
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
+
+  const isDoctor = user?.role === "Doctor";
 
   const handleLogout: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
     e.preventDefault();
@@ -33,14 +36,16 @@ export const DropdownMenu: React.FC = () => {
       >
         My Profile
       </Link>
-      <Link
-        to="/user/wallet"
-        onClick={() => {}}
-        className="block px-4 py-2 text-gray-700 hover:bg-blue-50"
-        role="menuitem"
-      >
-        Wallet
-      </Link>
+      {!isDoctor && (
+        <Link
+          to="/user/wallet"
+          onClick={() => {}}
+          className="block px-4 py-2 text-gray-700 hover:bg-blue-50"
+          role="menuitem"
+        >
+          Wallet
+        </Link>
+      )}
       <Link
         to="/login"
         onClick={handleLogout}

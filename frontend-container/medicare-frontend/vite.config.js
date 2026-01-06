@@ -98,7 +98,20 @@ export default defineConfig(({ mode }) => {
           secure: false,
         },
 
+        // LabService
+        "/api/lab": {
+          target: env.VITE_LAB_SERVICE_URL || "http://localhost:8784",
+          changeOrigin: true,
+          secure: false,
+        },
+
         // MedicalRecordsService
+        "/api/medical": {
+          target:
+            env.VITE_MEDICAL_RECORDS_SERVICE_URL || "http://localhost:8684",
+          changeOrigin: true,
+          secure: false,
+        },
         "/api/medicalrecords": {
           target:
             env.VITE_MEDICAL_RECORDS_SERVICE_URL || "http://localhost:8684",
@@ -109,13 +122,6 @@ export default defineConfig(({ mode }) => {
         // MessagingService
         "/api/messaging": {
           target: env.VITE_MESSAGING_SERVICE_URL || "http://localhost:8984",
-          changeOrigin: true,
-          secure: false,
-        },
-
-        // LabService
-        "/api/lab": {
-          target: env.VITE_LAB_SERVICE_URL || "http://localhost:8784",
           changeOrigin: true,
           secure: false,
         },

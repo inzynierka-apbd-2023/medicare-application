@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   AlertTriangle,
   Calendar,
@@ -26,6 +26,11 @@ export const DoctorScheduleModal: React.FC<DoctorScheduleModalProps> = ({
 }) => {
   const [notes, setNotes] = useState(appointment?.notes || "");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
+
+  useEffect(() => {
+    setNotes(appointment?.notes || "");
+    setIsEditingNotes(false);
+  }, [appointment]);
 
   if (!appointment) return null;
 

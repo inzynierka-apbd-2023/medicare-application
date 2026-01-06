@@ -1,329 +1,264 @@
 import {
   Doctor,
-  Medication,
   Patient,
-  Pharmacy,
   Prescription,
   PrescriptionFilter,
   PrescriptionFormData,
 } from "../../features/prescriptions/types";
 
-// Mock data
-const mockPatients: Patient[] = [
-  {
-    id: "1",
-    name: "John Doe",
-    email: "john.doe@email.com",
-    phone: "+1-555-0123",
-    dateOfBirth: new Date("1985-03-15"),
-    allergies: ["Penicillin", "Shellfish"],
-    medicalHistory: ["Hypertension", "Type 2 Diabetes"],
-  },
-  {
-    id: "2",
-    name: "Jane Smith",
-    email: "jane.smith@email.com",
-    phone: "+1-555-0124",
-    dateOfBirth: new Date("1992-07-22"),
-    allergies: ["Latex"],
-    medicalHistory: ["Asthma"],
-  },
-  {
-    id: "3",
-    name: "Robert Johnson",
-    email: "robert.johnson@email.com",
-    phone: "+1-555-0125",
-    dateOfBirth: new Date("1978-11-03"),
-    allergies: [],
-    medicalHistory: ["High Cholesterol", "Arthritis"],
-  },
-];
+import { apiClient } from "./apiClient";
+import { staffApi } from "./staffApi";
 
-const mockDoctors: Doctor[] = [
-  {
-    id: "doc1",
-    name: "Dr. Sarah Wilson",
-    specialization: "Internal Medicine",
-    licenseNumber: "MD123456",
-    email: "dr.wilson@clinic.com",
-    phone: "+1-555-0200",
-  },
-  {
-    id: "doc2",
-    name: "Dr. Michael Chen",
-    specialization: "Cardiology",
-    licenseNumber: "MD789012",
-    email: "dr.chen@clinic.com",
-    phone: "+1-555-0201",
-  },
-];
+// Backend prescription model (single medication per row)
+interface BackendPrescription {
+  id: string;
+  medicalRecordId: string;
+  patientId: string;
+  doctorId: string;
+  medicationName: string;
+  atcCode?: string;
+  dosage: string;
+  frequency: string;
+  durationDays: number;
+  instructions?: string;
+  prescribedDate: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
 
-const mockPharmacies: Pharmacy[] = [
-  {
-    id: "ph1",
-    name: "City Pharmacy",
-    address: "123 Main St, City, ST 12345",
-    phone: "+1-555-0300",
-    email: "info@citypharmacy.com",
-  },
-  {
-    id: "ph2",
-    name: "HealthCare Pharmacy",
-    address: "456 Oak Ave, Town, ST 67890",
-    phone: "+1-555-0301",
-    email: "contact@healthcarepharmacy.com",
-  },
-];
+// Map backend prescription to frontend format
+const mapBackendToFrontend = (bp: BackendPrescription): Prescription => {
+  const prescribedDate = new Date(bp.prescribedDate);
+  const validUntil = new Date(prescribedDate);
+  validUntil.setDate(validUntil.getDate() + bp.durationDays);
 
-const mockMedications: Medication[] = [
-  {
-    id: "med1",
-    name: "Lisinopril",
-    genericName: "Lisinopril",
-    dosage: "10mg",
-    frequency: "Once daily",
-    duration: "30 days",
-    instructions: "Take with or without food",
-    quantity: 30,
-    unit: "tablets",
-    refills: 5,
-    isGenericAllowed: true,
-  },
-  {
-    id: "med2",
-    name: "Metformin",
-    genericName: "Metformin HCl",
-    dosage: "500mg",
-    frequency: "Twice daily",
-    duration: "30 days",
-    instructions: "Take with meals to reduce stomach upset",
-    quantity: 60,
-    unit: "tablets",
-    refills: 5,
-    isGenericAllowed: true,
-  },
-];
-
-const mockPrescriptions: Prescription[] = [
-  {
-    id: "rx1",
-    patientId: "1",
-    doctorId: "doc1",
-    appointmentId: "apt1",
-    medications: [mockMedications[0]],
-    diagnosis: "Hypertension",
-    notes: "Monitor blood pressure regularly",
-    status: "active",
-    createdAt: new Date("2024-01-15"),
-    updatedAt: new Date("2024-01-15"),
-    validUntil: new Date("2024-07-15"),
-    issuedAt: new Date("2024-01-15"),
-    pharmacyId: "ph1",
-  },
-  {
-    id: "rx2",
-    patientId: "1",
-    doctorId: "doc1",
-    medications: [mockMedications[1]],
-    diagnosis: "Type 2 Diabetes Mellitus",
-    notes: "Check blood glucose levels as directed",
-    status: "partially_dispensed",
-    createdAt: new Date("2024-01-20"),
-    updatedAt: new Date("2024-01-25"),
-    validUntil: new Date("2024-07-20"),
-    issuedAt: new Date("2024-01-20"),
-    pharmacyId: "ph1",
-    dispensedAt: new Date("2024-01-21"),
-  },
-  {
-    id: "rx3",
-    patientId: "2",
-    doctorId: "doc1",
+  return {
+    id: bp.id,
+    patientId: bp.patientId,
+    doctorId: bp.doctorId,
     medications: [
       {
-        id: "med3",
-        name: "Albuterol Inhaler",
-        genericName: "Albuterol Sulfate",
-        dosage: "90mcg",
-        frequency: "As needed",
-        duration: "30 days",
-        instructions: "Use as rescue inhaler for breathing difficulties",
-        quantity: 1,
-        unit: "inhaler",
-        refills: 2,
-        isGenericAllowed: false,
+        id: `med-${bp.id}`,
+        name: bp.medicationName,
+        genericName: bp.medicationName,
+        dosage: bp.dosage,
+        frequency: bp.frequency,
+        duration: `${bp.durationDays} days`,
+        instructions: bp.instructions || "",
+        quantity: bp.durationDays,
+        unit: "doses",
+        refills: 0,
+        isGenericAllowed: true,
       },
     ],
-    diagnosis: "Asthma",
-    notes: "Patient should carry inhaler at all times",
-    status: "active",
-    createdAt: new Date("2024-02-01"),
-    updatedAt: new Date("2024-02-01"),
-    validUntil: new Date("2024-08-01"),
-    issuedAt: new Date("2024-02-01"),
-  },
-];
-
-// Simulation delay
-const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+    diagnosis: bp.instructions || "See prescription notes",
+    notes: bp.instructions || "",
+    status: bp.status.toLowerCase() as Prescription["status"],
+    createdAt: new Date(bp.createdAt),
+    updatedAt: new Date(bp.updatedAt),
+    validUntil,
+    issuedAt: prescribedDate,
+  };
+};
 
 class PrescriptionsApi {
   async getPrescriptions(
     filters: PrescriptionFilter = {}
   ): Promise<Prescription[]> {
-    await delay(300);
+    try {
+      const params = new URLSearchParams();
+      if (filters.patientId) params.append("patientId", filters.patientId);
+      if (filters.doctorId) params.append("doctorId", filters.doctorId);
+      if (filters.status) params.append("status", filters.status);
+      if (filters.searchTerm) params.append("search", filters.searchTerm);
 
-    let filtered = [...mockPrescriptions];
+      const queryString = params.toString();
+      const url = `/medical/prescriptions${queryString ? `?${queryString}` : ""}`;
 
-    if (filters.status) {
-      filtered = filtered.filter((rx) => rx.status === filters.status);
+      const response = await apiClient.get<BackendPrescription[]>(url);
+      return response.data.map(mapBackendToFrontend);
+    } catch (error) {
+      console.error("Failed to fetch prescriptions:", error);
+      return [];
     }
-
-    if (filters.patientId) {
-      filtered = filtered.filter((rx) => rx.patientId === filters.patientId);
-    }
-
-    if (filters.doctorId) {
-      filtered = filtered.filter((rx) => rx.doctorId === filters.doctorId);
-    }
-
-    if (filters.dateFrom) {
-      filtered = filtered.filter((rx) => rx.createdAt >= filters.dateFrom!);
-    }
-
-    if (filters.dateTo) {
-      filtered = filtered.filter((rx) => rx.createdAt <= filters.dateTo!);
-    }
-
-    if (filters.searchTerm) {
-      const searchLower = filters.searchTerm.toLowerCase();
-      filtered = filtered.filter(
-        (rx) =>
-          rx.diagnosis.toLowerCase().includes(searchLower) ||
-          rx.medications.some(
-            (med) =>
-              med.name.toLowerCase().includes(searchLower) ||
-              (med.genericName &&
-                med.genericName.toLowerCase().includes(searchLower))
-          ) ||
-          rx.notes?.toLowerCase().includes(searchLower)
-      );
-    }
-
-    return filtered.sort(
-      (a, b) => b.createdAt.getTime() - a.createdAt.getTime()
-    );
   }
 
   async getPrescriptionById(id: string): Promise<Prescription | null> {
-    await delay(200);
-    return mockPrescriptions.find((rx) => rx.id === id) || null;
+    try {
+      const response = await apiClient.get<BackendPrescription>(
+        `/medical/prescriptions/${id}`
+      );
+      return mapBackendToFrontend(response.data);
+    } catch (error) {
+      console.error("Failed to fetch prescription:", error);
+      return null;
+    }
   }
 
   async createPrescription(data: PrescriptionFormData): Promise<Prescription> {
-    await delay(500);
+    // Create a prescription for each medication since backend stores one medication per row
+    const responses: BackendPrescription[] = [];
 
-    const newPrescription: Prescription = {
-      id: `rx${Date.now()}`,
-      patientId: data.patientId,
-      doctorId: "doc1", // Current user
-      medications: data.medications.map((med, index) => ({
-        id: `med${Date.now()}_${index}`,
-        ...med,
-      })),
-      diagnosis: data.diagnosis,
-      ...(data.notes && { notes: data.notes }),
-      status: "active",
-      createdAt: new Date(),
-      updatedAt: new Date(),
-      validUntil: data.validUntil,
-      issuedAt: new Date(),
-    };
+    for (const medication of data.medications) {
+      if (!medication.name) continue; // Skip empty medications
 
-    mockPrescriptions.unshift(newPrescription);
-    return newPrescription;
+      const payload = {
+        medicalRecordId: "00000000-0000-0000-0000-000000000000", // Placeholder - should be real
+        patientId: data.patientId,
+        doctorId: "00000000-0000-0000-0000-000000000000", // Will be set by auth context
+        medicationName: medication.name,
+        atcCode: null,
+        dosage: medication.dosage,
+        frequency: medication.frequency,
+        durationDays: parseInt(medication.duration) || 30,
+        instructions: data.notes || medication.instructions,
+        prescribedDate: new Date().toISOString(),
+      };
+
+      const response = await apiClient.post<BackendPrescription>(
+        "/medical/prescriptions",
+        payload
+      );
+      responses.push(response.data);
+    }
+
+    // Return the first prescription for backward compatibility
+    if (responses.length === 0) {
+      throw new Error("No medications to save");
+    }
+    return mapBackendToFrontend(responses[0]);
   }
 
   async updatePrescription(
     id: string,
     data: Partial<PrescriptionFormData>
   ): Promise<Prescription> {
-    await delay(500);
+    const medications = data.medications || [];
 
-    const prescriptionIndex = mockPrescriptions.findIndex((rx) => rx.id === id);
-    if (prescriptionIndex === -1) {
-      throw new Error("Prescription not found");
+    if (medications.length === 0) {
+      throw new Error("No medications to save");
     }
 
-    const existingPrescription = mockPrescriptions[prescriptionIndex];
-    const updatedPrescription: Prescription = {
-      ...existingPrescription,
-      ...data,
-      medications: data.medications
-        ? data.medications.map((med, index) => ({
-            id: `med${Date.now()}_${index}`,
-            ...med,
-          }))
-        : existingPrescription.medications,
-      updatedAt: new Date(),
+    // Update the existing prescription with the first medication
+    const firstMed = medications[0];
+    const payload = {
+      medicationName: firstMed?.name || "",
+      dosage: firstMed?.dosage || "",
+      frequency: firstMed?.frequency || "",
+      durationDays: firstMed?.duration ? parseInt(firstMed.duration) : 30,
+      instructions: data.notes || firstMed?.instructions,
+      status: null,
     };
 
-    mockPrescriptions[prescriptionIndex] = updatedPrescription;
-    return updatedPrescription;
+    const response = await apiClient.put<BackendPrescription>(
+      `/medical/prescriptions/${id}`,
+      payload
+    );
+
+    // Create new prescriptions for any additional medications (starting from index 1)
+    for (let i = 1; i < medications.length; i++) {
+      const med = medications[i];
+      if (!med.name) continue; // Skip empty medications
+
+      const newPayload = {
+        medicalRecordId: "00000000-0000-0000-0000-000000000000",
+        patientId: data.patientId || "",
+        doctorId: "00000000-0000-0000-0000-000000000000",
+        medicationName: med.name,
+        atcCode: null,
+        dosage: med.dosage,
+        frequency: med.frequency,
+        durationDays: parseInt(med.duration) || 30,
+        instructions: data.notes || med.instructions,
+        prescribedDate: new Date().toISOString(),
+      };
+
+      await apiClient.post<BackendPrescription>(
+        "/medical/prescriptions",
+        newPayload
+      );
+    }
+
+    return mapBackendToFrontend(response.data);
   }
 
   async deletePrescription(id: string): Promise<void> {
-    await delay(300);
-
-    const index = mockPrescriptions.findIndex((rx) => rx.id === id);
-    if (index === -1) {
-      throw new Error("Prescription not found");
-    }
-
-    mockPrescriptions.splice(index, 1);
+    await apiClient.delete(`/medical/prescriptions/${id}`);
   }
 
   async getPatients(): Promise<Patient[]> {
-    await delay(200);
-    return [...mockPatients];
+    try {
+      // Use the patientsApi to get patients
+      // This requires a user ID, so we'll try to get from auth
+      const token = localStorage.getItem("authToken");
+      if (!token) return [];
+
+      // Parse user ID from token or use a workaround
+      // For now, return empty and let the component handle it
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch patients:", error);
+      return [];
+    }
   }
 
   async getDoctors(): Promise<Doctor[]> {
-    await delay(200);
-    return [...mockDoctors];
+    try {
+      const response = await staffApi.getStaff({ role: "Doctor" });
+      if (response.success && response.data) {
+        interface DoctorExtended {
+          specializations?: Array<{ name: string }>;
+          licenseNumber?: string;
+        }
+        return response.data
+          .filter((s) => s.role === "Doctor")
+          .map((doc) => {
+            const docExtended = doc as typeof doc & DoctorExtended;
+            return {
+              id: doc.id,
+              name: `Dr. ${doc.profile.firstName} ${doc.profile.lastName}`,
+              specialization:
+                docExtended.specializations?.[0]?.name || "General Practice",
+              licenseNumber: docExtended.licenseNumber || "",
+              email: doc.profile.email,
+              phone: doc.profile.phone || "",
+            };
+          });
+      }
+      return [];
+    } catch (error) {
+      console.error("Failed to fetch doctors:", error);
+      return [];
+    }
   }
 
-  async getPharmacies(): Promise<Pharmacy[]> {
-    await delay(200);
-    return [...mockPharmacies];
+  async getPharmacies(): Promise<
+    {
+      id: string;
+      name: string;
+      address: string;
+      phone: string;
+      email: string;
+    }[]
+  > {
+    // Pharmacies are not yet in backend - return empty
+    return [];
   }
 
   async updatePrescriptionStatus(
     id: string,
     status: Prescription["status"]
   ): Promise<Prescription> {
-    await delay(300);
-
-    const prescriptionIndex = mockPrescriptions.findIndex((rx) => rx.id === id);
-    if (prescriptionIndex === -1) {
-      throw new Error("Prescription not found");
-    }
-
-    const updatedPrescription = {
-      ...mockPrescriptions[prescriptionIndex],
-      status,
-      updatedAt: new Date(),
-      ...(status === "fully_dispensed" && { dispensedAt: new Date() }),
-    };
-
-    mockPrescriptions[prescriptionIndex] = updatedPrescription;
-    return updatedPrescription;
+    const response = await apiClient.put<BackendPrescription>(
+      `/medical/prescriptions/${id}/status`,
+      { status: status.charAt(0).toUpperCase() + status.slice(1) }
+    );
+    return mapBackendToFrontend(response.data);
   }
 
   async generatePrescriptionPDF(id: string): Promise<Blob> {
-    await delay(1000);
-
-    // Mock PDF generation
+    // PDF generation not yet in backend
     const pdfContent = `Prescription ID: ${id}\nGenerated on: ${new Date().toISOString()}`;
     return new Blob([pdfContent], { type: "application/pdf" });
   }

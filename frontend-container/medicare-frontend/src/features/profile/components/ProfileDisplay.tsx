@@ -102,8 +102,8 @@ export const ProfileDisplay: React.FC<ProfileDisplayProps> = ({
         </div>
       </Card>
 
-      {/* Subscription Information */}
-      <SubscriptionCard />
+      {/* Subscription Information - only show for patients, not doctors */}
+      {profileData.membershipName !== "Doctor" && <SubscriptionCard />}
 
       {/* Security Section */}
       <Card

@@ -4,14 +4,22 @@ using Microsoft.EntityFrameworkCore;
 using MedicalRecordsService.Data;
 using MedicalRecordsService.Models;
 
+using MediatR;
+using MedicalRecordsService.Features.MedicalRecords.Queries.GetPatientHistory;
+
 namespace MedicalRecordsService.Controllers;
 
 [ApiController]
-[Route("api/medical/[controller]")]
+[Route("api/medical/medicalrecords")]
 public class MedicalRecordsController : ControllerBase
 {
     private readonly MedicalRecordsDbContext _db;
-    public MedicalRecordsController(MedicalRecordsDbContext db) => _db = db;
+    private readonly IMediator _mediator;
+    public MedicalRecordsController(MedicalRecordsDbContext db, IMediator mediator)
+    {
+        _db = db;
+        _mediator = mediator;
+    }
 
     [HttpPost]
     [Authorize]
@@ -58,6 +66,13 @@ public class MedicalRecordsController : ControllerBase
             .OrderByDescending(r => r.VisitDate)
             .ToListAsync();
         return Ok(records);
+    }
+
+    [HttpGet("patient-history/{patientId}")]
+    public async Task<IActionResult> GetPatientHistory(Guid patientId)
+    {
+        var result = await _mediator.Send(new GetPatientHistoryQuery(patientId));
+        return Ok(result);
     }
 
     [HttpGet("{id}/complete")]

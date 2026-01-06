@@ -7,45 +7,49 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
   isOpen,
   onClose,
   onStartConversation,
-  availableDoctors,
+  availableRecipients,
   isLoading = false,
   preSelectedRecipientId,
+  userRole = "patient", // Current user's role
 }) => {
-  const [selectedDoctor, setSelectedDoctor] = useState<User | null>(() => {
-    if (preSelectedRecipientId) {
-      return (
-        availableDoctors.find((d) => d.id === preSelectedRecipientId) || null
-      );
+  const [selectedRecipient, setSelectedRecipient] = useState<User | null>(
+    () => {
+      if (preSelectedRecipientId) {
+        return (
+          availableRecipients.find((d) => d.id === preSelectedRecipientId) ||
+          null
+        );
+      }
+      return null;
     }
-    return null;
-  });
+  );
 
-  // Update selected doctor when preSelectedRecipientId or availableDoctors changes
+  // Update selected recipient when preSelectedRecipientId or availableRecipients changes
   React.useEffect(() => {
     if (preSelectedRecipientId && isOpen) {
-      const found = availableDoctors.find(
+      const found = availableRecipients.find(
         (d) => d.id === preSelectedRecipientId
       );
-      if (found) setSelectedDoctor(found);
+      if (found) setSelectedRecipient(found);
     }
-  }, [preSelectedRecipientId, availableDoctors, isOpen]);
+  }, [preSelectedRecipientId, availableRecipients, isOpen]);
 
   const [message, setMessage] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
 
-  const filteredDoctors = availableDoctors.filter(
-    (doctor) =>
-      doctor.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      (doctor.specialty &&
-        doctor.specialty.toLowerCase().includes(searchQuery.toLowerCase()))
+  const filteredRecipients = availableRecipients.filter(
+    (recipient) =>
+      recipient.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (recipient.specialty &&
+        recipient.specialty.toLowerCase().includes(searchQuery.toLowerCase()))
   );
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (selectedDoctor && message.trim()) {
+    if (selectedRecipient && message.trim()) {
       onStartConversation(
-        selectedDoctor.id,
-        selectedDoctor.name,
+        selectedRecipient.id,
+        selectedRecipient.name,
         message.trim()
       );
       handleClose();
@@ -53,47 +57,49 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
   };
 
   const handleClose = () => {
-    setSelectedDoctor(null);
+    setSelectedRecipient(null);
     setMessage("");
     setSearchQuery("");
     onClose();
   };
 
-  const isFormValid = selectedDoctor && message.trim().length > 0;
+  const isFormValid = selectedRecipient && message.trim().length > 0;
+
+  const targetLabel = userRole === "doctor" ? "Patient" : "Doctor";
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="New Message" size="lg">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {/* Doctor Selection */}
+        {/* Recipient Selection */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Select Doctor
+            Select {targetLabel}
           </label>
 
           {/* Search Input */}
           <Input
             type="text"
-            placeholder="Search by name or specialty..."
+            placeholder={`Search by name${userRole === "patient" ? " or specialty" : ""}...`}
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
             className="mb-3"
           />
 
-          {/* Doctor List */}
+          {/* Recipient List */}
           <div className="max-h-48 overflow-y-auto border border-gray-200 rounded-lg">
-            {filteredDoctors.length === 0 ? (
+            {filteredRecipients.length === 0 ? (
               <div className="p-4 text-center text-gray-500">
                 {searchQuery
-                  ? "No doctors found matching your search"
-                  : "No doctors available"}
+                  ? "No users found matching your search"
+                  : `No ${targetLabel.toLowerCase()}s available`}
               </div>
             ) : (
-              filteredDoctors.map((doctor) => (
+              filteredRecipients.map((recipient) => (
                 <div
-                  key={doctor.id}
-                  onClick={() => setSelectedDoctor(doctor)}
+                  key={recipient.id}
+                  onClick={() => setSelectedRecipient(recipient)}
                   className={`p-3 cursor-pointer border-b border-gray-100 last:border-b-0 hover:bg-gray-50 transition-colors ${
-                    selectedDoctor?.id === doctor.id
+                    selectedRecipient?.id === recipient.id
                       ? "bg-blue-50 border-blue-200"
                       : ""
                   }`}
@@ -101,7 +107,7 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
                   <div className="flex items-center space-x-3">
                     {/* Avatar */}
                     <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-full flex items-center justify-center text-white font-semibold text-sm">
-                      {doctor.name
+                      {recipient.name
                         .split(" ")
                         .map((n: string) => n[0])
                         .join("")
@@ -111,17 +117,17 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
                     {/* Info */}
                     <div className="flex-1">
                       <h4 className="font-medium text-gray-900">
-                        {doctor.name}
+                        {recipient.name}
                       </h4>
-                      {doctor.specialty && (
+                      {recipient.specialty && (
                         <p className="text-sm text-gray-600">
-                          {doctor.specialty}
+                          {recipient.specialty}
                         </p>
                       )}
                     </div>
 
                     {/* Selection indicator */}
-                    {selectedDoctor?.id === doctor.id && (
+                    {selectedRecipient?.id === recipient.id && (
                       <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
                         <svg
                           className="w-2 h-2 text-white"
@@ -157,23 +163,24 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
           </p>
         </div>
 
-        {/* Selected Doctor Summary */}
-        {selectedDoctor && (
+        {/* Selected Recipient Summary */}
+        {selectedRecipient && (
           <div className="bg-blue-50 p-3 rounded-lg">
             <h4 className="text-sm font-medium text-blue-900 mb-1">
               Sending message to:
             </h4>
             <div className="flex items-center space-x-2">
               <div className="w-6 h-6 bg-blue-500 rounded-full flex items-center justify-center text-white text-xs font-semibold">
-                {selectedDoctor.name
+                {selectedRecipient.name
                   .split(" ")
                   .map((n: string) => n[0])
                   .join("")
                   .substring(0, 2)}
               </div>
               <span className="text-sm text-blue-800">
-                {selectedDoctor.name}
-                {selectedDoctor.specialty && ` • ${selectedDoctor.specialty}`}
+                {selectedRecipient.name}
+                {selectedRecipient.specialty &&
+                  ` • ${selectedRecipient.specialty}`}
               </span>
             </div>
           </div>

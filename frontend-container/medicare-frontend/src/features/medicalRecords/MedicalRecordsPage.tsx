@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useSearchParams } from "react-router-dom";
 import {
   Calendar,
   FileText,
@@ -30,8 +30,13 @@ import type { MedicalRecordSection, MedicalRecordsPageProps } from "./types";
 export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({
   patientId: propPatientId,
 }) => {
+  // Support both route params (/medical-records/:patientId) and query params (?patientId=...)
   const { patientId: routePatientId } = useParams<{ patientId?: string }>();
-  const patientId = propPatientId || routePatientId;
+  const [searchParams] = useSearchParams();
+  const queryPatientId = searchParams.get("patientId");
+  const patientId =
+    propPatientId || routePatientId || queryPatientId || undefined;
+
   const {
     records,
     selectedRecord,
@@ -41,7 +46,8 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({
     selectPatient,
   } = useMedicalRecords(patientId);
 
-  const [searchTerm, setSearchTerm] = useState("");
+  // Initialize search term from URL patientId if present
+  const [searchTerm, setSearchTerm] = useState(patientId || "");
   const [selectedSection, setSelectedSection] =
     useState<MedicalRecordSection>("overview");
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
@@ -72,7 +78,10 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({
     if (patientId && !selectedRecord) {
       selectPatient(patientId);
     }
-  }, [patientId, selectedRecord, selectPatient]);
+  }, [patientId, selectedRecord, selectPatient]); // Only re-run if these change
+
+  // Note: Search term is initialized with patientId from URL and stays editable
+  // User can freely modify the search bar after initial page load
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString();
@@ -93,7 +102,11 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({
     }
   };
 
-  if (error && !selectedRecord) {
+  // Only show error page for actual errors, not "not found" which is normal search behavior
+  const isActualError =
+    error && !error.toLowerCase().includes("no patient found");
+
+  if (isActualError && !selectedRecord) {
     return (
       <div className="min-h-screen bg-gray-100 pt-16">
         <Header />
@@ -504,7 +517,8 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({
               </div>
             </div>
           ) : (
-            !isLoading && (
+            !isLoading &&
+            !searchTerm && (
               <EmptyState
                 icon={<FileText className="w-12 h-12 text-gray-400" />}
                 title="No Patient Selected"

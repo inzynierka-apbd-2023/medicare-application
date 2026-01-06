@@ -86,7 +86,6 @@ export const PatientTable: React.FC<PatientTableProps> = ({ patients }) => {
                       "medical-records",
                       "prescription",
                       "message",
-                      "notes",
                     ] as PatientAction[]
                   ).map((action) => (
                     <PatientActionButton

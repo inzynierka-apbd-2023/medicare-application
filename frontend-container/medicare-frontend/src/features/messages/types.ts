@@ -90,9 +90,10 @@ export interface NewMessageModalProps {
     recipientName: string,
     initialMessage: string
   ) => void;
-  availableDoctors: User[];
+  availableRecipients: User[];
   isLoading?: boolean;
   preSelectedRecipientId?: string;
+  userRole?: "patient" | "doctor";
 }
 
 export interface MessagesState {

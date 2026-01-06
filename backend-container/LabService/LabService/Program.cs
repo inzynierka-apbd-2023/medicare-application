@@ -23,7 +23,8 @@ LogConnectionInfo(connectionString, "Config");
 
 builder.Services.AddControllers();
 
-
+// Register MediatR for CQRS pattern
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
 builder.Services.AddDbContext<LabDbContext>((sp, options) =>
 {

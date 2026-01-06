@@ -51,6 +51,29 @@ function mapBackendToPatient(p: BackendPatient): Patient {
   return result;
 }
 
+export interface BackendPatientProfile {
+  id: string;
+  userId: string;
+  primaryDoctorId?: string;
+  name: string;
+  email: string;
+  phone: string;
+  address: string;
+  dateOfBirth?: string;
+  gender: string;
+  emergencyContacts: Array<{
+    name: string;
+    relation?: string;
+    phone?: string;
+  }>;
+  insurance: Array<{
+    provider?: string;
+    policyNumber?: string;
+    validFrom?: string;
+    validTo?: string;
+  }>;
+}
+
 export const patientsApi = {
   /**
    * Get all patients for a doctor based on their appointments
@@ -81,10 +104,75 @@ export const patientsApi = {
    * Get a specific patient by ID - fetches from patient list
    */
   async getPatientById(
-    _patientId: string
+    patientId: string
   ): Promise<ApiResponse<Patient | null>> {
-    // Not implemented - would need dedicated endpoint
-    return { success: false, data: null, message: "Not implemented" };
+    try {
+      const response = await apiClient.get<BackendPatientProfile>(
+        `/patient/patients/${patientId}`
+      );
+      const p = response.data;
+
+      // Calculate age from DOB
+      let age = 0;
+      if (p.dateOfBirth) {
+        const birthDate = new Date(p.dateOfBirth);
+        const today = new Date();
+        age = today.getFullYear() - birthDate.getFullYear();
+        const m = today.getMonth() - birthDate.getMonth();
+        if (m < 0 || (m === 0 && today.getDate() < birthDate.getDate())) {
+          age--;
+        }
+      }
+
+      // Map gender
+      type ValidGender = "Male" | "Female" | "Other";
+      const validGenders: readonly ValidGender[] = ["Male", "Female", "Other"];
+      const gender: ValidGender = validGenders.includes(p.gender as ValidGender)
+        ? (p.gender as ValidGender)
+        : "Other";
+
+      const patient: Patient = {
+        id: p.id,
+        name: p.name || "Unknown",
+        age: age,
+        gender: gender,
+        lastVisit: "", // Not available in profile service
+        visits: 0, // Not available in profile service
+        notes: "",
+        email: p.email,
+        phone: p.phone,
+      };
+
+      return { success: true, data: patient };
+    } catch (e) {
+      console.error("Failed to fetch patient profile", e);
+      return {
+        success: false,
+        data: null,
+        message: "Failed to fetch patient profile",
+      };
+    }
+  },
+
+  /**
+   * Get raw patient profile including contacts and insurance (for Medical Record View)
+   */
+  async getPatientProfile(
+    patientId: string
+  ): Promise<ApiResponse<BackendPatientProfile | null>> {
+    try {
+      const response = await apiClient.get<BackendPatientProfile>(
+        `/patient/patients/${patientId}`
+      );
+      return { success: true, data: response.data };
+    } catch (e) {
+      console.error("Failed to fetch raw patient profile", e);
+      return {
+        success: false,
+        data: null,
+        message: "Failed to fetch raw patient profile",
+      };
+    }
   },
 
   /**

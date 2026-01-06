@@ -9,7 +9,7 @@ export interface DoctorScheduleEvent {
   date: string;
   time: string;
   duration: number; // in minutes
-  status: "scheduled" | "completed" | "no-show" | "cancelled";
+  status: "scheduled" | "completed" | "no-show" | "cancelled" | "overdue";
   chiefComplaint?: string;
   notes?: string;
   medicalHistory?: string[];
