@@ -12,14 +12,10 @@ var sharedDb = sql.AddDatabase("MedicareDb");
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
                       .WithManagementPlugin();
 
-// JWT Secret Key - uses Aspire's secure parameter management
-// For local development: uses the default value below
-// For Azure deployment: set via 'azd env set JWT_SECRET <value>' or Azure Key Vault
-// Generated cryptographically secure 64-character key (change for production!)
+
 var jwtSecret = builder.AddParameter("jwt-secret", secret: true);
 
 // SMTP Configuration for email sending (password reset, welcome emails)
-// For production: set via 'azd env set' or Azure Key Vault
 var smtpUsername = builder.AddParameter("smtp-username", secret: true);
 var smtpPassword = builder.AddParameter("smtp-password", secret: true);
 var frontendBaseUrl = builder.AddParameter("frontend-base-url");
@@ -35,6 +31,7 @@ var userService = builder.AddProject<Projects.UserService>("userservice")
                          .WithEnvironment("Jwt__Issuer", "UserService")
                          .WithEnvironment("Jwt__Audience", "MedicareApp");
 
+
 var practitionerService = builder.AddProject<Projects.PractitionerService>("practitionerservice")
                                  .WithReference(sharedDb)
                                  .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
@@ -45,6 +42,8 @@ var practitionerService = builder.AddProject<Projects.PractitionerService>("prac
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                  .WithEnvironment("Jwt__Issuer", "UserService")
                                  .WithEnvironment("Jwt__Audience", "MedicareApp");
+
+        
 
 var patientService = builder.AddProject<Projects.PatientService>("patientservice")
                             .WithReference(sharedDb)
@@ -57,6 +56,8 @@ var patientService = builder.AddProject<Projects.PatientService>("patientservice
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
 
+   
+
 var catalogService = builder.AddProject<Projects.MedicalCatalogService>("medicalcatalogservice")
                             .WithReference(sharedDb)
                             .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
@@ -64,6 +65,8 @@ var catalogService = builder.AddProject<Projects.MedicalCatalogService>("medical
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
+
+   
 
 var billingService = builder.AddProject<Projects.BillingService>("billingservice")
                             .WithReference(sharedDb)
@@ -75,6 +78,8 @@ var billingService = builder.AddProject<Projects.BillingService>("billingservice
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
 
+   
+
 var documentsService = builder.AddProject<Projects.DocumentsService>("documentsservice")
                               .WithReference(sharedDb)
                               .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
@@ -84,6 +89,8 @@ var documentsService = builder.AddProject<Projects.DocumentsService>("documentss
                               .WithEnvironment("Jwt__SecretKey", jwtSecret)
                               .WithEnvironment("Jwt__Issuer", "UserService")
                               .WithEnvironment("Jwt__Audience", "MedicareApp");
+
+     
 
 var appointmentService = builder.AddProject<Projects.AppointmentService>("appointmentservice")
                                 .WithReference(sharedDb)
@@ -97,6 +104,8 @@ var appointmentService = builder.AddProject<Projects.AppointmentService>("appoin
                                 .WithEnvironment("Jwt__Issuer", "UserService")
                                 .WithEnvironment("Jwt__Audience", "MedicareApp");
 
+       
+
 var recordsService = builder.AddProject<Projects.MedicalRecordsService>("medicalrecordsservice")
                             .WithReference(sharedDb)
                             .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
@@ -105,13 +114,17 @@ var recordsService = builder.AddProject<Projects.MedicalRecordsService>("medical
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
 
+   
+
 var labService = builder.AddProject<Projects.LabService>("labservice")
                         .WithReference(sharedDb)
                         .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
                         .WaitFor(sharedDb)
                         .WithEnvironment("Jwt__SecretKey", jwtSecret)
                         .WithEnvironment("Jwt__Issuer", "UserService")
-                        .WithEnvironment("Jwt__Audience", "MedicareApp");
+                        .WithEnvironment("Jwt__Audience", "MedicareApp")
+
+                        .WithReplicas(0);
 
 var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice")
                             .WithReference(sharedDb)
@@ -122,6 +135,8 @@ var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp");
+
+   
 
 var notificationService = builder.AddProject<Projects.NotificationService>("notificationservice")
                                  .WithReference(sharedDb)
@@ -140,6 +155,8 @@ var notificationService = builder.AddProject<Projects.NotificationService>("noti
                                  .WithEnvironment("Jwt__Issuer", "UserService")
                                  .WithEnvironment("Jwt__Audience", "MedicareApp");
 
+        
+
 var messagingService = builder.AddProject<Projects.MessagingService>("messagingservice")
                               .WithReference(sharedDb)
                               .WithEnvironment("AZURE_SQL_CONNECTIONSTRING", sharedDb.Resource.ConnectionStringExpression)
@@ -150,12 +167,16 @@ var messagingService = builder.AddProject<Projects.MessagingService>("messagings
                               .WithEnvironment("Jwt__Issuer", "UserService")
                               .WithEnvironment("Jwt__Audience", "MedicareApp");
 
+     
+
 var pdfService = builder.AddProject<Projects.PdfService>("pdfservice")
                         .WithReference(rabbitmq)
                         .WaitFor(rabbitmq)
                         .WithEnvironment("Jwt__SecretKey", jwtSecret)
                         .WithEnvironment("Jwt__Issuer", "UserService")
-                        .WithEnvironment("Jwt__Audience", "MedicareApp");
+                        .WithEnvironment("Jwt__Audience", "MedicareApp")
+
+                        .WithReplicas(0);
 
 // Frontend (Docker)
 // Deployed as an Nginx container serving the React build
@@ -175,6 +196,9 @@ builder.AddDockerfile("frontend", "../../frontend-container/medicare-frontend")
        .WithReference(messagingService)
        .WaitFor(userService);
 
+
+
 // Orchestration complete
 builder.Build().Run();
+
 

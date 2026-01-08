@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { Edit, Eye, Search } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { Calendar, Edit, Eye, Search } from "lucide-react";
 
 import Header from "../../../layout/Header";
 import type { TableColumn } from "../../../shared/components";
@@ -19,6 +20,7 @@ import type { PatientRegistryInfo } from "../types";
 import { PatientDetailsModal } from "./PatientDetailsModal";
 
 export const PatientRegistryView: React.FC = () => {
+  const navigate = useNavigate();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] =
@@ -85,6 +87,14 @@ export const PatientRegistryView: React.FC = () => {
         setSelectedPatient(null);
         setIsEditMode(false);
       }
+    }
+  };
+
+  const handleBookAppointment = (patient: PatientRegistryInfo) => {
+    if (patient.id) {
+      navigate(
+        `/receptionist-scheduler?openBooking=true&patientId=${patient.id}`
+      );
     }
   };
 
@@ -158,6 +168,15 @@ export const PatientRegistryView: React.FC = () => {
       title: "Actions",
       render: (_, patient) => (
         <div className="flex space-x-2">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={() => handleBookAppointment(patient)}
+            title="Book Appointment"
+            className="text-blue-600 hovered:text-blue-700"
+          >
+            <Calendar size={16} />
+          </Button>
           <Button
             variant="secondary"
             size="sm"

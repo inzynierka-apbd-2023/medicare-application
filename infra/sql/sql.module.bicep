@@ -39,14 +39,17 @@ resource MedicareDb 'Microsoft.Sql/servers/databases@2021-11-01' = {
   location: location
   parent: sql
   sku: {
-    name: 'GP_S_Gen5_1'
-    tier: 'GeneralPurpose'
-    family: 'Gen5'
-    capacity: 1
+    name: 'Basic'
+    tier: 'Basic'
+    capacity: 5
   }
   properties: {
-    autoPauseDelay: 60
-    minCapacity: '0.5'
+    maxSizeBytes: 2147483648
+    collation: 'SQL_Latin1_General_CP1_CI_AS'
+    catalogCollation: 'SQL_Latin1_General_CP1_CI_AS'
+    zoneRedundant: false
+    readScale: 'Disabled'
+    requestedBackupStorageRedundancy: 'Local'
   }
 }
 

@@ -58,7 +58,23 @@ const formatEventContent = (eventInfo: any) => {
   );
 };
 
+import { useAuth } from "../../shared/auth/AuthContext";
+
+// ... (keep formatEventContent as is)
+
 const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
+  const { user } = useAuth();
+
+  // If patientId prop is provided, use it.
+  // Otherwise, if user is logged in and has role 'Patient', use their ID.
+  // Note: This assumes the user.id corresponds to the patientId, which we've confirmed is the intention.
+  const isPatientRole = user?.role?.toLowerCase() === "patient";
+  const effectivePatientId =
+    patientId || (isPatientRole ? user?.id : undefined);
+
+  // Show header if it's the main view (no patientId prop) OR if it's a patient viewing their own schedule
+  const showHeader = !patientId || isPatientRole;
+
   const {
     appointments,
     calendarEvents,
@@ -75,7 +91,7 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
     // selectAppointment: setGlobalSelectedAppointment,
     updateFilters,
     stats,
-  } = useScheduler(patientId ? { patientId } : {});
+  } = useScheduler(effectivePatientId ? { patientId: effectivePatientId } : {});
 
   const [modalState, setModalState] = useState<{
     isOpen: boolean;
@@ -149,7 +165,7 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
         const requestData = data as CreateAppointmentRequest;
         await createAppointment(
           requestData,
-          requestData.patientId || patientId
+          requestData.patientId || effectivePatientId
         );
       } else if (modalState.mode === "edit" && modalState.appointment) {
         await updateAppointment(
@@ -166,8 +182,8 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
 
   return (
     <>
-      {!patientId && <Header />}
-      <div className={!patientId ? "pt-16 min-h-screen bg-gray-50" : ""}>
+      {showHeader && <Header />}
+      <div className={showHeader ? "pt-16 min-h-screen bg-gray-50" : ""}>
         <div className="container mx-auto px-4 py-8">
           {/* Page Header */}
           <div className="flex items-center justify-between mb-8">
@@ -178,7 +194,7 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
                   Schedule Management
                 </h1>
                 <p className="mt-1 text-sm text-gray-500">
-                  {patientId
+                  {effectivePatientId
                     ? "Manage your appointments"
                     : "Manage clinic schedule"}
                 </p>
@@ -209,7 +225,7 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
           )}
 
           {/* Appointment Stats - Moved above filters and styled like Receptionist view */}
-          {!patientId && stats && (
+          {!effectivePatientId && stats && (
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
               <Card className="p-6">
                 <div className="flex items-center">
@@ -322,7 +338,7 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
             appointment={modalState.appointment}
             onSave={handleModalSave}
             mode={modalState.mode}
-            patientId={patientId}
+            patientId={effectivePatientId}
             onEdit={handleEditClick}
             onCancel={handleCancelClick}
           />

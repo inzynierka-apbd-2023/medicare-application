@@ -27,10 +27,18 @@ export const ReceptionistSchedulerPage: React.FC<
   const [searchParams, setSearchParams] = useSearchParams();
   const shouldOpenBooking =
     searchParams.get("openBooking") === "true" || autoOpenBooking;
+  const initialPatientId = searchParams.get("patientId") || undefined;
 
-  const [modalState, setModalState] = useState({
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    mode: "create" | "edit" | "view";
+    appointment: ReceptionistAppointment | null;
+    patientId?: string;
+  }>({
     isOpen: shouldOpenBooking,
-    mode: "create" as "create" | "edit" | "view",
+    mode: "create",
+    appointment: null,
+    patientId: initialPatientId,
   });
 
   // Clear the URL parameter after opening the modal
@@ -38,6 +46,7 @@ export const ReceptionistSchedulerPage: React.FC<
     if (searchParams.get("openBooking") === "true") {
       setSearchParams((params) => {
         params.delete("openBooking");
+        params.delete("patientId");
         return params;
       });
     }
@@ -67,6 +76,7 @@ export const ReceptionistSchedulerPage: React.FC<
       setModalState({
         isOpen: true,
         mode: "view",
+        appointment,
       });
     },
     []
@@ -78,6 +88,7 @@ export const ReceptionistSchedulerPage: React.FC<
     setModalState({
       isOpen: true,
       mode: "create",
+      appointment: null,
     });
   }, []);
 
@@ -87,6 +98,7 @@ export const ReceptionistSchedulerPage: React.FC<
     setModalState({
       isOpen: true,
       mode: "create",
+      appointment: null,
     });
   }, []);
 
@@ -95,6 +107,7 @@ export const ReceptionistSchedulerPage: React.FC<
       setModalState({
         isOpen: true,
         mode: "edit",
+        appointment: selectedAppointment,
       });
     }
   }, [selectedAppointment]);
@@ -103,6 +116,8 @@ export const ReceptionistSchedulerPage: React.FC<
     setModalState({
       isOpen: false,
       mode: "create",
+      appointment: null,
+      patientId: undefined,
     });
     setSelectedAppointment(null);
     setSelectedDate("");
@@ -315,6 +330,7 @@ export const ReceptionistSchedulerPage: React.FC<
           onUpdateSubmit={handleUpdateSubmit}
           onCancelAppointment={handleCancelAppointment}
           onEdit={handleEditAppointment}
+          patientId={modalState.patientId}
         />
       </div>
     </div>
