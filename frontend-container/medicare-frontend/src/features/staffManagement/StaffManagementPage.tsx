@@ -17,15 +17,14 @@ export const StaffManagementPage: React.FC<StaffManagementPageProps> = ({
     selectedStaff,
     searchTerm,
     roleFilter,
-  statusFilter,
+    statusFilter,
     filteredStaff,
     setSearchTerm,
     setRoleFilter,
-  setStatusFilter,
+    setStatusFilter,
     selectStaff,
     createStaff,
     updateStaff,
-    deleteStaff,
   } = useStaffManagement();
 
   React.useEffect(() => {
@@ -78,7 +77,6 @@ export const StaffManagementPage: React.FC<StaffManagementPageProps> = ({
             onStaffDeselect={() => selectStaff(null)}
             onStaffCreate={createStaff}
             onStaffUpdate={updateStaff}
-            onStaffDelete={deleteStaff}
           />
         </div>
       </div>

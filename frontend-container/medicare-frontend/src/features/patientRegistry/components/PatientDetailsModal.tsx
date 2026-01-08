@@ -40,6 +40,7 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
       zipCode: patient.zipCode || "",
       country: patient.country || "",
       bloodType: patient.bloodType || "",
+      isActive: patient.isActive ?? true,
       ...(patient.height && { height: patient.height }),
       ...(patient.weight && { weight: patient.weight }),
       generalDoctorId: patient.generalDoctorId || "",
@@ -91,11 +92,19 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
       zipCode: patient.zipCode || "",
       country: patient.country || "",
       bloodType: patient.bloodType || "",
+      isActive: patient.isActive ?? true,
       ...(patient.height && { height: patient.height }),
       ...(patient.weight && { weight: patient.weight }),
       generalDoctorId: patient.generalDoctorId || "",
     });
     setIsEditing(false);
+  };
+
+  const handleStatusToggle = () => {
+    setFormData((prev) => ({
+      ...prev,
+      isActive: !prev.isActive,
+    }));
   };
 
   return (
@@ -126,33 +135,13 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
               <label className="block text-sm font-medium text-gray-700">
                 First Name
               </label>
-              {isEditing ? (
-                <Input
-                  name="firstName"
-                  value={formData.firstName || ""}
-                  onChange={handleInputChange}
-                  className="mt-1"
-                />
-              ) : (
-                <p className="mt-1 text-sm text-gray-900">
-                  {patient.firstName}
-                </p>
-              )}
+              <p className="mt-1 text-sm text-gray-900">{patient.firstName}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Last Name
               </label>
-              {isEditing ? (
-                <Input
-                  name="lastName"
-                  value={formData.lastName || ""}
-                  onChange={handleInputChange}
-                  className="mt-1"
-                />
-              ) : (
-                <p className="mt-1 text-sm text-gray-900">{patient.lastName}</p>
-              )}
+              <p className="mt-1 text-sm text-gray-900">{patient.lastName}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
@@ -166,33 +155,18 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
               <label className="block text-sm font-medium text-gray-700">
                 Email
               </label>
-              {isEditing ? (
-                <Input
-                  name="email"
-                  type="email"
-                  value={formData.email || ""}
-                  onChange={handleInputChange}
-                  className="mt-1"
-                />
-              ) : (
-                <p className="mt-1 text-sm text-gray-900">{patient.email}</p>
+              <p className="mt-1 text-sm text-gray-900">{patient.email}</p>
+              {isEditing && (
+                <p className="text-xs text-gray-500 italic">
+                  Email cannot be changed
+                </p>
               )}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
                 Phone
               </label>
-              {isEditing ? (
-                <Input
-                  name="phone"
-                  type="tel"
-                  value={formData.phone || ""}
-                  onChange={handleInputChange}
-                  className="mt-1"
-                />
-              ) : (
-                <p className="mt-1 text-sm text-gray-900">{patient.phone}</p>
-              )}
+              <p className="mt-1 text-sm text-gray-900">{patient.phone}</p>
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">
@@ -209,6 +183,31 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
               <p className="mt-1 text-sm text-gray-900 capitalize">
                 {patient.gender || "Not specified"}
               </p>
+            </div>
+            {/* Status Toggle */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Status
+              </label>
+              {isEditing ? (
+                <button
+                  type="button"
+                  onClick={handleStatusToggle}
+                  className={`mt-1 px-3 py-1 rounded-full text-sm font-medium transition-colors ${
+                    formData.isActive
+                      ? "bg-green-100 text-green-800 hover:bg-green-200"
+                      : "bg-red-100 text-red-800 hover:bg-red-200"
+                  }`}
+                >
+                  {formData.isActive ? "Active" : "Inactive"}
+                </button>
+              ) : (
+                <p
+                  className={`mt-1 text-sm font-medium ${patient.isActive ? "text-green-600" : "text-red-600"}`}
+                >
+                  {patient.isActive ? "Active" : "Inactive"}
+                </p>
+              )}
             </div>
           </div>
         </div>
@@ -334,14 +333,17 @@ export const PatientDetailsModal: React.FC<PatientDetailsModalProps> = ({
                   <option value="">Select a doctor</option>
                   {doctors.map((doc) => (
                     <option key={doc.id} value={doc.id}>
-                      {doc.firstName} {doc.lastName} - {doc.specialization}
+                      {doc.firstName} {doc.lastName}
+                      {doc.specialty || doc.specialization
+                        ? ` - ${doc.specialty || doc.specialization}`
+                        : ""}
                     </option>
                   ))}
                 </select>
               ) : (
                 <p className="mt-1 text-sm text-gray-900">
                   {doctor
-                    ? `${doctor.firstName} ${doctor.lastName} - ${doctor.specialization}`
+                    ? `${doctor.firstName} ${doctor.lastName}${doctor.specialty || doctor.specialization ? ` - ${doctor.specialty || doctor.specialization}` : ""}`
                     : "Not assigned"}
                 </p>
               )}

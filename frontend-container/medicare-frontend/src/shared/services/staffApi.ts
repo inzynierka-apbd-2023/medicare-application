@@ -1,4 +1,5 @@
 import { apiClient } from "./apiClient";
+import { usersApi } from "./usersApi";
 
 // Import types from the existing staff management feature
 export type StaffRole = "Doctor" | "Receptionist";
@@ -31,6 +32,7 @@ export interface Doctor {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+  credentials?: { username: string; password: string };
 }
 
 export interface Receptionist {
@@ -98,7 +100,7 @@ export interface ApiResponse<T> {
 }
 
 export interface CreateDoctorResponse {
-  directory: any;
+  directory: DirectoryRow;
   credentials?: { username: string; password: string };
 }
 
@@ -110,21 +112,47 @@ export interface Service {
   isActive: boolean;
 }
 
+export interface AvailabilityEntry {
+  dayOfWeek: number;
+  start: string;
+  end: string;
+}
+
+export interface DirectoryRow {
+  doctorId?: string;
+  id?: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
+  phone?: string;
+  specializations?: string;
+  isActive?: boolean;
+}
+
 // Map PractitionerService DoctorsController directory row -> StaffMember (Doctor)
-const mapDoctorDirectoryToStaff = (row: any): StaffMember => {
-  const specIds = (row.specializations as string | null | undefined)?.split(",").map((s) => s.trim()).filter(Boolean) || [];
+const mapDoctorDirectoryToStaff = (row: unknown): StaffMember => {
+  const r = row as DirectoryRow;
+  const specIds =
+    r.specializations
+      ?.split(",")
+      .map((s) => s.trim())
+      .filter(Boolean) || [];
   return {
-    id: row.doctorId || row.id,
+    id: r.doctorId || r.id || "",
     role: "Doctor",
     profile: {
-      firstName: row.firstName || "",
-      lastName: row.lastName || "",
-      email: row.email || "",
-      phone: row.phone,
+      firstName: r.firstName || "",
+      lastName: r.lastName || "",
+      email: r.email || "",
+      phone: r.phone,
     },
     // We only have specialization IDs from the directory; names can be joined in the UI using the catalog if needed.
-    specializations: specIds.map((id: string) => ({ id, name: "", serviceName: "" })),
-  isActive: row.isActive !== undefined ? !!row.isActive : true,
+    specializations: specIds.map((id: string) => ({
+      id,
+      name: "",
+      serviceName: "",
+    })),
+    isActive: r.isActive !== undefined ? !!r.isActive : true,
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
   } as Doctor;
@@ -133,61 +161,96 @@ const mapDoctorDirectoryToStaff = (row: any): StaffMember => {
 // (No-op) Previously mapped staff create requests; creation is no longer supported via staff API.
 
 // Helper function to handle API responses
-const handleApiResponse = <T>(response: any, mapper?: (data: any) => T): ApiResponse<T> => {
-  if (response?.data !== undefined) {
-    const backendResponse = response.data;
-  if (backendResponse && backendResponse.success !== undefined) {
+const handleApiResponse = <T>(
+  response:
+    | {
+        data?:
+          | { success?: boolean; data?: T; message?: string; errors?: string[] }
+          | T;
+      }
+    | unknown,
+  mapper?: (data: unknown) => T
+): ApiResponse<T> => {
+  if (response && typeof response === "object" && "data" in response) {
+    const backendResponse = (response as { data: unknown }).data as {
+      success?: boolean;
+      data?: unknown;
+      message?: string;
+      errors?: string[];
+    };
+    if (
+      backendResponse &&
+      typeof backendResponse === "object" &&
+      "success" in backendResponse
+    ) {
       // Backend returns ApiResponse format
       return {
-        success: backendResponse.success,
-        data: mapper && backendResponse.data ? mapper(backendResponse.data) : backendResponse.data,
-        message: backendResponse.message,
-        errors: backendResponse.errors,
+        success: !!backendResponse.success,
+        data:
+          mapper && backendResponse.data
+            ? mapper(backendResponse.data)
+            : (backendResponse.data as T),
+        ...(backendResponse.message
+          ? { message: backendResponse.message }
+          : {}),
+        ...(backendResponse.errors ? { errors: backendResponse.errors } : {}),
       };
     } else {
       // Direct data response
       return {
         success: true,
-  data: mapper ? mapper(response.data) : response.data,
+        data: mapper ? mapper(backendResponse) : (backendResponse as T),
         message: "Success",
       };
     }
   }
   return {
     success: true,
-    data: mapper ? mapper(response) : response,
+    data: mapper ? mapper(response) : (response as T),
     message: "Success",
   };
 };
 
 // Helper function to handle API errors
-const handleApiError = <T>(error: any, fallbackData: T): ApiResponse<T> => {
+const handleApiError = <T>(error: unknown, fallbackData: T): ApiResponse<T> => {
   console.error("Staff API Error:", error);
-  
+
   let errorMessage = "An unexpected error occurred";
   let errors: string[] = [];
-  
-  if (error.response?.data) {
-    const errorData = error.response.data;
+
+  const err = error as {
+    response?: {
+      data?: { message?: string; errors?: string[] | string };
+      status?: number;
+    };
+    message?: string;
+  };
+
+  if (err.response?.data) {
+    const errorData = err.response.data;
     if (errorData.message) {
       errorMessage = errorData.message;
     }
     if (errorData.errors) {
-      errors = Array.isArray(errorData.errors) ? errorData.errors : [errorData.errors];
+      errors = Array.isArray(errorData.errors)
+        ? errorData.errors
+        : typeof errorData.errors === "string"
+          ? [errorData.errors]
+          : [];
     }
-  } else if (error.message) {
-    errorMessage = error.message;
-    errors = [error.message];
-  } else if (error.response?.status === 401) {
+  } else if (err.message) {
+    errorMessage = err.message;
+    errors = [err.message];
+  } else if (err.response?.status === 401) {
     errorMessage = "Unauthorized. Please check your permissions.";
     errors = [errorMessage];
-  } else if (error.response?.status === 403) {
+  } else if (err.response?.status === 403) {
     errorMessage = "Forbidden. You don't have access to this resource.";
     errors = [errorMessage];
-  } else if (error.response?.status === 404) {
+  } else if (err.response?.status === 404) {
     errorMessage = "Staff member not found.";
     errors = [errorMessage];
-  } else if (error.response?.status >= 500) {
+  } else if (err.response?.status && err.response.status >= 500) {
     errorMessage = "Server error. Please try again later.";
     errors = [errorMessage];
   }
@@ -195,70 +258,219 @@ const handleApiError = <T>(error: any, fallbackData: T): ApiResponse<T> => {
   return {
     success: false,
     data: fallbackData,
-  message: errorMessage,
-  errors: errors.length ? errors : [errorMessage],
+    message: errorMessage,
+    errors: errors.length ? errors : [errorMessage],
   };
 };
 
 // Real API implementation using apiClient
 export const staffApi = {
   // Get all staff members with optional search parameters
-  getStaff: async (searchRequest?: StaffSearchRequest): Promise<ApiResponse<StaffMember[]>> => {
+  getStaff: async (
+    searchRequest?: StaffSearchRequest
+  ): Promise<ApiResponse<StaffMember[]>> => {
     try {
-  const params = new URLSearchParams();
-  const role = searchRequest?.role;
-  // Only Doctors are supported now
-  if (searchRequest?.searchQuery) params.append("q", searchRequest.searchQuery);
-  if (searchRequest?.specializationIds?.length) params.append("specializationId", searchRequest.specializationIds[0]);
-  if (typeof searchRequest?.isActive === "boolean") params.append("isActive", String(searchRequest.isActive));
-  const query = params.toString();
-  const url = `/practitioner/doctors${query ? "?" + query : ""}`;
-  const response = await apiClient.get(url);
-  // Response is DoctorDirectory[]
-  return handleApiResponse<StaffMember[]>(response, (data: any[]) => (role && role !== "Doctor" ? [] : data.map(mapDoctorDirectoryToStaff)));
+      const role = searchRequest?.role;
+      const isActive = searchRequest?.isActive;
+      const searchQuery = searchRequest?.searchQuery?.toLowerCase();
+
+      const promises: Promise<StaffMember[]>[] = [];
+
+      // 1. Fetch Doctors (search supported by backend)
+      if (!role || role === "Doctor") {
+        const params = new URLSearchParams();
+        if (searchRequest?.searchQuery)
+          params.append("q", searchRequest.searchQuery);
+        if (searchRequest?.specializationIds?.length)
+          params.append("specializationId", searchRequest.specializationIds[0]);
+        if (typeof isActive === "boolean")
+          params.append("isActive", String(isActive));
+        const query = params.toString();
+        const url = `/practitioner/doctors${query ? "?" + query : ""}`;
+
+        promises.push(
+          apiClient
+            .get(url)
+            .then((res) => {
+              const data = res.data;
+              // Verify success structure or direct array
+              const items = Array.isArray(data)
+                ? data
+                : data.success && Array.isArray(data.data)
+                  ? data.data
+                  : [];
+              return items.map(mapDoctorDirectoryToStaff);
+            })
+            .catch((err) => {
+              console.error("Failed to fetch doctors:", err);
+              return [];
+            })
+        );
+      }
+
+      // 2. Fetch Receptionists (manual aggregation)
+      if (!role || role === "Receptionist") {
+        promises.push(
+          staffApi.getReceptionists().then((res) => res.data || [])
+        );
+      }
+
+      const results = await Promise.all(promises);
+      let allStaff = results.flat();
+
+      // Post-filtering for Receptionists (since backend doesn't support search yet)
+      // Doctors are already filtered by backend if query param was sent
+      if (searchQuery && (!role || role === "Receptionist")) {
+        // We only need to filter receptionists in JS if we fetched them
+        // But since we merged them, we might be re-filtering doctors. Ideally distinct.
+        // Actually, for simplicity: existing doctor properties match UserProfile fields.
+        if (role === "Receptionist" || !role) {
+          // If we fetched receptionists, we need to filter them.
+          // Doctors are already filtered by backend search.
+          // However, to keep it consistent, if searchQuery is present, we filter the *receptionist* portion.
+          allStaff = allStaff.filter((s) => {
+            if (s.role === "Doctor") return true; // Already filtered by backend
+            const fullName =
+              `${s.profile.firstName} ${s.profile.lastName}`.toLowerCase();
+            const department =
+              (s as Receptionist).department?.toLowerCase() || "";
+            return (
+              fullName.includes(searchQuery) ||
+              s.profile.email.toLowerCase().includes(searchQuery) ||
+              department.includes(searchQuery)
+            );
+          });
+        }
+      }
+
+      if (typeof isActive === "boolean") {
+        // Filter receptionists for active status (doctors filtered by backend)
+        allStaff = allStaff.filter((s) =>
+          s.role === "Doctor" ? true : s.isActive === isActive
+        );
+      }
+
+      return { success: true, data: allStaff, message: "Success" };
     } catch (error) {
       return handleApiError<StaffMember[]>(error, []);
     }
   },
 
+  // Get all receptionists (helper)
+  getReceptionists: async (): Promise<ApiResponse<Receptionist[]>> => {
+    try {
+      const response = await apiClient.get<unknown>(
+        "/practitioner/receptionists"
+      );
+      const receptionistsRaw = Array.isArray(response.data)
+        ? response.data
+        : ((response.data as { data: unknown })?.data as unknown[]) || [];
+
+      if (!Array.isArray(receptionistsRaw)) return { success: true, data: [] };
+
+      const receptionists = await Promise.all(
+        receptionistsRaw.map(async (r: unknown) => {
+          try {
+            const row = r as {
+              userId: string;
+              id: string;
+              createdAt: string;
+              updatedAt: string;
+            };
+            const user = await usersApi.getUser(row.userId);
+            return {
+              id: row.id,
+              role: "Receptionist",
+              profile: {
+                firstName: user.firstName,
+                lastName: user.lastName,
+                email: user.email,
+                phone: user.phoneNumber,
+                dateOfBirth: user.dateOfBirth,
+                addressLine1: user.address,
+              },
+              department: "General", // Placeholder as it's not in DB yet
+              isActive: true, // Assuming active if returned
+              createdAt: row.createdAt,
+              updatedAt: row.updatedAt,
+            } as Receptionist;
+          } catch (e) {
+            console.error(
+              `Failed to fetch user for receptionist ${(r as { id: string }).id}`,
+              e
+            );
+            return null;
+          }
+        })
+      );
+
+      return {
+        success: true,
+        data: receptionists.filter(Boolean) as Receptionist[],
+      };
+    } catch (error) {
+      return handleApiError<Receptionist[]>(error, []);
+    }
+  },
+
   // Get staff members - alias for compatibility
-  getStaffMembers: async (searchRequest?: StaffSearchRequest): Promise<ApiResponse<StaffMember[]>> => {
+  getStaffMembers: async (
+    searchRequest?: StaffSearchRequest
+  ): Promise<ApiResponse<StaffMember[]>> => {
     return staffApi.getStaff(searchRequest);
   },
 
   // Get a single staff member by ID
-  getStaffById: async (id: string): Promise<ApiResponse<StaffMember | null>> => {
+  getStaffById: async (
+    id: string
+  ): Promise<ApiResponse<StaffMember | null>> => {
     try {
-  const response = await apiClient.get(`/practitioner/doctors/${id}/directory`);
-  return handleApiResponse<StaffMember | null>(response, (data: any) => (data ? mapDoctorDirectoryToStaff(data) : null));
+      const response = await apiClient.get(
+        `/practitioner/doctors/${id}/directory`
+      );
+      return handleApiResponse<StaffMember | null>(response, (data: unknown) =>
+        data ? mapDoctorDirectoryToStaff(data) : null
+      );
     } catch (error) {
       return handleApiError<StaffMember | null>(error, null);
     }
   },
 
   // Get staff member - alias for compatibility
-  getStaffMember: async (id: string): Promise<ApiResponse<StaffMember | null>> => {
+  getStaffMember: async (
+    id: string
+  ): Promise<ApiResponse<StaffMember | null>> => {
     return staffApi.getStaffById(id);
   },
 
   // Get staff members by role
-  getStaffByRole: async (role: StaffRole): Promise<ApiResponse<StaffMember[]>> => {
+  getStaffByRole: async (
+    role: StaffRole
+  ): Promise<ApiResponse<StaffMember[]>> => {
     try {
       if (role !== "Doctor") {
         return { success: true, data: [], message: "Only doctors supported" };
       }
       const response = await apiClient.get(`/practitioner/doctors`);
-      return handleApiResponse<StaffMember[]>(response, (data: any[]) => data.map(mapDoctorDirectoryToStaff));
+      return handleApiResponse<StaffMember[]>(response, (data: unknown) =>
+        (data as unknown[]).map(mapDoctorDirectoryToStaff)
+      );
     } catch (error) {
       return handleApiError<StaffMember[]>(error, []);
     }
   },
 
   // Create a new staff member
-  createStaff: async (_request: CreateStaffRequest): Promise<ApiResponse<StaffMember>> => {
+  createStaff: async (
+    _request: CreateStaffRequest
+  ): Promise<ApiResponse<StaffMember>> => {
     try {
       if (_request.role !== "Doctor") {
-        return { success: false, data: {} as StaffMember, message: "Only creating doctors is supported." };
+        return {
+          success: false,
+          data: {} as StaffMember,
+          message: "Only creating doctors is supported.",
+        };
       }
       // Call new practitioner endpoint to create user+doctor
       const payload = {
@@ -279,41 +491,65 @@ export const staffApi = {
         biography: _request.biography,
         specializationIds: _request.specializations,
       };
-      const res = await apiClient.post(`/practitioner/doctors/register-full`, payload);
+      const res = await apiClient.post(
+        `/practitioner/doctors/register-full`,
+        payload
+      );
       const out = res.data as CreateDoctorResponse;
       const staff = mapDoctorDirectoryToStaff(out.directory) as Doctor;
       if (out.credentials) {
-        (staff as any).credentials = out.credentials;
+        staff.credentials = out.credentials;
       }
-      return { success: true, data: staff, message: out.credentials ? `Created. Username: ${out.credentials.username} Password: ${out.credentials.password}` : "Created" };
+      return {
+        success: true,
+        data: staff,
+        message: out.credentials
+          ? `Created. Username: ${out.credentials.username} Password: ${out.credentials.password}`
+          : "Created",
+      };
     } catch (error) {
       return handleApiError<StaffMember>(error, {} as StaffMember);
     }
   },
 
   // Create staff member - alias for compatibility
-  createStaffMember: async (request: CreateStaffRequest): Promise<ApiResponse<StaffMember>> => {
+  createStaffMember: async (
+    request: CreateStaffRequest
+  ): Promise<ApiResponse<StaffMember>> => {
     return staffApi.createStaff(request);
   },
 
   // Update an existing staff member
-  updateStaff: async (id: string, request: UpdateStaffRequest): Promise<ApiResponse<StaffMember>> => {
+  updateStaff: async (
+    id: string,
+    request: UpdateStaffRequest
+  ): Promise<ApiResponse<StaffMember>> => {
     try {
       // Support updating doctor specializations only
       if (request.role === "Doctor" && request.specializations?.length) {
         const specIds = request.specializations;
-        await apiClient.put(`/practitioner/doctors/${id}/specializations`, { specializationIds: specIds });
+        await apiClient.put(`/practitioner/doctors/${id}/specializations`, {
+          specializationIds: specIds,
+        });
       }
       // Fetch latest directory row
-      const refreshed = await apiClient.get(`/practitioner/doctors/${id}/directory`);
-      return handleApiResponse<StaffMember>(refreshed, mapDoctorDirectoryToStaff);
+      const refreshed = await apiClient.get(
+        `/practitioner/doctors/${id}/directory`
+      );
+      return handleApiResponse<StaffMember>(
+        refreshed,
+        mapDoctorDirectoryToStaff
+      );
     } catch (error) {
       return handleApiError<StaffMember>(error, {} as StaffMember);
     }
   },
 
   // Update staff member - alias for compatibility
-  updateStaffMember: async (id: string, request: UpdateStaffRequest): Promise<ApiResponse<StaffMember>> => {
+  updateStaffMember: async (
+    id: string,
+    request: UpdateStaffRequest
+  ): Promise<ApiResponse<StaffMember>> => {
     return staffApi.updateStaff(id, request);
   },
 
@@ -336,8 +572,16 @@ export const staffApi = {
   // Get available specializations
   getSpecializations: async (): Promise<ApiResponse<Specialization[]>> => {
     try {
-  const response = await apiClient.get(`/practitioner/catalog/specializations`);
-  return handleApiResponse<Specialization[]>(response, (items: any[]) => items.map((s) => ({ id: s.id, name: s.name, serviceName: "" })));
+      const response = await apiClient.get(
+        `/practitioner/catalog/specializations`
+      );
+      return handleApiResponse<Specialization[]>(response, (items: unknown) =>
+        (items as { id: string; name: string }[]).map((s) => ({
+          id: s.id,
+          name: s.name,
+          serviceName: "",
+        }))
+      );
     } catch (error) {
       return handleApiError<Specialization[]>(error, []);
     }
@@ -346,26 +590,36 @@ export const staffApi = {
   // Get available services
   getServices: async (): Promise<ApiResponse<Service[]>> => {
     try {
-  const response = await apiClient.get(`/practitioner/catalog/services`);
-  return handleApiResponse<Service[]>(response);
+      const response = await apiClient.get(`/practitioner/catalog/services`);
+      return handleApiResponse<Service[]>(response);
     } catch (error) {
       return handleApiError<Service[]>(error, []);
     }
   },
 
   // Availability (schedules)
-  getAvailability: async (doctorId: string): Promise<ApiResponse<any[]>> => {
+  getAvailability: async (
+    doctorId: string
+  ): Promise<ApiResponse<AvailabilityEntry[]>> => {
     try {
-      const res = await apiClient.get(`/practitioner/doctors/${doctorId}/availability`);
-      return handleApiResponse<any[]>(res);
+      const res = await apiClient.get(
+        `/practitioner/doctors/${doctorId}/availability`
+      );
+      return handleApiResponse<AvailabilityEntry[]>(res);
     } catch (error) {
-      return handleApiError<any[]>(error, []);
+      return handleApiError<AvailabilityEntry[]>(error, []);
     }
   },
 
-  setAvailability: async (doctorId: string, entries: { dayOfWeek: number; start: string; end: string }[]): Promise<ApiResponse<boolean>> => {
+  setAvailability: async (
+    doctorId: string,
+    entries: { dayOfWeek: number; start: string; end: string }[]
+  ): Promise<ApiResponse<boolean>> => {
     try {
-      const res = await apiClient.put(`/practitioner/doctors/${doctorId}/availability`, entries);
+      const res = await apiClient.put(
+        `/practitioner/doctors/${doctorId}/availability`,
+        entries
+      );
       return { success: res.status >= 200 && res.status < 300, data: true };
     } catch (error) {
       return handleApiError<boolean>(error, false);

@@ -1,6 +1,6 @@
 import React, { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Plus, RefreshCw, Users } from "lucide-react";
+import { Calendar, Plus, RefreshCw } from "lucide-react";
 
 import Header from "../../../layout/Header";
 import {
@@ -56,9 +56,6 @@ export const ReceptionistDashboard: React.FC<
         case "new-appointment":
           navigate("/receptionist-scheduler?openBooking=true");
           break;
-        case "new-patient":
-          navigate("/patient-registry?action=new");
-          break;
         case "view-schedule":
           navigate("/receptionist-scheduler");
           break;
@@ -113,14 +110,6 @@ export const ReceptionistDashboard: React.FC<
                 className={`h-4 w-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
               />
               Refresh
-            </Button>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleQuickActions("new-patient")}
-            >
-              <Users className="h-4 w-4 mr-2" />
-              New Patient
             </Button>
             <Button
               variant="primary"

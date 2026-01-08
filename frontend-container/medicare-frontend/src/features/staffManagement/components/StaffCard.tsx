@@ -1,8 +1,18 @@
 import React, { useState } from "react";
-import { Calendar, KeyRound, Mail, MapPin, Phone, Stethoscope, User, Users } from "lucide-react";
+import {
+  Calendar,
+  KeyRound,
+  Mail,
+  MapPin,
+  Phone,
+  Stethoscope,
+  User,
+  Users,
+} from "lucide-react";
 
 import { Badge, Card } from "../../../shared/components";
 import type { StaffCardProps } from "../types";
+
 import { ScheduleEditor } from "./ScheduleEditor";
 
 export const StaffCard: React.FC<StaffCardProps> = ({ staff, onClick }) => {
@@ -133,11 +143,12 @@ export const StaffCard: React.FC<StaffCardProps> = ({ staff, onClick }) => {
         {renderRoleSpecificInfo()}
 
         {/* One-time credentials display if present */}
-        {staff.role === "Doctor" && (staff as any).credentials && (
+        {staff.role === "Doctor" && staff.credentials && (
           <div className="mt-2 p-2 rounded-md bg-amber-50 text-amber-800 text-sm flex items-center gap-2">
             <KeyRound size={16} />
             <span>
-              Username: {(staff as any).credentials.username} | Password: {(staff as any).credentials.password}
+              Username: {staff.credentials.username} | Password:{" "}
+              {staff.credentials.password}
             </span>
           </div>
         )}
@@ -150,15 +161,24 @@ export const StaffCard: React.FC<StaffCardProps> = ({ staff, onClick }) => {
           >
             View Details
           </button>
-          <button
-            onClick={(e) => { e.stopPropagation(); setShowSchedule(true); }}
-            className="bg-green-100 text-green-700 px-3 py-2 rounded-lg hover:bg-green-200 transition duration-150 w-fit text-sm font-medium inline-flex items-center gap-1"
-          >
-            <Calendar size={14} /> Schedule
-          </button>
+          {staff.role === "Doctor" && (
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                setShowSchedule(true);
+              }}
+              className="bg-green-100 text-green-700 px-3 py-2 rounded-lg hover:bg-green-200 transition duration-150 w-fit text-sm font-medium inline-flex items-center gap-1"
+            >
+              <Calendar size={14} /> Schedule
+            </button>
+          )}
         </div>
 
-        <ScheduleEditor doctor={staff} isOpen={showSchedule} onClose={() => setShowSchedule(false)} />
+        <ScheduleEditor
+          doctor={staff}
+          isOpen={showSchedule}
+          onClose={() => setShowSchedule(false)}
+        />
       </div>
     </Card>
   );

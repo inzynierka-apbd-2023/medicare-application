@@ -140,35 +140,35 @@ public class AppointmentDbContext : DbContext
         {
             e.HasKey(sa => sa.Id);
             e.Property(sa => sa.Id);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("Schedule_Appointment", "schedule", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<ScheduleAppointmentStatus>(e =>
         {
             e.HasKey(sas => sas.Id);
             e.Property(sas => sas.Id);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("Schedule_Appointment_Status", "schedule", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<AppointmentPayment>(e =>
         {
             e.HasKey(ap => ap.Id);
             e.Property(ap => ap.Id);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("Appointment_Payment", "billing", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Rate>(e =>
         {
             e.HasKey(r => r.Id);
             e.Property(r => r.Id);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("Rate", "practitioner", tb => tb.ExcludeFromMigrations());
         });
 
         modelBuilder.Entity<Notification>(e =>
         {
             e.HasKey(n => n.Id);
             e.Property(n => n.Id);
-            e.ToTable(tb => tb.ExcludeFromMigrations());
+            e.ToTable("Notification", "notification", tb => tb.ExcludeFromMigrations());
         });
     }
 }

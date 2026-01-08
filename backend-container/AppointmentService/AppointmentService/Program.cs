@@ -11,7 +11,6 @@ using AppointmentService.Features.DoctorDashboard.Services;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Migrations;
 using System.Reflection;
-using AppointmentService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -231,7 +230,7 @@ END
             Console.WriteLine($"[Startup] Warning ensuring overdue index: {ex.Message}");
         }
 
-        await SeedCatalogAsync(db);
+        await SeedCatalogAsync(db); // Enabled to provision mock data
         Console.WriteLine("[Startup] Appointment DB initialization complete.");
     }
     catch (Exception ex)

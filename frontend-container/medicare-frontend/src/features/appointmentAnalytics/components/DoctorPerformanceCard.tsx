@@ -40,37 +40,57 @@ const DoctorPerformanceCard: React.FC<DoctorPerformanceCardProps> = ({
   // Colors for the pie chart
   const COLORS = ["#10b981", "#f59e0b", "#ef4444", "#6b7280"];
 
+  // Safely handle undefined or empty data
+  const safeData = (data ?? []).filter((doc) => doc && doc.name);
+
+  console.log("DoctorPerformanceCard props data:", data);
+  console.log("DoctorPerformanceCard safeData:", safeData);
+
+  // Return empty state if no data
+  if (safeData.length === 0) {
+    return (
+      <div className="p-8 text-center text-gray-500">
+        <p className="text-lg font-medium">
+          No doctor performance data available
+        </p>
+        <p className="text-sm mt-2">
+          Data will appear once there are appointments in the system.
+        </p>
+      </div>
+    );
+  }
+
   // Calculate completion rates for bar chart
-  const chartData = data.map((doctor) => ({
-    name: doctor.name.split(" ").pop(), // Last name for brevity
-    completed: doctor.completedAppointments,
-    cancelled: doctor.cancelledAppointments,
-    noShow: doctor.noShowAppointments,
-    total: doctor.totalAppointments,
-    rating: doctor.averageRating,
-    revenue: doctor.revenue,
+  const chartData = safeData.map((doctor) => ({
+    name: (doctor.name || "Unknown").split(" ").pop() || "Doc",
+    completed: Number(doctor.completedAppointments || 0),
+    cancelled: Number(doctor.cancelledAppointments || 0),
+    noShow: Number(doctor.noShowAppointments || 0),
+    total: Number(doctor.totalAppointments || 0),
+    rating: Number(doctor.averageRating || 0),
+    revenue: Number(doctor.revenue || 0),
   }));
 
   // Top performers by different metrics
-  const topByAppointments = [...data].sort(
+  const topByAppointments = [...safeData].sort(
     (a, b) => b.totalAppointments - a.totalAppointments
   )[0];
-  const topByRating = [...data].sort(
+  const topByRating = [...safeData].sort(
     (a, b) => b.averageRating - a.averageRating
   )[0];
-  const topByRevenue = [...data].sort((a, b) => b.revenue - a.revenue)[0];
+  const topByRevenue = [...safeData].sort((a, b) => b.revenue - a.revenue)[0];
 
   // Aggregate data for pie chart
-  const totalCompleted = data.reduce(
-    (sum, doc) => sum + doc.completedAppointments,
+  const totalCompleted = safeData.reduce(
+    (sum, doc) => sum + (doc.completedAppointments || 0),
     0
   );
-  const totalCancelled = data.reduce(
-    (sum, doc) => sum + doc.cancelledAppointments,
+  const totalCancelled = safeData.reduce(
+    (sum, doc) => sum + (doc.cancelledAppointments || 0),
     0
   );
-  const totalNoShow = data.reduce(
-    (sum, doc) => sum + doc.noShowAppointments,
+  const totalNoShow = safeData.reduce(
+    (sum, doc) => sum + (doc.noShowAppointments || 0),
     0
   );
 
@@ -150,7 +170,11 @@ const DoctorPerformanceCard: React.FC<DoctorPerformanceCardProps> = ({
           </div>
 
           <div className="h-80">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer
+              width="100%"
+              height="100%"
+              key={chartData.length}
+            >
               <BarChart
                 data={chartData}
                 margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
@@ -158,14 +182,17 @@ const DoctorPerformanceCard: React.FC<DoctorPerformanceCardProps> = ({
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis
                   dataKey="name"
+                  type="category"
                   stroke="#6b7280"
                   fontSize={12}
                   angle={-45}
                   textAnchor="end"
                   height={60}
+                  interval={0}
                 />
-                <YAxis stroke="#6b7280" fontSize={12} />
+                <YAxis type="number" stroke="#6b7280" fontSize={12} />
                 <Tooltip
+                  cursor={{ fill: "rgba(0, 0, 0, 0.05)" }}
                   contentStyle={{
                     backgroundColor: "#fff",
                     border: "1px solid #e5e7eb",
@@ -176,21 +203,21 @@ const DoctorPerformanceCard: React.FC<DoctorPerformanceCardProps> = ({
                 <Legend />
                 <Bar
                   dataKey="completed"
-                  stackId="a"
                   fill="#10b981"
                   name="Completed"
+                  radius={[4, 4, 0, 0]}
                 />
                 <Bar
                   dataKey="cancelled"
-                  stackId="a"
                   fill="#f59e0b"
                   name="Cancelled"
+                  radius={[4, 4, 0, 0]}
                 />
                 <Bar
                   dataKey="noShow"
-                  stackId="a"
                   fill="#ef4444"
                   name="No Show"
+                  radius={[4, 4, 0, 0]}
                 />
               </BarChart>
             </ResponsiveContainer>
@@ -294,7 +321,7 @@ const DoctorPerformanceCard: React.FC<DoctorPerformanceCardProps> = ({
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {data.map((doctor) => (
+              {safeData.map((doctor) => (
                 <tr key={doctor.id} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
                     <div>

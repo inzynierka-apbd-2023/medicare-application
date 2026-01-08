@@ -1,7 +1,9 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Clock, MapPin, Phone, User, Video, X } from "lucide-react";
+import { Clock, MapPin, Phone, Search, User, Video, X } from "lucide-react";
 
 import { Button, Card } from "../../../shared/components";
+import { PatientRegistryApiService } from "../../patientRegistry/services/patientRegistryApi";
+import type { PatientRegistryInfo } from "../../patientRegistry/types";
 import SchedulerApiService from "../services/schedulerApiService";
 import type {
   AppointmentModalProps,
@@ -13,91 +15,136 @@ import type {
   UpdateAppointmentRequest,
 } from "../types";
 
-// Utility function to format date for HTML date input (yyyy-MM-dd)
+// Helper for input
 const formatDateForInput = (dateString: string): string => {
   try {
     const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "";
     return date.toISOString().split("T")[0];
   } catch {
     return "";
   }
 };
 
-export const AppointmentModal: React.FC<AppointmentModalProps> = ({
+interface ExtendedModalProps extends AppointmentModalProps {
+  onEdit?: () => void;
+  onCancel?: () => void;
+}
+
+export const AppointmentModal: React.FC<ExtendedModalProps> = ({
   isOpen,
   onClose,
   appointment,
   onSave,
   mode,
+  patientId: contextPatientId,
+  onEdit,
+  onCancel,
 }) => {
   const [formData, setFormData] = useState({
+    patientId: "",
     doctorUserId: "",
     serviceId: "",
     specializationId: "",
     timeSlotId: "",
     appointmentType: "in-person" as "in-person" | "virtual" | "phone",
     description: "",
+    statusId: "",
   });
 
+  // ... (rest of state and loaders same as before)
   const [formState, setFormState] = useState({
+    patients: [] as PatientRegistryInfo[],
     specializations: [] as Specialization[],
     doctors: [] as Doctor[],
     services: [] as Service[],
     timeSlots: [] as TimeSlot[],
     isLoading: false,
     error: null as string | null,
-    step: 1, // 1: Specialization, 2: Service, 3: Doctor, 4: Time, 5: Details
+    step: 1,
+    patientSearchTerm: "",
   });
 
   const [selectedDate, setSelectedDate] = useState<string>("");
 
-  // Initialize form data
   useEffect(() => {
     if (isOpen) {
       if (appointment && mode !== "create") {
         setFormData({
+          patientId: appointment.patientId,
           doctorUserId: appointment.doctorUserId,
-          serviceId: "", // Will be populated from appointment data
-          specializationId: "", // Will be populated from doctor data
+          serviceId: appointment.serviceId || "",
+          specializationId: appointment.doctor?.specializationId || "",
           timeSlotId: appointment.timeSlotId || "",
-          appointmentType: appointment.appointmentType,
+          appointmentType: appointment.appointmentType || "in-person",
           description: appointment.description || "",
+          statusId: appointment.statusId || "",
         });
-        // Set the selected date from the appointment day field
         setSelectedDate(formatDateForInput(appointment.day));
+        setFormState((prev) => ({ ...prev, step: 1 }));
       } else {
+        const initialPatientId = contextPatientId || "";
         setFormData({
+          patientId: initialPatientId,
           doctorUserId: "",
           serviceId: "",
           specializationId: "",
           timeSlotId: "",
           appointmentType: "in-person",
           description: "",
+          statusId: "",
         });
-        // Clear selected date for new appointments
         setSelectedDate("");
+        const startingStep = contextPatientId ? 1 : 0;
+        setFormState((prev) => ({
+          ...prev,
+          step: startingStep,
+          patientSearchTerm: "",
+          patients: [],
+        }));
+        if (startingStep === 1) {
+          loadSpecializations();
+        }
       }
-      setFormState((prev) => ({ ...prev, step: 1 }));
-      loadSpecializations();
     }
-  }, [isOpen, appointment, mode]);
+  }, [isOpen, appointment, mode, contextPatientId]);
+
+  const searchPatients = async (term: string) => {
+    setFormState((prev) => ({ ...prev, isLoading: true, error: null }));
+    try {
+      const result = await PatientRegistryApiService.getPatients(1, 10, {
+        searchTerm: term,
+      });
+      setFormState((prev) => ({
+        ...prev,
+        patients: result.data.patients || [],
+        isLoading: false,
+      }));
+    } catch (e) {
+      console.error(e);
+      setFormState((prev) => ({ ...prev, isLoading: false }));
+    }
+  };
+
+  useEffect(() => {
+    if (formState.step === 0 && isOpen) {
+      const timer = setTimeout(() => {
+        searchPatients(formState.patientSearchTerm);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+    return undefined;
+  }, [formState.patientSearchTerm, formState.step, isOpen]);
 
   const loadSpecializations = async () => {
     setFormState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
       const specializations = await SchedulerApiService.getSpecializations();
+      setFormState((prev) => ({ ...prev, specializations, isLoading: false }));
+    } catch {
       setFormState((prev) => ({
         ...prev,
-        specializations,
-        isLoading: false,
-      }));
-    } catch (error) {
-      setFormState((prev) => ({
-        ...prev,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to load specializations",
+        error: "Failed to load specializations",
         isLoading: false,
       }));
     }
@@ -108,16 +155,11 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
     try {
       const services =
         await SchedulerApiService.getServicesBySpecialization(specializationId);
+      setFormState((prev) => ({ ...prev, services, isLoading: false }));
+    } catch {
       setFormState((prev) => ({
         ...prev,
-        services,
-        isLoading: false,
-      }));
-    } catch (error) {
-      setFormState((prev) => ({
-        ...prev,
-        error:
-          error instanceof Error ? error.message : "Failed to load services",
+        error: "Failed to load services",
         isLoading: false,
       }));
     }
@@ -128,16 +170,11 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
     try {
       const doctors =
         await SchedulerApiService.getDoctorsBySpecialization(specializationId);
+      setFormState((prev) => ({ ...prev, doctors, isLoading: false }));
+    } catch {
       setFormState((prev) => ({
         ...prev,
-        doctors,
-        isLoading: false,
-      }));
-    } catch (error) {
-      setFormState((prev) => ({
-        ...prev,
-        error:
-          error instanceof Error ? error.message : "Failed to load doctors",
+        error: "Failed to load doctors",
         isLoading: false,
       }));
     }
@@ -146,25 +183,25 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
   const loadTimeSlots = async (doctorId: string, date: string) => {
     setFormState((prev) => ({ ...prev, isLoading: true, error: null }));
     try {
-      // Only load time slots for the selected date
       const timeSlots = await SchedulerApiService.getAvailableTimeSlots({
-        doctorId: doctorId, // Use doctorId parameter directly
+        doctorId,
         startDate: date,
-        endDate: date, // Same date for both start and end to get only selected day
+        endDate: date,
       });
+      setFormState((prev) => ({ ...prev, timeSlots, isLoading: false }));
+    } catch {
       setFormState((prev) => ({
         ...prev,
-        timeSlots,
-        isLoading: false,
-      }));
-    } catch (error) {
-      setFormState((prev) => ({
-        ...prev,
-        error:
-          error instanceof Error ? error.message : "Failed to load time slots",
+        error: "Failed to load time slots",
         isLoading: false,
       }));
     }
+  };
+
+  const handlePatientSelect = (pId: string) => {
+    setFormData((prev) => ({ ...prev, patientId: pId }));
+    setFormState((prev) => ({ ...prev, step: 1 }));
+    loadSpecializations();
   };
 
   const handleSpecializationSelect = (specializationId: string) => {
@@ -205,25 +242,32 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
   const handleSubmit = useCallback(
     async (e: React.FormEvent) => {
       e.preventDefault();
-
       try {
         if (mode === "create") {
           const createData: CreateAppointmentRequest = {
+            patientId: formData.patientId,
             doctorUserId: formData.doctorUserId,
             serviceId: formData.serviceId,
             timeSlotId: formData.timeSlotId,
             appointmentType: formData.appointmentType,
             description: formData.description,
-            appointmentCategory: "consultation", // Patients can only book consultation appointments
+            appointmentCategory: "consultation",
           };
           await onSave(createData);
         } else if (mode === "edit" && appointment) {
-          const updateData: UpdateAppointmentRequest = {
+          const updateData = {
             appointmentType: formData.appointmentType,
-            description: formData.description,
-            appointmentCategory: "consultation", // Patients can only modify to consultation appointments
-          };
-          if (formData.timeSlotId) {
+            appointmentCategory: "consultation",
+          } as UpdateAppointmentRequest & { statusId?: string }; // Cast to allow status update if handled by backend/service wrapper
+
+          if (formData.statusId) {
+            updateData.statusId = formData.statusId;
+          }
+
+          if (
+            formData.timeSlotId &&
+            formData.timeSlotId !== appointment.timeSlotId
+          ) {
             updateData.timeSlotId = formData.timeSlotId;
           }
           await onSave(updateData);
@@ -244,6 +288,8 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
   const getStepTitle = () => {
     switch (formState.step) {
+      case 0:
+        return "Select Patient";
       case 1:
         return "Select Specialization";
       case 2:
@@ -290,7 +336,9 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
               <div className="w-full bg-gray-200 rounded-full h-2">
                 <div
                   className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                  style={{ width: `${(formState.step / 5) * 100}%` }}
+                  style={{
+                    width: `${(Math.max(formState.step, 0.5) / 5) * 100}%`,
+                  }}
                 />
               </div>
             </div>
@@ -303,68 +351,121 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
           )}
 
           {mode === "view" && appointment ? (
-            <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Doctor
-                  </label>
-                  <p className="text-gray-900">
-                    {appointment.doctor?.firstName}{" "}
-                    {appointment.doctor?.lastName}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Date & Time
-                  </label>
-                  <p className="text-gray-900">
-                    {new Date(appointment.day).toLocaleDateString()} at{" "}
-                    {new Date(appointment.day).toLocaleTimeString([], {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Type
-                  </label>
-                  <div className="flex items-center">
-                    {appointment.appointmentType === "virtual" && (
-                      <Video className="w-4 h-4 mr-2 text-blue-600" />
-                    )}
-                    {appointment.appointmentType === "phone" && (
-                      <Phone className="w-4 h-4 mr-2 text-green-600" />
-                    )}
-                    {appointment.appointmentType === "in-person" && (
-                      <MapPin className="w-4 h-4 mr-2 text-gray-600" />
-                    )}
-                    <span className="capitalize">
-                      {appointment.appointmentType}
-                    </span>
+            <>
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Patient
+                    </label>
+                    <p className="text-gray-900">
+                      {appointment.patient
+                        ? `${appointment.patient.firstName} ${appointment.patient.lastName}`
+                        : "Unknown"}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Doctor
+                    </label>
+                    <p className="text-gray-900">
+                      {appointment.doctor?.firstName}{" "}
+                      {appointment.doctor?.lastName}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Date & Time
+                    </label>
+                    <p className="text-gray-900">
+                      {new Date(appointment.day).toLocaleDateString()} at{" "}
+                      {new Date(appointment.day).toLocaleTimeString([], {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </p>
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Type
+                    </label>
+                    <div className="flex items-center">
+                      <span className="capitalize">
+                        {appointment.appointmentType}
+                      </span>
+                    </div>
                   </div>
                 </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Duration
-                  </label>
-                  <p className="text-gray-900">
-                    {appointment.durationMinutes} minutes
-                  </p>
-                </div>
+                {appointment.description && (
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                      Description
+                    </label>
+                    <p className="text-gray-900">{appointment.description}</p>
+                  </div>
+                )}
               </div>
-              {appointment.description && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">
-                    Description
-                  </label>
-                  <p className="text-gray-900">{appointment.description}</p>
-                </div>
-              )}
-            </div>
+
+              <div className="flex justify-end space-x-3 pt-6 border-t mt-4">
+                <Button
+                  variant="outline"
+                  className="text-red-600 border-red-200 hover:bg-red-50"
+                  onClick={onCancel}
+                >
+                  Cancel
+                </Button>
+                <Button onClick={onEdit}>Edit</Button>
+              </div>
+            </>
           ) : (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Step 0: Patient Selection */}
+              {formState.step === 0 && (
+                <div>
+                  <h3 className="text-lg font-medium mb-4">Select Patient</h3>
+                  <div className="relative mb-4">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+                    <input
+                      type="text"
+                      placeholder="Search patients by name..."
+                      className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      value={formState.patientSearchTerm}
+                      onChange={(e) =>
+                        setFormState((prev) => ({
+                          ...prev,
+                          patientSearchTerm: e.target.value,
+                        }))
+                      }
+                      autoFocus
+                    />
+                  </div>
+                  <div className="space-y-2 max-h-60 overflow-y-auto">
+                    {formState.patients.map((p) => (
+                      <Card
+                        key={p.id}
+                        className={`cursor-pointer hover:bg-gray-50 p-3 flex justify-between items-center ${formData.patientId === p.id ? "border-blue-500 bg-blue-50" : ""}`}
+                        onClick={() => handlePatientSelect(p.id || "")}
+                      >
+                        <div>
+                          <div className="font-medium">
+                            {p.firstName} {p.lastName}
+                          </div>
+                          <div className="text-sm text-gray-500">{p.email}</div>
+                        </div>
+                      </Card>
+                    ))}
+                    {formState.patients.length === 0 &&
+                      !formState.isLoading && (
+                        <div className="text-center text-gray-500 py-4">
+                          {formState.patientSearchTerm
+                            ? "No patients found"
+                            : "Type to search..."}
+                        </div>
+                      )}
+                  </div>
+                </div>
+              )}
+
               {/* Step 1: Specialization */}
               {formState.step === 1 && (
                 <div>
@@ -375,11 +476,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                     {formState.specializations.map((spec) => (
                       <Card
                         key={spec.id}
-                        className={`cursor-pointer transition-colors hover:border-blue-500 ${
-                          formData.specializationId === spec.id
-                            ? "border-blue-500 bg-blue-50"
-                            : ""
-                        }`}
+                        className={`cursor-pointer transition-colors hover:border-blue-500 ${formData.specializationId === spec.id ? "border-blue-500 bg-blue-50" : ""}`}
                         onClick={() => handleSpecializationSelect(spec.id)}
                       >
                         <div className="p-4">
@@ -406,11 +503,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                     {formState.services.map((service) => (
                       <Card
                         key={service.id}
-                        className={`cursor-pointer transition-colors hover:border-blue-500 ${
-                          formData.serviceId === service.id
-                            ? "border-blue-500 bg-blue-50"
-                            : ""
-                        }`}
+                        className={`cursor-pointer transition-colors hover:border-blue-500 ${formData.serviceId === service.id ? "border-blue-500 bg-blue-50" : ""}`}
                         onClick={() => handleServiceSelect(service.id)}
                       >
                         <div className="p-4">
@@ -422,11 +515,6 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                               {service.durationMinutes} min
                             </span>
                           </div>
-                          {service.description && (
-                            <p className="text-sm text-gray-600 mt-1">
-                              {service.description}
-                            </p>
-                          )}
                         </div>
                       </Card>
                     ))}
@@ -442,12 +530,10 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                     {formState.doctors.map((doctor) => (
                       <Card
                         key={doctor.id}
-                        className={`cursor-pointer transition-colors hover:border-blue-500 ${
-                          formData.doctorUserId === doctor.userId || formData.doctorUserId === doctor.id
-                            ? "border-blue-500 bg-blue-50"
-                            : ""
-                        }`}
-                        onClick={() => handleDoctorSelect(doctor.userId || doctor.id)}
+                        className={`cursor-pointer transition-colors hover:border-blue-500 ${formData.doctorUserId === doctor.userId || formData.doctorUserId === doctor.id ? "border-blue-500 bg-blue-50" : ""}`}
+                        onClick={() =>
+                          handleDoctorSelect(doctor.userId || doctor.id)
+                        }
                       >
                         <div className="p-4">
                           <div className="flex items-center">
@@ -488,45 +574,35 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                     />
                   </div>
-
                   {selectedDate && formState.timeSlots.length > 0 && (
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Available Time Slots
-                      </label>
-                      <div className="grid grid-cols-3 gap-2">
-                        {formState.timeSlots.map((slot) => (
-                          <Button
-                            key={slot.id}
-                            type="button"
-                            variant={
-                              formData.timeSlotId === slot.id
-                                ? "primary"
-                                : "outline"
-                            }
-                            size="sm"
-                            onClick={() => handleTimeSlotSelect(slot.id)}
-                            className="text-sm"
-                          >
-                            <Clock className="w-4 h-4 mr-1" />
-                            {new Date(slot.startDateTime).toLocaleTimeString(
-                              [],
-                              {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                              }
-                            )}
-                          </Button>
-                        ))}
-                      </div>
+                    <div className="grid grid-cols-3 gap-2">
+                      {formState.timeSlots.map((slot) => (
+                        <Button
+                          key={slot.id}
+                          type="button"
+                          variant={
+                            formData.timeSlotId === slot.id
+                              ? "primary"
+                              : "outline"
+                          }
+                          size="sm"
+                          onClick={() => handleTimeSlotSelect(slot.id)}
+                          className="text-sm"
+                        >
+                          <Clock className="w-4 h-4 mr-1" />
+                          {new Date(slot.startDateTime).toLocaleTimeString([], {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })}
+                        </Button>
+                      ))}
                     </div>
                   )}
-
                   {selectedDate &&
                     formState.timeSlots.length === 0 &&
                     !formState.isLoading && (
                       <p className="text-gray-500 text-center py-4">
-                        No available time slots for the selected date.
+                        No available time slots.
                       </p>
                     )}
                 </div>
@@ -538,7 +614,6 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                   <h3 className="text-lg font-medium mb-4">
                     Appointment details
                   </h3>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Appointment Type
@@ -579,7 +654,6 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                       ))}
                     </div>
                   </div>
-
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
                       Description (Optional)
@@ -594,15 +668,9 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                       }
                       rows={3}
                       className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      placeholder="Describe your symptoms or reason for the appointment..."
+                      placeholder="Describe symptoms..."
                     />
                   </div>
-                </div>
-              )}
-
-              {formState.isLoading && (
-                <div className="flex items-center justify-center py-4">
-                  <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
                 </div>
               )}
 
@@ -611,7 +679,7 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    if (formState.step > 1) {
+                    if (formState.step > (contextPatientId ? 1 : 0)) {
                       setFormState((prev) => ({
                         ...prev,
                         step: prev.step - 1,
@@ -621,13 +689,15 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
                     }
                   }}
                 >
-                  {formState.step > 1 ? "Back" : "Cancel"}
+                  {formState.step > (contextPatientId ? 1 : 0)
+                    ? "Back"
+                    : "Cancel"}
                 </Button>
-
                 {formState.step < 5 ? (
                   <Button
                     type="button"
                     disabled={
+                      (formState.step === 0 && !formData.patientId) ||
                       (formState.step === 1 && !formData.specializationId) ||
                       (formState.step === 2 && !formData.serviceId) ||
                       (formState.step === 3 && !formData.doctorUserId) ||

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Edit, Eye, Search, UserPlus } from "lucide-react";
+import { Edit, Eye, Search } from "lucide-react";
 
 import Header from "../../../layout/Header";
 import type { TableColumn } from "../../../shared/components";
@@ -14,17 +14,15 @@ import {
 } from "../../../shared/components";
 import { useDebounce } from "../../../shared/hooks";
 import { usePatientRegistry } from "../hooks/usePatientRegistry";
-import type { CreatePatientRequest, PatientRegistryInfo } from "../types";
+import type { PatientRegistryInfo } from "../types";
 
 import { PatientDetailsModal } from "./PatientDetailsModal";
-import { SimplePatientRegistrationModal } from "./SimplePatientRegistrationModal";
 
 export const PatientRegistryView: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedPatient, setSelectedPatient] =
     useState<PatientRegistryInfo | null>(null);
-  const [isRegistrationModalOpen, setIsRegistrationModalOpen] = useState(false);
   const [isDetailsModalOpen, setIsDetailsModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
 
@@ -44,9 +42,7 @@ export const PatientRegistryView: React.FC = () => {
     totalCount,
     totalPages,
     isLoading,
-    isCreating,
     error,
-    createPatient,
     updatePatient,
     clearError,
   } = usePatientRegistry({
@@ -77,13 +73,6 @@ export const PatientRegistryView: React.FC = () => {
     setSelectedPatient(patient);
     setIsEditMode(true);
     setIsDetailsModalOpen(true);
-  };
-
-  const handleCreatePatient = async (patientData: CreatePatientRequest) => {
-    const result = await createPatient(patientData);
-    if (result) {
-      setIsRegistrationModalOpen(false);
-    }
   };
 
   const handleUpdatePatient = async (
@@ -214,16 +203,9 @@ export const PatientRegistryView: React.FC = () => {
                   Patient Registry
                 </h1>
                 <p className="text-lg text-gray-600 mt-2">
-                  Manage patient registrations and view patient information
+                  View and manage patient information
                 </p>
               </div>
-              <Button
-                onClick={() => setIsRegistrationModalOpen(true)}
-                className="flex items-center space-x-2"
-              >
-                <UserPlus size={20} />
-                <span>Register New Patient</span>
-              </Button>
             </div>
           </div>
 
@@ -290,15 +272,6 @@ export const PatientRegistryView: React.FC = () => {
           )}
         </div>
       </LoadingOverlay>
-
-      {/* Registration Modal */}
-      <SimplePatientRegistrationModal
-        isOpen={isRegistrationModalOpen}
-        onClose={() => setIsRegistrationModalOpen(false)}
-        onSubmit={handleCreatePatient}
-        doctors={doctors}
-        isLoading={isCreating}
-      />
 
       {/* Patient Details Modal */}
       {selectedPatient && (

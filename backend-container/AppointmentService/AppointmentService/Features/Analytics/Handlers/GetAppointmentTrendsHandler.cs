@@ -19,57 +19,34 @@ public class GetAppointmentTrendsHandler : IRequestHandler<GetAppointmentTrendsQ
     {
         var endDate = request.EndDate ?? DateTime.UtcNow;
         var startDate = request.StartDate ?? endDate.AddDays(-request.Days);
-        
+
+        // Use the actual Appointments table
+        var query = _context.Appointments
+            .Where(a => a.ScheduledAt >= startDate && a.ScheduledAt <= endDate);
+
+        if (request.DoctorId.HasValue)
+            query = query.Where(a => a.DoctorId == request.DoctorId);
+
+        var appointments = await query.ToListAsync(cancellationToken);
+
         var trends = new List<TrendDataDto>();
-        
+
         for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
         {
             var nextDate = date.AddDays(1);
-            
-            var appointments = await _context.ScheduleAppointments
-                .Where(sa => sa.Day >= date && sa.Day < nextDate)
-                .Where(sa => !request.DoctorId.HasValue || sa.Doctor_User_Id == request.DoctorId)
-                .CountAsync(cancellationToken);
-
-            var completed = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "Completed")
-                .Where(x => !request.DoctorId.HasValue || x.sa.Doctor_User_Id == request.DoctorId)
-                .CountAsync(cancellationToken);
-
-            var cancelled = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "Cancelled")
-                .Where(x => !request.DoctorId.HasValue || x.sa.Doctor_User_Id == request.DoctorId)
-                .CountAsync(cancellationToken);
-
-            var noShow = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.status.Name == "No Show")
-                .Where(x => !request.DoctorId.HasValue || x.sa.Doctor_User_Id == request.DoctorId)
-                .CountAsync(cancellationToken);
-
-            var revenue = await _context.AppointmentPayments
-                .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
-                    (ap, sa) => new { ap, sa })
-                .Where(x => x.sa.Day >= date && x.sa.Day < nextDate && x.ap.Status == "Paid")
-                .Where(x => !request.DoctorId.HasValue || x.sa.Doctor_User_Id == request.DoctorId)
-                .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
+            var dayAppointments = appointments.Where(a => a.ScheduledAt >= date && a.ScheduledAt < nextDate).ToList();
 
             trends.Add(new TrendDataDto
             {
                 Date = date.ToString("yyyy-MM-dd"),
-                Appointments = appointments,
-                Completed = completed,
-                Cancelled = cancelled,
-                NoShow = noShow,
-                Revenue = revenue
+                Appointments = dayAppointments.Count,
+                Completed = dayAppointments.Count(a => a.Status == "Completed"),
+                Cancelled = dayAppointments.Count(a => a.Status == "Cancelled"),
+                NoShow = dayAppointments.Count(a => a.Status == "NoShow" || a.Status == "Overdue"),
+                Revenue = 0 // Revenue not available in Appointments table
             });
         }
 
-        return trends.OrderBy(t => t.Date);
+        return trends;
     }
 }

@@ -33,58 +33,39 @@ interface DoctorDirectoryRow {
 // Map backend AppointmentService entity -> Appointments page Appointment type
 const toUiAppointment = async (
   row: BackendAppointmentRow,
-  services: Service[] = []
+  services: Service[],
+  doctorDirectory: DoctorDirectoryRow[]
 ): Promise<Appointment> => {
   const start = new Date(row.scheduledAt);
-  // Store ISO date to ensure UI parsing with new Date(date) works reliably
   const date = start.toISOString();
   const time = start.toLocaleTimeString([], {
     hour: "2-digit",
     minute: "2-digit",
   });
 
-  // Resolve doctor name via Practitioner directory or fallback to user profile
+  // Resolve doctor name via passed directory or fallback to user profile
   const doctorId = String(row.doctorId ?? "").toLowerCase();
   let doctorName = "Unknown Doctor";
-  let doctorUserId = "";
-  try {
-    const list = await api.get("/practitioner/doctors");
-    const rows = Array.isArray(list.data)
-      ? (list.data as DoctorDirectoryRow[])
-      : [];
-    const d = rows.find(
-      (r) =>
-        String(r.DoctorId ?? r.doctorId ?? "").toLowerCase() === doctorId ||
-        String(r.UserId ?? r.userId ?? "").toLowerCase() === doctorId
-    );
-    if (d) {
-      const first = String(d.FirstName ?? d.firstName ?? "");
-      const last = String(d.LastName ?? d.lastName ?? "");
-      const name = `${first} ${last}`.trim();
-      if (name) {
-        doctorName = name;
-      } else {
-        // Doctor found but no name in directory - get userId for fallback lookup
-        doctorUserId = String(d.UserId ?? d.userId ?? "");
-      }
-    }
 
-    // Fallback: if still unknown, try fetching user profile directly
-    if (doctorName === "Unknown Doctor" && (doctorUserId || doctorId)) {
-      const userIdToFetch = doctorUserId || doctorId;
-      try {
-        const u = await api.get(`/users/${userIdToFetch}`);
-        const first = String(u.data?.firstName ?? u.data?.FirstName ?? "");
-        const last = String(u.data?.lastName ?? u.data?.LastName ?? "");
-        const name = `${first} ${last}`.trim();
-        if (name) doctorName = name;
-      } catch {
-        // ignore user fetch failure
-      }
+  const d = doctorDirectory.find(
+    (r) =>
+      String(r.DoctorId ?? r.doctorId ?? "").toLowerCase() === doctorId ||
+      String(r.UserId ?? r.userId ?? "").toLowerCase() === doctorId
+  );
+
+  if (d) {
+    const first = String(d.FirstName ?? d.firstName ?? "");
+    const last = String(d.LastName ?? d.lastName ?? "");
+    const name = `${first} ${last}`.trim();
+    if (name) {
+      doctorName = name;
     }
-  } catch {
-    // ignore
   }
+
+  // Fallback: This N+1 is harder to remove completely without bulk user fetch,
+  // but usually directory covers active doctors.
+  // We will skip the extra per-user fetch to solve the performance issue reported.
+  // If really needed, we'd need a bulk user fetch endpoint.
 
   const statusRaw = String(row.status ?? "Scheduled");
   const now = new Date();
@@ -124,8 +105,19 @@ export const appointmentsApi = {
       const servicesRes = await schedulerApi.getServices();
       const services = servicesRes.success ? servicesRes.data : [];
 
+      // Fetch doctor directory ONCE
+      let doctorDirectory: DoctorDirectoryRow[] = [];
+      try {
+        const docResp = await api.get("/practitioner/doctors");
+        if (Array.isArray(docResp.data)) {
+          doctorDirectory = docResp.data as DoctorDirectoryRow[];
+        }
+      } catch (e) {
+        console.warn("Failed to fetch doctor directory", e);
+      }
+
       const mapped = await Promise.all(
-        items.map((item) => toUiAppointment(item, services))
+        items.map((item) => toUiAppointment(item, services, doctorDirectory))
       );
       return { data: mapped, success: true };
     } catch (error) {

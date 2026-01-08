@@ -83,9 +83,20 @@ public class PatientsController : ControllerBase
         if (!success) return NotFound("Patient not found");
         return NoContent();
     }
+
+    [HttpPut("{id}/primary-doctor")]
+    [Authorize]
+    public async Task<IActionResult> SetPrimaryDoctor(Guid id, [FromBody] SetPrimaryDoctorRequest req)
+    {
+        var success = await _mediator.Send(new SetPrimaryDoctorCommand(id, req.DoctorId));
+        if (!success) return NotFound("Patient not found");
+        return NoContent();
+    }
 }
 
 public record RegisterPatientRequest(Guid UserId, Guid? PrimaryDoctorId);
 public record ChangeStatusRequest(string Status);
 public record EmergencyContactRequest(string Name, string? Relation, string? Phone);
 public record InsuranceRequest(string? Provider, string? PolicyNumber, DateTime? ValidFrom, DateTime? ValidTo);
+public record SetPrimaryDoctorRequest(Guid? DoctorId);
+

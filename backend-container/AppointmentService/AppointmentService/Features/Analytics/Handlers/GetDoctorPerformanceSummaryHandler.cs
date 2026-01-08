@@ -17,37 +17,37 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
         var end = request.EndDate ?? DateTime.UtcNow.Date;
         var start = request.StartDate ?? end.AddDays(-30);
 
-        var appts = _context.ScheduleAppointments.Where(a => a.Day >= start && a.Day <= end);
-
-        var totalDoctors = await _context.Doctors.CountAsync(cancellationToken);
-
-        var apptCounts = await appts
-            .GroupBy(a => a.Doctor_User_Id)
-            .Select(g => new { DoctorId = g.Key, Count = g.Count() })
+        // Use Appointments table instead of ScheduleAppointments
+        var appts = await _context.Appointments
+            .Where(a => a.ScheduledAt >= start && a.ScheduledAt <= end)
             .ToListAsync(cancellationToken);
+
+        var doctorGroups = appts.GroupBy(a => a.DoctorId).ToList();
+        var totalDoctors = doctorGroups.Count;
 
         decimal avgPerDoctor = 0;
         if (totalDoctors > 0)
         {
-            var totalAppts = apptCounts.Sum(x => x.Count);
+            var totalAppts = appts.Count;
             avgPerDoctor = totalAppts == 0 ? 0 : (decimal)totalAppts / totalDoctors;
         }
 
-        var ratings = await _context.Rates
-            .Where(r => r.Rated_At >= start && r.Rated_At <= end)
-            .GroupBy(r => r.Doctor_User_Id)
-            .Select(g => new { DoctorId = g.Key, Avg = g.Average(x => x.Rate_Value), Count = g.Count() })
-            .ToListAsync(cancellationToken);
-
-        decimal doctorAverageRating = 0;
+        // Find top performing doctor by completed appointments
         string topRatedDoctor = "N/A";
-        if (ratings.Count > 0)
+        if (doctorGroups.Any())
         {
-            doctorAverageRating = (decimal)(ratings.Average(r => r.Avg) ?? 0);
-            var top = ratings.OrderByDescending(r => r.Avg).ThenByDescending(r => r.Count).First();
-            var profile = await _context.UserProfiles.FirstOrDefaultAsync(p => p.User_Id == top.DoctorId, cancellationToken);
-            if (profile != null)
-                topRatedDoctor = $"{profile.FirstName} {profile.LastName}".Trim();
+            var topDoctor = doctorGroups
+                .OrderByDescending(g => g.Count(a => a.Status == "Completed"))
+                .First();
+            topRatedDoctor = $"Doctor {topDoctor.Key.ToString()[..8]}";
+        }
+
+        // Calculate completion rate as a proxy for "rating"
+        decimal doctorAverageRating = 0;
+        if (appts.Any())
+        {
+            var completedCount = appts.Count(a => a.Status == "Completed");
+            doctorAverageRating = Math.Round((decimal)completedCount / appts.Count * 5, 2); // Scale to 0-5
         }
 
         return new DoctorPerformanceSummaryDto
@@ -55,7 +55,7 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
             TotalDoctors = totalDoctors,
             AverageAppointmentsPerDoctor = Math.Round(avgPerDoctor, 2),
             TopRatedDoctor = topRatedDoctor,
-            DoctorAverageRating = Math.Round(doctorAverageRating, 2),
+            DoctorAverageRating = doctorAverageRating,
             StartDate = start,
             EndDate = end
         };

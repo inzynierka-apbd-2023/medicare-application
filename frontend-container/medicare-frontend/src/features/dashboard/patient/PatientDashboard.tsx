@@ -12,7 +12,7 @@ import { useLoadingService } from "../../../shared/hooks/useLoadingService";
 import { useSubscription } from "../../../shared/hooks/useSubscription";
 import { patientDashboardApi } from "../../../shared/services/dashboardApi";
 import { notificationsApi } from "../../../shared/services/notificationsApi";
-import useScheduler from "../../scheduler/hooks/useScheduler";
+import { useScheduler } from "../../scheduler/hooks/useScheduler";
 import {
   DashboardCard,
   DashboardLayout,

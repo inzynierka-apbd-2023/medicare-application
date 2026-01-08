@@ -1,7 +1,7 @@
 export interface User {
   id: string;
   name: string;
-  role: "patient" | "doctor";
+  role: "patient" | "doctor" | "receptionist";
   email: string;
   avatar?: string;
   specialty?: string; // For doctors
@@ -12,10 +12,10 @@ export interface Message {
   conversationId: string;
   senderId: string;
   senderName: string;
-  senderType: "patient" | "doctor";
+  senderType: "patient" | "doctor" | "receptionist";
   receiverId: string;
   receiverName: string;
-  receiverType: "patient" | "doctor";
+  receiverType: "patient" | "doctor" | "receptionist";
   content: string;
   timestamp: string;
   isRead: boolean;
@@ -34,7 +34,7 @@ export interface Conversation {
   id: string;
   participantId: string;
   participantName: string;
-  participantType: "patient" | "doctor";
+  participantType: "patient" | "doctor" | "receptionist";
   participants: User[]; // Full participant objects for UI
   lastMessage?: Message;
   unreadCount: number;
@@ -45,7 +45,7 @@ export interface Conversation {
 
 export interface MessagesPageProps {
   userId?: string;
-  userType?: "patient" | "doctor";
+  userType?: "patient" | "doctor" | "receptionist";
   conversationId?: string;
   recipientId?: string; // For starting/opening chat with specific user
 }
@@ -88,12 +88,13 @@ export interface NewMessageModalProps {
   onStartConversation: (
     recipientId: string,
     recipientName: string,
-    initialMessage: string
+    initialMessage: string,
+    recipientRole?: "patient" | "doctor" | "receptionist"
   ) => void;
   availableRecipients: User[];
   isLoading?: boolean;
   preSelectedRecipientId?: string;
-  userRole?: "patient" | "doctor";
+  userRole?: "patient" | "doctor" | "receptionist";
 }
 
 export interface MessagesState {

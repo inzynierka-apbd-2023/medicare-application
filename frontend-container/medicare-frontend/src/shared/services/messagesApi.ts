@@ -9,7 +9,7 @@ export const messagesApi = {
    */
   getConversations: async (
     userId: string,
-    _userType: "patient" | "doctor"
+    _userType: "patient" | "doctor" | "receptionist"
   ): Promise<ApiResponse<Conversation[]>> => {
     try {
       const res = await api.get(`/messaging/messages/conversations/${userId}`);
@@ -110,11 +110,11 @@ export const messagesApi = {
     conversationId: string,
     senderId: string,
     senderName: string,
-    senderType: "patient" | "doctor",
+    senderType: "patient" | "doctor" | "receptionist",
     // receiverId is not directly used in API call if conversationId is used as recipient
     _receiverId: string,
     receiverName: string,
-    receiverType: "patient" | "doctor",
+    receiverType: "patient" | "doctor" | "receptionist",
     content: string
   ): Promise<ApiResponse<Message>> => {
     try {
@@ -164,10 +164,10 @@ export const messagesApi = {
   startConversation: async (
     senderId: string,
     senderName: string,
-    senderType: "patient" | "doctor",
+    senderType: "patient" | "doctor" | "receptionist",
     receiverId: string,
     receiverName: string,
-    receiverType: "patient" | "doctor",
+    receiverType: "patient" | "doctor" | "receptionist",
     initialMessage: string
   ): Promise<ApiResponse<{ conversation: Conversation; message: Message }>> => {
     try {
@@ -228,14 +228,14 @@ export const messagesApi = {
    * which is populated via RabbitMQ events when appointments are created.
    */
   getAvailableRecipients: async (
-    userRole: "patient" | "doctor",
+    userRole: "patient" | "doctor" | "receptionist",
     currentUserId?: string
   ): Promise<
     ApiResponse<
       Array<{
         id: string;
         name: string;
-        type: "patient" | "doctor";
+        type: "patient" | "doctor" | "receptionist";
         specialization?: string;
       }>
     >

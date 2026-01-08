@@ -250,6 +250,13 @@ public class UserServiceImpl : IUserService
             Role = user.Role?.Name ?? "",
             DateOfBirth = user.Profile?.DateOfBirth,
             Address = user.Profile == null ? null : BuildAddress(user.Profile),
+            // Individual address fields
+            AddressLine1 = user.Profile?.AddressLine1,
+            AddressLine2 = user.Profile?.AddressLine2,
+            City = user.Profile?.City,
+            State = user.Profile?.State,
+            ZipCode = user.Profile?.ZipCode,
+            Country = user.Profile?.Country,
             CreatedAt = user.CreatedAt,
             UpdatedAt = user.UpdatedAt,
             IsActive = user.IsActive

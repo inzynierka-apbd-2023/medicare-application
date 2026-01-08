@@ -22,6 +22,10 @@ public class Appointment
     public string? ChiefComplaint { get; set; }
     [MaxLength(500)]
     public string? Notes { get; set; }
+    [MaxLength(100)]
+    public string? Category { get; set; }
+    [MaxLength(100)]
+    public string? Room { get; set; }
     public Guid? RoomId { get; set; }
     public Guid? ServiceId { get; set; }
     public bool IsPaid { get; set; }

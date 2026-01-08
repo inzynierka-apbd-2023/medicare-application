@@ -1,223 +1,282 @@
-import React, { useCallback, useMemo, useState } from "react";
-import { Calendar, Plus } from "lucide-react";
+import React, { useCallback, useState } from "react";
+import dayGridPlugin from "@fullcalendar/daygrid";
+import FullCalendar from "@fullcalendar/react";
+import timeGridPlugin from "@fullcalendar/timegrid";
+import {
+  Calendar,
+  Clock,
+  MapPin,
+  Phone,
+  Plus,
+  RefreshCcw,
+  User,
+  Users,
+  Video,
+} from "lucide-react";
 
 import Header from "../../layout/Header";
-import {
-  Button,
-  Card,
-  ErrorDisplay,
-  LoadingOverlay,
-} from "../../shared/components";
-import { useAuth } from "../../shared/auth/AuthContext";
+import { Button, Card, LoadingOverlay } from "../../shared/components";
 
 import AppointmentModal from "./components/AppointmentModal";
-import CalendarView from "./components/CalendarView";
 import SchedulerFiltersComponent from "./components/SchedulerFilters";
-import useScheduler from "./hooks/useScheduler";
-import type {
-  CalendarEvent,
+import { useScheduler } from "./hooks/useScheduler";
+import {
+  Appointment,
   CreateAppointmentRequest,
   SchedulerPageProps,
   UpdateAppointmentRequest,
 } from "./types";
 
-export const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
-  const { user } = useAuth();
-  const [modalState, setModalState] = useState({
-    isOpen: false,
-    mode: "create" as "create" | "edit" | "view",
-  });
+// Custom event formatting
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+const formatEventContent = (eventInfo: any) => {
+  const extendedProps = eventInfo.event.extendedProps;
+  // Fallback if type is missing or simplified
+  const appointmentType = extendedProps.appointmentType || "in-person";
 
-  // Resolve patient id: prefer prop, else currently logged-in user id
-  const currentPatientId = useMemo(() => patientId || user?.id || "", [patientId, user]);
+  const getTypeIcon = () => {
+    switch (appointmentType) {
+      case "video":
+      case "video-call":
+        return <Video size={10} className="inline mr-1" />;
+      case "phone":
+        return <Phone size={10} className="inline mr-1" />;
+      case "in-person":
+        return <MapPin size={10} className="inline mr-1" />;
+      default:
+        return <User size={10} className="inline mr-1" />;
+    }
+  };
 
+  return (
+    <div className="text-xs p-1 overflow-hidden" title={eventInfo.event.title}>
+      <div className="font-medium whitespace-nowrap overflow-hidden text-ellipsis flex items-center">
+        {getTypeIcon()}
+        {eventInfo.timeText} {eventInfo.event.title}
+      </div>
+    </div>
+  );
+};
+
+const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
   const {
     appointments,
+    calendarEvents,
     doctors,
     services,
     specializations,
-    selectedAppointment,
     isLoading,
     error,
     filters,
-    calendarEvents,
-    updateFilters,
+    refreshAppointments,
     createAppointment,
     updateAppointment,
-    selectAppointment,
-    setSelectedDate,
-    refreshAppointments,
-  } = useScheduler({
-    patientId: currentPatientId,
-    initialFilters: {
-      appointmentType: "all",
-    },
+    cancelAppointment,
+    // selectAppointment: setGlobalSelectedAppointment,
+    updateFilters,
+    stats,
+  } = useScheduler(patientId ? { patientId } : {});
+
+  const [modalState, setModalState] = useState<{
+    isOpen: boolean;
+    mode: "create" | "edit" | "view";
+    appointment: Appointment | null;
+  }>({
+    isOpen: false,
+    mode: "view",
+    appointment: null,
   });
 
   const handleEventClick = useCallback(
-    (event: CalendarEvent) => {
-      const appt = (event as any)?.extendedProps?.appointment;
-      if (appt) {
-        selectAppointment(appt);
-        setModalState({ isOpen: true, mode: "view" });
+    (info: {
+      event: { id: string; extendedProps: Record<string, unknown> };
+    }) => {
+      const appointmentId = info.event.id;
+      const appointment = appointments.find((a) => a.id === appointmentId);
+      if (appointment) {
+        setModalState({
+          isOpen: true,
+          mode: "view",
+          appointment,
+        });
       }
     },
-    [selectAppointment]
+    [appointments]
   );
 
-  const handleDateSelect = useCallback(
-    (date: string) => {
-      setSelectedDate(date);
-      // Optionally open modal for creating appointment on selected date
-    },
-    [setSelectedDate]
-  );
-
-  const handleDateRangeChange = useCallback(
-    (start: string, end: string) => {
-      updateFilters({
-        dateRange: { start, end },
-      });
-    },
-    [updateFilters]
-  );
-
-  const handleCreateAppointment = useCallback(() => {
-    selectAppointment(null);
+  const handleCreateClick = () => {
     setModalState({
       isOpen: true,
       mode: "create",
+      appointment: null,
     });
-  }, [selectAppointment]);
+  };
 
-  const handleModalSave = useCallback(
-    async (data: CreateAppointmentRequest | UpdateAppointmentRequest) => {
+  const handleEditClick = () => {
+    if (modalState.appointment) {
+      setModalState((prev) => ({ ...prev, mode: "edit" }));
+    }
+  };
+
+  const handleCancelClick = async () => {
+    if (
+      modalState.appointment &&
+      window.confirm("Are you sure you want to cancel this appointment?")
+    ) {
       try {
-        if (modalState.mode === "create") {
-          await createAppointment(data as CreateAppointmentRequest);
-        } else if (modalState.mode === "edit" && selectedAppointment) {
-          await updateAppointment(
-            selectedAppointment.id,
-            data as UpdateAppointmentRequest
-          );
-        }
-        setModalState({ isOpen: false, mode: "create" });
-      } catch (error) {
-        console.error("Failed to save appointment:", error);
-        throw error;
+        await cancelAppointment(modalState.appointment.id);
+        setModalState((prev) => ({ ...prev, isOpen: false }));
+        await refreshAppointments();
+      } catch (e) {
+        console.error("Cancel failed", e);
+        // Might want to show error to user but for now console error
       }
-    },
-    [modalState.mode, selectedAppointment, createAppointment, updateAppointment]
-  );
+    }
+  };
 
-  const handleModalClose = useCallback(() => {
-    setModalState({ isOpen: false, mode: "create" });
-    selectAppointment(null);
-  }, [selectAppointment]);
+  const handleModalClose = () => {
+    setModalState((prev) => ({ ...prev, isOpen: false }));
+  };
 
-  if (!currentPatientId) {
-    return (
-      <div className="min-h-screen bg-gray-100 pt-16">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <LoadingOverlay isLoading message="Loading your profile..." />
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-100 pt-16">
-        <Header />
-        <div className="max-w-7xl mx-auto px-4 py-8">
-          <ErrorDisplay message={error} onRetry={refreshAppointments} />
-        </div>
-      </div>
-    );
-  }
+  const handleModalSave = async (
+    data: CreateAppointmentRequest | UpdateAppointmentRequest
+  ) => {
+    try {
+      if (modalState.mode === "create") {
+        // Pass patientId from context if available, otherwise it comes from data (Step 0) which is handled inside hook now?
+        // Actually hook's createAppointment signature: (data, patientIdOverride?)
+        // If data has patientId (from Modal Step 0), pass it.
+        const requestData = data as CreateAppointmentRequest;
+        await createAppointment(
+          requestData,
+          requestData.patientId || patientId
+        );
+      } else if (modalState.mode === "edit" && modalState.appointment) {
+        await updateAppointment(
+          modalState.appointment.id,
+          data as UpdateAppointmentRequest
+        );
+      }
+      await refreshAppointments();
+    } catch (error) {
+      console.error("Failed to save appointment:", error);
+      throw error;
+    }
+  };
 
   return (
-    <div className="min-h-screen bg-gray-100 pt-16">
-      <Header />
-
-      <LoadingOverlay
-        isLoading={isLoading && appointments.length === 0}
-        message="Loading your appointments..."
-      >
-        <div className="max-w-7xl mx-auto px-4 py-8">
+    <>
+      {!patientId && <Header />}
+      <div className={!patientId ? "pt-16 min-h-screen bg-gray-50" : ""}>
+        <div className="container mx-auto px-4 py-8">
           {/* Page Header */}
-          <div className="mb-8">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-8">
+            <div className="flex items-center">
+              <Calendar size={32} className="mr-3 text-blue-600" />
               <div>
-                <h1 className="text-3xl font-bold text-blue-700 flex items-center">
-                  <Calendar className="w-8 h-8 mr-3" />
-                  Appointment Scheduler
+                <h1 className="text-2xl font-bold text-gray-900">
+                  Schedule Management
                 </h1>
-                <p className="text-gray-600 mt-2">
-                  Book and manage your medical appointments
+                <p className="mt-1 text-sm text-gray-500">
+                  {patientId
+                    ? "Manage your appointments"
+                    : "Manage clinic schedule"}
                 </p>
               </div>
+            </div>
+            <div className="flex space-x-2">
               <Button
-                onClick={handleCreateAppointment}
-                className="flex items-center"
+                variant="outline"
+                onClick={() => refreshAppointments()}
+                disabled={isLoading}
               >
-                <Plus className="w-5 h-5 mr-2" />
-                Book Appointment
+                <RefreshCcw
+                  className={`w-4 h-4 mr-2 ${isLoading ? "animate-spin" : ""}`}
+                />
+                Refresh
+              </Button>
+              <Button onClick={handleCreateClick} className="flex items-center">
+                <Plus className="w-4 h-4 mr-2" />
+                New Appointment
               </Button>
             </div>
           </div>
 
-          {/* Quick Stats */}
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <Card variant="medical" className="text-center">
-              <div className="p-4">
-                <div className="text-2xl font-bold text-blue-600">
-                  {appointments.length}
-                </div>
-                <div className="text-sm text-gray-600">Total Appointments</div>
-              </div>
-            </Card>
+          {error && (
+            <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded mb-6">
+              {error}
+            </div>
+          )}
 
-            <Card variant="medical" className="text-center">
-              <div className="p-4">
-                <div className="text-2xl font-bold text-green-600">
-                  {appointments.filter((apt) => {
-                    const status = apt.status?.name?.toLowerCase();
-                    const start = new Date(apt.day);
-                    const end = new Date(start.getTime() + apt.durationMinutes * 60000);
-                    const isFuture = end.getTime() >= Date.now();
-                    return isFuture && (status === "scheduled" || status === "confirmed");
-                  }).length}
+          {/* Appointment Stats - Moved above filters and styled like Receptionist view */}
+          {!patientId && stats && (
+            <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 bg-blue-100 rounded-lg mr-4">
+                    <Calendar size={24} className="text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      Total Appointments
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stats.totalAppointments}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Upcoming</div>
-              </div>
-            </Card>
+              </Card>
 
-            <Card variant="medical" className="text-center">
-              <div className="p-4">
-                <div className="text-2xl font-bold text-orange-600">
-                  {appointments.filter((apt) => {
-                    const d = new Date(apt.day);
-                    const today = new Date();
-                    return d.toDateString() === today.toDateString();
-                  }).length}
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 bg-green-100 rounded-lg mr-4">
+                    <Clock size={24} className="text-green-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      Today's Appointments
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stats.todaysAppointments}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Today</div>
-              </div>
-            </Card>
+              </Card>
 
-            <Card variant="medical" className="text-center">
-              <div className="p-4">
-                <div className="text-2xl font-bold text-purple-600">
-                  {doctors.length}
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 bg-yellow-100 rounded-lg mr-4">
+                    <Users size={24} className="text-yellow-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      Confirmed
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stats.confirmedAppointments}
+                    </p>
+                  </div>
                 </div>
-                <div className="text-sm text-gray-600">Available Doctors</div>
-              </div>
-            </Card>
-          </div>
+              </Card>
 
-          {/* Filters */}
+              <Card className="p-6">
+                <div className="flex items-center">
+                  <div className="p-3 bg-red-100 rounded-lg mr-4">
+                    <Clock size={24} className="text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-gray-600">
+                      Cancelled
+                    </p>
+                    <p className="text-2xl font-bold text-gray-900">
+                      {stats.cancelledAppointments}
+                    </p>
+                  </div>
+                </div>
+              </Card>
+            </div>
+          )}
+
           <div className="mb-6">
             <SchedulerFiltersComponent
               filters={filters}
@@ -225,109 +284,51 @@ export const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
               specializations={specializations}
               services={services}
               doctors={doctors}
+              // cast to any if Type definition mismatch (isLoading optional vs required) for now
               isLoading={isLoading}
             />
           </div>
 
-          {/* Calendar */}
-          <Card variant="medical">
-            <div className="p-6">
-              <CalendarView
-                events={calendarEvents}
-                onEventClick={handleEventClick}
-                onDateSelect={handleDateSelect}
-                onDateRangeChange={handleDateRangeChange}
-                isLoading={isLoading}
-              />
-            </div>
-          </Card>
-
-          {/* Recent Appointments */}
-          <div className="mt-8">
-            <Card variant="medical">
-              <div className="p-6">
-                <h3 className="text-lg font-semibold text-blue-600 mb-4">Recent Appointments</h3>
-                {appointments.length === 0 ? (
-                  <div className="text-center py-8">
-                    <Calendar className="w-12 h-12 text-gray-400 mx-auto mb-4" />
-                    <h4 className="text-lg font-medium text-gray-600 mb-2">No appointments scheduled</h4>
-                    <p className="text-gray-500 mb-4">Book your first appointment to get started</p>
-                    <Button onClick={handleCreateAppointment}>
-                      <Plus className="w-4 h-4 mr-2" />
-                      Book Appointment
-                    </Button>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {appointments
-                      .filter((apt) => {
-                        const start = new Date(apt.day);
-                        const end = new Date(start.getTime() + apt.durationMinutes * 60000);
-                        return end.getTime() < Date.now();
-                      })
-                      .slice(0, 5)
-                      .map((appointment) => {
-                        const doctor =
-                          doctors.find((d) => d.id === appointment.doctorUserId) ||
-                          appointment.doctor;
-                        return (
-                          <div
-                            key={appointment.id}
-                            className="flex items-center justify-between p-4 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
-                          >
-                            <div
-                              className="flex items-center space-x-4 flex-1 cursor-pointer"
-                              onClick={() =>
-                                handleEventClick({
-                                  id: appointment.id,
-                                  title: "",
-                                  start: appointment.day,
-                                  end: appointment.day,
-                                  extendedProps: {
-                                    appointment,
-                                    doctorName: `${doctor?.firstName || ""} ${doctor?.lastName || ""}`.trim(),
-                                    patientName: "",
-                                    appointmentType: appointment.appointmentType,
-                                    status: appointment.status?.name || "Unknown",
-                                    description: appointment.description || "",
-                                  },
-                                })
-                              }
-                            >
-                              <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
-                                <Calendar className="w-6 h-6 text-blue-600" />
-                              </div>
-                              <div>
-                                <div className="font-medium text-gray-900">Dr. {doctor?.firstName} {doctor?.lastName}</div>
-                                <div className="text-sm text-gray-600">
-                                  {new Date(appointment.day).toLocaleDateString()} at {new Date(appointment.day).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                                </div>
-                                <div className="text-xs text-gray-500">
-                                  {appointment.appointmentType} • {appointment.durationMinutes} min
-                                </div>
-                              </div>
-                            </div>
-                            {/* No action buttons: informational only */}
-                          </div>
-                        );
-                      })}
-                  </div>
-                )}
+          <LoadingOverlay isLoading={isLoading}>
+            <Card>
+              <div className="p-4 scheduler-calendar-container">
+                <FullCalendar
+                  plugins={[dayGridPlugin, timeGridPlugin]}
+                  initialView="timeGridWeek"
+                  headerToolbar={{
+                    left: "prev,next today",
+                    center: "title",
+                    right: "dayGridMonth,timeGridWeek,timeGridDay",
+                  }}
+                  events={calendarEvents}
+                  eventClick={handleEventClick}
+                  height="auto"
+                  eventContent={formatEventContent}
+                  dayMaxEvents={3}
+                  eventTimeFormat={{
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    meridiem: false,
+                  }}
+                />
               </div>
             </Card>
-          </div>
-        </div>
-      </LoadingOverlay>
+          </LoadingOverlay>
 
-      {/* Appointment Modal */}
-      <AppointmentModal
-        isOpen={modalState.isOpen}
-        onClose={handleModalClose}
-        appointment={selectedAppointment}
-        onSave={handleModalSave}
-        mode={modalState.mode}
-      />
-    </div>
+          {/* Appointment Modal */}
+          <AppointmentModal
+            isOpen={modalState.isOpen}
+            onClose={handleModalClose}
+            appointment={modalState.appointment}
+            onSave={handleModalSave}
+            mode={modalState.mode}
+            patientId={patientId}
+            onEdit={handleEditClick}
+            onCancel={handleCancelClick}
+          />
+        </div>
+      </div>
+    </>
   );
 };
 

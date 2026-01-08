@@ -15,13 +15,14 @@ export interface UseMessagesReturn {
   createConversation: (
     recipientId: string,
     recipientName: string,
-    initialMessage: string
+    initialMessage: string,
+    recipientRole?: "patient" | "doctor" | "receptionist"
   ) => Promise<string>;
 }
 
 export const useMessages = (
   userId?: string,
-  userType: "patient" | "doctor" = "patient"
+  userType: "patient" | "doctor" | "receptionist" = "patient"
 ): UseMessagesReturn => {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [messages, setMessages] = useState<Record<string, Message[]>>({});
@@ -197,7 +198,7 @@ export const useMessages = (
         console.error("Error marking message as read:", err);
       }
     },
-    [messages, userId]
+    [userId]
   );
 
   // Create new conversation
@@ -205,18 +206,28 @@ export const useMessages = (
     async (
       recipientId: string,
       recipientName: string,
-      initialMessage: string
+      initialMessage: string,
+      recipientRole?: "patient" | "doctor" | "receptionist"
     ): Promise<string> => {
       if (!userId) throw new Error("User ID required");
 
       try {
         setIsLoading(true);
 
-        // Use the actual recipient name passed from the selected doctor
-        const senderName =
-          userType === "patient" ? "Current Patient" : "Current Doctor";
-        const recipientType: "patient" | "doctor" =
-          userType === "patient" ? "doctor" : "patient";
+        // Determine sender name based on user type
+        let senderName = "Current User";
+        if (userType === "patient") senderName = "Current Patient";
+        else if (userType === "doctor") senderName = "Current Doctor";
+        else if (userType === "receptionist") senderName = "Receptionist";
+
+        // Determine recipient type based on parameter or infer from user type
+        let recipientType: "patient" | "doctor" | "receptionist";
+        if (recipientRole) {
+          recipientType = recipientRole;
+        } else {
+          // Default logic: patient -> doctor, doctor -> patient, receptionist -> patient
+          recipientType = userType === "patient" ? "doctor" : "patient";
+        }
 
         const response = await messagesApi.startConversation(
           userId,

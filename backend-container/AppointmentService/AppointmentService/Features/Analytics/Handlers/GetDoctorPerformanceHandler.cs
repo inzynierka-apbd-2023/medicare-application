@@ -20,94 +20,45 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
         var endDate = request.EndDate ?? DateTime.UtcNow;
         var startDate = request.StartDate ?? endDate.AddDays(-30);
 
-        var doctorsQuery = _context.Doctors.AsQueryable();
+        // Get all appointments in the date range, grouped by doctor
+        var query = _context.Appointments
+            .Where(a => a.ScheduledAt >= startDate && a.ScheduledAt <= endDate);
 
         if (request.DoctorId.HasValue)
-            doctorsQuery = doctorsQuery.Where(d => d.Id == request.DoctorId);
+            query = query.Where(a => a.DoctorId == request.DoctorId);
 
-        if (!string.IsNullOrEmpty(request.Specialization))
-        {
-            doctorsQuery = doctorsQuery
-                .Join(_context.DoctorSpecializations, d => d.Id, ds => ds.Doctor_Id, (d, ds) => new { d, ds })
-                .Join(_context.Specializations, x => x.ds.Specialization_Id, s => s.Id, (x, s) => new { x.d, s })
-                .Where(x => x.s.Name == request.Specialization)
-                .Select(x => x.d);
-        }
+        var appointments = await query.ToListAsync(cancellationToken);
 
-        var doctors = await doctorsQuery.ToListAsync(cancellationToken);
+        // Group by doctor
+        var doctorGroups = appointments.GroupBy(a => a.DoctorId);
         var performanceList = new List<DoctorPerformanceDto>();
 
-        foreach (var doctor in doctors)
+        foreach (var group in doctorGroups)
         {
-            var doctorProfile = await _context.UserProfiles
-                .FirstOrDefaultAsync(up => up.User_Id == doctor.Id, cancellationToken);
+            var doctorId = group.Key;
+            var doctorAppointments = group.ToList();
+            var totalAppointments = doctorAppointments.Count;
+            var completedAppointments = doctorAppointments.Count(a => a.Status == "Completed");
+            var cancelledAppointments = doctorAppointments.Count(a => a.Status == "Cancelled");
+            var noShowAppointments = doctorAppointments.Count(a => a.Status == "NoShow" || a.Status == "Overdue");
 
-            var appointments = await _context.ScheduleAppointments
-                .Where(sa => sa.Doctor_User_Id == doctor.Id)
-                .Where(sa => sa.Day >= startDate && sa.Day <= endDate)
-                .ToListAsync(cancellationToken);
-
-            var totalAppointments = appointments.Count;
-
-            var completedAppointments = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Id)
-                .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Completed")
-                .CountAsync(cancellationToken);
-
-            var cancelledAppointments = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Id)
-                .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "Cancelled")
-                .CountAsync(cancellationToken);
-
-            var noShowAppointments = await _context.ScheduleAppointments
-                .Join(_context.ScheduleAppointmentStatuses, sa => sa.Schedule_Appointment_Status_Id, status => status.Id,
-                    (sa, status) => new { sa, status })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Id)
-                .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.status.Name == "NoShow")
-                .CountAsync(cancellationToken);
-
-            var ratings = await _context.Rates
-                .Where(r => r.Doctor_User_Id == doctor.Id)
-                .Where(r => r.Rated_At >= startDate && r.Rated_At <= endDate)
-                .ToListAsync(cancellationToken);
-
-            var averageRating = ratings.Any() ? (ratings.Average(r => (double?)r.Rate_Value) ?? 0) : 0;
-            var totalRatings = ratings.Count;
-
-            var revenue = await _context.AppointmentPayments
-                .Join(_context.ScheduleAppointments, ap => ap.Schedule_Appointment_Id, sa => sa.Id,
-                    (ap, sa) => new { ap, sa })
-                .Where(x => x.sa.Doctor_User_Id == doctor.Id)
-                .Where(x => x.sa.Day >= startDate && x.sa.Day <= endDate && x.ap.Status == "Paid")
-                .SumAsync(x => x.ap.Amount ?? 0m, cancellationToken);
-
-            // Calculate utilization rate based on total working hours vs booked appointments
+            // Calculate utilization rate based on working hours
             var totalWorkingMinutes = (endDate - startDate).Days * 8 * 60; // Assuming 8 hours per day
-            var bookedMinutes = appointments.Sum(a => a.Duration_Minutes ?? 0);
-            var utilizationRate = totalWorkingMinutes > 0 ? ((double)bookedMinutes / totalWorkingMinutes) * 100 : 0;
-
-            var specialization = await _context.DoctorSpecializations
-                .Join(_context.Specializations, ds => ds.Specialization_Id, s => s.Id, (ds, s) => new { ds, s })
-                .Where(x => x.ds.Doctor_Id == doctor.Id)
-                .Select(x => x.s.Name)
-                .FirstOrDefaultAsync(cancellationToken) ?? "General";
+            var bookedMinutes = doctorAppointments.Sum(a => (a.ScheduledEndAt - a.ScheduledAt).TotalMinutes);
+            var utilizationRate = totalWorkingMinutes > 0 ? (bookedMinutes / totalWorkingMinutes) * 100 : 0;
 
             performanceList.Add(new DoctorPerformanceDto
             {
-                Id = doctor.Id,
-                Name = doctorProfile != null ? $"Dr. {doctorProfile.FirstName ?? "Unknown"} {doctorProfile.LastName ?? ""}" : "Unknown",
-                Specialization = specialization,
+                Id = doctorId,
+                Name = $"Doctor {doctorId.ToString()[..8]}", // Placeholder name since we can't access user profiles
+                Specialization = "General", // Placeholder since we can't access practitioner service
                 TotalAppointments = totalAppointments,
                 CompletedAppointments = completedAppointments,
                 CancelledAppointments = cancelledAppointments,
                 NoShowAppointments = noShowAppointments,
-                AverageRating = averageRating,
-                TotalRatings = totalRatings,
-                Revenue = revenue,
+                AverageRating = 0, // Not available
+                TotalRatings = 0, // Not available
+                Revenue = 0, // Not available
                 UtilizationRate = utilizationRate
             });
         }

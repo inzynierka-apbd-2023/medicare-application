@@ -66,7 +66,7 @@ export const SchedulerFilters: React.FC<SchedulerFiltersProps> = ({
     [onFiltersChange]
   );
 
-  const handleClearPatientSearch = useCallback(() => {
+  const clearPatientFilter = useCallback(() => {
     setSelectedPatient(null);
     setPatientSearchTerm("");
     setPatientSearchResults([]);
@@ -76,6 +76,13 @@ export const SchedulerFilters: React.FC<SchedulerFiltersProps> = ({
     const { patientName: _patientName, ...otherFilters } = filters;
     onFiltersChange(otherFilters);
   }, [filters, onFiltersChange]);
+
+  const resetLocalPatientState = useCallback(() => {
+    setSelectedPatient(null);
+    setPatientSearchTerm("");
+    setPatientSearchResults([]);
+    setShowPatientDropdown(false);
+  }, []);
 
   const handleDoctorChange = useCallback(
     (e: React.ChangeEvent<HTMLSelectElement>) => {
@@ -168,7 +175,7 @@ export const SchedulerFilters: React.FC<SchedulerFiltersProps> = ({
               size="sm"
               onClick={() => {
                 onClearFilters();
-                handleClearPatientSearch();
+                resetLocalPatientState();
               }}
               className="flex items-center"
             >
@@ -202,7 +209,7 @@ export const SchedulerFilters: React.FC<SchedulerFiltersProps> = ({
           {/* Clear button when patient is selected */}
           {selectedPatient && (
             <button
-              onClick={handleClearPatientSearch}
+              onClick={clearPatientFilter}
               className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
             >
               <X size={16} />
@@ -251,7 +258,7 @@ export const SchedulerFilters: React.FC<SchedulerFiltersProps> = ({
                   </div>
                 </div>
                 <button
-                  onClick={handleClearPatientSearch}
+                  onClick={clearPatientFilter}
                   className="text-blue-600 hover:text-blue-800"
                 >
                   <X size={16} />

@@ -1,193 +1,171 @@
-# Medicare Application
+# Medicare Application - Local Development Guide
 
-Monorepo containing:
-
-* UserService (ASP.NET Core 8 Web API + EF Core + Azure AD token-based SQL auth)
-* PractitionerService (ASP.NET Core 8 Web API + EF Core, isolated practitioner schema and migrations)
-* PatientService (ASP.NET Core 8 Web API + EF Core, isolated patient schema and migrations)
-* Frontend (Vite + React + TypeScript, served via Nginx container)
-
-## Release highlights (Aug 2025)
-
-* Appointments: automatic Overdue processing via a background job in AppointmentService; reads also surface an effective Overdue status immediately; composite index added for performance.
-* Scheduler: availability now comes from PractitionerService weekly schedules; frontend computes 30-min slots and excludes booked times from AppointmentService.
-* Time handling: frontend and APIs use local wall-clock for appointment times to avoid drift; naive datetimes are parsed as local on read.
-* UI: unified status colors across /appointment-scheduler and /patient-dashboard (including Overdue). See `frontend-container/medicare-frontend/src/features/scheduler/utils/statusColors.ts`.
-
-## Quick Start (Docker)
-
-```bash
-docker compose build
-# Provide required env in .env (see .env.example) including USER_SERVICE_CONNECTION or AAD vars
-USE_AZURE_DEFAULT_CREDENTIAL=true AZURE_TENANT_ID=... AZURE_CLIENT_ID=... AZURE_CLIENT_SECRET=... docker compose up -d
-```
-
-Frontend: <http://localhost:5173>  
-UserService Swagger (dev only): <http://localhost:8080/swagger>
-PractitionerService Swagger (dev only): <http://localhost:8081/swagger>
-PatientService Swagger (dev only): <http://localhost:8082/swagger>
-
-## Azure AD Token Auth & Logging Inside Docker
-
-The UserService can authenticate to Azure SQL using a Service Principal (recommended for AAD-only databases) via `DefaultAzureCredential` and environment variables.
-
-### Required Environment Variables
-
-| Variable | Description |
-|----------|-------------|
-| USE_AZURE_DEFAULT_CREDENTIAL | Set `true` to enable token mode (otherwise connection string auth is used). |
-| AZURE_TENANT_ID | Directory (tenant) ID of your Azure AD. |
-| AZURE_CLIENT_ID | Application (client) ID of the Service Principal. |
-| AZURE_CLIENT_SECRET | Client secret for the Service Principal. |
-| AZURE_SQL_CONNECTIONSTRING (optional) | Raw connection string without user/password when using AAD. If omitted, falls back to `ConnectionStrings__DefaultConnection` or appsettings. |
-
-Connection string example for AAD token mode (note: no User ID / Password / Authentication clause):
-
-```ini
-Server=tcp:<your-server>.database.windows.net,1433;Database=<your-db>;Encrypt=True;TrustServerCertificate=False;Connection Timeout=30;MultipleActiveResultSets=False
-```
-
-### SQL Database Setup (once)
-
-1. Create Service Principal:
-
-
-   ```bash
-   az ad sp create-for-rbac --name medicare-sql-sp --role Reader --scopes /subscriptions/${SUBSCRIPTION_ID}
-   ```
-
-   Capture `appId`, `tenant`, `password`.
-2. In Azure SQL (master or target DB), create user mapped to the SP object ID:
-
-
-   ```sql
-   CREATE USER [medicare-sql-sp] FROM EXTERNAL PROVIDER;
-   ALTER ROLE db_datareader ADD MEMBER [medicare-sql-sp];
-   ALTER ROLE db_datawriter ADD MEMBER [medicare-sql-sp];
-   ```
-
-   If migrations need to run, temporarily grant `db_ddladmin` during deployment, then remove it.
-
-### Enabling Structured Logging
-
-Currently console logging is enabled by default (writes to Docker logs). To enrich logs:
-
-1. Add Serilog (example):
-
-
-   ```xml
-   <PackageReference Include="Serilog.AspNetCore" Version="8.*" />
-   <PackageReference Include="Serilog.Sinks.Console" Version="5.*" />
-   ```
-   
-2. In `Program.cs` (before `builder.Build()`):
-
-
-   ```csharp
-   using Serilog;
-   Log.Logger = new LoggerConfiguration()
-      .Enrich.FromLogContext()
-      .WriteTo.Console()
-      .CreateLogger();
-   builder.Host.UseSerilog();
-   ```
-
-3. (Optional) Send logs to Azure Monitor / Log Analytics:
-   * Add `Serilog.Sinks.AzureAnalytics` or use Azure Diagnostic Settings on the container host / AKS.
-
-### Viewing Logs
-
-Container logs:
-
-```bash
-docker compose logs -f user-service
-```
-
-Look for `[Startup]` lines: they show connection source & normalization actions. No secrets (passwords) are logged.
-
-### Azure AD Authentication Flow Summary
-
-1. `USE_AZURE_DEFAULT_CREDENTIAL=true` triggers connection string normalization (credentials + Authentication removed).
-2. `DefaultAzureCredential` acquires token using SP env vars inside the container.
-3. EF Core uses a `SqlConnection` with `AccessToken` set; no password ever traverses the wire.
-
-### Local Developer Setup (Windows / Docker Desktop)
-
-1. Copy `.env.example` to `.env` and fill SP vars.
-2. Ensure local IP/firewall allowed in Azure SQL or use Private Endpoint.
-3. Run `docker compose up -d`.
-4. Inspect logs to confirm: `Normalized connection string for AAD token` & migrations applied.
-
-### Rotating Secrets
-
-Rotate `AZURE_CLIENT_SECRET` in Azure Portal / CLI, update `.env`, and recreate container:
-
-```bash
-docker compose up -d --force-recreate --no-deps user-service
-```
-
-## Frontend Auth Integration
-
-* SPA API calls go through the Nginx proxy path `/api` (mapped to user-service). This avoids host DNS issues from the browser.
-   * Compose sets `VITE_API_BASE_URL=/api`; the frontend axios client uses this base.
-* Register & Login forms call `/api/auth/register` and `/api/auth/login`.
-* After registration, the flow continues to a second page to complete profile details; the returned `user.id` is used for the immediate profile update to avoid races.
-* JWT token is stored in `localStorage` as `authToken` and attached as `Authorization: Bearer <token>`.
-* Protected routes enforce presence of token.
-
-### Users API (new)
-
-* GET `/api/users/{id}` � get profile (JWT required)
-* PUT `/api/users/{id}` � update profile, including optional `avatarUrl` (JWT required)
-* GET `/api/users/availability?email=&username=` � anonymous availability check for sign-up, returns `{ emailExists, usernameExists }`
-
-### Registration UX
-
-* Password strength meter blocks weak passwords.
-* Debounced duplicate email check shows inline error; submit disabled if email is already taken.
-
-## Development Tips
-
-| Action | Command |
-|--------|---------|
-| Rebuild all | `docker compose build --parallel` |
-| Tail logs | `docker compose logs -f user-service` |
-| Run only frontend | `docker compose up -d frontend` |
-| Apply migrations manually | Inside container: `dotnet ef database update` (if tools added) |
-
-## Security Notes
-
-* Do not commit `.env` or Azure CLI tokens.
-* Limit SP to least-privilege roles; drop `db_ddladmin` after schema stabilized.
-* Consider Azure Key Vault for secret injection (Managed Identity) in future.
+This guide explains how to run the Medicare application locally using **.NET Aspire** for orchestration.
 
 ---
 
-For further database seed scripts see `docs/sql-seed/`.
+## Prerequisites
 
-## Practitioner Service
+1. **Docker Desktop** - Running and healthy
+2. **.NET 9 SDK** - [Download](https://dotnet.microsoft.com/download/dotnet/9.0)
+3. **Node.js 20+** & **npm** - [Download](https://nodejs.org/)
+4. **Visual Studio 2022** or **VS Code** with C# Dev Kit (optional)
 
-`PractitionerService` (under `backend-container/PractitionerService`) owns doctor & receptionist domain data in its own schema `practitioner` inside the shared database. It exposes:
+Verify your setup:
+```powershell
+docker --version    # Should show Docker version
+dotnet --version    # Should show 9.x.x
+node --version      # Should show v20.x.x or higher
+```
 
-* Doctors catalog & search: `GET /api/doctors?specializationId=&serviceId=&q=`
-* Doctor registration: `POST /api/doctors`
-* Manage doctor specializations: `PUT /api/doctors/{id}/specializations`
-* Manage recurring availability: `PUT /api/doctors/{id}/availability` & fetch via `GET /api/doctors/{id}/availability`
-* Receptionist registry: `POST /api/receptionists`
-* Services & Specializations catalog: `GET /api/catalog/services`, `GET /api/catalog/specializations?serviceId=`
+---
 
-Events (stored in Outbox for future dispatch): `DoctorRegistered`, `DoctorSpecializationUpdated`, `DoctorAvailabilityChanged`, `ReceptionistRegistered`.
+## Quick Start
 
-The initial migration also creates a simple `practitioner.DoctorDirectory` view (placeholder for a richer projection joining user profile data once cross-service integration is implemented). Each service uses isolated migrations (different schema) to avoid conflicts while sharing the physical Azure SQL database.
+### Step 1: Start Backend Services with Aspire
 
-## Archive Service
+```powershell
+cd backend-container/Medicare.AppHost
+dotnet run
+```
 
-`ArchiveService` (under `backend-container/ArchiveService`) stores archived doctors for historical lookups when a doctor is removed. It listens to `practitioner.events` and, on `doctor.remove.requested`, creates an archive record then emits `doctor.archived`. It exposes `GET /archive/doctors/{doctorId}` to retrieve archived identity data. The container is included in `docker-compose.yml` as `archive-service` on port 8091.
+**What happens automatically:**
+- 🐳 SQL Server container starts
+- 📦 11 databases are created (one per service)
+- 🐰 RabbitMQ container starts with management UI
+- 🚀 All 13 microservices start
+- 🔄 Database migrations run automatically on each service
 
-### Doctor Deletion Flow (initial version)
+### Step 2: Open Aspire Dashboard
 
-1. Client calls `DELETE /api/practitioner/doctors/{id}`.
-2. PractitionerService publishes `doctor.remove.requested` and deletes doctor records.
-3. ArchiveService consumes and persists minimal archive, then publishes `doctor.archived`.
-4. AppointmentService consumes `doctor.archived` and purges appointments for that doctor.
-5. Other services can optionally query ArchiveService for historical identity when a doctor reference is missing.
+The dashboard opens at: **http://localhost:15015**
+
+Here you can:
+- Monitor all services (green = healthy)
+- View logs for each service
+- **Find service URLs** (click on a service to see its endpoint)
+
+### Step 3: Start Frontend
+
+```powershell
+cd frontend-container/medicare-frontend
+npm install
+npm run dev
+```
+
+Frontend runs at: **http://localhost:5173**
+
+---
+
+## Configuration
+
+### Frontend API Proxying
+
+The frontend uses Vite's proxy feature to route API calls to the correct backend services.
+Configuration is in `.env.development` - update ports after Aspire starts:
+
+1. Start Aspire and open the dashboard (http://localhost:18888)
+2. Note the ports for each service from the "Endpoints" column
+3. Update `.env.development` with the correct ports:
+
+```env
+VITE_USER_SERVICE_URL=http://localhost:9184
+VITE_APPOINTMENT_SERVICE_URL=http://localhost:8284
+VITE_NOTIFICATION_SERVICE_URL=http://localhost:8884
+VITE_PATIENT_SERVICE_URL=http://localhost:9084
+VITE_PRACTITIONER_SERVICE_URL=http://localhost:8384
+VITE_DOCUMENTS_SERVICE_URL=http://localhost:8184
+VITE_BILLING_SERVICE_URL=http://localhost:8584
+VITE_MEDICAL_RECORDS_SERVICE_URL=http://localhost:8684
+VITE_MESSAGING_SERVICE_URL=http://localhost:8984
+VITE_LAB_SERVICE_URL=http://localhost:8784
+VITE_CATALOG_SERVICE_URL=http://localhost:8484
+```
+
+4. Restart Vite: `npm run dev`
+
+### API Endpoint Routing
+
+| Endpoint Prefix | Service | Examples |
+|-----------------|---------|----------|
+| `/api/auth/*` | UserService | Login, Register, Refresh |
+| `/api/users/*` | UserService | Profile management |
+| `/api/appointment/*` | AppointmentService | Appointments |
+| `/api/patient/*` | PatientService | Patient data |
+| `/api/notifications/*` | NotificationService | Notifications |
+| `/api/doctors/*` | PractitionerService | Doctor directory |
+| `/api/documents/*` | DocumentsService | Documents |
+| `/api/billing/*` | BillingService | Payments |
+| `/api/messages/*` | MessagingService | Messages |
+| `/api/lab/*` | LabService | Lab orders |
+
+### JWT Secret
+
+The JWT secret for local development is pre-configured in:
+`backend-container/Medicare.AppHost/appsettings.json`
+
+⚠️ **Never use this secret in production!**
+
+---
+
+## Useful URLs
+
+| Resource | URL |
+|----------|-----|
+| Aspire Dashboard | http://localhost:15015 |
+| Frontend | http://localhost:5173 |
+| RabbitMQ Management | Check Aspire Dashboard |
+| Swagger (per service) | `{service-url}/swagger` |
+| Health Check (per service) | `{service-url}/health` |
+
+---
+
+## Test Users (Development Only)
+
+These users are automatically seeded on first startup in development mode:
+
+### Doctors
+
+| Username | Email | Password | Name | Specialization | Schedule |
+|----------|-------|----------|------|----------------|----------|
+| `doctor1` | `doctor1@medicare.local` | `P@ssw0rd!` | Dr. John Carter | Cardiologist, General Practice | Mon 9-13, Wed 14-18, Fri 9-12 |
+| `doctor2` | `doctor2@medicare.local` | `P@ssw0rd!` | Dr. Sarah Chen | General Practice | Mon 8-16, Tue 8-16, Thu 8-16 |
+
+### Patients
+
+| Username | Email | Password | Name |
+|----------|-------|----------|------|
+| `patient1` | `patient1@medicare.local` | `P@ssw0rd!` | Alice Johnson |
+| `patient2` | `patient2@medicare.local` | `P@ssw0rd!` | Bob Smith |
+
+### Staff
+
+| Username | Email | Password | Name | Role |
+|----------|-------|----------|------|------|
+| `receptionist` | `receptionist@medicare.local` | `P@ssw0rd!` | Mary Williams | Receptionist |
+| `admin` | `admin@medicare.local` | `P@ssw0rd!` | System Administrator | Admin |
+| `owner` | `owner@medicare.local` | `P@ssw0rd!` | Big Boss | Owner |
+
+### Pre-seeded Appointments
+
+- **Appointment 1:** Alice Johnson with Dr. John Carter - Tomorrow at 10:00 AM
+- **Appointment 2:** Bob Smith with Dr. Sarah Chen - Day after tomorrow at 2:00 PM
+
+> **Note:** To re-seed users, delete all databases and restart Aspire. The seeder uses deterministic IDs, so data is consistent across services.
+
+---
+
+## Deployment to Azure
+
+To deploy the application to Azure:
+
+1. Open a terminal in the solution root.
+2. Run `azd up`
+3. Follow the prompts (login, select subscription, location).
+
+Once deployed, the application URL will be displayed in the terminal.
+To find it later, run:
+```powershell
+azd show
+```
+Look for the **Ingress** URL in the output.

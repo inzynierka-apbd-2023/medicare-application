@@ -88,6 +88,7 @@ export interface CreateAppointmentRequest {
     | "vaccination";
   room?: string;
   description?: string;
+  serviceId?: string;
 }
 
 export interface UpdateAppointmentRequest {

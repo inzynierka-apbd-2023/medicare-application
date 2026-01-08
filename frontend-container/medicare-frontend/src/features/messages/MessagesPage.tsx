@@ -117,6 +117,74 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
             }
           }
 
+          // 3. If Receptionist, fetch ALL doctors and ALL patients
+          if (userType === "receptionist") {
+            // Fetch all doctors from PractitionerService
+            try {
+              const doctorsRes = await import(
+                "@shared/services/apiClient"
+              ).then((m) =>
+                m.apiClient.get<
+                  Array<{
+                    doctorId: string;
+                    firstName: string;
+                    lastName: string;
+                    specializations?: string;
+                  }>
+                >("/practitioner/doctors", { params: { isActive: true } })
+              );
+              if (doctorsRes.data) {
+                doctorsRes.data.forEach((d) => {
+                  if (!recipients.find((r) => r.id === d.doctorId)) {
+                    recipients.push({
+                      id: d.doctorId,
+                      name:
+                        `${d.firstName || ""} ${d.lastName || ""}`.trim() ||
+                        "Unknown Doctor",
+                      role: "doctor",
+                      specialty: d.specializations || "General",
+                      email: "",
+                    } as User);
+                  }
+                });
+              }
+            } catch (e) {
+              console.error("Failed to fetch doctors for receptionist", e);
+            }
+
+            // Fetch all patients from PatientService
+            try {
+              const patientsRes = await import(
+                "@shared/services/apiClient"
+              ).then((m) =>
+                m.apiClient.get<{
+                  items: Array<{
+                    patientId: string;
+                    firstName?: string;
+                    lastName?: string;
+                    email?: string;
+                  }>;
+                }>("/patient/patients", { params: { pageSize: 100 } })
+              );
+              if (patientsRes.data?.items) {
+                patientsRes.data.items.forEach((p) => {
+                  if (!recipients.find((r) => r.id === p.patientId)) {
+                    recipients.push({
+                      id: p.patientId,
+                      name:
+                        `${p.firstName || ""} ${p.lastName || ""}`.trim() ||
+                        "Unknown Patient",
+                      role: "patient",
+                      email: p.email || "",
+                    } as User);
+                  }
+                });
+              }
+            } catch (e) {
+              console.error("Failed to fetch patients for receptionist", e);
+            }
+          }
+
           setAvailableRecipients(recipients);
         } catch (e) {
           console.error("Failed to load recipients", e);
@@ -143,7 +211,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
   const handleStartConversation = async (
     recipientId: string,
     recipientName: string,
-    initialMessage: string
+    initialMessage: string,
+    recipientRole?: "patient" | "doctor" | "receptionist"
   ) => {
     try {
       // Check if conversation already exists with this user
@@ -164,7 +233,8 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         const conversationId = await createConversation(
           recipientId,
           recipientName,
-          initialMessage
+          initialMessage,
+          recipientRole
         );
         selectConversation(conversationId);
         setIsNewMessageModalOpen(false);

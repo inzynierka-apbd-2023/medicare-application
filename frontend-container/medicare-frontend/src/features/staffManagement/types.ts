@@ -63,7 +63,7 @@ export interface Service {
 export interface ScheduleEntry {
   dayOfWeek: number; // 0-6 (Sun-Sat) or 1-7 depending on backend; UI will handle labels
   start: string; // HH:mm
-  end: string;   // HH:mm
+  end: string; // HH:mm
 }
 
 export type StaffMember = Doctor | Receptionist;
@@ -103,7 +103,6 @@ export interface StaffDetailsModalProps {
   isOpen: boolean;
   onClose: () => void;
   onEdit?: (staff: StaffMember) => void;
-  onDelete?: (staff: StaffMember) => void;
 }
 
 export interface StaffFormModalProps {
@@ -137,7 +136,6 @@ export interface StaffManagementProps {
   onStaffDeselect: () => void;
   onStaffCreate: (data: CreateStaffRequest) => Promise<boolean>;
   onStaffUpdate: (data: UpdateStaffRequest) => Promise<boolean>;
-  onStaffDelete: (id: string) => Promise<boolean>;
 }
 
 export interface StaffManagementPageProps {

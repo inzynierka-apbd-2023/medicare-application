@@ -6,6 +6,9 @@ using AppointmentService.Models;
 using RabbitMQ.Client;
 using System.Text;
 using System.Text.Json;
+using AppointmentService.Features.Scheduler.DTOs;
+using AppointmentService.Features.Scheduler.Queries;
+using MediatR;
 
 namespace AppointmentService.Controllers;
 
@@ -18,13 +21,15 @@ public class AppointmentsController : ControllerBase
     private readonly IConnection _mqConnection;
     private readonly ILogger<AppointmentsController> _logger;
     private readonly AppointmentService.Services.IBillingServiceClient _billingClient;
+    private readonly IMediator _mediator;
 
-    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, ILogger<AppointmentsController> logger, AppointmentService.Services.IBillingServiceClient billingClient)
+    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, ILogger<AppointmentsController> logger, AppointmentService.Services.IBillingServiceClient billingClient, IMediator mediator)
     {
         _db = db;
         _mqConnection = mqConnection;
         _logger = logger;
         _billingClient = billingClient;
+        _mediator = mediator;
     }
 
     [HttpPost]
@@ -55,6 +60,8 @@ public class AppointmentsController : ControllerBase
                 AppointmentType = req.AppointmentType,
                 Notes = req.Notes,
                 ServiceId = req.ServiceId,
+                Category = req.Category,
+                Room = req.Room,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
                 IsPaid = billingResult.IsPaid,
@@ -77,6 +84,14 @@ public class AppointmentsController : ControllerBase
         {
             return StatusCode(500, new { message = "Failed to create appointment", error = ex.Message, inner = ex.InnerException?.Message });
         }
+    }
+
+    [HttpGet("stats")]
+    public async Task<ActionResult<SchedulerStatsResponse>> GetStats([FromQuery] Guid? doctorId, [FromQuery] Guid? patientId)
+    {
+        var query = new GetSchedulerStatsQuery { DoctorId = doctorId, PatientId = patientId };
+        var result = await _mediator.Send(query);
+        return Ok(result);
     }
 
     [HttpGet("{id}")]
@@ -242,8 +257,33 @@ public class AppointmentsController : ControllerBase
             _logger.LogError(ex, "Failed to publish appointment.created for {Id}", appointment.Id);
         }
     }
+
+    [HttpPut("{id}")]
+    [Authorize]
+    public async Task<IActionResult> UpdateAppointment(Guid id, [FromBody] UpdateAppointmentRequestDto req)
+    {
+        var appointment = await _db.Appointments.FindAsync(id);
+        if (appointment == null) return NotFound();
+
+        // Update fields that are allowed to be modified
+        if (req.Description != null) appointment.Notes = req.Description; // Allow clearing if empty string sent? or only if not null
+        
+        if (req.ScheduledAt.HasValue) appointment.ScheduledAt = req.ScheduledAt.Value;
+        if (req.ScheduledEndAt.HasValue) appointment.ScheduledEndAt = req.ScheduledEndAt.Value;
+        if (!string.IsNullOrEmpty(req.AppointmentType)) appointment.AppointmentType = req.AppointmentType;
+        if (req.ServiceId.HasValue) appointment.ServiceId = req.ServiceId.Value;
+        if (!string.IsNullOrEmpty(req.Category)) appointment.Category = req.Category;
+        if (req.Room != null) appointment.Room = req.Room; 
+        
+        appointment.UpdatedAt = DateTime.UtcNow;
+        
+        await _db.SaveChangesAsync();
+
+        return Ok(appointment);
+    }
 }
 
-public record CreateAppointmentRequest(Guid PatientId, Guid DoctorId, DateTime ScheduledAt, DateTime ScheduledEndAt, string? AppointmentType, string? Notes, Guid? ServiceId);
+public record CreateAppointmentRequest(Guid PatientId, Guid DoctorId, DateTime ScheduledAt, DateTime ScheduledEndAt, string? AppointmentType, string? Notes, Guid? ServiceId, string? Category, string? Room);
 public record UpdateStatusRequest(string Status);
 public record MockPaymentRequest(Guid PatientId, string PaymentMethod);
+public record UpdateAppointmentRequestDto(string? Description, DateTime? ScheduledAt, DateTime? ScheduledEndAt, string? AppointmentType, Guid? ServiceId, string? Category, string? Room);

@@ -152,11 +152,14 @@ export interface PatientRegistrationFormData {
 // Doctor interface for dropdown
 export interface Doctor {
   id: string;
+  userId?: string;
   firstName: string;
   lastName: string;
-  specialization: string;
-  email: string;
-  phone: string;
+  specialization?: string;
+  specialty?: string;
+  email?: string;
+  phone?: string;
+  isActive?: boolean;
 }
 
 // Create patient request for API

@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import {
   Activity,
   BarChart3,
@@ -87,6 +88,7 @@ interface ActivityLog {
 
 const OwnerDashboard: React.FC = () => {
   const { isLoading, error, executeInitialLoad } = useLoadingService();
+  const navigate = useNavigate();
   const [dashboardData, setDashboardData] = useState<OwnerDashboardData | null>(
     null
   );
@@ -319,14 +321,9 @@ const OwnerDashboard: React.FC = () => {
               <Button
                 variant="outline"
                 leftIcon={<BarChart3 className="w-4 h-4" />}
+                onClick={() => navigate("/appointment-analytics")}
               >
-                View Reports
-              </Button>
-              <Button
-                variant="primary"
-                leftIcon={<FileText className="w-4 h-4" />}
-              >
-                Export Data
+                View Analytics
               </Button>
             </div>
           </div>

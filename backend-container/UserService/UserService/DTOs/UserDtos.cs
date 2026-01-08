@@ -84,6 +84,13 @@ public class UserResponseDto
     public DateTime? DateOfBirth { get; set; }
     // Aggregated address (AddressLine1, AddressLine2, City, State, ZipCode, Country)
     public string? Address { get; set; }
+    // Individual address fields for frontend use
+    public string? AddressLine1 { get; set; }
+    public string? AddressLine2 { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? ZipCode { get; set; }
+    public string? Country { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
     public bool IsActive { get; set; }

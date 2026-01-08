@@ -6,8 +6,8 @@ import type {
   Specialization,
   StaffMember,
   StaffRole,
-  UpdateStaffRequest,
   StaffStatusFilter,
+  UpdateStaffRequest,
 } from "../types";
 
 interface UseStaffManagementReturn {
@@ -42,7 +42,6 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
 
   // Filter staff based on search term and role filter
   const filteredStaff = staff.filter((staffMember) => {
-
     const matchesSearch =
       `${staffMember.profile.firstName} ${staffMember.profile.lastName}`
         .toLowerCase()
@@ -75,13 +74,13 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
       const req: { isActive?: boolean } = {};
       if (statusFilter !== "All") req.isActive = statusFilter === "Active";
       const [staffResponse, specializationsResponse] = await Promise.all([
-        staffApi.getStaff(req as any),
+        staffApi.getStaff(req),
         staffApi.getSpecializations(),
       ]);
 
       if (staffResponse.success) {
-        // Only doctors are supported; drop any non-doctor entries if present
-        setStaff(staffResponse.data.filter((s) => s.role === "Doctor"));
+        // All staff roles are now supported (Doctors + Receptionists)
+        setStaff(staffResponse.data);
       } else {
         setError(staffResponse.errors?.[0] || "Failed to fetch staff");
       }
@@ -116,18 +115,29 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
         if (response.success) {
           const created = response.data;
           // Optimistically add created (with credentials) to top of list
-          setStaff((prev) => [created as StaffMember, ...prev.filter((s) => s.id !== created.id)]);
+          setStaff((prev) => [
+            created as StaffMember,
+            ...prev.filter((s) => s.id !== created.id),
+          ]);
           // Refresh the list from server, then re-attach credentials to the created doctor (one-time)
           await fetchStaff();
-          setStaff((prev) => prev.map((s) =>
-            s.id === created.id && (created as any).credentials
-              ? ({ ...s, credentials: (created as any).credentials } as any)
-              : s
-          ));
+          setStaff((prev) =>
+            prev.map((s) =>
+              s.id === created.id &&
+              created.role === "Doctor" &&
+              created.credentials
+                ? ({ ...s, credentials: created.credentials } as StaffMember)
+                : s
+            )
+          );
           // Best-effort toast is handled by caller
           return true;
         } else {
-          setError(response.errors?.[0] || response.message || "Failed to create staff member");
+          setError(
+            response.errors?.[0] ||
+              response.message ||
+              "Failed to create staff member"
+          );
           return false;
         }
       } catch (err) {
@@ -146,9 +156,9 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
         setError(null);
         const updateRequest = {
           ...data,
-          role: data.role!
+          role: data.role!,
         };
-  const response = await staffApi.updateStaff(data.id, updateRequest);
+        const response = await staffApi.updateStaff(data.id, updateRequest);
 
         if (response.success) {
           await fetchStaff(); // Refresh the list
@@ -211,11 +221,11 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
     selectedStaff,
     searchTerm,
     roleFilter,
-  statusFilter,
+    statusFilter,
     filteredStaff,
     setSearchTerm,
     setRoleFilter,
-  setStatusFilter,
+    setStatusFilter,
     selectStaff,
     createStaff,
     updateStaff,

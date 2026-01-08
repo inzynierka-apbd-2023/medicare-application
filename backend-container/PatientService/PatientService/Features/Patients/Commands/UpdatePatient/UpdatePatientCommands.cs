@@ -81,3 +81,23 @@ public class UpdateInsuranceHandler : IRequestHandler<UpdateInsuranceCommand, bo
         return true;
     }
 }
+
+public record SetPrimaryDoctorCommand(Guid Id, Guid? DoctorId) : IRequest<bool>;
+
+public class SetPrimaryDoctorHandler : IRequestHandler<SetPrimaryDoctorCommand, bool>
+{
+    private readonly PatientDbContext _db;
+    public SetPrimaryDoctorHandler(PatientDbContext db) => _db = db;
+
+    public async Task<bool> Handle(SetPrimaryDoctorCommand request, CancellationToken cancellationToken)
+    {
+        var patient = await _db.Patients.FindAsync(new object[] { request.Id }, cancellationToken);
+        if (patient == null) return false;
+
+        patient.PrimaryDoctorId = request.DoctorId;
+        patient.UpdatedAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync(cancellationToken);
+        return true;
+    }
+}
+

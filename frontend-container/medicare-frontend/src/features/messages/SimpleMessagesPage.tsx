@@ -25,7 +25,9 @@ const SimpleMessagesPage: React.FC = () => {
         >
           <MessagesPage
             userId={user.id}
-            userType={user.role.toLowerCase() as "patient" | "doctor"}
+            userType={
+              user.role.toLowerCase() as "patient" | "doctor" | "receptionist"
+            }
             {...(recipientId ? { recipientId } : {})}
             {...(conversationId ? { conversationId } : {})}
           />

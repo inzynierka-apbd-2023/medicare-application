@@ -144,6 +144,7 @@ These users are automatically seeded on first startup in development mode:
 |----------|-------|----------|------|------|
 | `receptionist` | `receptionist@medicare.local` | `P@ssw0rd!` | Mary Williams | Receptionist |
 | `admin` | `admin@medicare.local` | `P@ssw0rd!` | System Administrator | Admin |
+| `owner` | `owner@medicare.local` | `P@ssw0rd!` | Big Boss | Owner |
 
 ### Pre-seeded Appointments
 

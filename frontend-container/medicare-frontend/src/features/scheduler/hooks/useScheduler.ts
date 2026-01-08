@@ -14,14 +14,17 @@ import type {
 import { getStatusColors } from "../utils/statusColors";
 
 interface UseSchedulerProps {
-  patientId: string;
+  patientId?: string | undefined; // Optional for receptionist view
   initialFilters?: SchedulerFilters;
 }
 
 interface UseSchedulerReturn extends SchedulerState {
   // Actions
   refreshAppointments: () => Promise<void>;
-  createAppointment: (appointment: CreateAppointmentRequest) => Promise<void>;
+  createAppointment: (
+    appointment: CreateAppointmentRequest,
+    patientIdOverride?: string
+  ) => Promise<void>;
   updateAppointment: (
     appointmentId: string,
     updates: UpdateAppointmentRequest
@@ -64,6 +67,7 @@ export const useScheduler = ({
     selectedDate: null,
     selectedAppointment: null,
     filters: initialFilters,
+    stats: null,
   });
 
   // Load initial data
@@ -76,19 +80,25 @@ export const useScheduler = ({
       }));
 
       try {
-        const [
-          appointments,
-          doctors,
-          services,
-          specializations,
-          appointmentStatuses,
-        ] = await Promise.all([
-          SchedulerApiService.getPatientAppointments(patientId),
-          SchedulerApiService.getDoctors(),
-          SchedulerApiService.getServices(),
-          SchedulerApiService.getSpecializations(),
-          SchedulerApiService.getAppointmentStatuses(),
-        ]);
+        const [doctors, services, specializations, appointmentStatuses, stats] =
+          await Promise.all([
+            SchedulerApiService.getDoctors(),
+            SchedulerApiService.getServices(),
+            SchedulerApiService.getSpecializations(),
+            SchedulerApiService.getAppointmentStatuses(),
+            SchedulerApiService.getSchedulerStats(
+              patientId ? { patientId } : {}
+            ),
+          ]);
+
+        // Fetch appointments based on context (patient vs receptionist)
+        let appointments: Appointment[] = [];
+        if (patientId) {
+          appointments =
+            await SchedulerApiService.getPatientAppointments(patientId);
+        } else {
+          appointments = await SchedulerApiService.getAllAppointments();
+        }
 
         // Join doctor details onto appointments for downstream UIs (dashboard, lists)
         let joinedAppointments = appointments.map((apt) => {
@@ -102,18 +112,23 @@ export const useScheduler = ({
         });
 
         // Fetch any missing doctors directly by id and update the appointments
-        const missing = joinedAppointments.filter((a) => !a.doctor);
+        const missing = joinedAppointments.filter(
+          (a) => !a.doctor && a.doctorUserId
+        );
         if (missing.length > 0) {
+          // Unique doctor IDs to fetch
+          const doctorIds = Array.from(
+            new Set(missing.map((a) => a.doctorUserId))
+          );
+
           const fetchedPairs = await Promise.all(
-            missing.map(async (a) => {
+            doctorIds.map(async (id) => {
               try {
-                const d = await SchedulerApiService.getDoctorById(
-                  a.doctorUserId
-                );
-                return { id: a.doctorUserId, doctor: d };
+                const d = await SchedulerApiService.getDoctorById(id);
+                return { id, doctor: d };
               } catch {
                 return {
-                  id: a.doctorUserId,
+                  id,
                   doctor: undefined as Doctor | undefined,
                 };
               }
@@ -140,6 +155,7 @@ export const useScheduler = ({
           services,
           specializations,
           appointmentStatuses,
+          stats,
           isLoading: false,
         }));
       } catch (error) {
@@ -154,12 +170,10 @@ export const useScheduler = ({
       }
     };
 
-    if (patientId) {
-      loadInitialData();
-    }
+    loadInitialData();
   }, [patientId]);
 
-  // Refresh appointments
+  // Refresh appointments & stats
   const refreshAppointments = useCallback(async () => {
     setState((prev: SchedulerState) => ({
       ...prev,
@@ -168,8 +182,23 @@ export const useScheduler = ({
     }));
 
     try {
-      const appointments =
-        await SchedulerApiService.getPatientAppointments(patientId);
+      const statsPromise = SchedulerApiService.getSchedulerStats(
+        patientId ? { patientId } : {}
+      );
+      let appointmentsPromise: Promise<Appointment[]>;
+
+      if (patientId) {
+        appointmentsPromise =
+          SchedulerApiService.getPatientAppointments(patientId);
+      } else {
+        appointmentsPromise = SchedulerApiService.getAllAppointments();
+      }
+
+      const [stats, appointments] = await Promise.all([
+        statsPromise,
+        appointmentsPromise,
+      ]);
+
       let joinedAppointments = appointments.map((apt) => {
         const doc = state.doctors.find(
           (d: Doctor) =>
@@ -181,16 +210,21 @@ export const useScheduler = ({
         };
       });
 
-      const missing = joinedAppointments.filter((a) => !a.doctor);
+      const missing = joinedAppointments.filter(
+        (a) => !a.doctor && a.doctorUserId
+      );
       if (missing.length > 0) {
+        const doctorIds = Array.from(
+          new Set(missing.map((a) => a.doctorUserId))
+        );
         const fetchedPairs = await Promise.all(
-          missing.map(async (a) => {
+          doctorIds.map(async (id) => {
             try {
-              const d = await SchedulerApiService.getDoctorById(a.doctorUserId);
-              return { id: a.doctorUserId, doctor: d };
+              const d = await SchedulerApiService.getDoctorById(id);
+              return { id, doctor: d };
             } catch {
               return {
-                id: a.doctorUserId,
+                id,
                 doctor: undefined as Doctor | undefined,
               };
             }
@@ -211,6 +245,7 @@ export const useScheduler = ({
       setState((prev: SchedulerState) => ({
         ...prev,
         appointments: joinedAppointments,
+        stats,
         isLoading: false,
       }));
     } catch (error) {
@@ -227,7 +262,20 @@ export const useScheduler = ({
 
   // Create appointment
   const createAppointment = useCallback(
-    async (appointmentData: CreateAppointmentRequest) => {
+    async (
+      appointmentData: CreateAppointmentRequest,
+      patientIdOverride?: string
+    ) => {
+      const targetPatientId = patientIdOverride || patientId;
+
+      if (!targetPatientId) {
+        setState((prev) => ({
+          ...prev,
+          error: "Patient ID is required to create an appointment",
+        }));
+        return;
+      }
+
       setState((prev: SchedulerState) => ({
         ...prev,
         isLoading: true,
@@ -235,33 +283,12 @@ export const useScheduler = ({
       }));
 
       try {
-        let newAppointment = await SchedulerApiService.createAppointment(
-          patientId,
+        await SchedulerApiService.createAppointment(
+          targetPatientId,
           appointmentData
         );
-        // Attach doctor if known in current state
-        const matchedDoctor = state.doctors.find(
-          (d: Doctor) =>
-            d.id === newAppointment.doctorUserId ||
-            d.userId === newAppointment.doctorUserId
-        );
-        if (matchedDoctor) {
-          newAppointment = { ...newAppointment, doctor: matchedDoctor };
-        } else {
-          try {
-            const d = await SchedulerApiService.getDoctorById(
-              newAppointment.doctorUserId
-            );
-            newAppointment = { ...newAppointment, doctor: d };
-          } catch {
-            // ignore, doctor name will fill after next refresh
-          }
-        }
-        setState((prev: SchedulerState) => ({
-          ...prev,
-          appointments: [...prev.appointments, newAppointment],
-          isLoading: false,
-        }));
+        // Full refresh to ensure stats and list are in sync
+        await refreshAppointments();
       } catch (error) {
         setState((prev: SchedulerState) => ({
           ...prev,
@@ -274,7 +301,7 @@ export const useScheduler = ({
         throw error;
       }
     },
-    [patientId, state.doctors]
+    [patientId, refreshAppointments]
   );
 
   // Update appointment
@@ -287,21 +314,8 @@ export const useScheduler = ({
       }));
 
       try {
-        const updatedAppointment = await SchedulerApiService.updateAppointment(
-          appointmentId,
-          updates
-        );
-        setState((prev: SchedulerState) => ({
-          ...prev,
-          appointments: prev.appointments.map((apt: Appointment) =>
-            apt.id === appointmentId ? updatedAppointment : apt
-          ),
-          selectedAppointment:
-            prev.selectedAppointment?.id === appointmentId
-              ? updatedAppointment
-              : prev.selectedAppointment,
-          isLoading: false,
-        }));
+        await SchedulerApiService.updateAppointment(appointmentId, updates);
+        await refreshAppointments();
       } catch (error) {
         setState((prev: SchedulerState) => ({
           ...prev,
@@ -314,42 +328,35 @@ export const useScheduler = ({
         throw error;
       }
     },
-    []
+    [refreshAppointments]
   );
 
   // Cancel appointment
-  const cancelAppointment = useCallback(async (appointmentId: string) => {
-    setState((prev: SchedulerState) => ({
-      ...prev,
-      isLoading: true,
-      error: null,
-    }));
+  const cancelAppointment = useCallback(
+    async (appointmentId: string) => {
+      setState((prev: SchedulerState) => ({
+        ...prev,
+        isLoading: true,
+        error: null,
+      }));
 
-    try {
-      await SchedulerApiService.cancelAppointment(appointmentId);
-      setState((prev: SchedulerState) => ({
-        ...prev,
-        appointments: prev.appointments.filter(
-          (apt: Appointment) => apt.id !== appointmentId
-        ),
-        selectedAppointment:
-          prev.selectedAppointment?.id === appointmentId
-            ? null
-            : prev.selectedAppointment,
-        isLoading: false,
-      }));
-    } catch (error) {
-      setState((prev: SchedulerState) => ({
-        ...prev,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to cancel appointment",
-        isLoading: false,
-      }));
-      throw error;
-    }
-  }, []);
+      try {
+        await SchedulerApiService.cancelAppointment(appointmentId);
+        await refreshAppointments();
+      } catch (error) {
+        setState((prev: SchedulerState) => ({
+          ...prev,
+          error:
+            error instanceof Error
+              ? error.message
+              : "Failed to cancel appointment",
+          isLoading: false,
+        }));
+        throw error;
+      }
+    },
+    [refreshAppointments]
+  );
 
   // Select appointment
   const selectAppointment = useCallback((appointment: Appointment | null) => {
@@ -798,73 +805,49 @@ export const useScheduler = ({
   // Compute calendar events from appointments
   const calendarEvents: CalendarEvent[] = filteredAppointments.map(
     (appointment: Appointment) => {
-      const toLocalIso = (d: Date) => {
-        const pad = (n: number) => String(n).padStart(2, "0");
-        return (
-          `${d.getFullYear()}-` +
-          `${pad(d.getMonth() + 1)}-` +
-          `${pad(d.getDate())}T` +
-          `${pad(d.getHours())}:` +
-          `${pad(d.getMinutes())}:` +
-          `${pad(d.getSeconds())}`
-        );
-      };
-      const doctor =
-        state.doctors.find((d: Doctor) => d.id === appointment.doctorUserId) ||
-        appointment.doctor;
-      const status = state.appointmentStatuses.find(
-        (s: { id: string }) => s.id === appointment.statusId
+      const start = new Date(appointment.day);
+      const end = new Date(
+        start.getTime() + appointment.durationMinutes * 60000
       );
-      const colors = getStatusColors(status?.name);
+      const colors = getStatusColors(appointment.status?.name || "Scheduled");
 
-      return {
+      const docName = appointment.doctor
+        ? `${appointment.doctor.firstName} ${appointment.doctor.lastName}`
+        : "Unknown Doctor";
+
+      const event: CalendarEvent = {
         id: appointment.id,
-        title:
-          `${doctor?.firstName ?? ""} ${doctor?.lastName ?? ""} - ${appointment.description || "Appointment"}`.trim(),
-        start: appointment.day,
-        end: (() => {
-          const s = new Date(appointment.day);
-          const e = new Date(s.getTime() + appointment.durationMinutes * 60000);
-          return toLocalIso(e);
-        })(),
-        backgroundColor: status?.colorCode || colors.bg,
-        borderColor: status?.colorCode || colors.border,
-        textColor: colors.text || "#ffffff",
+        title: `${docName} - ${appointment.appointmentType}`,
+        start: start.toISOString(),
+        end: end.toISOString(),
         extendedProps: {
           appointment,
-          doctorName:
-            `${doctor?.firstName || ""} ${doctor?.lastName || ""}`.trim(),
-          patientName: "", // Will be populated from patient data if needed
-          appointmentType: appointment.appointmentType,
-          status: status?.name || "Unknown",
-          description: appointment.description || "",
+          patientId: appointment.patientId,
+          doctorId: appointment.doctorUserId,
+          type: appointment.appointmentType || "in-person",
+          status: (appointment.status?.name?.toLowerCase() || "scheduled") as
+            | "scheduled"
+            | "completed"
+            | "cancelled",
         },
       };
+
+      if (colors.bg) event.backgroundColor = colors.bg;
+      if (colors.border) event.borderColor = colors.border;
+      if (colors.text) event.textColor = colors.text;
+
+      return event;
     }
   );
 
-  // Get available doctors based on filters
-  const availableDoctors = state.filters.specialization
-    ? state.doctors.filter((doctor: Doctor) =>
-        doctor.specializations?.some(
-          (spec: { id: string }) => spec.id === state.filters.specialization
-        )
-      )
-    : state.doctors;
-
-  // Get available services based on filters
-  const availableServices = state.filters.specialization
-    ? state.services.filter((service: Service) =>
-        state.specializations.some(
-          (spec: { id: string; serviceId: string }) =>
-            spec.id === state.filters.specialization &&
-            spec.serviceId === service.id
-        )
-      )
-    : state.services;
-
   return {
     ...state,
+    calendarEvents,
+    filteredAppointments,
+    availableDoctors: state.doctors,
+    availableServices: state.services,
+
+    // Actions
     refreshAppointments,
     createAppointment,
     updateAppointment,
@@ -877,11 +860,5 @@ export const useScheduler = ({
     loadServicesBySpecialization,
     loadDoctorsByService,
     loadSpecializationsByService,
-    calendarEvents,
-    filteredAppointments,
-    availableDoctors,
-    availableServices,
   };
 };
-
-export default useScheduler;

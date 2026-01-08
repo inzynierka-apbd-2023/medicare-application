@@ -42,6 +42,13 @@ public class ReceptionistsController : ControllerBase
         if (receptionist == null) return NotFound();
         return Ok(receptionist);
     }
+
+    [HttpGet]
+    public async Task<IActionResult> GetAll()
+    {
+        var receptionists = await _db.Receptionists.ToListAsync();
+        return Ok(receptionists);
+    }
 }
 
 public record RegisterReceptionistRequest(Guid UserId);

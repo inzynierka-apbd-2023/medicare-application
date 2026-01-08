@@ -50,7 +50,8 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
       onStartConversation(
         selectedRecipient.id,
         selectedRecipient.name,
-        message.trim()
+        message.trim(),
+        selectedRecipient.role // Pass recipient's role
       );
       handleClose();
     }
@@ -65,7 +66,11 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
 
   const isFormValid = selectedRecipient && message.trim().length > 0;
 
-  const targetLabel = userRole === "doctor" ? "Patient" : "Doctor";
+  // Determine what to call the recipient
+  let targetLabel = "Recipient";
+  if (userRole === "doctor") targetLabel = "Patient";
+  else if (userRole === "patient") targetLabel = "Doctor";
+  else if (userRole === "receptionist") targetLabel = "Recipient";
 
   return (
     <Modal isOpen={isOpen} onClose={handleClose} title="New Message" size="lg">
@@ -116,9 +121,23 @@ export const NewMessageModal: React.FC<NewMessageModalProps> = ({
 
                     {/* Info */}
                     <div className="flex-1">
-                      <h4 className="font-medium text-gray-900">
-                        {recipient.name}
-                      </h4>
+                      <div className="flex items-center gap-2">
+                        <h4 className="font-medium text-gray-900">
+                          {recipient.name}
+                        </h4>
+                        {/* Show role badge for receptionists */}
+                        {userRole === "receptionist" && (
+                          <span
+                            className={`text-xs px-2 py-0.5 rounded-full ${
+                              recipient.role === "doctor"
+                                ? "bg-purple-100 text-purple-700"
+                                : "bg-green-100 text-green-700"
+                            }`}
+                          >
+                            {recipient.role === "doctor" ? "Doctor" : "Patient"}
+                          </span>
+                        )}
+                      </div>
                       {recipient.specialty && (
                         <p className="text-sm text-gray-600">
                           {recipient.specialty}

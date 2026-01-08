@@ -44,6 +44,7 @@ public static class MockIds
     public static readonly Guid Document5 = Guid.Parse("aaaa1111-1111-1111-1111-000000000005");
     public static readonly Guid Document6 = Guid.Parse("aaaa1111-1111-1111-1111-000000000006");
     public static readonly Guid Document7 = Guid.Parse("aaaa1111-1111-1111-1111-000000000007");
+    public static readonly Guid Document8 = Guid.Parse("aaaa1111-1111-1111-1111-000000000008");
 
     public static readonly Guid[] AllPatientIds = { Patient1, Patient2, Patient3, Patient4, Patient5, Patient6, Patient7 };
     public static readonly Guid[] AllDoctorIds = { Doctor1, Doctor2, Doctor3, Doctor4, Doctor5, Doctor6, Doctor7 };
@@ -77,7 +78,10 @@ public static class MockDataSeeder
             (MockIds.Document4, 3, 3, "SICK_LEAVE", "Medical certificate for work absence"),
             (MockIds.Document5, 4, 4, "LAB_RESULTS", "Complete blood count and metabolic panel results"),
             (MockIds.Document6, 5, 5, "VISIT_NOTE", "Follow-up visit after procedure"),
-            (MockIds.Document7, 6, 6, "PRESCRIPTION", "Post-operative pain management prescription")
+            (MockIds.Document6, 5, 5, "VISIT_NOTE", "Follow-up visit after procedure"),
+            (MockIds.Document7, 6, 6, "PRESCRIPTION", "Post-operative pain management prescription"),
+            // Add Lab Results for Patient1 (index 0) to verify API connection
+            (MockIds.Document8, 0, 0, "LAB_RESULTS", "Annual health checkup blood work")
         };
 
         var existingDocumentIds = await db.Documents.Select(d => d.Id).ToHashSetAsync();
@@ -275,6 +279,50 @@ public static class MockDataSeeder
             }
         }
 
+        // Lab Results for Document8 (Patient1)
+        if (!existingLabResults.Contains(MockIds.Document8))
+        {
+            var labResult = new LabResults
+            {
+                DocumentId = MockIds.Document8,
+                TestType = "Lipid Panel & Thyroid Function",
+                TestDate = DateTime.UtcNow.AddDays(-5),
+                Laboratory = "Medicare Central Lab",
+                OverallStatus = "Final",
+                Interpretation = "Slightly elevated LDL, otherwise normal.",
+                ReferenceRanges = "Adult standard",
+                TechnicianName = "John Doe",
+                DoctorComments = "Please schedule follow-up to discuss diet."
+            };
+            db.LabResults.Add(labResult);
+            await db.SaveChangesAsync();
+
+            var testResults = new[]
+            {
+                ("2085-9", "HDL Cholesterol", "55", 55m, "mg/dL", ">40", "Normal", false),
+                ("2089-1", "LDL Cholesterol", "135", 135m, "mg/dL", "<100", "High", true),
+                ("3016-3", "TSH", "2.5", 2.5m, "mIU/L", "0.4-4.0", "Normal", false)
+            };
+
+            foreach (var (loincCode, paramName, value, numValue, unit, refRange, status, isAbnormal) in testResults)
+            {
+                db.LabTestResults.Add(new LabTestResult
+                {
+                    Id = Guid.NewGuid(),
+                    LabResultsDocumentId = MockIds.Document8,
+                    LoincCode = loincCode,
+                    ParameterName = paramName,
+                    Value = value,
+                    NumericValue = numValue,
+                    Unit = unit,
+                    ReferenceRange = refRange,
+                    Status = status,
+                    IsAbnormal = isAbnormal
+                });
+                created++;
+            }
+        }
+
         // Add Document Assignments (link documents to appointments)
         var existingAssignments = await db.DocumentAssignments
             .Select(a => new { a.DocumentId, a.AppointmentId })
@@ -289,7 +337,9 @@ public static class MockDataSeeder
             (MockIds.Document4, MockIds.Appointment4),
             (MockIds.Document5, MockIds.Appointment5),
             (MockIds.Document6, MockIds.Appointment6),
-            (MockIds.Document7, MockIds.Appointment7)
+            (MockIds.Document6, MockIds.Appointment6),
+            (MockIds.Document7, MockIds.Appointment7),
+            (MockIds.Document8, MockIds.Appointment1)
         };
 
         foreach (var (docId, appointmentId) in assignments)

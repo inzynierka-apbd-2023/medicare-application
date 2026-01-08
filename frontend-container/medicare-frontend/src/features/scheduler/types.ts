@@ -94,17 +94,24 @@ export interface CalendarEvent {
   textColor?: string;
   extendedProps?: {
     appointment: Appointment;
+    patientId: string;
+    doctorId: string;
+    type: string;
+    status: "scheduled" | "completed" | "cancelled";
   };
 }
 
 // API request/response types
 export interface CreateAppointmentRequest {
+  patientId?: string; // Optional override for receptionists
   doctorUserId: string;
   serviceId: string;
   timeSlotId: string;
   appointmentType: AppointmentType;
   appointmentCategory?: string;
   description?: string;
+  duration?: number;
+  room?: string;
 }
 
 export interface UpdateAppointmentRequest {
@@ -112,6 +119,11 @@ export interface UpdateAppointmentRequest {
   appointmentCategory?: string;
   description?: string;
   timeSlotId?: string;
+  scheduledAt?: string;
+  scheduledEndAt?: string;
+  serviceId?: string;
+  room?: string;
+  category?: string;
 }
 
 export interface AvailableSlotsRequest {
@@ -165,11 +177,12 @@ export interface SchedulerState {
   selectedDate: string | null;
   selectedAppointment: Appointment | null;
   filters: SchedulerFilters;
+  stats: SchedulerStats | null;
 }
 
 // Component props
 export interface SchedulerPageProps {
-  patientId?: string;
+  patientId?: string | undefined;
 }
 
 export interface AppointmentModalProps {
@@ -180,4 +193,12 @@ export interface AppointmentModalProps {
     data: CreateAppointmentRequest | UpdateAppointmentRequest
   ) => Promise<void>;
   mode: "create" | "edit" | "view";
+  patientId?: string | undefined; // Context patient ID, if missing enabled patient selection
+}
+
+export interface SchedulerStats {
+  totalAppointments: number;
+  todaysAppointments: number;
+  confirmedAppointments: number;
+  cancelledAppointments: number;
 }
