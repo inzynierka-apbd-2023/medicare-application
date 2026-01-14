@@ -109,6 +109,56 @@ resource billingservice 'Microsoft.App/containerApps@2024-03-01' = {
       scale: {
         minReplicas: 0
         maxReplicas: 1
+        rules: [
+          {
+            name: 'rabbitmq-billing-user-created-scaler'
+            custom: {
+              type: 'rabbitmq'
+              metadata: {
+                queueName: 'billing.user_created'
+                queueLength: '1'
+              }
+              auth: [
+                {
+                  secretRef: 'connectionstrings--rabbitmq'
+                  triggerParameter: 'host'
+                }
+              ]
+            }
+          }
+          {
+            name: 'rabbitmq-billing-payment-requests-scaler'
+            custom: {
+              type: 'rabbitmq'
+              metadata: {
+                queueName: 'billing.payment_requests'
+                queueLength: '1'
+              }
+              auth: [
+                {
+                  secretRef: 'connectionstrings--rabbitmq'
+                  triggerParameter: 'host'
+                }
+              ]
+            }
+          }
+          {
+            name: 'rabbitmq-billing-appointment-created-scaler'
+            custom: {
+              type: 'rabbitmq'
+              metadata: {
+                queueName: 'billing.appointment_created'
+                queueLength: '1'
+              }
+              auth: [
+                {
+                  secretRef: 'connectionstrings--rabbitmq'
+                  triggerParameter: 'host'
+                }
+              ]
+            }
+          }
+        ]
       }
     }
   }

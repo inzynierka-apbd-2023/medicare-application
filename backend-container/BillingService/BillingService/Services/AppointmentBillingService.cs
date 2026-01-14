@@ -41,14 +41,12 @@ public class AppointmentBillingService
             return (false, 30000, planCode); 
         }
 
-        // 2. Count appointments in current month
-        // 2. Count appointments in the SCHEDULED month
+        // 2. Count appointments in the scheduled month
         // We use occurredAt (which should be the ScheduledAt date) to calculate the month bucket
         var startOfMonth = new DateTime(occurredAt.Year, occurredAt.Month, 1);
         var endOfMonth = startOfMonth.AddMonths(1);
         
-        // Count existing payments in THAT month
-        // We use ForDate (newly added) or CreatedAt (for legacy records) to determine the bucket
+        // Count existing payments in that month bucket
         var visitsUsed = await _db.AppointmentPayments
             .CountAsync(ap => ap.PatientId == patientId && ap.ForDate >= startOfMonth && ap.ForDate < endOfMonth);
 

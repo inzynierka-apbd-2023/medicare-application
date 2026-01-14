@@ -28,10 +28,7 @@ LogConnectionInfo(connectionString, "Config");
 builder.Services.AddControllers();
 builder.AddRabbitMQClient("rabbitmq");
 
-builder.Services.AddHttpClient<AppointmentService.Services.IBillingServiceClient, AppointmentService.Services.BillingServiceClient>(client =>
-{
-    client.BaseAddress = new("http://billingservice"); 
-});
+builder.Services.AddScoped<AppointmentService.Services.IBillingServiceClient, AppointmentService.Services.BillingServiceClient>();
 
 
 // Add MediatR for CQRS

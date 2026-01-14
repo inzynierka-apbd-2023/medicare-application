@@ -65,8 +65,23 @@ export const walletApi = {
         paymentMethod: "BLIK", // Default or passed? For now defaulting or we can add param
       });
       return { success: true, data: true };
-    } catch (_error) {
-      return createErrorResponse("Payment processing failed");
+    } catch (err: unknown) {
+      const error = err as {
+        response?: {
+          data?:
+            | string
+            | { Message?: string; message?: string; Details?: string };
+        };
+        message?: string;
+      };
+      const data = error?.response?.data;
+      const msg =
+        (typeof data === "string"
+          ? data
+          : data?.Details || data?.Message || data?.message) ||
+        error?.message ||
+        "Payment processing failed";
+      return createErrorResponse(msg);
     }
   },
 
@@ -84,8 +99,23 @@ export const walletApi = {
         }
       );
       return { success: true, data: true };
-    } catch (_error) {
-      return createErrorResponse("Payment processing failed");
+    } catch (err: unknown) {
+      const error = err as {
+        response?: {
+          data?:
+            | string
+            | { Message?: string; message?: string; Details?: string };
+        };
+        message?: string;
+      };
+      const data = error?.response?.data;
+      const msg =
+        (typeof data === "string"
+          ? data
+          : data?.Details || data?.Message || data?.message) ||
+        error?.message ||
+        "Payment processing failed";
+      return createErrorResponse(msg);
     }
   },
 };

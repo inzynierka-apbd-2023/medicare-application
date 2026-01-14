@@ -46,10 +46,6 @@ public class AppointmentsController : ControllerBase
             // 0. Pre-generate ID
             var apptId = Guid.NewGuid();
 
-            // 1. Sync Call to Billing Service
-            var billingResult = await _billingClient.EvaluateAppointmentAsync(apptId, req.PatientId, req.ScheduledAt);
-            _logger.LogInformation("Billing Check for {Id}: IsPaid={IsPaid}, Amount={Amount}", apptId, billingResult.IsPaid, billingResult.AmountCents);
-
             var appointment = new Appointment
             {
                 Id = apptId,
@@ -64,8 +60,8 @@ public class AppointmentsController : ControllerBase
                 Room = req.Room,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow,
-                IsPaid = billingResult.IsPaid,
-                PaymentProcessed = true // Flag processed immediately
+                IsPaid = false, // Default to unpaid
+                PaymentProcessed = false // Waiting for BillingService to process
             };
 
             _db.Appointments.Add(appointment);
@@ -180,14 +176,14 @@ public class AppointmentsController : ControllerBase
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment == null) return NotFound("Appointment not found");
 
-        if (appointment.IsPaid) return BadRequest("Appointment is already paid");
+        if (appointment.IsPaid) return Ok(new { Success = true, Message = "Already paid" });
 
-        // 1. Call Billing Service to record sync payment
-        var success = await _billingClient.RecordMockPaymentAsync(id, req.PatientId, req.PaymentMethod);
+        // 1. Initiate payment via Billing Service (Async)
+        var (success, error) = await _billingClient.RecordMockPaymentAsync(id, req.PatientId, req.PaymentMethod);
         
         if (!success)
         {
-            return BadRequest("Billing service failed to record payment");
+            return BadRequest(new { Message = "Billing service failed to record payment", Details = error });
         }
 
         // 2. Update local state immediately

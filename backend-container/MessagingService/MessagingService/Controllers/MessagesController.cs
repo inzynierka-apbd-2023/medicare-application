@@ -65,6 +65,14 @@ public class MessagesController : ControllerBase
         var result = await _mediator.Send(query);
         return Ok(result);
     }
+    [HttpPut("{id}/read")]
+    public async Task<IActionResult> MarkAsRead(Guid id, [FromBody] MarkAsReadRequest req)
+    {
+        var command = new MarkMessageAsReadCommand(id, req.UserId);
+        var result = await _mediator.Send(command);
+        if (!result) return NotFound();
+        return Ok(new { Success = true });
+    }
 }
 
 public record SendMessageRequest(
