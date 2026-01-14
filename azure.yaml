@@ -1,6 +1,8 @@
 # yaml-language-server: $schema=https://raw.githubusercontent.com/Azure/azure-dev/main/schemas/v1.0/azure.yaml.json
 
 name: medicare-application
+infra:
+  path: ./backend-container/Medicare.AppHost/infra
 services:  
   app:
     language: dotnet

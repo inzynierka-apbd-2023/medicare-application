@@ -26,11 +26,62 @@ function resolveBaseUrl(): string {
 
 export const API_BASE_URL = resolveBaseUrl();
 
+// Cold-start resilience: long timeout for scale-to-zero services
+const API_TIMEOUT_MS = 120000; // 2 minutes
+
+// Retry configuration for cold-start resilience
+const MAX_RETRIES = 3;
+const INITIAL_RETRY_DELAY_MS = 5000; // 5 seconds
+
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,
-  timeout: 10000,
+  timeout: API_TIMEOUT_MS,
   headers: { "Content-Type": "application/json" },
 });
+
+// Extend AxiosRequestConfig to track retry count
+interface RetryableRequestConfig extends AxiosRequestConfig {
+  __retryCount?: number;
+}
+
+// Cold-start retry interceptor: retries on 502/503/504 and network timeouts
+apiClient.interceptors.response.use(
+  (response: AxiosResponse) => response,
+  async (error: AxiosError) => {
+    const config = error.config as RetryableRequestConfig;
+    if (!config) {
+      return Promise.reject(error);
+    }
+
+    // Initialize retry count
+    config.__retryCount = config.__retryCount || 0;
+
+    // Don't retry if already exhausted retries
+    if (config.__retryCount >= MAX_RETRIES) {
+      return Promise.reject(error);
+    }
+
+    // Determine if this is a cold-start related error worth retrying
+    const isColdStartError =
+      !error.response || // Network error (service not yet accepting connections)
+      error.code === "ECONNABORTED" || // Timeout
+      error.code === "ERR_NETWORK" || // Network failure
+      [502, 503, 504].includes(error.response?.status || 0); // Gateway errors
+
+    if (isColdStartError) {
+      config.__retryCount += 1;
+      const delay =
+        INITIAL_RETRY_DELAY_MS * Math.pow(2, config.__retryCount - 1);
+      console.log(
+        `[Cold-start retry] Attempt ${config.__retryCount}/${MAX_RETRIES} for ${config.url}, waiting ${delay}ms...`
+      );
+      await new Promise((resolve) => setTimeout(resolve, delay));
+      return apiClient(config);
+    }
+
+    return Promise.reject(error);
+  }
+);
 
 apiClient.interceptors.request.use((cfg) => {
   const token = localStorage.getItem("authToken");

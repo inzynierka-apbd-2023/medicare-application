@@ -1,0 +1,10 @@
+using './pdfservice.module.bicep'
+
+param jwt_secret_value = '{{ .Env.AZURE_JWT_SECRET }}'
+param outputs_azure_container_apps_environment_id = '{{ .Env.AZURE_CONTAINER_APPS_ENVIRONMENT_ID }}'
+param outputs_azure_container_registry_endpoint = '{{ .Env.AZURE_CONTAINER_REGISTRY_ENDPOINT }}'
+param outputs_azure_container_registry_managed_identity_id = '{{ .Env.AZURE_CONTAINER_REGISTRY_MANAGED_IDENTITY_ID }}'
+param outputs_managed_identity_client_id = '{{ .Env.MANAGED_IDENTITY_CLIENT_ID }}'
+param pdfservice_containerimage = '{{ .Image }}'
+param pdfservice_containerport = '{{ targetPortOrDefault 8080 }}'
+param rabbitmq_password_value = '{{ .Env.AZURE_RABBITMQ_PASSWORD }}'

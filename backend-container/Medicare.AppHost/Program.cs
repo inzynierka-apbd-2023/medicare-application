@@ -1,3 +1,5 @@
+using Azure.Provisioning.AppContainers;
+
 var builder = DistributedApplication.CreateBuilder(args);
 
 // External resources
@@ -10,14 +12,27 @@ var sql = builder.AddAzureSqlServer("sql")
 var sharedDb = sql.AddDatabase("MedicareDb");
 
 var rabbitmq = builder.AddRabbitMQ("rabbitmq")
-                      .WithManagementPlugin();
+                      .WithManagementPlugin()
+                      .PublishAsAzureContainerApp((infra, app) =>
+                      {
+                          app.Template.Scale = new ContainerAppScale
+                          {
+                              MinReplicas = 1,
+                              MaxReplicas = 1
+                          };
+                          app.Template.Containers[0].Value.Resources = new()
+                          {
+                              Cpu = 0.25,
+                              Memory = "0.5Gi"
+                          };
+                      });
 
 
-var jwtSecret = builder.AddParameter("jwt-secret", secret: true);
+var jwtSecret = builder.AddParameter("jwt-secret");
 
 // SMTP Configuration for email sending (password reset, welcome emails)
-var smtpUsername = builder.AddParameter("smtp-username", secret: true);
-var smtpPassword = builder.AddParameter("smtp-password", secret: true);
+var smtpUsername = builder.AddParameter("smtp-username");
+var smtpPassword = builder.AddParameter("smtp-password");
 var frontendBaseUrl = builder.AddParameter("frontend-base-url");
 
 // Services - ALL share the same 'sharedDb'
@@ -29,7 +44,20 @@ var userService = builder.AddProject<Projects.UserService>("userservice")
                          .WaitFor(rabbitmq)
                          .WithEnvironment("Jwt__SecretKey", jwtSecret)
                          .WithEnvironment("Jwt__Issuer", "UserService")
-                         .WithEnvironment("Jwt__Audience", "MedicareApp");
+                         .WithEnvironment("Jwt__Audience", "MedicareApp")
+                         .PublishAsAzureContainerApp((infra, app) =>
+                         {
+                             app.Template.Scale = new ContainerAppScale
+                             {
+                                 MinReplicas = 0,
+                                 MaxReplicas = 1
+                             };
+                             app.Template.Containers[0].Value.Resources = new()
+                             {
+                                 Cpu = 0.25,
+                                 Memory = "0.5Gi"
+                             };
+                         });
 
 
 var practitionerService = builder.AddProject<Projects.PractitionerService>("practitionerservice")
@@ -41,7 +69,20 @@ var practitionerService = builder.AddProject<Projects.PractitionerService>("prac
                                  .WaitFor(userService) // Wait for UserService to create User_Profile table
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                  .WithEnvironment("Jwt__Issuer", "UserService")
-                                 .WithEnvironment("Jwt__Audience", "MedicareApp");
+                                 .WithEnvironment("Jwt__Audience", "MedicareApp")
+                                 .PublishAsAzureContainerApp((infra, app) =>
+                                 {
+                                     app.Template.Scale = new ContainerAppScale
+                                     {
+                                         MinReplicas = 0,
+                                         MaxReplicas = 1
+                                     };
+                                     app.Template.Containers[0].Value.Resources = new()
+                                     {
+                                         Cpu = 0.25,
+                                         Memory = "0.5Gi"
+                                     };
+                                 });
 
         
 
@@ -54,7 +95,20 @@ var patientService = builder.AddProject<Projects.PatientService>("patientservice
                             .WaitFor(userService)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
-                            .WithEnvironment("Jwt__Audience", "MedicareApp");
+                            .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .PublishAsAzureContainerApp((infra, app) =>
+                            {
+                                app.Template.Scale = new ContainerAppScale
+                                {
+                                    MinReplicas = 0,
+                                    MaxReplicas = 1
+                                };
+                                app.Template.Containers[0].Value.Resources = new()
+                                {
+                                    Cpu = 0.25,
+                                    Memory = "0.5Gi"
+                                };
+                            });
 
    
 
@@ -64,7 +118,20 @@ var catalogService = builder.AddProject<Projects.MedicalCatalogService>("medical
                             .WaitFor(sharedDb)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
-                            .WithEnvironment("Jwt__Audience", "MedicareApp");
+                            .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .PublishAsAzureContainerApp((infra, app) =>
+                            {
+                                app.Template.Scale = new ContainerAppScale
+                                {
+                                    MinReplicas = 0,
+                                    MaxReplicas = 1
+                                };
+                                app.Template.Containers[0].Value.Resources = new()
+                                {
+                                    Cpu = 0.25,
+                                    Memory = "0.5Gi"
+                                };
+                            });
 
    
 
@@ -76,7 +143,20 @@ var billingService = builder.AddProject<Projects.BillingService>("billingservice
                             .WaitFor(rabbitmq)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
-                            .WithEnvironment("Jwt__Audience", "MedicareApp");
+                            .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .PublishAsAzureContainerApp((infra, app) =>
+                            {
+                                app.Template.Scale = new ContainerAppScale
+                                {
+                                    MinReplicas = 0,
+                                    MaxReplicas = 1
+                                };
+                                app.Template.Containers[0].Value.Resources = new()
+                                {
+                                    Cpu = 0.25,
+                                    Memory = "0.5Gi"
+                                };
+                            });
 
    
 
@@ -88,7 +168,20 @@ var documentsService = builder.AddProject<Projects.DocumentsService>("documentss
                               .WaitFor(rabbitmq)
                               .WithEnvironment("Jwt__SecretKey", jwtSecret)
                               .WithEnvironment("Jwt__Issuer", "UserService")
-                              .WithEnvironment("Jwt__Audience", "MedicareApp");
+                              .WithEnvironment("Jwt__Audience", "MedicareApp")
+                              .PublishAsAzureContainerApp((infra, app) =>
+                              {
+                                  app.Template.Scale = new ContainerAppScale
+                                  {
+                                      MinReplicas = 0,
+                                      MaxReplicas = 1
+                                  };
+                                  app.Template.Containers[0].Value.Resources = new()
+                                  {
+                                      Cpu = 0.25,
+                                      Memory = "0.5Gi"
+                                  };
+                              });
 
      
 
@@ -102,7 +195,20 @@ var appointmentService = builder.AddProject<Projects.AppointmentService>("appoin
                                 .WaitFor(billingService)
                                 .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                 .WithEnvironment("Jwt__Issuer", "UserService")
-                                .WithEnvironment("Jwt__Audience", "MedicareApp");
+                                .WithEnvironment("Jwt__Audience", "MedicareApp")
+                                .PublishAsAzureContainerApp((infra, app) =>
+                                {
+                                    app.Template.Scale = new ContainerAppScale
+                                    {
+                                        MinReplicas = 0,
+                                        MaxReplicas = 1
+                                    };
+                                    app.Template.Containers[0].Value.Resources = new()
+                                    {
+                                        Cpu = 0.25,
+                                        Memory = "0.5Gi"
+                                    };
+                                });
 
        
 
@@ -112,7 +218,20 @@ var recordsService = builder.AddProject<Projects.MedicalRecordsService>("medical
                             .WaitFor(sharedDb)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
-                            .WithEnvironment("Jwt__Audience", "MedicareApp");
+                            .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .PublishAsAzureContainerApp((infra, app) =>
+                            {
+                                app.Template.Scale = new ContainerAppScale
+                                {
+                                    MinReplicas = 0,
+                                    MaxReplicas = 1
+                                };
+                                app.Template.Containers[0].Value.Resources = new()
+                                {
+                                    Cpu = 0.25,
+                                    Memory = "0.5Gi"
+                                };
+                            });
 
    
 
@@ -123,8 +242,19 @@ var labService = builder.AddProject<Projects.LabService>("labservice")
                         .WithEnvironment("Jwt__SecretKey", jwtSecret)
                         .WithEnvironment("Jwt__Issuer", "UserService")
                         .WithEnvironment("Jwt__Audience", "MedicareApp")
-
-                        .WithReplicas(0);
+                        .PublishAsAzureContainerApp((infra, app) =>
+                        {
+                            app.Template.Scale = new ContainerAppScale
+                            {
+                                MinReplicas = 0,
+                                MaxReplicas = 1
+                            };
+                            app.Template.Containers[0].Value.Resources = new()
+                            {
+                                Cpu = 0.25,
+                                Memory = "0.5Gi"
+                            };
+                        });
 
 var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice")
                             .WithReference(sharedDb)
@@ -134,7 +264,20 @@ var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice
                             .WaitFor(rabbitmq)
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
-                            .WithEnvironment("Jwt__Audience", "MedicareApp");
+                            .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .PublishAsAzureContainerApp((infra, app) =>
+                            {
+                                app.Template.Scale = new ContainerAppScale
+                                {
+                                    MinReplicas = 0,
+                                    MaxReplicas = 1
+                                };
+                                app.Template.Containers[0].Value.Resources = new()
+                                {
+                                    Cpu = 0.25,
+                                    Memory = "0.5Gi"
+                                };
+                            });
 
    
 
@@ -153,7 +296,20 @@ var notificationService = builder.AddProject<Projects.NotificationService>("noti
                                  .WithEnvironment("FrontendBaseUrl", frontendBaseUrl)
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                  .WithEnvironment("Jwt__Issuer", "UserService")
-                                 .WithEnvironment("Jwt__Audience", "MedicareApp");
+                                 .WithEnvironment("Jwt__Audience", "MedicareApp")
+                                 .PublishAsAzureContainerApp((infra, app) =>
+                                 {
+                                     app.Template.Scale = new ContainerAppScale
+                                     {
+                                         MinReplicas = 0,
+                                         MaxReplicas = 1
+                                     };
+                                     app.Template.Containers[0].Value.Resources = new()
+                                     {
+                                         Cpu = 0.25,
+                                         Memory = "0.5Gi"
+                                     };
+                                 });
 
         
 
@@ -165,7 +321,20 @@ var messagingService = builder.AddProject<Projects.MessagingService>("messagings
                               .WaitFor(rabbitmq)
                               .WithEnvironment("Jwt__SecretKey", jwtSecret)
                               .WithEnvironment("Jwt__Issuer", "UserService")
-                              .WithEnvironment("Jwt__Audience", "MedicareApp");
+                              .WithEnvironment("Jwt__Audience", "MedicareApp")
+                              .PublishAsAzureContainerApp((infra, app) =>
+                              {
+                                  app.Template.Scale = new ContainerAppScale
+                                  {
+                                      MinReplicas = 0,
+                                      MaxReplicas = 1
+                                  };
+                                  app.Template.Containers[0].Value.Resources = new()
+                                  {
+                                      Cpu = 0.25,
+                                      Memory = "0.5Gi"
+                                  };
+                              });
 
      
 
@@ -175,8 +344,19 @@ var pdfService = builder.AddProject<Projects.PdfService>("pdfservice")
                         .WithEnvironment("Jwt__SecretKey", jwtSecret)
                         .WithEnvironment("Jwt__Issuer", "UserService")
                         .WithEnvironment("Jwt__Audience", "MedicareApp")
-
-                        .WithReplicas(0);
+                        .PublishAsAzureContainerApp((infra, app) =>
+                        {
+                            app.Template.Scale = new ContainerAppScale
+                            {
+                                MinReplicas = 0,
+                                MaxReplicas = 1
+                            };
+                            app.Template.Containers[0].Value.Resources = new()
+                            {
+                                Cpu = 0.25,
+                                Memory = "0.5Gi"
+                            };
+                        });
 
 // Frontend (Docker)
 // Deployed as an Nginx container serving the React build
@@ -194,11 +374,22 @@ builder.AddDockerfile("frontend", "../../frontend-container/medicare-frontend")
        .WithReference(labService)
        .WithReference(notificationService)
        .WithReference(messagingService)
-       .WaitFor(userService);
+       .WaitFor(userService)
+       .PublishAsAzureContainerApp((infra, app) =>
+       {
+           app.Template.Scale = new ContainerAppScale
+           {
+               MinReplicas = 0,
+               MaxReplicas = 1
+           };
+           app.Template.Containers[0].Value.Resources = new()
+           {
+               Cpu = 0.25,
+               Memory = "0.5Gi"
+           };
+       });
 
 
 
 // Orchestration complete
 builder.Build().Run();
-
-

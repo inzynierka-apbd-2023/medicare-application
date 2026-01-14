@@ -56,20 +56,6 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, Register
             var user = await _userService.CreateUserAsync(createUserDto);
             _logger.LogInformation("User created: {UserId}", user.Id);
 
-            // Create subscription synchronously
-            var planCode = request.PlanId ?? "FREE";
-            var now = DateTime.UtcNow;
-            var isYearly = planCode.Contains("YEARLY", StringComparison.OrdinalIgnoreCase);
-            var periodEnd = isYearly ? now.AddYears(1) : now.AddMonths(1);
-            var subscriptionId = Guid.NewGuid();
-
-            await _db.Database.ExecuteSqlRawAsync(@"
-                INSERT INTO billing.Subscription_Contract (Id, PatientId, PlanCode, PeriodStart, PeriodEnd, Status, DefaultPaymentMethodId)
-                VALUES ({0}, {1}, {2}, {3}, {4}, {5}, NULL)",
-                new object[] { subscriptionId, user.Id, planCode, now, periodEnd, 1 });
-
-            _logger.LogInformation("Subscription created: {SubscriptionId} with plan {PlanCode}", subscriptionId, planCode);
-
             // Store outbox event
             var evt = new UserRegistered(user.Id, user.Username, user.Email, DateTime.UtcNow, request.PlanId);
             _db.OutboxEvents.Add(new OutboxEvent

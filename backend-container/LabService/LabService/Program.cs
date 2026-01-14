@@ -117,10 +117,8 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-if (!app.Environment.IsProduction())
-{
-    await ApplyMigrationsAsync(app.Services);
-}
+// Always apply migrations on startup (including production)
+await ApplyMigrationsAsync(app.Services);
 
 app.MapDefaultEndpoints();
 

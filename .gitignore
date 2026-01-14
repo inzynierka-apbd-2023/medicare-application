@@ -82,6 +82,7 @@ env_output.txt
 .vs
 # Deployment secrets
 DEPLOY_SECRETS.md
+DEPLOY_STEP_BY_STEP.md
 
 # AppHost secrets (contains SMTP credentials)
 backend-container/Medicare.AppHost/appsettings.json

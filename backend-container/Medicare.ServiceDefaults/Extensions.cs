@@ -39,6 +39,16 @@ public static class Extensions
             logging.IncludeScopes = true;
         });
 
+        // COST OPTIMIZATION: Reduce log volume in production to save on ingestion costs
+        if (!builder.Environment.IsDevelopment())
+        {
+            builder.Logging.SetMinimumLevel(LogLevel.Warning);
+            builder.Logging.AddFilter("Microsoft.AspNetCore.Hosting", LogLevel.Warning);
+            builder.Logging.AddFilter("Microsoft.AspNetCore.Routing", LogLevel.Warning);
+        }
+
+        /* 
+        // METRICS AND TRACING DISABLED FOR COST OPTIMIZATION
         builder.Services.AddOpenTelemetry()
             .WithMetrics(metrics =>
             {
@@ -53,6 +63,7 @@ public static class Extensions
                     //.AddGrpcClientInstrumentation()
                     .AddHttpClientInstrumentation();
             });
+        */
 
         builder.AddOpenTelemetryExporters();
 
@@ -65,9 +76,9 @@ public static class Extensions
 
         if (useOtlpExporter)
         {
-            builder.Services.AddOpenTelemetry()
-                .WithMetrics(metrics => metrics.AddOtlpExporter())
-                .WithTracing(tracing => tracing.AddOtlpExporter());
+            // builder.Services.AddOpenTelemetry()
+            //     .WithMetrics(metrics => metrics.AddOtlpExporter())
+            //     .WithTracing(tracing => tracing.AddOtlpExporter());
         }
 
         // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
