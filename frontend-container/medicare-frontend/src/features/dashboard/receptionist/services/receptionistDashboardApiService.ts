@@ -153,8 +153,14 @@ export class ReceptionistDashboardApiService {
             // Try fetching from patient service
             const res = await api.get(`/patient/patients/${pid}`);
             if (res.data) {
+              // Use name property if available, otherwise fallback to first/last or Unknown
               const p = res.data;
-              const name = `${p.firstName} ${p.lastName}`;
+              let name = "Unknown Patient";
+              if (p.name) {
+                name = p.name;
+              } else if (p.firstName || p.lastName) {
+                name = `${p.firstName || ""} ${p.lastName || ""}`.trim();
+              }
               patientMap.set(pid, name);
             }
           } catch {

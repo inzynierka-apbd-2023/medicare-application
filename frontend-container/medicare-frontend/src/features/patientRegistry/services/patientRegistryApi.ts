@@ -66,12 +66,7 @@ interface UserResponseDto {
 }
 
 // Service URLs (assuming Vite env or defaults)
-const PATIENT_SERVICE_URL =
-  import.meta.env.VITE_PATIENT_SERVICE_URL || "http://localhost:9084";
-const USER_SERVICE_URL =
-  import.meta.env.VITE_USER_SERVICE_URL || "http://localhost:5001";
-const PRACTITIONER_SERVICE_URL =
-  import.meta.env.VITE_PRACTITIONER_SERVICE_URL || "http://localhost:9082";
+// Service URLs are handled by proxy/apiClient base URL normalization
 
 export class PatientRegistryApiService {
   /**
@@ -93,7 +88,7 @@ export class PatientRegistryApiService {
         totalCount: number;
         currentPage: number;
         totalPages: number;
-      }>(`${PATIENT_SERVICE_URL}/api/patient/patients`, { params });
+      }>(`/patient/patients`, { params });
 
       const data = response.data;
       const items = data.items || [];
@@ -159,7 +154,7 @@ export class PatientRegistryApiService {
       // Actually, verify if endpoint /api/patient/patients/{id} returns PatientProfileDto
       // The Handler returns PatientProfileDto, so yes!
       const response = await apiClient.get<PatientProfileDto>(
-        `${PATIENT_SERVICE_URL}/api/patient/patients/${patientId}`
+        `/patient/patients/${patientId}`
       );
 
       if (response.status === 200 && response.data) {
@@ -172,7 +167,7 @@ export class PatientRegistryApiService {
         if (p.userId) {
           try {
             const uRes = await apiClient.get<UserResponseDto>(
-              `${USER_SERVICE_URL}/api/users/${p.userId}`
+              `/users/${p.userId}`
             );
             userData = uRes.data;
           } catch {
@@ -276,7 +271,7 @@ export class PatientRegistryApiService {
       // Fetch raw link
       // Actually, let's just fetch the patient profile DTO again to get userId
       const linkRes = await apiClient.get<PatientProfileDto>(
-        `${PATIENT_SERVICE_URL}/api/patient/patients/${patientId}`
+        `/patient/patients/${patientId}`
       );
       const userId = linkRes.data?.userId;
 
@@ -300,20 +295,16 @@ export class PatientRegistryApiService {
 
       // Only call UserService if there are fields to update
       if (Object.keys(userUpdatePayload).length > 0) {
-        await apiClient.put(
-          `${USER_SERVICE_URL}/api/users/${userId}`,
-          userUpdatePayload
-        );
+        await apiClient.put(`/users/${userId}`, userUpdatePayload);
       }
 
       // 3. Update PatientService
       // Status
       if (data.isActive !== undefined) {
         const status = data.isActive ? "Active" : "Inactive";
-        await apiClient.put(
-          `${PATIENT_SERVICE_URL}/api/patient/patients/${patientId}/status`,
-          { status }
-        );
+        await apiClient.put(`/patient/patients/${patientId}/status`, {
+          status,
+        });
       }
 
       // Emergency Contacts
@@ -324,7 +315,7 @@ export class PatientRegistryApiService {
           phone: c.phone,
         }));
         await apiClient.put(
-          `${PATIENT_SERVICE_URL}/api/patient/patients/${patientId}/emergency-contacts`,
+          `/patient/patients/${patientId}/emergency-contacts`,
           contactsPayload
         );
       }
@@ -339,19 +330,16 @@ export class PatientRegistryApiService {
           validTo: i.validTo,
         };
         await apiClient.put(
-          `${PATIENT_SERVICE_URL}/api/patient/patients/${patientId}/insurance`,
+          `/patient/patients/${patientId}/insurance`,
           insurancePayload
         );
       }
 
       // Primary Doctor
       if (data.generalDoctorId !== undefined) {
-        await apiClient.put(
-          `${PATIENT_SERVICE_URL}/api/patient/patients/${patientId}/primary-doctor`,
-          {
-            doctorId: data.generalDoctorId || null,
-          }
-        );
+        await apiClient.put(`/patient/patients/${patientId}/primary-doctor`, {
+          doctorId: data.generalDoctorId || null,
+        });
       }
 
       return { success: true, data: data as PatientRegistryInfo };
@@ -383,7 +371,7 @@ export class PatientRegistryApiService {
       }
 
       const response = await apiClient.get<DoctorDirectoryDto[]>(
-        `${PRACTITIONER_SERVICE_URL}/api/practitioner/doctors`,
+        `/practitioner/doctors`,
         { params: { isActive: true } }
       );
 
@@ -413,7 +401,7 @@ export class PatientRegistryApiService {
     // Use UserService check
     try {
       const res = await apiClient.get<{ emailExists: boolean }>(
-        `${USER_SERVICE_URL}/api/users/availability`,
+        `/users/availability`,
         { params: { email } }
       );
       return { success: true, data: { available: !res.data.emailExists } };
@@ -427,9 +415,7 @@ export class PatientRegistryApiService {
    */
   static async deletePatient(patientId: string): Promise<ApiResponse<boolean>> {
     try {
-      await apiClient.delete(
-        `${PATIENT_SERVICE_URL}/api/patient/patients/${patientId}`
-      );
+      await apiClient.delete(`/patient/patients/${patientId}`);
       return { success: true, data: true };
     } catch (error) {
       console.error("Delete failed", error);
