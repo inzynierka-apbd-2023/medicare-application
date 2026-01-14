@@ -74,7 +74,7 @@ class PrescriptionsApi {
       if (filters.searchTerm) params.append("search", filters.searchTerm);
 
       const queryString = params.toString();
-      const url = `/medical/prescriptions${queryString ? `?${queryString}` : ""}`;
+      const url = `/medical-records/prescriptions${queryString ? `?${queryString}` : ""}`;
 
       const response = await apiClient.get<BackendPrescription[]>(url);
       return response.data.map(mapBackendToFrontend);
@@ -87,7 +87,7 @@ class PrescriptionsApi {
   async getPrescriptionById(id: string): Promise<Prescription | null> {
     try {
       const response = await apiClient.get<BackendPrescription>(
-        `/medical/prescriptions/${id}`
+        `/medical-records/prescriptions/${id}`
       );
       return mapBackendToFrontend(response.data);
     } catch (error) {
@@ -117,7 +117,7 @@ class PrescriptionsApi {
       };
 
       const response = await apiClient.post<BackendPrescription>(
-        "/medical/prescriptions",
+        "/medical-records/prescriptions",
         payload
       );
       responses.push(response.data);
@@ -152,7 +152,7 @@ class PrescriptionsApi {
     };
 
     const response = await apiClient.put<BackendPrescription>(
-      `/medical/prescriptions/${id}`,
+      `/medical-records/prescriptions/${id}`,
       payload
     );
 
@@ -175,7 +175,7 @@ class PrescriptionsApi {
       };
 
       await apiClient.post<BackendPrescription>(
-        "/medical/prescriptions",
+        "/medical-records/prescriptions",
         newPayload
       );
     }
@@ -184,7 +184,7 @@ class PrescriptionsApi {
   }
 
   async deletePrescription(id: string): Promise<void> {
-    await apiClient.delete(`/medical/prescriptions/${id}`);
+    await apiClient.delete(`/medical-records/prescriptions/${id}`);
   }
 
   async getPatients(): Promise<Patient[]> {
@@ -251,7 +251,7 @@ class PrescriptionsApi {
     status: Prescription["status"]
   ): Promise<Prescription> {
     const response = await apiClient.put<BackendPrescription>(
-      `/medical/prescriptions/${id}/status`,
+      `/medical-records/prescriptions/${id}/status`,
       { status: status.charAt(0).toUpperCase() + status.slice(1) }
     );
     return mapBackendToFrontend(response.data);

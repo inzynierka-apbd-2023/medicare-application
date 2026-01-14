@@ -221,61 +221,67 @@ export const useMedicalRecords = (
     [mapToPatientMedicalRecord]
   );
 
-  const selectPatient = async (patientId: string) => {
-    await fetchFullPatientRecord(patientId);
-  };
+  const selectPatient = useCallback(
+    async (patientId: string) => {
+      await fetchFullPatientRecord(patientId);
+    },
+    [fetchFullPatientRecord]
+  );
 
-  const refetch = async () => {
+  const refetch = useCallback(async () => {
     if (selectedRecord) {
       await fetchFullPatientRecord(selectedRecord.patientId);
     }
-  };
+  }, [selectedRecord, fetchFullPatientRecord]);
 
-  const searchPatient = async (query: string) => {
-    if (!query) {
-      setSelectedRecord(null);
-      return;
-    }
+  const searchPatient = useCallback(
+    async (query: string) => {
+      if (!query) {
+        setSelectedRecord(null);
+        return;
+      }
 
-    setIsLoading(true);
-    setError(null);
+      setIsLoading(true);
+      setError(null);
 
-    try {
-      // If query is a UUID, try to fetch directly
-      if (query.match(/^[0-9a-fA-F-]{36}$/)) {
-        await fetchFullPatientRecord(query);
-      } else {
-        // Implemented search via existing Patient List
-        if (user?.id) {
-          const res = await patientsApi.getPatients(user.id);
-          if (res.success && res.data.length > 0) {
-            // Find ANY matching patient, not just case-sensitive or exact.
-            // User complains "alice" didn't work. Lowercase check is good.
-            const found = res.data.find((p) =>
-              p.name.toLowerCase().includes(query.toLowerCase())
-            );
+      try {
+        // If query is a UUID, try to fetch directly
+        if (query.match(/^[0-9a-fA-F-]{36}$/)) {
+          await fetchFullPatientRecord(query);
+        } else {
+          // Implemented search via existing Patient List
+          if (user?.id) {
+            const res = await patientsApi.getPatients(user.id);
+            if (res.success && res.data.length > 0) {
+              // Find ANY matching patient, not just case-sensitive or exact.
+              // User complains "alice" didn't work. Lowercase check is good.
+              const found = res.data.find((p) =>
+                p.name.toLowerCase().includes(query.toLowerCase())
+              );
 
-            if (found) {
-              await fetchFullPatientRecord(found.id);
+              if (found) {
+                await fetchFullPatientRecord(found.id);
+              } else {
+                // Explicitly set error/state so UI knows
+                setSelectedRecord(null);
+                setError(`No patient found matching "${query}"`);
+              }
             } else {
-              // Explicitly set error/state so UI knows
+              // No patients in list at all
               setSelectedRecord(null);
-              setError(`No patient found matching "${query}"`);
+              setError("No patients found in your list");
             }
-          } else {
-            // No patients in list at all
-            setSelectedRecord(null);
-            setError("No patients found in your list");
           }
         }
+      } catch (_e) {
+        setError("Search failed");
+        // Console log removed
+      } finally {
+        setIsLoading(false);
       }
-    } catch (_e) {
-      setError("Search failed");
-      // Console log removed
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    },
+    [fetchFullPatientRecord, user]
+  );
 
   useEffect(() => {
     if (initialPatientId) {

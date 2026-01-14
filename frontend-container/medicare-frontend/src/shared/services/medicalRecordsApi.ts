@@ -73,7 +73,7 @@ export const medicalRecordsApi = {
   ): Promise<ApiResponse<BackendPatientHistory | null>> {
     try {
       const response = await apiClient.get<BackendPatientHistory>(
-        `/medical/medicalrecords/patient-history/${patientId}`
+        `/medical-records/records/patient-history/${patientId}`
       );
       return { success: true, data: response.data };
     } catch (e: unknown) {

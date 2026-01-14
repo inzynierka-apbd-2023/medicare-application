@@ -7,7 +7,7 @@ using MedicalRecordsService.Models;
 namespace MedicalRecordsService.Controllers;
 
 [ApiController]
-[Route("api/medical/[controller]")]
+[Route("api/medical-records/prescriptions")]
 public class PrescriptionsController : ControllerBase
 {
     private readonly MedicalRecordsDbContext _db;

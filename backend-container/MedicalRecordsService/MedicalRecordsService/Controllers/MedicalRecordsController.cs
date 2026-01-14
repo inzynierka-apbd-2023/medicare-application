@@ -10,7 +10,7 @@ using MedicalRecordsService.Features.MedicalRecords.Queries.GetPatientHistory;
 namespace MedicalRecordsService.Controllers;
 
 [ApiController]
-[Route("api/medical/medicalrecords")]
+[Route("api/medical-records/records")]
 public class MedicalRecordsController : ControllerBase
 {
     private readonly MedicalRecordsDbContext _db;

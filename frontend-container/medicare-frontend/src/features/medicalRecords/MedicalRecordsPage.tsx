@@ -75,10 +75,10 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({
 
   // Auto-search if patientId is provided
   useEffect(() => {
-    if (patientId && !selectedRecord) {
+    if (patientId && !selectedRecord && !isLoading && !error) {
       selectPatient(patientId);
     }
-  }, [patientId, selectedRecord, selectPatient]); // Only re-run if these change
+  }, [patientId, selectedRecord, selectPatient, isLoading, error]); // Only re-run if these change
 
   // Note: Search term is initialized with patientId from URL and stays editable
   // User can freely modify the search bar after initial page load
