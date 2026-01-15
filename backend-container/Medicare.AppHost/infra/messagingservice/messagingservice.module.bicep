@@ -116,7 +116,8 @@ resource messagingservice 'Microsoft.App/containerApps@2024-03-01' = {
               type: 'rabbitmq'
               metadata: {
                 queueName: 'messaging.appointment.created'
-                queueLength: '1'
+                mode: 'QueueLength'
+                value: '1'
               }
               auth: [
                 {

@@ -40,9 +40,9 @@ const AppointmentTrendsCard: React.FC<AppointmentTrendsCardProps> = ({
   const formatTooltipValue = (value: number, name: string) => {
     if (name === "revenue") {
       return [
-        new Intl.NumberFormat("en-US", {
+        new Intl.NumberFormat("pl-PL", {
           style: "currency",
-          currency: "USD",
+          currency: "PLN",
         }).format(value),
         "Revenue",
       ];
@@ -186,9 +186,9 @@ const AppointmentTrendsCard: React.FC<AppointmentTrendsCardProps> = ({
           <div className="text-center">
             <p className="text-sm text-gray-600">Total Revenue</p>
             <p className="text-lg font-semibold text-purple-600">
-              {new Intl.NumberFormat("en-US", {
+              {new Intl.NumberFormat("pl-PL", {
                 style: "currency",
-                currency: "USD",
+                currency: "PLN",
                 minimumFractionDigits: 0,
               }).format(data.reduce((sum, item) => sum + item.revenue, 0))}
             </p>

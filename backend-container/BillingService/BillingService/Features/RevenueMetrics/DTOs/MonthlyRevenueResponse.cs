@@ -21,6 +21,9 @@ public class MonthlyRevenueResponse
     /// <summary>Number of transactions processed in the specified month.</summary>
     public int TransactionCount { get; set; }
     
+    /// <summary>Percentage growth compared to the previous month.</summary>
+    public decimal GrowthPercentage { get; set; }
+
     /// <summary>Daily breakdown of revenue for the month.</summary>
     public List<DailyRevenueItem> DailyBreakdown { get; set; } = new();
 }

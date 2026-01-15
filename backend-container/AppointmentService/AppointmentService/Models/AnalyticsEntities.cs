@@ -54,6 +54,9 @@ public class Doctor
     [Key]
     public Guid Id { get; set; }
     
+    /// <summary>User account ID for this doctor (foreign key to user.User)</summary>
+    public Guid UserId { get; set; }
+    
     [MaxLength(100)]
     public string? License_Number { get; set; }
     
@@ -61,6 +64,19 @@ public class Doctor
     
     [MaxLength(2000)]
     public string? Biography { get; set; }
+}
+
+/// <summary>Read-only view that joins Doctor with UserProfile for name lookup</summary>
+public class DoctorDirectory
+{
+    public Guid DoctorId { get; set; }
+    public Guid UserId { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string? Email { get; set; }
+    public string? Phone { get; set; }
+    public string? Specializations { get; set; }
+    public bool IsActive { get; set; }
 }
 
 [Table("Patient")]
@@ -87,30 +103,19 @@ public class Specialization
     
     [Required, MaxLength(200)]
     public string Name { get; set; } = default!;
-    
-    [MaxLength(1000)]
-    public string? Description { get; set; }
-    
-    [Required]
-    public Guid Service_Id { get; set; }
-    
-    public bool Is_Active { get; set; } = true;
 }
 
+/// <summary>
+/// Composite key: (DoctorId, SpecializationId) - matches PractitionerService schema
+/// </summary>
 [Table("Doctor_Specialization")]
 public class DoctorSpecialization
 {
-    [Key]
-    public Guid Id { get; set; }
+    [Required]
+    public Guid DoctorId { get; set; }
     
     [Required]
-    public Guid Doctor_Id { get; set; }
-    
-    [Required]
-    public Guid Specialization_Id { get; set; }
-    
-    public bool Is_Primary { get; set; } = false;
-    public DateTime? Certified_Date { get; set; }
+    public Guid SpecializationId { get; set; }
 }
 
 [Table("Schedule_Appointment")]
@@ -177,30 +182,23 @@ public class AppointmentPayment
 {
     [Key]
     public Guid Id { get; set; }
-    
-    [Column(TypeName = "decimal(10,2)")]
-    public decimal? Amount { get; set; }
-    
-    [Required, MaxLength(10)]
-    public string Currency { get; set; } = default!;
-    
-    [Required, MaxLength(32)]
-    public string Status { get; set; } = default!;
-    
-    public DateTime? Paid_At { get; set; }
-    public DateTime? Renewal_Date { get; set; }
-    
+
     [Required]
-    public Guid Schedule_Appointment_Id { get; set; }
-    
+    public Guid AppointmentId { get; set; }
+
     [Required]
-    public Guid Patient_Id { get; set; }
+    public Guid PatientId { get; set; }
+
+    public long AmountCents { get; set; }
+
+    [Required, MaxLength(3)]
+    public string Currency { get; set; } = "USD";
+
+    public Guid? PaymentIntentId { get; set; }
+
+    public DateTime CreatedAt { get; set; }
     
-    [MaxLength(100)]
-    public string? Payment_Method { get; set; }
-    
-    [MaxLength(200)]
-    public string? Transaction_Id { get; set; }
+    public DateTime ForDate { get; set; }
 }
 
 [Table("Rate")]

@@ -30,6 +30,9 @@ builder.AddRabbitMQClient("rabbitmq");
 
 builder.Services.AddScoped<AppointmentService.Services.IBillingServiceClient, AppointmentService.Services.BillingServiceClient>();
 
+// RabbitMQ RPC client for getting doctor profiles from PractitionerService
+builder.Services.AddScoped<AppointmentService.Services.IDoctorProfileClient, AppointmentService.Services.DoctorProfileClient>();
+
 
 // Add MediatR for CQRS
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));

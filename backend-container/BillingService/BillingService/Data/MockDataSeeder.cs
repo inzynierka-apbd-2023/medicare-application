@@ -228,7 +228,8 @@ public static class MockDataSeeder
         }
 
         // Seed Payment Intents (7 for various appointments and subscriptions)
-        var intentAmounts = new long[] { 15000, 7500, 20000, 5000, 25000, 10000, 15000 }; // in cents
+        // Appointments: 300 PLN (30000 cents), Subscriptions: 49 PLN/149 PLN (4900/14900 cents)
+        var intentAmounts = new long[] { 30000, 4900, 30000, 4900, 30000, 14900, 30000 }; // in cents
         var intentStatuses = new[]
         {
             PaymentIntentStatus.Succeeded,
@@ -256,7 +257,7 @@ public static class MockDataSeeder
                     ProviderIntentId = $"pi_mock_{intentId:N}",
                     ClientSecret = $"pi_mock_{intentId:N}_secret_test",
                     AmountCents = intentAmounts[i],
-                    Currency = "USD",
+                    Currency = "PLN",
                     Status = intentStatuses[i],
                     CreatedAt = DateTime.UtcNow.AddDays(-7 + i)
                 });

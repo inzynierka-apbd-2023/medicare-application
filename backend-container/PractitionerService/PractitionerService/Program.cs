@@ -64,6 +64,7 @@ builder.Services.AddDbContext<PractitionerDbContext>((sp, options) =>
 });
 
 builder.Services.AddHostedService<PractitionerService.Services.AppointmentEventListener>();
+builder.Services.AddHostedService<PractitionerService.Services.DoctorProfileRequestHandler>();
 
 var jwt = builder.Configuration.GetSection("Jwt");
 var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");

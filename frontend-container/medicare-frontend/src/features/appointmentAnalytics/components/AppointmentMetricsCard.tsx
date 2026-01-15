@@ -50,9 +50,9 @@ const AppointmentMetricsCard: React.FC<AppointmentMetricsCardProps> = ({
       title.toLowerCase().includes("revenue") ||
       title.toLowerCase().includes("cost")
     ) {
-      return new Intl.NumberFormat("en-US", {
+      return new Intl.NumberFormat("pl-PL", {
         style: "currency",
-        currency: "USD",
+        currency: "PLN",
         minimumFractionDigits: 0,
       }).format(value);
     }

@@ -24,6 +24,7 @@ public class AppointmentDbContext : DbContext
     public DbSet<AppointmentPayment> AppointmentPayments => Set<AppointmentPayment>();
     public DbSet<Rate> Rates => Set<Rate>();
     public DbSet<Notification> Notifications => Set<Notification>();
+    public DbSet<DoctorDirectory> DoctorDirectories => Set<DoctorDirectory>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -131,8 +132,7 @@ public class AppointmentDbContext : DbContext
 
         modelBuilder.Entity<DoctorSpecialization>(e =>
         {
-            e.HasKey(ds => ds.Id);
-            e.Property(ds => ds.Id);
+            e.HasKey(ds => new { ds.DoctorId, ds.SpecializationId });
             e.ToTable("Doctor_Specialization", "practitioner", tb => tb.ExcludeFromMigrations());
         });
 
@@ -169,6 +169,12 @@ public class AppointmentDbContext : DbContext
             e.HasKey(n => n.Id);
             e.Property(n => n.Id);
             e.ToTable("Notification", "notification", tb => tb.ExcludeFromMigrations());
+        });
+
+        modelBuilder.Entity<DoctorDirectory>(e =>
+        {
+            e.HasNoKey();
+            e.ToView("DoctorDirectory", "practitioner");
         });
     }
 }

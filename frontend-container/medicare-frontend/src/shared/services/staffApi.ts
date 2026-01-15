@@ -286,7 +286,7 @@ export const staffApi = {
         if (typeof isActive === "boolean")
           params.append("isActive", String(isActive));
         const query = params.toString();
-        const url = `/practitioner/doctors${query ? "?" + query : ""}`;
+        const url = `/practitioner/Doctors${query ? "?" + query : ""}`;
 
         promises.push(
           apiClient
@@ -360,7 +360,7 @@ export const staffApi = {
   getReceptionists: async (): Promise<ApiResponse<Receptionist[]>> => {
     try {
       const response = await apiClient.get<unknown>(
-        "/practitioner/receptionists"
+        "/practitioner/Receptionists"
       );
       const receptionistsRaw = Array.isArray(response.data)
         ? response.data
@@ -426,7 +426,7 @@ export const staffApi = {
   ): Promise<ApiResponse<StaffMember | null>> => {
     try {
       const response = await apiClient.get(
-        `/practitioner/doctors/${id}/directory`
+        `/practitioner/Doctors/${id}/directory`
       );
       return handleApiResponse<StaffMember | null>(response, (data: unknown) =>
         data ? mapDoctorDirectoryToStaff(data) : null
@@ -451,7 +451,7 @@ export const staffApi = {
       if (role !== "Doctor") {
         return { success: true, data: [], message: "Only doctors supported" };
       }
-      const response = await apiClient.get(`/practitioner/doctors`);
+      const response = await apiClient.get(`/practitioner/Doctors`);
       return handleApiResponse<StaffMember[]>(response, (data: unknown) =>
         (data as unknown[]).map(mapDoctorDirectoryToStaff)
       );
@@ -492,7 +492,7 @@ export const staffApi = {
         specializationIds: _request.specializations,
       };
       const res = await apiClient.post(
-        `/practitioner/doctors/register-full`,
+        `/practitioner/Doctors/register-full`,
         payload
       );
       const out = res.data as CreateDoctorResponse;
@@ -528,13 +528,13 @@ export const staffApi = {
       // Support updating doctor specializations only
       if (request.role === "Doctor" && request.specializations?.length) {
         const specIds = request.specializations;
-        await apiClient.put(`/practitioner/doctors/${id}/specializations`, {
+        await apiClient.put(`/practitioner/Doctors/${id}/specializations`, {
           specializationIds: specIds,
         });
       }
       // Fetch latest directory row
       const refreshed = await apiClient.get(
-        `/practitioner/doctors/${id}/directory`
+        `/practitioner/Doctors/${id}/directory`
       );
       return handleApiResponse<StaffMember>(
         refreshed,
@@ -556,7 +556,7 @@ export const staffApi = {
   // Delete a staff member (soft delete)
   deleteStaff: async (id: string): Promise<ApiResponse<boolean>> => {
     try {
-      const res = await apiClient.delete(`/practitioner/doctors/${id}`);
+      const res = await apiClient.delete(`/practitioner/Doctors/${id}`);
       // Expect 204 No Content
       return { success: res.status >= 200 && res.status < 300, data: true };
     } catch (error) {
@@ -603,7 +603,7 @@ export const staffApi = {
   ): Promise<ApiResponse<AvailabilityEntry[]>> => {
     try {
       const res = await apiClient.get(
-        `/practitioner/doctors/${doctorId}/availability`
+        `/practitioner/Doctors/${doctorId}/availability`
       );
       return handleApiResponse<AvailabilityEntry[]>(res);
     } catch (error) {
@@ -617,7 +617,7 @@ export const staffApi = {
   ): Promise<ApiResponse<boolean>> => {
     try {
       const res = await apiClient.put(
-        `/practitioner/doctors/${doctorId}/availability`,
+        `/practitioner/Doctors/${doctorId}/availability`,
         entries
       );
       return { success: res.status >= 200 && res.status < 300, data: true };

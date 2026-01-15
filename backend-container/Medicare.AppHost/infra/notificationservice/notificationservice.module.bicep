@@ -150,7 +150,8 @@ resource notificationservice 'Microsoft.App/containerApps@2024-03-01' = {
               type: 'rabbitmq'
               metadata: {
                 queueName: 'email.events'
-                queueLength: '1'
+                mode: 'QueueLength'
+                value: '1'
               }
               auth: [
                 {
@@ -166,7 +167,8 @@ resource notificationservice 'Microsoft.App/containerApps@2024-03-01' = {
               type: 'rabbitmq'
               metadata: {
                 queueName: 'notifications.events'
-                queueLength: '1'
+                mode: 'QueueLength'
+                value: '1'
               }
               auth: [
                 {

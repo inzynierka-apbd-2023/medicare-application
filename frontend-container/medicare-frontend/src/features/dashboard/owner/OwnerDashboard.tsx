@@ -45,6 +45,8 @@ interface RevenueMetrics {
   revenueGrowth: number;
   totalAppointmentPayments: number;
   totalSubscriptionPayments: number;
+  yearlyAppointmentRevenue: number;
+  yearlySubscriptionRevenue: number;
 }
 
 interface PatientMetrics {
@@ -156,8 +158,10 @@ const OwnerDashboard: React.FC = () => {
             monthlyRevenue: monthlyRevenue.totalRevenue,
             yearlyRevenue: yearlyRevenue.totalRevenue,
             revenueGrowth: monthlyRevenue.growthPercentage ?? 0,
-            totalAppointmentPayments: monthlyRevenue.totalRevenue,
-            totalSubscriptionPayments: 0,
+            totalAppointmentPayments: monthlyRevenue.appointmentRevenue,
+            totalSubscriptionPayments: monthlyRevenue.subscriptionRevenue,
+            yearlyAppointmentRevenue: yearlyRevenue.appointmentRevenue,
+            yearlySubscriptionRevenue: yearlyRevenue.subscriptionRevenue,
           },
           patients: {
             totalActivePatients: patientMetrics.totalActivePatients,
@@ -219,6 +223,8 @@ const OwnerDashboard: React.FC = () => {
             revenueGrowth: 0,
             totalAppointmentPayments: 0,
             totalSubscriptionPayments: 0,
+            yearlyAppointmentRevenue: 0,
+            yearlySubscriptionRevenue: 0,
           },
           patients: {
             totalActivePatients: 0,
@@ -250,9 +256,9 @@ const OwnerDashboard: React.FC = () => {
   }, [executeInitialLoad]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("pl-PL", {
       style: "currency",
-      currency: "USD",
+      currency: "PLN",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -436,18 +442,6 @@ const OwnerDashboard: React.FC = () => {
                       dashboardData.patients.patientRetentionRate
                     )}
                   </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Average Rating</span>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                    <span className="text-lg font-semibold text-gray-900">
-                      {dashboardData.patients.averageRating}/5.0
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      ({dashboardData.patients.totalRatings})
-                    </span>
-                  </div>
                 </div>
               </div>
             </Card>
