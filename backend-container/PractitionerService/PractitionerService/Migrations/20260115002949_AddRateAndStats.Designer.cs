@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PractitionerService.Data;
 
@@ -11,9 +12,11 @@ using PractitionerService.Data;
 namespace PractitionerService.Migrations
 {
     [DbContext(typeof(PractitionerDbContext))]
-    partial class PractitionerDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260115002949_AddRateAndStats")]
+    partial class AddRateAndStats
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
