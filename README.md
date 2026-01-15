@@ -7,6 +7,47 @@ The application is hosted and available at:
 
 ---
 
+## About the Application
+
+Medicare is a comprehensive clinic management system designed to streamline healthcare operations. It orchestrates complex workflows between doctors, patients, and administrative staff, covering everything from appointment scheduling and medical record management to billing and real-time notifications.
+
+---
+
+## Architecture Overview
+
+The application is built using a modern microservices architecture orchestrated by **.NET Aspire**.
+
+### 🎨 Frontend
+*   **Framework**: React 19
+*   **Build Tool**: Vite
+*   **Styling**: TailwindCSS
+*   **Language**: TypeScript
+
+### ⚙️ Backend Services
+The backend consists of **13 specialized microservices** built with **.NET 9**, communicating via HTTP and RabbitMQ:
+
+1.  **UserService**: Identity and profile management.
+2.  **PractitionerService**: Doctor management and schedules.
+3.  **PatientService**: Patient demographics and history.
+4.  **AppointmentService**: Booking and scheduling logic.
+5.  **MedicalRecordsService**: Clinical records and history.
+6.  **MedicalCatalogService**: Management of medical procedures and drugs.
+7.  **BillingService**: Invoicing and payments.
+8.  **DocumentsService**: File management and document generation.
+9.  **LabService**: Laboratory order and result processing.
+10. **NotificationService**: Email and real-time alerts.
+11. **MessagingService**: Internal communication.
+12. **ArchiveService**: Data archiving and retention.
+13. **PdfService**: PDF generation for reports and prescriptions.
+
+### 🏗️ Infrastructure
+*   **Orchestrator**: .NET Aspire
+*   **Database**: SQL Server (Schema per service)
+*   **Message Broker**: RabbitMQ
+*   **Container Platform**: Azure Container Apps
+
+---
+
 ## Login Credentials
 
 Use the following credentials to log in and explore the application features.

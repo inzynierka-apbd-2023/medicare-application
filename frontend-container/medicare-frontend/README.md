@@ -68,7 +68,7 @@ This project uses [Husky](https://typicode.github.io/husky/) to manage Git hooks
 **What it does**:
 - Branch protection (prevents direct commits to main-v2)
 - Runs ESLint and Prettier via lint-staged
-- Checks for console.log statements
+- Checks for console statements
 - Warns about TODO/FIXME comments
 - Validates TypeScript compilation
 - Ensures code quality standards
