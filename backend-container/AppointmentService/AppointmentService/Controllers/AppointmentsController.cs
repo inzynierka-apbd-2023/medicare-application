@@ -9,6 +9,7 @@ using System.Text.Json;
 using AppointmentService.Features.Scheduler.DTOs;
 using AppointmentService.Features.Scheduler.Queries;
 using MediatR;
+using AppointmentService.Services;
 
 namespace AppointmentService.Controllers;
 
@@ -22,14 +23,16 @@ public class AppointmentsController : ControllerBase
     private readonly ILogger<AppointmentsController> _logger;
     private readonly AppointmentService.Services.IBillingServiceClient _billingClient;
     private readonly IMediator _mediator;
+    private readonly IPatientProfileClient _patientProfileClient;
 
-    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, ILogger<AppointmentsController> logger, AppointmentService.Services.IBillingServiceClient billingClient, IMediator mediator)
+    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, ILogger<AppointmentsController> logger, AppointmentService.Services.IBillingServiceClient billingClient, IMediator mediator, IPatientProfileClient patientProfileClient)
     {
         _db = db;
         _mqConnection = mqConnection;
         _logger = logger;
         _billingClient = billingClient;
         _mediator = mediator;
+        _patientProfileClient = patientProfileClient;
     }
 
     [HttpPost]
@@ -114,8 +117,14 @@ public class AppointmentsController : ControllerBase
                 .Where(a => a.PatientId == patientId)
                 .OrderBy(a => a.ScheduledAt)
                 .ToListAsync();
+
+            // Enrich with Patient Data
+            var patientProfiles = await _patientProfileClient.GetPatientProfilesAsync(new[] { patientId });
+            var patientProfile = patientProfiles.FirstOrDefault();
+
             foreach (var a in appointments)
             {
+                a.Patient = patientProfile;
                 if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
                 {
                     a.Status = "Overdue";
@@ -140,8 +149,18 @@ public class AppointmentsController : ControllerBase
                 .Where(a => a.DoctorId == doctorId)
                 .OrderBy(a => a.ScheduledAt)
                 .ToListAsync();
+
+            // Enrich with Patient Data
+            var patientIds = appointments.Select(a => a.PatientId).Distinct();
+            var patients = await _patientProfileClient.GetPatientProfilesAsync(patientIds);
+            var patientMap = patients.ToDictionary(p => p.PatientId);
+
             foreach (var a in appointments)
             {
+                if (patientMap.TryGetValue(a.PatientId, out var p))
+                {
+                    a.Patient = p;
+                }
                 if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
                 {
                     a.Status = "Overdue";

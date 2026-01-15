@@ -105,6 +105,7 @@ const string AuthenticationKeyword = "Authentication";
     builder.Services.AddHealthChecks().AddDbContextCheck<PatientDbContext>();
     builder.AddRabbitMQClient("rabbitmq");
     builder.Services.AddHostedService<UserRegisteredConsumer>();
+    builder.Services.AddHostedService<PatientDetailsRequestConsumer>();
     builder.Services.AddScoped<PatientService.Features.Metrics.Services.IPatientMetricsService, PatientService.Features.Metrics.Services.PatientMetricsService>();
 
     var app = builder.Build();

@@ -32,6 +32,7 @@ builder.Services.AddScoped<AppointmentService.Services.IBillingServiceClient, Ap
 
 // RabbitMQ RPC client for getting doctor profiles from PractitionerService
 builder.Services.AddScoped<AppointmentService.Services.IDoctorProfileClient, AppointmentService.Services.DoctorProfileClient>();
+builder.Services.AddScoped<AppointmentService.Services.IPatientProfileClient, AppointmentService.Services.PatientProfileClient>();
 
 
 // Add MediatR for CQRS

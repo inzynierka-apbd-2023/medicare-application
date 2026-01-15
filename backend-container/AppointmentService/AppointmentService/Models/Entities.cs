@@ -1,4 +1,6 @@
 using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
+using AppointmentService.Services;
 
 namespace AppointmentService.Models;
 
@@ -36,6 +38,9 @@ public class Appointment
     public DateTime? UpcomingNotificationSentAt { get; set; }
     // Tracks when the 30-minute reminder was sent
     public DateTime? ThirtyMinNotificationSentAt { get; set; }
+
+    [NotMapped]
+    public PatientProfileDto? Patient { get; set; }
 }
 
 public class AppointmentSlot
