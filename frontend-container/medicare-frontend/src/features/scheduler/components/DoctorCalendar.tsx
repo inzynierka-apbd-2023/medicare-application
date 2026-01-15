@@ -60,7 +60,7 @@ export const DoctorCalendar: React.FC<DoctorCalendarProps> = ({
   // Convert appointments to calendar events
   const calendarEvents: DoctorCalendarEvent[] = appointments.map(
     (appointment) => {
-  const colors = getStatusColors(appointment.status?.name || "pending");
+      const colors = getStatusColors(appointment.status?.name || "pending");
       const patientName = appointment.patient
         ? `${appointment.patient.firstName} ${appointment.patient.lastName}`
         : "Unknown Patient";
@@ -131,7 +131,6 @@ export const DoctorCalendar: React.FC<DoctorCalendarProps> = ({
   }, []);
 
   React.useEffect(() => {
-    // Make API available to parent if needed
     if (calendarRef.current) {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       (calendarRef.current as any).getCalendarApi = getCalendarApi;

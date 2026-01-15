@@ -37,9 +37,7 @@ public static class MockDataSeeder
         int created = 0;
         Console.WriteLine("[MockDataSeeder] Starting AppointmentService seeding...");
 
-        // ========================================
-        // SEED APPOINTMENT CATEGORIES
-        // ========================================
+        // Seed Appointment Categories
         var categories = new[]
         {
             (MockIds.CategoryCheckup, "Annual Checkup", "Routine yearly health examination", 30, true),
@@ -65,10 +63,7 @@ public static class MockDataSeeder
             }
         }
 
-        // ========================================
-        // SEED SCHEDULES (doctor weekly schedules)
-        // These match PractitionerService schedules
-        // ========================================
+        // Seed Schedules (doctor weekly schedules) matching PractitionerService
         var scheduleEntries = new (Guid doctorId, DayOfWeek day, TimeOnly start, TimeOnly end)[]
         {
             // Doctor1 - John Carter (Cardiologist)
@@ -107,10 +102,7 @@ public static class MockDataSeeder
             }
         }
 
-        // ========================================
-        // SEED SAMPLE APPOINTMENTS
-        // Patient1 with Doctor1, Patient2 with Doctor2
-        // ========================================
+        // Seed Sample Appointments
         var appointmentData = new[]
         {
             (
@@ -201,9 +193,7 @@ public static class MockDataSeeder
             }
         }
 
-        // ========================================
-        // SEED APPOINTMENT SLOTS (for next 7 days)
-        // ========================================
+        // Seed Appointment Slots (for next 7 days)
         var baseDate = DateTime.UtcNow.Date.AddDays(1);
         var existingSlotKeys = await db.AppointmentSlots
             .Select(s => new { s.DoctorId, s.StartTime })
@@ -254,10 +244,7 @@ public static class MockDataSeeder
         }
 
 
-        // ========================================
-        // SEED APPOINTMENT PAYMENTS (matching BillingService)
-        // Appointments 1, 3, 5 are Paid (300 PLN)
-        // ========================================
+        // Seed Appointment Payments (matching BillingService)
         var paymentData = new[]
         {
             (MockIds.Appointment1, 30000L, MockIds.Patient1),
@@ -301,7 +288,6 @@ public static class MockDataSeeder
             await db.SaveChangesAsync();
             Console.WriteLine($"[MockDataSeeder] ===== TOTAL: Created {created} records (including payments) =====");
             
-            // Summary
             Console.WriteLine("[MockDataSeeder] Appointment Summary:");
             Console.WriteLine($"  - Appointment 1: Patient1 (Alice) with Doctor1 (John Carter) - Tomorrow 10:00");
             Console.WriteLine($"  - Appointment 2: Patient2 (Bob) with Doctor2 (Sarah Chen) - Day after tomorrow 14:00");

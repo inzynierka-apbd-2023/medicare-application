@@ -1,4 +1,9 @@
-import type { Appointment, Document, DocumentType } from "../../features/documents/types";
+import type {
+  Appointment,
+  Document,
+  DocumentType,
+} from "../../features/documents/types";
+
 import { type ApiResponse, createErrorResponse } from "./api";
 import { apiClient as api } from "./apiClient";
 import { appointmentsApi } from "./appointmentsApi";
@@ -42,15 +47,30 @@ const mapLabData = (lab: any): Document["data"] => {
     interpretation: lab.interpretation ?? undefined,
     referenceRanges: lab.referenceRanges ?? undefined,
   };
+
+  interface RawLabResult {
+    status?: unknown;
+    isAbnormal?: boolean;
+    parameterName?: string;
+    loincCode?: string;
+    numericValue?: string | number;
+    value?: string | number;
+    unit?: string;
+    referenceRange?: string;
+    notes?: string;
+  }
+
   const results = Array.isArray(lab.results) ? lab.results : [];
-  data.results = results.map((r: any) => {
+  data.results = results.map((r: RawLabResult) => {
     const rawStatus = (r.status ?? "").toString();
     const rawLower = rawStatus.toLowerCase();
     const isAbn = r.isAbnormal === true || rawLower === "abnormal";
     let mappedStatus: string;
     if (rawLower === "critical") mappedStatus = "Critical";
-    else if (rawLower === "high" || rawLower === "low") mappedStatus = rawStatus;
-    else if (isAbn) mappedStatus = "High"; // treat flagged abnormal as non-normal
+    else if (rawLower === "high" || rawLower === "low")
+      mappedStatus = rawStatus;
+    else if (isAbn)
+      mappedStatus = "High"; // treat flagged abnormal as non-normal
     else mappedStatus = "Normal";
 
     return {
@@ -90,7 +110,8 @@ const mapBackendDocument = (row: any): Document => {
     data.instructions = row.prescription.instructions ?? undefined;
   }
   if (type === "Referral" && row.referral) {
-    data.specialty = row.referral.speciality ?? row.referral.specialty ?? undefined;
+    data.specialty =
+      row.referral.speciality ?? row.referral.specialty ?? undefined;
     data.referredTo = row.referral.referredTo ?? undefined;
     data.validFrom = row.referral.validFrom ?? undefined;
     data.validTo = row.referral.validTo ?? undefined;
@@ -112,7 +133,9 @@ const mapBackendDocument = (row: any): Document => {
     Object.assign(data, mapped);
   }
 
-  const created = row.createdAt ? new Date(row.createdAt).toISOString() : new Date().toISOString();
+  const created = row.createdAt
+    ? new Date(row.createdAt).toISOString()
+    : new Date().toISOString();
   return {
     id: String(row.id),
     appointmentId: firstAssignedAppointmentId(row),
@@ -134,7 +157,7 @@ export const documentsApi = {
       if (filters?.patientId) params.patientId = filters.patientId;
       if (filters?.appointmentId) params.appointmentId = filters.appointmentId;
       if (filters?.typeFilter && filters.typeFilter !== "All") {
-        // Map UI type -> backend int if needed
+        // Map UI type -> backend int
         const map: Record<DocumentType, number> = {
           VisitCard: 1,
           Prescription: 2,
@@ -155,12 +178,17 @@ export const documentsApi = {
       if (filters?.searchTerm) {
         const s = filters.searchTerm.toLowerCase();
         docs = docs.filter(
-          (d) => d.notes?.toLowerCase().includes(s) || d.type.toLowerCase().includes(s)
+          (d) =>
+            d.notes?.toLowerCase().includes(s) ||
+            d.type.toLowerCase().includes(s)
         );
       }
 
       // Sort by createdAt desc
-      docs.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+      docs.sort(
+        (a, b) =>
+          new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+      );
       return { data: docs, success: true };
     } catch (error) {
       console.error("Failed to fetch documents", error);
@@ -176,7 +204,16 @@ export const documentsApi = {
       const resp = await appointmentsApi.getAppointmentsForPatient(patientId);
       if (!resp.success) return resp as unknown as ApiResponse<Appointment[]>;
       // Map to documents feature Appointment shape
-      const docsAppointments: Appointment[] = (resp.data || []).map((a: any) => ({
+      interface SourceAppointment {
+        id: string | number;
+        date: string | number;
+        doctor?: string | null;
+        specialization?: string | null;
+      }
+
+      const sourceList = (resp.data || []) as unknown as SourceAppointment[];
+
+      const docsAppointments: Appointment[] = sourceList.map((a) => ({
         id: String(a.id),
         date: String(a.date),
         doctor: String(a.doctor ?? ""),
@@ -196,13 +233,26 @@ export const documentsApi = {
     try {
       const [docsResp, apptsResp] = await Promise.all([
         documentsApi.getDocuments(filters),
-        filters?.patientId ? documentsApi.getAppointments(filters.patientId) : Promise.resolve({ data: [], success: true } as ApiResponse<Appointment[]>),
+        filters?.patientId
+          ? documentsApi.getAppointments(filters.patientId)
+          : Promise.resolve({ data: [], success: true } as ApiResponse<
+              Appointment[]
+            >),
       ]);
 
-      if (!docsResp.success) return createErrorResponse(docsResp.error || "Failed to fetch documents");
-      if (!apptsResp.success) return createErrorResponse(apptsResp.error || "Failed to fetch appointments");
+      if (!docsResp.success)
+        return createErrorResponse(
+          docsResp.error || "Failed to fetch documents"
+        );
+      if (!apptsResp.success)
+        return createErrorResponse(
+          apptsResp.error || "Failed to fetch appointments"
+        );
 
-      return { data: { documents: docsResp.data, appointments: apptsResp.data }, success: true };
+      return {
+        data: { documents: docsResp.data, appointments: apptsResp.data },
+        success: true,
+      };
     } catch (error) {
       console.error("Failed to fetch documents data", error);
       return createErrorResponse("Failed to fetch documents data");
@@ -228,8 +278,8 @@ export const documentsApi = {
     documentId: string
   ): Promise<ApiResponse<{ downloadUrl: string }>> => {
     try {
-  // Use server-side generated PDF endpoint
-  const url = `${location.origin}/api/documents/${documentId}/pdf`;
+      // Use server-side generated PDF endpoint
+      const url = `${location.origin}/api/documents/${documentId}/pdf`;
       return { data: { downloadUrl: url }, success: true };
     } catch (error) {
       console.error("Failed to prepare document download", error);

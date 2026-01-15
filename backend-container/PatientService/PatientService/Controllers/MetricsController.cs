@@ -9,7 +9,7 @@ namespace PatientService.Controllers;
 
 /// <summary>
 /// Provides aggregated patient-related metrics for Owner/Admin dashboards.
-/// NOTE: Implementation logic intentionally omitted (stub) - only wiring & validation.
+/// Provides aggregated patient-related metrics for Owner/Admin dashboards.
 /// </summary>
 [ApiController]
 [Route("api/patient/[controller]")]

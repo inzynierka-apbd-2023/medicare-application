@@ -352,7 +352,7 @@ public class AppointmentsController : ControllerBase
             Is_Anonymous = false
         };
 
-        _db.Set<Rate>().Add(rate); // Assuming DbSet<Rate> is available or via Set<Rate>()
+        _db.Set<Rate>().Add(rate);
         await _db.SaveChangesAsync();
 
         // 2. Publish event

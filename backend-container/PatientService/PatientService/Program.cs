@@ -269,6 +269,6 @@ static async Task CreateViewsAsync(PatientDbContext db)
 
 static async Task SeedCatalogAsync(PatientDbContext db)
 {
-    // Minimal seed: none for now; left for future idempotent inserts if needed
+    // Minimal seed.
     await Task.CompletedTask;
 }

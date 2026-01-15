@@ -19,7 +19,7 @@ export const SubscriptionCard: React.FC = () => {
   }
 
   // If error, show minimal error or just fallback to free content
-  // Assuming a missing plan means free/default access or just show generic
+  // Missing plan means free/default access.
   const planName = plan?.name || "Free Plan";
   const planPrice = plan?.priceCents
     ? `${plan.priceCents / 100} ${plan.currency} / ${plan.billingPeriod}`

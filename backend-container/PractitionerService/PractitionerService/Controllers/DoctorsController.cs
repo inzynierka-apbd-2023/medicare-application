@@ -311,8 +311,8 @@ public class DoctorsController : ControllerBase
             if (specIds.Count > 0)
             {
                 // intersect with doctor specialization CSV
-                // Note: Specializations in DoctorDirectory are likely stored as comma-separated GUID strings still, or verified usage. 
-                // Assuming they are stored as CSV strings for now, conversion is needed for comparison.
+                // Specializations in DoctorDirectory are likely stored as comma-separated GUID strings 
+                // Stored as CSV strings, conversion needed for comparison.
                 var specIdStrings = specIds.Select(g => g.ToString()).ToList();
                 query = query.Where(d => d.Specializations != null && specIdStrings.Any(sid => d.Specializations!.Contains(sid)));
             }

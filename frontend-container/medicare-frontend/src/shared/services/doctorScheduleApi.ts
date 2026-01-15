@@ -27,15 +27,15 @@ class DoctorScheduleApiService {
       // The original implementation used a single endpoint for doctor schedule.
       // The requested change introduces a more complex logic involving two services.
       // For the purpose of this edit, we will adapt the new fetch calls.
-      // Note: The provided snippet for `startStr` and `endStr` is not defined,
-      // so we will use `startDate` and `endDate` directly, assuming they are in a format
+      // Start and end strings are not defined in the snippet
+      // so we will use `startDate` and `endDate` directly.
       // suitable for `encodeURIComponent`.
       // Also, the snippet doesn't show how to combine results from two fetches into DoctorScheduleEvent[],
       // so we'll return a placeholder success response after the fetches.
 
       // 1. Fetch appointments via AppointmentService
-      const startStr = startDate || ""; // Assuming startDate is available or can be empty
-      const endStr = endDate || ""; // Assuming endDate is available or can be empty
+      const startStr = startDate || "";
+      const endStr = endDate || "";
 
       const appsRes = await fetch(
         `/api/appointment/doctor-schedule/${doctorId}?startDate=${encodeURIComponent(startStr)}&endDate=${encodeURIComponent(endStr)}`,

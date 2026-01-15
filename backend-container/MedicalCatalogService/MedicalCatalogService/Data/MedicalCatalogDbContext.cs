@@ -59,7 +59,7 @@ public class MedicalCatalogDbContext : DbContext
             e.HasIndex(x => x.Component);
             e.HasIndex(x => x.LongCommonName);
             e.HasIndex(x => x.ShortName);
-            // Full-text indexes are typically managed outside EF; add in migration using raw SQL if needed.
+            // Full-text indexes are managed outside EF.
         });
 
     // CPT/HCPCS removed

@@ -67,7 +67,7 @@ const SchedulerPage: React.FC<SchedulerPageProps> = ({ patientId }) => {
 
   // If patientId prop is provided, use it.
   // Otherwise, if user is logged in and has role 'Patient', use their ID.
-  // Note: This assumes the user.id corresponds to the patientId, which we've confirmed is the intention.
+  // Assumes user.id corresponds to patientId
   const isPatientRole = user?.role?.toLowerCase() === "patient";
   const effectivePatientId =
     patientId || (isPatientRole ? user?.id : undefined);

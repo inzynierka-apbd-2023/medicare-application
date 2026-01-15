@@ -96,7 +96,7 @@ export const useMessages = (
     async (
       conversationId: string,
       content: string
-      // Note: attachments parameter removed as it's not used in current API
+      // Attachments parameter removed (unused)
     ) => {
       if (!userId) return;
 

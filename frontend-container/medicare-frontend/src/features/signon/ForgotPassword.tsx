@@ -20,7 +20,7 @@ export default function ForgotPassword() {
 
     try {
       await apiClient.post("/auth/forgot-password", { email });
-      // Identify assuming we have useAuth hook available or context
+      // Identify user.
       logout();
       setIsSubmitted(true);
     } catch {

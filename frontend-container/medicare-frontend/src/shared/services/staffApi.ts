@@ -146,7 +146,7 @@ const mapDoctorDirectoryToStaff = (row: unknown): StaffMember => {
       email: r.email || "",
       phone: r.phone,
     },
-    // We only have specialization IDs from the directory; names can be joined in the UI using the catalog if needed.
+    // We only have specialization IDs from the directory.
     specializations: specIds.map((id: string) => ({
       id,
       name: "",
@@ -390,7 +390,7 @@ export const staffApi = {
                 addressLine1: user.address,
               },
               department: "General", // Placeholder as it's not in DB yet
-              isActive: true, // Assuming active if returned
+              isActive: true,
               createdAt: row.createdAt,
               updatedAt: row.updatedAt,
             } as Receptionist;

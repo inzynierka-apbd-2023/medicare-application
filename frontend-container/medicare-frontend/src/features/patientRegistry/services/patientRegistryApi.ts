@@ -65,13 +65,13 @@ interface UserResponseDto {
   isActive: boolean;
 }
 
-// Service URLs (assuming Vite env or defaults)
+// Service URLs
 // Service URLs are handled by proxy/apiClient base URL normalization
 
 export class PatientRegistryApiService {
   /**
    * Get paginated list of patients with optional filters
-   * Fetches from PatientService (List) and enriches with UserService (Profiles) if needed.
+   * Fetches from PatientService (List) and enriches with UserService (Profiles).
    */
   static async getPatients(
     page = 1,

@@ -42,7 +42,7 @@ public class DoctorArchiveConsumer : BackgroundService
         catch (Exception ex) 
         {
             _logger.LogError(ex, "Failed to setup RabbitMQ topology");
-            // Retry loop for channel/topology if needed (omitted for brevity, relying on Aspire connection resilience mostly, but simple retry is good)
+            // Retry loop for channel/topology omitted for brevity.
              while (!stoppingToken.IsCancellationRequested && _channel == null)
             {
                 try

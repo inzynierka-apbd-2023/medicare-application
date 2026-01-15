@@ -9,7 +9,7 @@ namespace PractitionerService.Controllers;
 
 /// <summary>
 /// Exposes summary doctor performance metrics for Owner dashboard.
-/// NOTE: Implementation is stubbed (no business logic yet) – only validation & wiring.
+/// Implementation is stubbed (no business logic yet) – only validation & wiring.
 /// </summary>
 [ApiController]
 [Route("api/practitioner/doctor-performance")]

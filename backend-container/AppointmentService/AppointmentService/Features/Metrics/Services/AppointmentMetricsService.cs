@@ -49,7 +49,7 @@ public class AppointmentMetricsService : IAppointmentMetricsService
         }
         catch (Exception ex)
         {
-            // Log if needed, or swallow similar to handlers
+
             Console.WriteLine($"[MetricsWarning] Failed to fetch payments: {ex.Message}");
         }
 

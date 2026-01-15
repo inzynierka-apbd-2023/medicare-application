@@ -252,7 +252,7 @@ public static class MockDataSeeder
             await db.SaveChangesAsync();
             Console.WriteLine($"[MockDataSeeder] ===== TOTAL: Created {created} practitioner records =====");
             
-            // Summary
+
             Console.WriteLine("[MockDataSeeder] Doctor Summary:");
             Console.WriteLine($"  - Dr. John Carter (Cardiologist): DoctorId={MockIds.Doctor1}, UserId={MockIds.DoctorUser1}");
             Console.WriteLine($"    Specializations: Cardiologist, General Practitioner");

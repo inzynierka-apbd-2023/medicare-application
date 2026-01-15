@@ -527,7 +527,7 @@ export class SchedulerApiService {
 
         const specializations: Specialization[] = specIds.map((id) => ({
           id,
-          name: "", // Names populated by separate call if needed, or by UI
+          name: "",
           description: "",
           serviceId: "",
           service: undefined as unknown as Service,
@@ -965,7 +965,7 @@ export class SchedulerApiService {
 
   // Stats - real implementation
   static async getDashboardStats(): Promise<SchedulerStats> {
-    // Return empty stats - dashboard will calculate from actual appointments if needed
+    // Return empty stats.
     // or implement real endpoint later
     return {
       totalAppointments: 0,
