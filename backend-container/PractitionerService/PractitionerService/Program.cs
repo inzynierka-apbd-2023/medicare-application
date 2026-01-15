@@ -63,6 +63,8 @@ builder.Services.AddDbContext<PractitionerDbContext>((sp, options) =>
     });
 });
 
+builder.Services.AddHostedService<PractitionerService.Services.AppointmentEventListener>();
+
 var jwt = builder.Configuration.GetSection("Jwt");
 var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
 var issuer = jwt["Issuer"] ?? "MedicareApp";
@@ -175,8 +177,9 @@ static async Task ApplyMigrationsAsync(IServiceProvider services)
     // pending AFTER apply can be derived by set difference
     var pendingAfter = all.Except(applied);
     Console.WriteLine($"[Startup] Practitioner pending AFTER apply: {string.Join(",", pendingAfter)}");
-        await SeedCatalogAsync(db);
+    await SeedCatalogAsync(db);
     await PractitionerService.Data.MockDataSeeder.SeedAsync(db);
+    // await SeedTestDataAsync(db); // Reverted to use MockDataSeeder as per user request
     await CreateViewsAsync(db);
         Console.WriteLine("[Startup] Practitioner migrations & seeding complete.");
     }
@@ -326,6 +329,52 @@ IF NOT EXISTS (SELECT 1 FROM practitioner.Specialization WHERE Name='Pediatricia
     INSERT INTO practitioner.Specialization (Name) VALUES ('Pediatrician');
 IF NOT EXISTS (SELECT 1 FROM practitioner.Specialization WHERE Name='Orthopedist')
     INSERT INTO practitioner.Specialization (Name) VALUES ('Orthopedist');
+
+-- Specialization Services (Link)
+-- General Practitioner -> General Consultation
+IF EXISTS (SELECT 1 FROM practitioner.Specialization WHERE Name='General Practitioner') AND EXISTS (SELECT 1 FROM practitioner.Service WHERE Name='General Consultation')
+BEGIN
+    DECLARE @specId1 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Specialization WHERE Name='General Practitioner');
+    DECLARE @svcId1 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Service WHERE Name='General Consultation');
+    IF NOT EXISTS (SELECT 1 FROM practitioner.Specialization_Service WHERE SpecializationId=@specId1 AND ServiceId=@svcId1)
+        INSERT INTO practitioner.Specialization_Service (SpecializationId, ServiceId) VALUES (@specId1, @svcId1);
+END
+
+-- Cardiologist -> Cardiology Review
+IF EXISTS (SELECT 1 FROM practitioner.Specialization WHERE Name='Cardiologist') AND EXISTS (SELECT 1 FROM practitioner.Service WHERE Name='Cardiology Review')
+BEGIN
+    DECLARE @specId2 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Specialization WHERE Name='Cardiologist');
+    DECLARE @svcId2 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Service WHERE Name='Cardiology Review');
+    IF NOT EXISTS (SELECT 1 FROM practitioner.Specialization_Service WHERE SpecializationId=@specId2 AND ServiceId=@svcId2)
+        INSERT INTO practitioner.Specialization_Service (SpecializationId, ServiceId) VALUES (@specId2, @svcId2);
+END
+
+-- Dermatologist -> Dermatology Check
+IF EXISTS (SELECT 1 FROM practitioner.Specialization WHERE Name='Dermatologist') AND EXISTS (SELECT 1 FROM practitioner.Service WHERE Name='Dermatology Check')
+BEGIN
+    DECLARE @specId3 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Specialization WHERE Name='Dermatologist');
+    DECLARE @svcId3 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Service WHERE Name='Dermatology Check');
+    IF NOT EXISTS (SELECT 1 FROM practitioner.Specialization_Service WHERE SpecializationId=@specId3 AND ServiceId=@svcId3)
+        INSERT INTO practitioner.Specialization_Service (SpecializationId, ServiceId) VALUES (@specId3, @svcId3);
+END
+
+-- Pediatrician -> Pediatric Visit
+IF EXISTS (SELECT 1 FROM practitioner.Specialization WHERE Name='Pediatrician') AND EXISTS (SELECT 1 FROM practitioner.Service WHERE Name='Pediatric Visit')
+BEGIN
+    DECLARE @specId4 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Specialization WHERE Name='Pediatrician');
+    DECLARE @svcId4 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Service WHERE Name='Pediatric Visit');
+    IF NOT EXISTS (SELECT 1 FROM practitioner.Specialization_Service WHERE SpecializationId=@specId4 AND ServiceId=@svcId4)
+        INSERT INTO practitioner.Specialization_Service (SpecializationId, ServiceId) VALUES (@specId4, @svcId4);
+END
+
+-- Orthopedist -> Orthopedic Assessment
+IF EXISTS (SELECT 1 FROM practitioner.Specialization WHERE Name='Orthopedist') AND EXISTS (SELECT 1 FROM practitioner.Service WHERE Name='Orthopedic Assessment')
+BEGIN
+    DECLARE @specId5 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Specialization WHERE Name='Orthopedist');
+    DECLARE @svcId5 nvarchar(36) = (SELECT Top 1 Id FROM practitioner.Service WHERE Name='Orthopedic Assessment');
+    IF NOT EXISTS (SELECT 1 FROM practitioner.Specialization_Service WHERE SpecializationId=@specId5 AND ServiceId=@svcId5)
+        INSERT INTO practitioner.Specialization_Service (SpecializationId, ServiceId) VALUES (@specId5, @svcId5);
+END
 
 -- Doctors (two sample doctors referencing existing user IDs if available)
 IF NOT EXISTS (SELECT 1 FROM practitioner.Doctor)

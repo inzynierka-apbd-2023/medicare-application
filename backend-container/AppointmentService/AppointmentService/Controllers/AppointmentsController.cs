@@ -166,6 +166,8 @@ public class AppointmentsController : ControllerBase
         appointment.UpdatedAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
 
+        await PublishAppointmentUpdatedAsync(appointment);
+
         return Ok(appointment);
     }
     
@@ -254,6 +256,40 @@ public class AppointmentsController : ControllerBase
         }
     }
 
+    private async Task PublishAppointmentUpdatedAsync(Appointment appointment)
+    {
+        try
+        {
+            await using var channel = await _mqConnection.CreateChannelAsync();
+            await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
+
+            var evt = new
+            {
+                AppointmentId = appointment.Id,
+                DoctorId = appointment.DoctorId,
+                Status = appointment.Status,
+                UpdatedAt = appointment.UpdatedAt,
+                OccurredAt = DateTime.UtcNow
+            };
+
+            var json = JsonSerializer.Serialize(evt);
+            var body = Encoding.UTF8.GetBytes(json);
+
+            var props = new BasicProperties();
+            await channel.BasicPublishAsync(exchange: "appointment.events",
+                                 routingKey: "appointment.updated",
+                                 mandatory: false,
+                                 basicProperties: props,
+                                 body: body);
+            
+            _logger.LogInformation("Published appointment.updated for {Id} Status:{Status}", appointment.Id, appointment.Status);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish appointment.updated for {Id}", appointment.Id);
+        }
+    }
+
     [HttpPut("{id}")]
     [Authorize]
     public async Task<IActionResult> UpdateAppointment(Guid id, [FromBody] UpdateAppointmentRequestDto req)
@@ -277,9 +313,71 @@ public class AppointmentsController : ControllerBase
 
         return Ok(appointment);
     }
+    [HttpPost("{id}/rate")]
+    [Authorize]
+    public async Task<IActionResult> RateAppointment(Guid id, [FromBody] RateAppointmentRequest req)
+    {
+        var appointment = await _db.Appointments.FindAsync(id);
+        if (appointment == null) return NotFound();
+
+        // 1. Create Rate entity
+        var rate = new Rate
+        {
+            Id = Guid.NewGuid(),
+            Rate_Value = req.Rating,
+            Description = req.Description,
+            Patient_User_Id = appointment.PatientId,
+            Doctor_User_Id = appointment.DoctorId,
+            Appointment_Id = appointment.Id,
+            Rated_At = DateTime.UtcNow,
+            Is_Anonymous = false
+        };
+
+        _db.Set<Rate>().Add(rate); // Assuming DbSet<Rate> is available or via Set<Rate>()
+        await _db.SaveChangesAsync();
+
+        // 2. Publish event
+        await PublishAppointmentRatedAsync(appointment, req.Rating);
+
+        return Ok(rate);
+    }
+
+    private async Task PublishAppointmentRatedAsync(Appointment appointment, int rating)
+    {
+        try
+        {
+            await using var channel = await _mqConnection.CreateChannelAsync();
+            await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
+
+            var evt = new
+            {
+                AppointmentId = appointment.Id,
+                DoctorId = appointment.DoctorId,
+                Rating = rating,
+                OccurredAt = DateTime.UtcNow
+            };
+
+            var json = JsonSerializer.Serialize(evt);
+            var body = Encoding.UTF8.GetBytes(json);
+
+            var props = new BasicProperties();
+            await channel.BasicPublishAsync(exchange: "appointment.events",
+                                 routingKey: "appointment.rated",
+                                 mandatory: false,
+                                 basicProperties: props,
+                                 body: body);
+            
+            _logger.LogInformation("Published appointment.rated for {Id} Rating:{Rating}", appointment.Id, rating);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to publish appointment.rated for {Id}", appointment.Id);
+        }
+    }
 }
 
 public record CreateAppointmentRequest(Guid PatientId, Guid DoctorId, DateTime ScheduledAt, DateTime ScheduledEndAt, string? AppointmentType, string? Notes, Guid? ServiceId, string? Category, string? Room);
 public record UpdateStatusRequest(string Status);
 public record MockPaymentRequest(Guid PatientId, string PaymentMethod);
 public record UpdateAppointmentRequestDto(string? Description, DateTime? ScheduledAt, DateTime? ScheduledEndAt, string? AppointmentType, Guid? ServiceId, string? Category, string? Room);
+public record RateAppointmentRequest(byte Rating, string? Description);

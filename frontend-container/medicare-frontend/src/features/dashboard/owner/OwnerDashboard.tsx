@@ -178,7 +178,7 @@ const OwnerDashboard: React.FC = () => {
             totalDoctors: doctorPerfSummary.totalDoctors,
             averageAppointmentsPerDoctor:
               doctorPerfSummary.averageAppointmentsPerDoctor,
-            topRatedDoctor: doctorPerfSummary.topRatedDoctor || "No data",
+            topRatedDoctor: doctorPerfSummary.topRatedDoctor || "N/A",
             doctorAverageRating: doctorPerfSummary.doctorAverageRating,
           },
           recentActivities: [

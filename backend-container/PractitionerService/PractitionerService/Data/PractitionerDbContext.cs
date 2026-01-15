@@ -14,6 +14,7 @@ public class PractitionerDbContext : DbContext
     public DbSet<SpecializationService> SpecializationServices => Set<SpecializationService>();
     public DbSet<DoctorSpecialization> DoctorSpecializations => Set<DoctorSpecialization>();
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
+    public DbSet<DoctorStatistics> DoctorStatistics => Set<DoctorStatistics>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -80,6 +81,14 @@ public class PractitionerDbContext : DbContext
             e.Property(s => s.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(s => s.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasOne<Doctor>().WithMany(d => d.Schedules).HasForeignKey(s => s.DoctorId).OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<DoctorStatistics>(e =>
+        {
+            e.ToTable("DoctorStatistics", schema: "practitioner");
+            e.HasKey(ds => ds.DoctorId);
+            e.Property(ds => ds.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.Property(ds => ds.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
         });
 
         // View mapping - view is created at startup in Program.cs

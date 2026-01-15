@@ -175,4 +175,21 @@ export const appointmentsApi = {
       return createErrorResponse("Failed to update payment status");
     }
   },
+  // Submit a doctor rating
+  rateAppointment: async (
+    id: string,
+    rating: number,
+    description?: string
+  ): Promise<ApiResponse<void>> => {
+    try {
+      await api.post(`/appointment/appointments/${id}/rate`, {
+        rating,
+        description,
+      });
+      return { success: true, data: undefined };
+    } catch (error) {
+      console.error("Failed to submit rating", error);
+      return createErrorResponse("Failed to submit rating");
+    }
+  },
 };

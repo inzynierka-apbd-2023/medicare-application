@@ -119,3 +119,15 @@ public class PendingDoctor
 
     public DateTime CreatedAt { get; set; }
 }
+
+public class DoctorStatistics
+{
+    [Key]
+    public Guid DoctorId { get; set; }
+    public int TotalAppointments { get; set; }
+    public int CompletedAppointments { get; set; }
+    public int TotalRatingSum { get; set; }
+    public int TotalRatingCount { get; set; }
+    public DateTime CreatedAt { get; set; }
+    public DateTime UpdatedAt { get; set; }
+}

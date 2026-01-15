@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import Header from "../../layout/Header";
 import { ErrorDisplay, Loading } from "../../shared/components";
 import { useAppointments } from "../../shared/hooks/useAppointments";
+import { appointmentsApi } from "../../shared/services/appointmentsApi";
 
 import { Appointments } from "./Appointments";
 import { AppointmentsDetailsModal, DoctorRatingModal } from "./components";
@@ -63,16 +64,20 @@ const AppointmentsPage: React.FC = () => {
     rating: number,
     comment?: string
   ) => {
-    // Here you would call an API to submit the rating
-    // For now, we'll just update the local state
-    console.log("Rating submitted:", { appointmentId, rating, comment });
+    const response = await appointmentsApi.rateAppointment(
+      appointmentId,
+      rating,
+      comment
+    );
 
-    // Close the modal
-    setIsRatingModalOpen(false);
-    setAppointmentToRate(null);
-
-    // In a real app, you would refetch appointments to get updated data
-    await refetch();
+    if (response.success) {
+      setIsRatingModalOpen(false);
+      setAppointmentToRate(null);
+      await refetch();
+    } else {
+      // Optional: show error message
+      alert("Failed to save rating. Please try again.");
+    }
   };
 
   if (loading) {
