@@ -191,7 +191,7 @@ export const patientDashboardApi = {
         date: d.createdAt
           ? new Date(d.createdAt).toLocaleDateString()
           : new Date().toLocaleDateString(),
-        type: d.type,
+        ...(d.type ? { type: d.type } : {}),
         size: "100 KB",
       })
     );
