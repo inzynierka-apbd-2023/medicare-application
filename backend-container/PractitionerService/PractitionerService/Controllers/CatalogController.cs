@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PractitionerService.Data;
 using PractitionerService.Models;
-
+using Microsoft.AspNetCore.Authorization;
 namespace PractitionerService.Controllers;
 
 [ApiController]

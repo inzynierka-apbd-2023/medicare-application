@@ -3,7 +3,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using PatientService.Data;
 using System.Data;
-
+using Microsoft.AspNetCore.Authorization;
 namespace PatientService.Controllers;
 
 [ApiController]

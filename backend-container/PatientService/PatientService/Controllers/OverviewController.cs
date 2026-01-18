@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PatientService.Data;
 using PatientService.Models;
-
+using Microsoft.AspNetCore.Authorization;
 namespace PatientService.Controllers;
 
 [ApiController]

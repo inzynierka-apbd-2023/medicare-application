@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using AppointmentService.Data;
 using AppointmentService.Models;
-
+using Microsoft.AspNetCore.Authorization;
 namespace AppointmentService.Controllers;
 
 [ApiController]

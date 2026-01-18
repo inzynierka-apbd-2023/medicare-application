@@ -4,7 +4,7 @@ using AppointmentService.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
-
+using Microsoft.AspNetCore.Authorization;
 namespace AppointmentService.Controllers;
 
 [ApiController]

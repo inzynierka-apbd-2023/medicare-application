@@ -1,5 +1,5 @@
 namespace AppointmentService.Controllers;
-
+using Microsoft.AspNetCore.Authorization;
 using AppointmentService.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
