@@ -148,12 +148,15 @@ const Register: React.FC = () => {
           dateOfBirth: formData.dateOfBirth,
           role: "Patient",
           planId: (() => {
+            return null;
+            /*
             try {
               const saved = localStorage.getItem("selectedPlan");
               return saved ? JSON.parse(saved).id : null;
             } catch {
-              return null;
+              return  null;
             }
+            */
           })(),
         },
       },

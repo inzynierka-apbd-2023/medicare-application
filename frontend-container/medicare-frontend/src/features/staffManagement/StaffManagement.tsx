@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 
-import { useToastContext } from "../../shared/ui/toast";
+import { toastMessages, useToast } from "../../shared/toast";
 
 import {
   StaffDetailsModal,
@@ -30,13 +30,12 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
   onStaffUpdate,
 }) => {
   const [showEditModal, setShowEditModal] = useState(false);
-  const { showToast } = useToastContext();
+  const { showSuccess } = useToast();
 
   const handleEditClick = () => {
     setShowEditModal(true);
   };
 
-  // Show create modal
   const handleCreateClick = () => {
     setShowEditModal(true);
   };
@@ -53,11 +52,7 @@ export const StaffManagement: React.FC<StaffManagementProps> = ({
 
     if (success) {
       if (!("id" in data)) {
-        // We can't directly access credentials here; user will see them on the new card/details if present
-        showToast(
-          "Doctor created. Username/password will be shown on the card.",
-          { type: "success" }
-        );
+        showSuccess(toastMessages.staff.createSuccess);
       }
       setShowEditModal(false);
     }

@@ -3,9 +3,6 @@ using MessagingService.Models;
 
 namespace MessagingService.Data;
 
-/// <summary>
-/// Shared deterministic IDs for cross-service mock data references
-/// </summary>
 public static class MockIds
 {
     // Patient User IDs (from UserService)
@@ -266,7 +263,6 @@ public static class MockDataSeeder
         }
 
         // Seed PatientDoctorContacts (for message recipient lookup)
-        // This maps which doctors a patient can message (based on appointments)
         var patientDoctorContactData = new (Guid patientUserId, Guid doctorUserId, string doctorName, string specialization)[]
         {
             // Mock doctor names matching PractitionerService mock data
@@ -315,51 +311,35 @@ public static class MockDataSeeder
             Console.WriteLine($"[MockDataSeeder] Created {contactsCreated} PatientDoctorContact records.");
         }
 
-        // Update existing contacts that have empty/generic names
-        // Query User_Profile table to get real names
-        try
-        {
-            var contactsNeedingUpdate = await db.PatientDoctorContacts
-                .Where(c => c.DoctorName == null || c.DoctorName == "Doctor" || c.DoctorName == "")
-                .ToListAsync();
 
-            if (contactsNeedingUpdate.Any())
+        var contactsNeedingUpdate = await db.PatientDoctorContacts
+            .Where(c => c.DoctorName == null || c.DoctorName == "Doctor" || c.DoctorName == "")
+            .ToListAsync();
+
+        if (contactsNeedingUpdate.Any())
+        {
+            Console.WriteLine($"[MockDataSeeder] Found {contactsNeedingUpdate.Count} contacts needing name update.");
+            
+            foreach (var contact in contactsNeedingUpdate)
             {
-                Console.WriteLine($"[MockDataSeeder] Found {contactsNeedingUpdate.Count} contacts needing name update.");
-                
-                foreach (var contact in contactsNeedingUpdate)
+                var userProfile = await db.Database.SqlQueryRaw<UserProfileQueryResult>(
+                    "SELECT FirstName, LastName FROM [user].[User_Profile] WHERE Id = {0}",
+                    contact.DoctorUserId)
+                    .FirstOrDefaultAsync();
+
+                if (userProfile != null && (!string.IsNullOrEmpty(userProfile.FirstName) || !string.IsNullOrEmpty(userProfile.LastName)))
                 {
-                    try
-                    {
-                        // Query shared user.User_Profile table
-                        var userProfile = await db.Database.SqlQueryRaw<UserProfileQueryResult>(
-                            "SELECT FirstName, LastName FROM [user].[User_Profile] WHERE Id = {0}",
-                            contact.DoctorUserId)
-                            .FirstOrDefaultAsync();
-
-                        if (userProfile != null && (!string.IsNullOrEmpty(userProfile.FirstName) || !string.IsNullOrEmpty(userProfile.LastName)))
-                        {
-                            contact.DoctorName = $"Dr. {userProfile.FirstName} {userProfile.LastName}".Trim();
-                            contact.UpdatedAt = DateTime.UtcNow;
-                            Console.WriteLine($"[MockDataSeeder] Updated contact for doctor {contact.DoctorUserId}: {contact.DoctorName}");
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[MockDataSeeder] Failed to fetch name for {contact.DoctorUserId}: {ex.Message}");
-                    }
+                    contact.DoctorName = $"Dr. {userProfile.FirstName} {userProfile.LastName}".Trim();
+                    contact.UpdatedAt = DateTime.UtcNow;
+                    Console.WriteLine($"[MockDataSeeder] Updated contact for doctor {contact.DoctorUserId}: {contact.DoctorName}");
                 }
-
-                await db.SaveChangesAsync();
-                Console.WriteLine("[MockDataSeeder] Finished updating contact names.");
             }
+
+            await db.SaveChangesAsync();
+            Console.WriteLine("[MockDataSeeder] Finished updating contact names.");
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[MockDataSeeder] Error updating contact names: {ex.Message}");
-        }
+
     }
 }
 
-// DTO for SQL query result
 public record UserProfileQueryResult(string? FirstName, string? LastName);

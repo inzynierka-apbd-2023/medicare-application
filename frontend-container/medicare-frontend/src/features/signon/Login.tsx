@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
 
@@ -13,13 +13,16 @@ const Login: React.FC = () => {
 
   const { login, loading, error, user } = useAuth();
 
-  useEffect(() => {
+  const redirectToDashboard = useCallback(() => {
     if (user && !loading) {
-      // Redirect to appropriate dashboard based on role
       const dashboard = getDefaultDashboard(user.role);
       navigate(dashboard);
     }
   }, [user, loading, navigate]);
+
+  useEffect(() => {
+    redirectToDashboard();
+  }, [redirectToDashboard]);
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();

@@ -7,10 +7,6 @@ using PractitionerService.Features.PerformanceMetrics.Validators;
 
 namespace PractitionerService.Controllers;
 
-/// <summary>
-/// Exposes summary doctor performance metrics for Owner dashboard.
-/// NOTE: Implementation is stubbed (no business logic yet) – only validation & wiring.
-/// </summary>
 [ApiController]
 [Route("api/practitioner/doctor-performance")]
 [Authorize(Roles = "Owner,Admin")] // restricted to Owner role as requested
@@ -25,11 +21,6 @@ public class DoctorPerformanceController : ControllerBase
 		_logger = logger;
 	}
 
-	/// <summary>
-	/// Returns high-level doctor performance summary (stubbed values for now).
-	/// </summary>
-	/// <param name="startDate">Inclusive UTC date (optional). Defaults to 30 days before endDate.</param>
-	/// <param name="endDate">Inclusive UTC date (optional). Defaults to today.</param>
 	[HttpGet("summary")]
 	[ProducesResponseType(typeof(DoctorPerformanceSummaryResponse), StatusCodes.Status200OK)]
 	[ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]

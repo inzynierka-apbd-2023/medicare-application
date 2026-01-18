@@ -113,10 +113,14 @@ export class ReceptionistDashboardApiService {
         async (doctorId) => {
           try {
             const response = await api.get<BackendAppointment[]>(
-              `/appointment/appointments/doctor/${doctorId}`
+              `/appointment/Appointments/doctor/${doctorId}`
             );
             return response.data || [];
-          } catch {
+          } catch (err) {
+            console.error(
+              `Failed to fetch appointments for doctor ${doctorId}:`,
+              err
+            );
             return [];
           }
         }
@@ -151,7 +155,7 @@ export class ReceptionistDashboardApiService {
         uniquePatientIds.map(async (pid) => {
           try {
             // Try fetching from patient service
-            const res = await api.get(`/patient/patients/${pid}`);
+            const res = await api.get(`/patient/Patients/${pid}`);
             if (res.data) {
               // Use name property if available, otherwise fallback to first/last or Unknown
               const p = res.data;
@@ -163,7 +167,8 @@ export class ReceptionistDashboardApiService {
               }
               patientMap.set(pid, name);
             }
-          } catch {
+          } catch (err) {
+            console.error(`Failed to fetch patient ${pid}:`, err);
             // Fallback
             patientMap.set(pid, "Unknown Patient");
           }
@@ -276,17 +281,7 @@ export class ReceptionistDashboardApiService {
       };
     } catch (error) {
       console.error("Error fetching dashboard data:", error);
-      // Return empty data on error
-      return {
-        stats: {
-          totalAppointments: 0,
-          todayAppointments: 0,
-          totalDoctors: 0,
-          availableDoctors: 0,
-        },
-        todayAppointments: [],
-        doctorAvailability: [],
-      };
+      throw error; // Propagate error to hook
     }
   }
 

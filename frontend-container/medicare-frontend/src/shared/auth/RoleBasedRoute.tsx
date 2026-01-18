@@ -14,13 +14,13 @@ export const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
   allowedRoles,
   redirectTo = "/login",
 }) => {
-  const { token, user, loading } = useAuth();
+  const { user, loading } = useAuth();
 
   if (loading) {
     return <div className="p-4 text-center">Loading...</div>;
   }
 
-  if (!token || !user) {
+  if (!user) {
     return <Navigate to={redirectTo} replace />;
   }
 
@@ -30,7 +30,7 @@ export const RoleBasedRoute: React.FC<RoleBasedRouteProps> = ({
       Patient: "/patient-dashboard",
       Doctor: "/doctor-dashboard",
       Owner: "/owner-dashboard",
-  Admin: "/owner-dashboard",
+      Admin: "/owner-dashboard",
       Receptionist: "/receptionist-dashboard",
     };
 

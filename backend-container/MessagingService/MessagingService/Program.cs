@@ -1,43 +1,23 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
-using System.Text;
-using Microsoft.Data.SqlClient;
 using MessagingService.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
+using MessagingService.Data.Seeders;
+using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
-
 builder.AddServiceDefaults();
-
-const string AuthenticationKeyword = "Authentication";
 
 var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"] 
                      ?? builder.Configuration.GetConnectionString("MedicareDb") 
                      ?? builder.Configuration.GetConnectionString("MessagingDb") 
                      ?? throw new InvalidOperationException("No SQL connection string configured.");
 
-LogConnectionInfo(connectionString, "Config");
-
-// RabbitMQ
-builder.AddRabbitMQClient("rabbitmq");
-builder.Services.AddSingleton<MessagingService.Infrastructure.Messaging.IMessagePublisher, MessagingService.Infrastructure.Messaging.RabbitMqMessagePublisher>();
-
-// Background service to consume appointment.created events and build PatientDoctorContacts
-builder.Services.AddHostedService<MessagingService.Messaging.AppointmentCreatedConsumer>();
-
 builder.Services.AddControllers();
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
-
-
 builder.Services.AddDbContext<MessagingDbContext>((sp, options) =>
 {
-    // Suppress EF Core 9 PendingModelChangesWarning for local development
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-    
     options.UseSqlServer(connectionString, sql =>
     {
         sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
@@ -46,41 +26,18 @@ builder.Services.AddDbContext<MessagingDbContext>((sp, options) =>
     });
 });
 
-// Auth (JWT)
-var jwt = builder.Configuration.GetSection("Jwt");
-var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
-var issuer = jwt["Issuer"] ?? "MedicareApp";
-var audience = jwt["Audience"] ?? "MedicareUsers";
-builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
-    {
-        o.MapInboundClaims = false;
-        o.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = issuer,
-            ValidAudience = audience,
-            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-            RoleClaimType = "role"
-        };
-    });
+builder.AddMedicareAuthentication();
 
 builder.Services.AddCors(o =>
 {
     o.AddPolicy("DefaultPolicy", p =>
     {
-        var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() ?? Array.Empty<string>();
-        if (allowed.Length == 0 || allowed.Contains("*"))
+        var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        if (allowed == null || allowed.Length == 0)
         {
-            p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod();
+            throw new InvalidOperationException("CORS AllowedOrigins must be configured in appsettings.");
         }
-        else
-        {
-            p.WithOrigins(allowed).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
-        }
+        p.WithOrigins(allowed).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
 });
 
@@ -90,7 +47,7 @@ builder.Services.AddSwaggerGen(c =>
     c.SwaggerDoc("v1", new OpenApiInfo { Title = "Medicare Messaging Service API", Version = "v1", Description = "Messaging domain API" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer 12345abcdef'",
+        Description = "JWT Authorization header using the Bearer scheme.",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -108,6 +65,17 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddHealthChecks().AddDbContextCheck<MessagingDbContext>();
+builder.AddRabbitMQClient("rabbitmq");
+builder.Services.AddSingleton<MessagingService.Infrastructure.Messaging.IMessagePublisher, MessagingService.Infrastructure.Messaging.RabbitMqMessagePublisher>();
+builder.Services.AddHostedService<MessagingService.Messaging.AppointmentCreatedConsumer>();
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+                                Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
 
@@ -118,57 +86,17 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseForwardedHeaders();
 app.UseCors("DefaultPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
 app.MapHealthChecks("/health");
 
-    await ApplyMigrationsAsync(app.Services);
+await DbSeeder.SeedAsync(app.Services);
 
 app.MapDefaultEndpoints();
 
 await app.RunAsync();
 
-static void LogConnectionInfo(string conn, string source)
-{
-    try
-    {
-        var csb = new SqlConnectionStringBuilder(conn);
-        var auth = csb.ContainsKey(AuthenticationKeyword) ? csb[AuthenticationKeyword] : "(none)";
-        Console.WriteLine($"[Startup] Using SQL Server connection (source: {source}) -> Server: {csb.DataSource}, Database: {csb.InitialCatalog}, Auth: {auth}");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[Startup] Connection info parse failed: {ex.Message}");
-    }
-}
-
-static async Task ApplyMigrationsAsync(IServiceProvider services)
-{
-    using var scope = services.CreateScope();
-    var db = scope.ServiceProvider.GetRequiredService<MessagingDbContext>();
-    try
-    {
-        Console.WriteLine("[Startup] Applying EF Core migrations (Messaging)...");
-        var all = db.GetService<IMigrationsAssembly>().Migrations.Keys;
-        Console.WriteLine($"[Startup] Messaging migrations in assembly: {string.Join(",", all)}");
-        await db.Database.MigrateAsync();
-        var applied = await db.Database.GetAppliedMigrationsAsync();
-        Console.WriteLine($"[Startup] Messaging applied migrations: {string.Join(",", applied)} (history: messaging.__EFMigrationsHistory)");
-        var pendingAfter = all.Except(applied);
-        Console.WriteLine($"[Startup] Messaging pending AFTER apply: {string.Join(",", pendingAfter)}");
-        await SeedCatalogAsync(db);
-        Console.WriteLine("[Startup] Messaging migrations & seeding complete.");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[Startup] Messaging migration failed: {ex.Message}");
-        if (ex.InnerException != null) Console.WriteLine($"[Startup] Inner: {ex.InnerException.Message}");
-    }
-}
-
-static async Task SeedCatalogAsync(MessagingDbContext db)
-{
-    await MessagingService.Data.MockDataSeeder.SeedAsync(db);
-}
+public partial class Program { }

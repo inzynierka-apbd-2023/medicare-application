@@ -8,25 +8,16 @@ using System.Text.Json;
 
 namespace MessagingService.Messaging;
 
-/// <summary>
-/// Event raised by AppointmentService when an appointment is created.
-/// Contains data needed to establish patient-doctor messaging relationship.
-/// </summary>
 public record AppointmentCreatedEvent(
     Guid AppointmentId,
     Guid PatientId,
     Guid DoctorId,
     DateTime ScheduledAt,
     DateTime OccurredAt,
-    // Optional enriched data (may be null if not provided by publisher)
     string? DoctorName = null,
     string? DoctorSpecialization = null
 );
 
-/// <summary>
-/// Consumes appointment.created events from RabbitMQ and maintains the
-/// PatientDoctorContact table for messaging recipient lookup.
-/// </summary>
 public class AppointmentCreatedConsumer : BackgroundService
 {
     private readonly ILogger<AppointmentCreatedConsumer> _logger;
@@ -133,7 +124,6 @@ public class AppointmentCreatedConsumer : BackgroundService
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error processing appointment.created event");
-                // Nack and requeue for retry
                 await _channel.BasicNackAsync(eventArgs.DeliveryTag, false, true, stoppingToken);
             }
         };
@@ -146,7 +136,6 @@ public class AppointmentCreatedConsumer : BackgroundService
 
         _logger.LogInformation("AppointmentCreatedConsumer started consuming messages");
         
-        // Keep running until cancelled
         await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
@@ -155,13 +144,11 @@ public class AppointmentCreatedConsumer : BackgroundService
         using var scope = _serviceProvider.CreateScope();
         var db = scope.ServiceProvider.GetRequiredService<MessagingDbContext>();
 
-        // Check if relationship already exists
         var existing = await db.PatientDoctorContacts
             .FirstOrDefaultAsync(c => c.PatientUserId == evt.PatientId && c.DoctorUserId == evt.DoctorId, ct);
 
         var now = DateTime.UtcNow;
 
-        // Fetch doctor name from shared database (User_Profile table) if not in event
         string? doctorName = evt.DoctorName;
         string? doctorSpecialization = evt.DoctorSpecialization;
         
@@ -169,8 +156,6 @@ public class AppointmentCreatedConsumer : BackgroundService
         {
             try
             {
-                // Query the shared user.User_Profile table directly
-                // Since all services share the same DB, we can access it
                 var userProfile = await db.Database.SqlQueryRaw<UserProfileDto>(
                     "SELECT FirstName, LastName FROM [user].[User_Profile] WHERE [User_Id] = {0}", 
                     evt.DoctorId)
@@ -190,11 +175,9 @@ public class AppointmentCreatedConsumer : BackgroundService
 
         if (existing != null)
         {
-            // Update last contact time
             existing.LastContactAt = now;
             existing.UpdatedAt = now;
             
-            // Update name/specialization if we have values and current is empty or generic
             if (!string.IsNullOrEmpty(doctorName) && (string.IsNullOrEmpty(existing.DoctorName) || existing.DoctorName == "Doctor"))
             {
                 existing.DoctorName = doctorName;
@@ -209,7 +192,6 @@ public class AppointmentCreatedConsumer : BackgroundService
         }
         else
         {
-            // Create new relationship
             var contact = new PatientDoctorContact
             {
                 Id = Guid.NewGuid(),
@@ -231,7 +213,6 @@ public class AppointmentCreatedConsumer : BackgroundService
         await db.SaveChangesAsync(ct);
     }
 
-    // DTO for querying user profile
     private record UserProfileDto(string? FirstName, string? LastName);
 
     public override void Dispose()

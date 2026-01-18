@@ -1,11 +1,9 @@
 import type { Appointment } from "../../features/appointments/types";
 import type { Service } from "../../features/scheduler/types";
+import { toastMessages } from "../toast/toastMessages";
 
-import { type ApiResponse, createErrorResponse } from "./api";
-import { apiClient as api } from "./apiClient";
-import { schedulerApi } from "./schedulerApi";
+import { api, type ApiResponse, handleApiCall } from "./api";
 
-// Interface for backend appointment row
 interface BackendAppointmentRow {
   id: string;
   scheduledAt: string;
@@ -18,7 +16,6 @@ interface BackendAppointmentRow {
   ServiceId?: string;
 }
 
-// Interface for doctor directory response
 interface DoctorDirectoryRow {
   DoctorId?: string;
   doctorId?: string;
@@ -30,12 +27,11 @@ interface DoctorDirectoryRow {
   lastName?: string;
 }
 
-// Map backend AppointmentService entity -> Appointments page Appointment type
-const toUiAppointment = async (
+const toUiAppointment = (
   row: BackendAppointmentRow,
   services: Service[],
   doctorDirectory: DoctorDirectoryRow[]
-): Promise<Appointment> => {
+): Appointment => {
   const start = new Date(row.scheduledAt);
   const date = start.toISOString();
   const time = start.toLocaleTimeString([], {
@@ -43,7 +39,6 @@ const toUiAppointment = async (
     minute: "2-digit",
   });
 
-  // Resolve doctor name via passed directory or fallback to user profile
   const doctorId = String(row.doctorId ?? "").toLowerCase();
   let doctorName = "Unknown Doctor";
 
@@ -62,17 +57,15 @@ const toUiAppointment = async (
     }
   }
 
-  // Fallback: This N+1 is harder to remove completely without bulk user fetch,
-  // but usually directory covers active doctors.
-  // We will skip the extra per-user fetch to solve the performance issue reported.
-  // If really needed, we'd need a bulk user fetch endpoint.
-
   const statusRaw = String(row.status ?? "Scheduled");
   const now = new Date();
   const isPast = start.getTime() < now.getTime();
   let status: Appointment["status"] = "upcoming";
   if (statusRaw.toLowerCase() === "cancelled") status = "cancelled";
   else if (isPast) status = "past";
+
+  const serviceId = row.serviceId || row.ServiceId;
+  const service = services.find((s) => s.id === serviceId);
 
   return {
     id: String(row.id),
@@ -84,57 +77,71 @@ const toUiAppointment = async (
     status,
     paymentStatus: row.isPaid || row.IsPaid ? "paid" : "not_paid",
     total: row.isPaid || row.IsPaid ? 0 : 300,
-    serviceName:
-      services.find((s) => s.id === (row.serviceId || row.ServiceId))?.name ||
-      "General Consultation",
+    serviceName: service?.name || "General Consultation",
   };
 };
 
 export const appointmentsApi = {
-  // Fetch all appointments for the given patient (current user)
   getAppointmentsForPatient: async (
     patientId: string
   ): Promise<ApiResponse<Appointment[]>> => {
-    try {
-      const resp = await api.get(
-        `/appointment/appointments/patient/${patientId}`
-      );
-      const items = Array.isArray(resp.data) ? resp.data : [];
+    return handleApiCall<Appointment[]>(
+      async () => {
+        const [resp, servicesResp, docResp] = await Promise.allSettled([
+          api.get<BackendAppointmentRow[]>(
+            `/appointment/appointments/patient/${patientId}`,
+            undefined,
+            { showToastOnError: false }
+          ),
+          api.get<Service[]>("/practitioner/catalog/services", undefined, {
+            showToastOnError: false,
+          }),
+          api.get<DoctorDirectoryRow[]>("/practitioner/doctors", undefined, {
+            showToastOnError: false,
+          }),
+        ]);
 
-      // Fetch services to map definitions
-      const servicesRes = await schedulerApi.getServices();
-      const services = servicesRes.success ? servicesRes.data : [];
-
-      // Fetch doctor directory ONCE
-      let doctorDirectory: DoctorDirectoryRow[] = [];
-      try {
-        const docResp = await api.get("/practitioner/doctors");
-        if (Array.isArray(docResp.data)) {
-          doctorDirectory = docResp.data as DoctorDirectoryRow[];
+        if (resp.status === "rejected") {
+          throw new Error(
+            String(
+              resp.reason?.message || toastMessages.appointments.fetchError
+            )
+          );
         }
-      } catch (e) {
-        console.warn("Failed to fetch doctor directory", e);
-      }
 
-      const mapped = await Promise.all(
-        items.map((item) => toUiAppointment(item, services, doctorDirectory))
-      );
-      return { data: mapped, success: true };
-    } catch (error) {
-      console.error("Failed to fetch appointments", error);
-      return createErrorResponse("Failed to fetch appointments");
-    }
+        const items = Array.isArray(resp.value) ? resp.value : [];
+        const services =
+          servicesResp.status === "fulfilled" &&
+          Array.isArray(servicesResp.value)
+            ? servicesResp.value
+            : [];
+        const doctorDirectory =
+          docResp.status === "fulfilled" && Array.isArray(docResp.value)
+            ? docResp.value
+            : [];
+
+        return items.map((item) =>
+          toUiAppointment(item, services, doctorDirectory)
+        );
+      },
+      {
+        showToastOnSuccess: false,
+        showToastOnError: true,
+      }
+    );
   },
 
-  // Cancel an appointment via AppointmentService
   cancelAppointment: async (id: string): Promise<ApiResponse<Appointment>> => {
-    try {
-      await api.put(`/appointment/appointments/${id}/status`, {
-        status: "Cancelled",
-      });
-      // Return minimal shape; caller updates local state
-      return {
-        data: {
+    return handleApiCall<Appointment>(
+      async () => {
+        await api.put(
+          `/appointment/appointments/${id}/status`,
+          { status: "Cancelled" },
+          undefined,
+          { showToastOnSuccess: false }
+        );
+
+        return {
           id,
           date: "",
           time: "",
@@ -142,24 +149,33 @@ export const appointmentsApi = {
           status: "cancelled",
           paymentStatus: "not_paid",
           total: 0,
-        },
-        success: true,
-      } as ApiResponse<Appointment>;
-    } catch (error) {
-      console.error("Failed to cancel appointment", error);
-      return createErrorResponse("Failed to cancel appointment");
-    }
+          specialization: "",
+          description: "",
+          serviceName: "",
+        } as Appointment;
+      },
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.appointments.cancelSuccess,
+        showToastOnError: true,
+      }
+    );
   },
 
-  // Placeholder payment status update (no real backend yet)
   updatePaymentStatus: async (
     _id: string,
     paymentData: { paymentStatus: "paid" | "not_paid" }
   ): Promise<ApiResponse<Appointment>> => {
-    try {
-      // No real billing linkage on this view; return success to allow UI state updates
-      return {
-        data: {
+    return handleApiCall<Appointment>(
+      async () => {
+        await api.put(
+          `/appointment/appointments/${_id}/payment`,
+          paymentData,
+          undefined,
+          { showToastOnSuccess: false }
+        );
+
+        return {
           id: _id,
           date: "",
           time: "",
@@ -167,29 +183,38 @@ export const appointmentsApi = {
           status: "upcoming",
           paymentStatus: paymentData.paymentStatus,
           total: 0,
-        } as Appointment,
-        success: true,
-      } as ApiResponse<Appointment>;
-    } catch (error) {
-      console.error("Failed to update payment status", error);
-      return createErrorResponse("Failed to update payment status");
-    }
+          specialization: "",
+          description: "",
+          serviceName: "",
+        } as Appointment;
+      },
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.appointments.paymentUpdateSuccess,
+        showToastOnError: true,
+      }
+    );
   },
-  // Submit a doctor rating
+
   rateAppointment: async (
     id: string,
     rating: number,
     description?: string
   ): Promise<ApiResponse<void>> => {
-    try {
-      await api.post(`/appointment/appointments/${id}/rate`, {
-        rating,
-        description,
-      });
-      return { success: true, data: undefined };
-    } catch (error) {
-      console.error("Failed to submit rating", error);
-      return createErrorResponse("Failed to submit rating");
-    }
+    return handleApiCall<void>(
+      async () => {
+        await api.post(
+          `/appointment/appointments/${id}/rate`,
+          { rating, description },
+          undefined,
+          { showToastOnSuccess: false }
+        );
+      },
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.appointments.rateSuccess,
+        showToastOnError: true,
+      }
+    );
   },
 };

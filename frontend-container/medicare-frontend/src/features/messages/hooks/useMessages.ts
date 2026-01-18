@@ -38,12 +38,8 @@ export const useMessages = (
     try {
       setIsLoading(true);
       setError(null);
-      const response = await messagesApi.getConversations(userId, userType);
-      if (response.success) {
-        setConversations(response.data);
-      } else {
-        setError(response.error || "Failed to load conversations");
-      }
+      const data = await messagesApi.getConversations(userId, userType);
+      setConversations(data);
     } catch (err) {
       setError("Failed to load conversations");
       console.error("Error loading conversations:", err);
@@ -59,15 +55,11 @@ export const useMessages = (
 
       try {
         setIsLoading(true);
-        const response = await messagesApi.getMessages(conversationId, userId);
-        if (response.success) {
-          setMessages((prev) => ({
-            ...prev,
-            [conversationId]: response.data,
-          }));
-        } else {
-          setError(response.error || "Failed to load messages");
-        }
+        const data = await messagesApi.getMessages(conversationId, userId);
+        setMessages((prev) => ({
+          ...prev,
+          [conversationId]: data,
+        }));
       } catch (err) {
         setError("Failed to load messages");
         console.error("Error loading messages:", err);
@@ -96,7 +88,7 @@ export const useMessages = (
     async (
       conversationId: string,
       content: string
-      // Note: attachments parameter removed as it's not used in current API
+      // Attachments parameter removed (unused)
     ) => {
       if (!userId) return;
 
@@ -115,41 +107,35 @@ export const useMessages = (
           userType === "patient" ? "Current Patient" : "Current Doctor";
         const receiverName = conversation.participantName;
         const receiverType = conversation.participantType;
-        const receiverId = conversation.participantId;
 
-        const response = await messagesApi.sendMessage(
+        const newMessage = await messagesApi.sendMessage(
           conversationId,
           userId,
           senderName,
           userType,
-          receiverId,
           receiverName,
           receiverType,
           content
         );
 
-        if (response.success) {
-          // Add new message to local state
-          setMessages((prev) => ({
-            ...prev,
-            [conversationId]: [...(prev[conversationId] || []), response.data],
-          }));
+        // Add new message to local state
+        setMessages((prev) => ({
+          ...prev,
+          [conversationId]: [...(prev[conversationId] || []), newMessage],
+        }));
 
-          // Update conversation with new last message
-          setConversations((prev) =>
-            prev.map((conv) =>
-              conv.id === conversationId
-                ? {
-                    ...conv,
-                    lastMessage: response.data,
-                    updatedAt: response.data.timestamp,
-                  }
-                : conv
-            )
-          );
-        } else {
-          setError(response.error || "Failed to send message");
-        }
+        // Update conversation with new last message
+        setConversations((prev) =>
+          prev.map((conv) =>
+            conv.id === conversationId
+              ? {
+                  ...conv,
+                  lastMessage: newMessage,
+                  updatedAt: newMessage.timestamp,
+                }
+              : conv
+          )
+        );
       } catch (err) {
         setError("Failed to send message");
         console.error("Error sending message:", err);
@@ -166,34 +152,32 @@ export const useMessages = (
       if (!userId) return;
 
       try {
-        const response = await messagesApi.markMessageAsRead(messageId, userId);
+        await messagesApi.markMessageAsRead(messageId, userId);
 
-        if (response.success) {
-          // Update local state to reflect change immediately
-          setMessages((prev) => {
-            const updated = { ...prev };
-            Object.keys(updated).forEach((conversationId) => {
-              updated[conversationId] = updated[conversationId].map((msg) =>
-                msg.id === messageId ? { ...msg, isRead: true } : msg
-              );
-            });
-            return updated;
+        // Update local state to reflect change immediately
+        setMessages((prev) => {
+          const updated = { ...prev };
+          Object.keys(updated).forEach((conversationId) => {
+            updated[conversationId] = updated[conversationId].map((msg) =>
+              msg.id === messageId ? { ...msg, isRead: true } : msg
+            );
           });
+          return updated;
+        });
 
-          // Update unread count in conversations
-          setConversations((prev) =>
-            prev.map((conv) => {
-              // Simple optimistic update
-              if (conv.unreadCount > 0) {
-                return {
-                  ...conv,
-                  unreadCount: Math.max(0, conv.unreadCount - 1),
-                };
-              }
-              return conv;
-            })
-          );
-        }
+        // Update unread count in conversations
+        setConversations((prev) =>
+          prev.map((conv) => {
+            // Simple optimistic update
+            if (conv.unreadCount > 0) {
+              return {
+                ...conv,
+                unreadCount: Math.max(0, conv.unreadCount - 1),
+              };
+            }
+            return conv;
+          })
+        );
       } catch (err) {
         console.error("Error marking message as read:", err);
       }
@@ -229,7 +213,7 @@ export const useMessages = (
           recipientType = userType === "patient" ? "doctor" : "patient";
         }
 
-        const response = await messagesApi.startConversation(
+        const { conversation, message } = await messagesApi.startConversation(
           userId,
           senderName,
           userType,
@@ -239,20 +223,15 @@ export const useMessages = (
           initialMessage
         );
 
-        if (response.success) {
-          const { conversation, message } = response.data;
-          setConversations((prev) => [conversation, ...prev]);
+        setConversations((prev) => [conversation, ...prev]);
 
-          // Add initial message to messages
-          setMessages((prev) => ({
-            ...prev,
-            [conversation.id]: [message],
-          }));
+        // Add initial message to messages
+        setMessages((prev) => ({
+          ...prev,
+          [conversation.id]: [message],
+        }));
 
-          return conversation.id;
-        } else {
-          throw new Error(response.error || "Failed to create conversation");
-        }
+        return conversation.id;
       } catch (err) {
         setError("Failed to create conversation");
         console.error("Error creating conversation:", err);

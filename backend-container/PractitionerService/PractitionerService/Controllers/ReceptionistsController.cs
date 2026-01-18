@@ -8,6 +8,7 @@ namespace PractitionerService.Controllers;
 
 [ApiController]
 [Route("api/practitioner/[controller]")]
+[Authorize]
 public class ReceptionistsController : ControllerBase
 {
     private readonly PractitionerDbContext _db;
@@ -15,7 +16,6 @@ public class ReceptionistsController : ControllerBase
     public ReceptionistsController(PractitionerDbContext db) => _db = db;
 
     [HttpPost]
-    [Authorize]
     public async Task<IActionResult> Register([FromBody] RegisterReceptionistRequest req)
     {
         if (req.UserId == Guid.Empty) return BadRequest("UserId is required");

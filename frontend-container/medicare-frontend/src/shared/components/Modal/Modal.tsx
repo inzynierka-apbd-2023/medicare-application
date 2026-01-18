@@ -1,6 +1,6 @@
 import React from "react";
-import { X } from "lucide-react";
 import { createPortal } from "react-dom";
+import { X } from "lucide-react";
 
 export interface ModalProps {
   isOpen: boolean;
@@ -75,7 +75,9 @@ const Modal: React.FC<ModalProps> = ({
             </div>
           )}
 
-          <div className={`flex-1 overflow-y-auto ${title || showCloseButton ? "px-6 pb-6" : "p-6"}`}>
+          <div
+            className={`flex-1 overflow-y-auto ${title || showCloseButton ? "px-6 pb-6" : "p-6"}`}
+          >
             {children}
           </div>
         </div>

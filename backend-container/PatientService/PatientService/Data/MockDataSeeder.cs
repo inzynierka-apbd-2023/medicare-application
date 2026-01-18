@@ -3,10 +3,6 @@ using PatientService.Models;
 
 namespace PatientService.Data;
 
-/// <summary>
-/// Shared deterministic IDs for cross-service mock data references
-/// Patient IDs match User IDs from UserService for seamless auth integration
-/// </summary>
 public static class MockIds
 {
     // Patient User IDs (from UserService) - used as both User ID and Patient entity ID
@@ -174,11 +170,6 @@ public static class MockDataSeeder
         if (patientsCreated > 0 || contactsCreated > 0 || insuranceCreated > 0 || statusesCreated > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Created {patientsCreated} patients, {contactsCreated} emergency contacts, {insuranceCreated} insurance records, {statusesCreated} statuses.");
-        }
-        else
-        {
-            Console.WriteLine("[MockDataSeeder] All patient mock data already exists.");
         }
     }
 }

@@ -144,7 +144,6 @@ export default function PlanSelection() {
   }, [user?.id]);
 
   const handleContinue = () => {
-    localStorage.setItem("selectedPlan", JSON.stringify(selectedPlan));
     navigate("/register");
   };
 
@@ -186,8 +185,6 @@ export default function PlanSelection() {
     } else {
       setIsLoading(true);
       try {
-        localStorage.setItem("selectedPlan", JSON.stringify(selectedPlan));
-        localStorage.setItem("purchaseIntent", "immediate");
         navigate("/register?purchase=true");
       } catch (error) {
         console.error("Error initiating purchase:", error);
@@ -410,7 +407,6 @@ export default function PlanSelection() {
               </Button>
             </>
           ) : (
-            /* Not logged-in: Show registration buttons */
             <>
               <Button
                 variant="secondary"

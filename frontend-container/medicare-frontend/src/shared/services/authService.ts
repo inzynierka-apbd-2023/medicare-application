@@ -1,4 +1,6 @@
-import { apiClient } from "./apiClient";
+import { toastMessages } from "../toast/toastMessages";
+
+import { api } from "./api";
 
 export interface AuthUser {
   id: string;
@@ -13,15 +15,6 @@ export interface AuthUser {
   address?: string | null;
 }
 
-export interface AuthResponse {
-  accessToken: string; // adapted for backward compatibility mapping
-  token?: string; // legacy field from older responses (still accept)
-  user: AuthUser;
-  refreshToken?: string;
-  accessTokenExpiresAt?: string;
-  refreshTokenExpiresAt?: string;
-}
-
 export interface RegisterRequest {
   username: string;
   email: string;
@@ -34,69 +27,99 @@ export interface RegisterRequest {
   planId?: string;
 }
 
-const TOKEN_KEY = "authToken";
-const REFRESH_KEY = "refreshToken";
-const ACCESS_EXP_KEY = "accessTokenExpires";
-const REFRESH_EXP_KEY = "refreshTokenExpires";
+export interface ForgotPasswordRequest {
+  email: string;
+}
+
+export interface ResetPasswordRequest {
+  token: string;
+  newPassword: string;
+}
+
+export interface ChangePasswordRequest {
+  currentPassword: string;
+  newPassword: string;
+}
 
 export const authService = {
-  async login(username: string, password: string): Promise<AuthResponse> {
-    const res = await apiClient.post<AuthResponse>("/auth/login", {
-      username,
-      password,
+  async login(username: string, password: string): Promise<AuthUser> {
+    return api.post<AuthUser>(
+      "/auth/login",
+      { username, password },
+      undefined,
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.auth.loginSuccess,
+      }
+    );
+  },
+
+  async register(req: RegisterRequest): Promise<AuthUser> {
+    return api.post<AuthUser>(
+      "/auth/register",
+      {
+        username: req.username,
+        email: req.email,
+        password: req.password,
+        firstName: req.firstName,
+        lastName: req.lastName,
+        phoneNumber: req.phoneNumber,
+        role: req.role ?? "Patient",
+        dateOfBirth: req.dateOfBirth || null,
+        planId: req.planId || null,
+      },
+      undefined,
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.auth.registerSuccess,
+      }
+    );
+  },
+
+  async logout(): Promise<void> {
+    return api.post<void>("/auth/logout", undefined, undefined, {
+      showToastOnSuccess: true,
+      successMessage: toastMessages.auth.logoutSuccess,
     });
-    persistTokens(res.data);
-    return res.data;
   },
-  async register(req: RegisterRequest): Promise<AuthResponse> {
-    const res = await apiClient.post<AuthResponse>("/auth/register", {
-      username: req.username,
-      email: req.email,
-      password: req.password,
-      firstName: req.firstName,
-      lastName: req.lastName,
-      phoneNumber: req.phoneNumber,
-      role: req.role ?? "Patient",
-      dateOfBirth: req.dateOfBirth || null,
-      planId: req.planId || null,
+
+  async refresh(): Promise<AuthUser> {
+    return api.post<AuthUser>("/auth/refresh", {}, undefined, {
+      showToastOnError: false,
     });
-    persistTokens(res.data);
-    return res.data;
   },
-  logout() {
-    localStorage.removeItem(TOKEN_KEY);
-    localStorage.removeItem(REFRESH_KEY);
-    localStorage.removeItem(ACCESS_EXP_KEY);
-    localStorage.removeItem(REFRESH_EXP_KEY);
+
+  async forgotPassword(email: string): Promise<void> {
+    return api.post<void>("/auth/forgot-password", { email }, undefined, {
+      showToastOnSuccess: true,
+      successMessage: toastMessages.auth.forgotPasswordSuccess,
+    });
   },
-  getToken() {
-    return localStorage.getItem(TOKEN_KEY);
+
+  async resetPassword(token: string, newPassword: string): Promise<void> {
+    return api.post<void>(
+      "/auth/reset-password",
+      { token, newPassword },
+      undefined,
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.auth.resetPasswordSuccess,
+      }
+    );
   },
-  getRefreshToken() {
-    return localStorage.getItem(REFRESH_KEY);
-  },
-  async refresh(): Promise<string | null> {
-    const existing = localStorage.getItem(REFRESH_KEY);
-    if (!existing) return null;
-    try {
-      const res = await apiClient.post<AuthResponse>("/auth/refresh", {
-        refreshToken: existing,
-      });
-      persistTokens(res.data);
-      return res.data.accessToken || res.data.token || null;
-    } catch {
-      this.logout();
-      return null;
-    }
+
+  async changePassword(
+    currentPassword: string,
+    newPassword: string
+  ): Promise<void> {
+    return api.post<void>(
+      "/auth/change-password",
+      { currentPassword, newPassword },
+      undefined,
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.auth.changePasswordSuccess,
+      }
+    );
   },
 };
-
-function persistTokens(r: AuthResponse) {
-  const access = r.accessToken || r.token || "";
-  if (access) localStorage.setItem(TOKEN_KEY, access);
-  if (r.refreshToken) localStorage.setItem(REFRESH_KEY, r.refreshToken);
-  if (r.accessTokenExpiresAt)
-    localStorage.setItem(ACCESS_EXP_KEY, r.accessTokenExpiresAt);
-  if (r.refreshTokenExpiresAt)
-    localStorage.setItem(REFRESH_EXP_KEY, r.refreshTokenExpiresAt);
-}

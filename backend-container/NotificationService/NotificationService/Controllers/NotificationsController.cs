@@ -38,12 +38,14 @@ public class NotificationsController : ControllerBase
         {
             return BadRequest("recipientUserId is required");
         }
+        
         if (page < 1) page = 1;
         if (pageSize < 1) pageSize = 20;
         if (pageSize > 100) pageSize = 100;
 
         var q = _db.Notifications.AsNoTracking()
             .Where(n => n.Recipient_User_Id == recipientUserId);
+            
         if (unreadOnly)
         {
             q = q.Where(n => n.Is_Read != true);
@@ -70,10 +72,10 @@ public class NotificationsController : ControllerBase
     [HttpPost("{id}/read")]
     public async Task<IActionResult> MarkAsRead([FromRoute] Guid id)
     {
-        if (id == Guid.Empty) return BadRequest();
-        var n = await _db.Notifications.FirstOrDefaultAsync(x => x.Id == id);
+        var n = await _db.Notifications.FindAsync(id);
         if (n == null) return NotFound();
         if (n.Is_Read == true) return NoContent();
+        
         n.Is_Read = true;
         await _db.SaveChangesAsync();
         return NoContent();

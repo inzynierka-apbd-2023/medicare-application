@@ -11,6 +11,7 @@ namespace MedicalRecordsService.Controllers;
 
 [ApiController]
 [Route("api/medical-records/records")]
+[Authorize]
 public class MedicalRecordsController : ControllerBase
 {
     private readonly MedicalRecordsDbContext _db;
@@ -22,7 +23,6 @@ public class MedicalRecordsController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
     public async Task<IActionResult> CreateMedicalRecord([FromBody] CreateMedicalRecordRequest req)
     {
         if (req.PatientId == Guid.Empty || req.DoctorId == Guid.Empty)

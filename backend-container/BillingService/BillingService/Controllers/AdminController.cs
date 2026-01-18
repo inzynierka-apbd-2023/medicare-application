@@ -8,6 +8,7 @@ namespace BillingService.Controllers;
 
 [ApiController]
 [Route("api/billing/admin")]
+[Authorize(Roles = "Owner,Admin")]
 public class AdminController : ControllerBase
 {
     private readonly BillingDbContext _db;
@@ -15,7 +16,6 @@ public class AdminController : ControllerBase
     public AdminController(BillingDbContext db, IWebHostEnvironment env) { _db = db; _env = env; }
 
     [HttpPost("purge")]
-    [Authorize]
     public async Task<ActionResult> Purge()
     {
         if (_env.IsProduction()) return Forbid("Not allowed in production.");
@@ -45,7 +45,6 @@ public class AdminController : ControllerBase
     }
 
     [HttpPost("purge-and-seed")]
-    [Authorize]
     public async Task<ActionResult<object>> PurgeAndSeed()
     {
         if (_env.IsProduction()) return Forbid("Not allowed in production.");
@@ -89,7 +88,6 @@ public class AdminController : ControllerBase
     }
 
     [HttpPost("seed-realistic")]
-    [Authorize]
     public async Task<ActionResult<object>> SeedRealistic()
     {
         if (_env.IsProduction()) return Forbid("Not allowed in production.");
@@ -215,7 +213,6 @@ public class AdminController : ControllerBase
     }
 
     [HttpGet("outbox")] 
-    [Authorize]
     public async Task<ActionResult<IEnumerable<object>>> Outbox()
     {
         if (_env.IsProduction()) return Forbid();

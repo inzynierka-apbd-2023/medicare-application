@@ -15,6 +15,7 @@ namespace PractitionerService.Controllers;
 
 [ApiController]
 [Route("api/practitioner/[controller]")]
+[Authorize]
 public class DoctorsController : ControllerBase
 {
     private readonly PractitionerDbContext _db;
@@ -95,11 +96,7 @@ public class DoctorsController : ControllerBase
         }
     }
 
-    /// <summary>
-    /// Create a new Doctor along with a new User account (auto-generated username/password), set full profile and specializations.
-    /// </summary>
     [HttpPost("register-full")]
-    [Authorize]
     public async Task<IActionResult> RegisterDoctorWithUser([FromBody] CreateDoctorFullRequest req)
     {
         static bool Missing(params string?[] vals) => vals.Any(v => string.IsNullOrWhiteSpace(v));
@@ -130,7 +127,7 @@ public class DoctorsController : ControllerBase
 
         // Generate credentials
         var desired = GenerateUsername(req.Profile);
-    var username = await EnsureUniqueUsernameAsync(http, desired);
+        var username = await EnsureUniqueUsernameAsync(http, desired);
         var password = GenerateStrongPassword();
 
         // Register user
@@ -145,18 +142,18 @@ public class DoctorsController : ControllerBase
             phoneNumber = req.Profile.Phone,
             dateOfBirth = req.Profile.DateOfBirth
         };
-    var regResp = await http.PostAsync("/api/auth/register",
+        var regResp = await http.PostAsync("/api/auth/register",
             new StringContent(JsonSerializer.Serialize(createUserPayload), Encoding.UTF8, "application/json"));
         if (!regResp.IsSuccessStatusCode)
         {
             var body = await regResp.Content.ReadAsStringAsync();
             return StatusCode((int)regResp.StatusCode, new { message = "User registration failed", details = body });
         }
-    var regText = await regResp.Content.ReadAsStringAsync();
-    using var regDoc = JsonDocument.Parse(regText);
-    var root = regDoc.RootElement;
-    string? userId = ExtractString(root, "user", "id") ?? ExtractString(root, "user", "Id");
-    string? accessToken = ExtractString(root, null, "accessToken") ?? ExtractString(root, null, "AccessToken");
+        var regText = await regResp.Content.ReadAsStringAsync();
+        using var regDoc = JsonDocument.Parse(regText);
+        var root = regDoc.RootElement;
+        string? userId = ExtractString(root, "user", "id") ?? ExtractString(root, "user", "Id");
+        string? accessToken = ExtractString(root, null, "accessToken") ?? ExtractString(root, null, "AccessToken");
         if (string.IsNullOrWhiteSpace(userId)) return StatusCode(500, new { message = "User registration response missing Id" });
         if (string.IsNullOrWhiteSpace(accessToken)) return StatusCode(500, new { message = "User registration response missing access token" });
 
@@ -216,8 +213,7 @@ public class DoctorsController : ControllerBase
 
     // Register doctor (link to existing userId)
     [HttpPost]
-    [Authorize]
-    public async Task<IActionResult> RegisterDoctor([FromBody] RegisterDoctorRequest req)
+    public async Task<IActionResult> RegisterDoctor([FromBody]   RegisterDoctorRequest req)
     {
         if (req.UserId == Guid.Empty) return BadRequest("UserId is required");
         if (await _db.Doctors.AnyAsync(d => d.UserId == req.UserId)) return Conflict("Doctor already registered for this user");
@@ -264,7 +260,6 @@ public class DoctorsController : ControllerBase
 
     // Update specializations for a doctor
     [HttpPut("{id}/specializations")]
-    [Authorize]
     public async Task<IActionResult> UpdateSpecializations(Guid id, [FromBody] UpdateSpecializationsRequest req)
     {
     if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound(DoctorNotFound);
@@ -311,8 +306,8 @@ public class DoctorsController : ControllerBase
             if (specIds.Count > 0)
             {
                 // intersect with doctor specialization CSV
-                // Note: Specializations in DoctorDirectory are likely stored as comma-separated GUID strings still, or verified usage. 
-                // Assuming they are stored as CSV strings for now, conversion is needed for comparison.
+                // Specializations in DoctorDirectory are likely stored as comma-separated GUID strings 
+                // Stored as CSV strings, conversion needed for comparison.
                 var specIdStrings = specIds.Select(g => g.ToString()).ToList();
                 query = query.Where(d => d.Specializations != null && specIdStrings.Any(sid => d.Specializations!.Contains(sid)));
             }
@@ -328,7 +323,6 @@ public class DoctorsController : ControllerBase
 
     // Manage recurring availability
     [HttpPut("{id}/availability")]
-    [Authorize]
     public async Task<IActionResult> SetAvailability(Guid id, [FromBody] List<ScheduleEntry> entries)
     {
     if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound(DoctorNotFound);
@@ -367,7 +361,6 @@ public class DoctorsController : ControllerBase
 
     // Request doctor removal: emit event and remove from local tables
     [HttpDelete("{id}")]
-    [Authorize]
     public async Task<IActionResult> DeleteDoctor(Guid id)
     {
         var doctor = await _db.Doctors.FindAsync(id);

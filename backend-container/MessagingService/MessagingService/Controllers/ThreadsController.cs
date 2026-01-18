@@ -8,13 +8,13 @@ namespace MessagingService.Controllers;
 
 [ApiController]
 [Route("api/messaging/[controller]")]
+[Authorize]
 public class ThreadsController : ControllerBase
 {
     private readonly MessagingDbContext _db;
     public ThreadsController(MessagingDbContext db) => _db = db;
 
     [HttpPost]
-    [Authorize]
     public async Task<IActionResult> CreateThread([FromBody] CreateThreadRequest req)
     {
         var thread = new MessageThread
@@ -76,7 +76,6 @@ public class ThreadsController : ControllerBase
     }
 
     [HttpPost("{id}/messages")]
-    [Authorize]
     public async Task<IActionResult> SendThreadMessage(Guid id, [FromBody] SendThreadMessageRequest req)
     {
         var thread = await _db.MessageThreads.FindAsync(id);

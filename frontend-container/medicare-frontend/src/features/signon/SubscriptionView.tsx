@@ -57,7 +57,6 @@ const subscriptionPlans: SubscriptionPlan[] = [
 
 export default function SubscriptionView() {
   const handleSubscribe = (plan: SubscriptionPlan) => {
-    // Here you would typically integrate with a payment processor
     console.log("Subscribing to plan:", plan);
     // For now, just show success message
     alert(`Successfully subscribed to ${plan.name} plan!`);
@@ -85,7 +84,6 @@ export default function SubscriptionView() {
             </p>
           </div>
 
-          {/* Plans Grid */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
             {subscriptionPlans.map((plan) => (
               <div

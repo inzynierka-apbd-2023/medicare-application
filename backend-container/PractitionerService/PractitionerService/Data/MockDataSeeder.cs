@@ -3,15 +3,8 @@ using PractitionerService.Models;
 
 namespace PractitionerService.Data;
 
-/// <summary>
-/// Shared deterministic IDs for cross-service mock data references.
-/// Only 2 doctors are seeded for simplified testing.
-/// Doctor.Id = Doctor.UserId for simplicity.
-/// </summary>
 public static class MockIds
 {
-    // ========== DOCTORS (only 2 fully seeded) ==========
-    // These IDs match UserService.MockIds.DoctorUser1/2
     // Doctor.Id = Doctor.UserId = User.Id (same GUID everywhere)
     public static readonly Guid DoctorUser1 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001");
     public static readonly Guid DoctorUser2 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000002");
@@ -39,14 +32,9 @@ public static class MockIds
 
 public static class MockDataSeeder
 {
-    public static async Task SeedAsync(PractitionerDbContext db)
+    public static async Task SeedAsync(PractitionerDbContext db, ILogger logger = null)
     {
         int created = 0;
-        Console.WriteLine("[MockDataSeeder] Starting PractitionerService seeding...");
-
-        // ========================================
-        // SEED SPECIALIZATIONS
-        // ========================================
         var specializations = new[]
         {
             (MockIds.SpecCardiologist, "Cardiologist"),
@@ -60,13 +48,9 @@ public static class MockDataSeeder
             {
                 db.Specializations.Add(new Specialization { Id = id, Name = name });
                 created++;
-                Console.WriteLine($"[MockDataSeeder] Created specialization: {name} (ID: {id})");
             }
         }
 
-        // ========================================
-        // SEED MEDICAL SERVICES
-        // ========================================
         var services = new[]
         {
             (MockIds.ServiceConsultation, "General Consultation", "Routine check-up and consultation", 30),
@@ -80,13 +64,9 @@ public static class MockDataSeeder
             {
                 db.Services.Add(new MedicalService { Id = id, Name = name, Description = description });
                 created++;
-                Console.WriteLine($"[MockDataSeeder] Created service: {name} (ID: {id})");
             }
         }
 
-        // ========================================
-        // SEED 2 DOCTORS - FULLY COMPLETE
-        // ========================================
         var doctorData = new[]
         {
             (
@@ -116,13 +96,9 @@ public static class MockDataSeeder
                     UpdatedAt = DateTime.UtcNow
                 });
                 created++;
-                Console.WriteLine($"[MockDataSeeder] Created doctor entity: DoctorId={doctorId}, UserId={userId}");
             }
         }
 
-        // ========================================
-        // SEED 1 RECEPTIONIST
-        // ========================================
         var existingReceptionistUserIds = await db.Receptionists.Select(r => r.UserId).ToHashSetAsync();
         if (!existingReceptionistUserIds.Contains(MockIds.ReceptionistUser1))
         {
@@ -134,21 +110,15 @@ public static class MockDataSeeder
                 UpdatedAt = DateTime.UtcNow
             });
             created++;
-            Console.WriteLine($"[MockDataSeeder] Created receptionist: UserId={MockIds.ReceptionistUser1}");
         }
 
         // Save doctors first so FK constraints work
         if (created > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Saved base entities ({created} records)");
+            logger?.LogInformation($"[MockDataSeeder] Saved base entities ({created} records)");
         }
 
-        // ========================================
-        // SEED DOCTOR-SPECIALIZATION MAPPINGS
-        // Doctor1 (John Carter): Cardiologist + General Practitioner
-        // Doctor2 (Sarah Chen): General Practitioner only
-        // ========================================
         var doctorSpecMappings = new[]
         {
             (MockIds.Doctor1, MockIds.SpecCardiologist),
@@ -164,20 +134,16 @@ public static class MockDataSeeder
         foreach (var (doctorId, specId) in doctorSpecMappings)
         {
             if (!existingDoctorSpecSet.Contains((doctorId, specId)))
-            {
+            {   
                 db.DoctorSpecializations.Add(new DoctorSpecialization
                 {
                     DoctorId = doctorId,
                     SpecializationId = specId
                 });
                 created++;
-                Console.WriteLine($"[MockDataSeeder] Mapped doctor {doctorId} to specialization {specId}");
             }
         }
 
-        // ========================================
-        // SEED SPECIALIZATION-SERVICE MAPPINGS
-        // ========================================
         var specServiceMappings = new[]
         {
             (MockIds.SpecCardiologist, MockIds.ServiceCardiology),
@@ -200,15 +166,9 @@ public static class MockDataSeeder
                     ServiceId = serviceId
                 });
                 created++;
-                Console.WriteLine($"[MockDataSeeder] Mapped specialization {specId} to service {serviceId}");
             }
         }
 
-        // ========================================
-        // SEED DOCTOR SCHEDULES (AVAILABILITY)
-        // Doctor1 (John Carter): Mon 9-13, Wed 14-18, Fri 9-12
-        // Doctor2 (Sarah Chen): Mon 8-16, Tue 8-16, Thu 8-16
-        // ========================================
         var scheduleEntries = new (Guid doctorId, int dayOfWeek, TimeSpan start, TimeSpan end)[]
         {
             // Doctor1 - John Carter (Cardiologist)
@@ -242,28 +202,12 @@ public static class MockDataSeeder
                     UpdatedAt = DateTime.UtcNow
                 });
                 created++;
-                var dayName = dayOfWeek switch { 1 => "Monday", 2 => "Tuesday", 3 => "Wednesday", 4 => "Thursday", 5 => "Friday", _ => $"Day{dayOfWeek}" };
-                Console.WriteLine($"[MockDataSeeder] Created schedule for doctor {doctorId}: {dayName} {start:hh\\:mm}-{end:hh\\:mm}");
             }
         }
 
         if (created > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] ===== TOTAL: Created {created} practitioner records =====");
-            
-            // Summary
-            Console.WriteLine("[MockDataSeeder] Doctor Summary:");
-            Console.WriteLine($"  - Dr. John Carter (Cardiologist): DoctorId={MockIds.Doctor1}, UserId={MockIds.DoctorUser1}");
-            Console.WriteLine($"    Specializations: Cardiologist, General Practitioner");
-            Console.WriteLine($"    Schedule: Mon 9-13, Wed 14-18, Fri 9-12");
-            Console.WriteLine($"  - Dr. Sarah Chen (GP): DoctorId={MockIds.Doctor2}, UserId={MockIds.DoctorUser2}");
-            Console.WriteLine($"    Specializations: General Practitioner");
-            Console.WriteLine($"    Schedule: Mon 8-16, Tue 8-16, Thu 8-16");
-        }
-        else
-        {
-            Console.WriteLine("[MockDataSeeder] All practitioner mock data already exists.");
         }
     }
 }

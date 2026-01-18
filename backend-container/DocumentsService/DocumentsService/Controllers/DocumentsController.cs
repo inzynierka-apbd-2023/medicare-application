@@ -5,7 +5,6 @@ using DocumentsService.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using System.Net.Http.Json;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 using System.Text;
@@ -55,17 +54,14 @@ public class DocumentsController : ControllerBase
             FilePath = req.FilePath,
             FileSizeBytes = req.FileSizeBytes
         };
-        // Attempt to denormalize names at write time; best-effort with very short timeout
-        try
-        {
-            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(1));
-            doc.PatientName = await ResolvePatientNameQuickAsync(doc.PatientId, cts.Token) ?? doc.PatientName;
-            doc.DoctorName = await ResolveDoctorNameQuickAsync(doc.DoctorId, cts.Token) ?? doc.DoctorName;
-        }
-        catch { /* ignore enrichment failure */ }
-    _db.Documents.Add(doc);
-    await _db.SaveChangesAsync();
-    await _events.PublishAsync(new DocumentCreated(doc.Id, doc.PatientId, doc.DoctorId, doc.Type, doc.CreatedAt));
+        
+        // Attempt enrichment (best-effort)
+        doc.PatientName = await ResolvePatientNameQuickAsync(doc.PatientId) ?? doc.PatientName;
+        doc.DoctorName = await ResolveDoctorNameQuickAsync(doc.DoctorId) ?? doc.DoctorName;
+
+        _db.Documents.Add(doc);
+        await _db.SaveChangesAsync();
+        await _events.PublishAsync(new DocumentCreated(doc.Id, doc.PatientId, doc.DoctorId, doc.Type, doc.CreatedAt));
         return CreatedAtAction(nameof(GetById), new { id = doc.Id }, doc);
     }
 
@@ -119,9 +115,9 @@ public class DocumentsController : ControllerBase
         var doc = await _db.Documents.FindAsync(id);
         if (doc == null) return NotFound();
         payload.DocumentId = id;
-    _db.VisitDocuments.Add(payload);
-    await _db.SaveChangesAsync();
-    await _events.PublishAsync(new VisitNoteAdded(id));
+        _db.VisitDocuments.Add(payload);
+        await _db.SaveChangesAsync();
+        await _events.PublishAsync(new VisitNoteAdded(id));
         return NoContent();
     }
 
@@ -165,9 +161,9 @@ public class DocumentsController : ControllerBase
             AtcCode = atcCode,
             AtcName = atcName
         };
-    _db.Prescriptions.Add(entity);
-    await _db.SaveChangesAsync();
-    await _events.PublishAsync(new PrescriptionIssued(id, entity.AtcCode, entity.Medication));
+        _db.Prescriptions.Add(entity);
+        await _db.SaveChangesAsync();
+        await _events.PublishAsync(new PrescriptionIssued(id, entity.AtcCode, entity.Medication));
         return NoContent();
     }
 
@@ -180,7 +176,7 @@ public class DocumentsController : ControllerBase
         payload.DocumentId = id;
         _db.Referrals.Add(payload);
         await _db.SaveChangesAsync();
-    await _events.PublishAsync(new ReferralAdded(id));
+        await _events.PublishAsync(new ReferralAdded(id));
         return NoContent();
     }
 
@@ -193,7 +189,7 @@ public class DocumentsController : ControllerBase
         payload.DocumentId = id;
         _db.SickLeaves.Add(payload);
         await _db.SaveChangesAsync();
-    await _events.PublishAsync(new SickLeaveAdded(id));
+        await _events.PublishAsync(new SickLeaveAdded(id));
         return NoContent();
     }
 
@@ -296,49 +292,41 @@ public class DocumentsController : ControllerBase
         if (d.Type == (int)DocumentKind.LabResults)
             return BadRequest("Lab results PDFs are not supported in this endpoint.");
 
-    await EnrichNamesIfMissingAsync(d, HttpContext.RequestAborted);
+        await EnrichNamesIfMissingAsync(d);
 
         var payload = BuildPdfPayload(d);
-    // Use denormalized names if present
-    payload["PatientName"] = d.PatientName;
-    payload["DoctorName"] = d.DoctorName;
-    var corrId = Guid.NewGuid().ToString();
-    _logger.LogInformation("Publishing PDF generation request for DocumentId={DocumentId}, Type={Type}, CorrelationId={CorrelationId}", d.Id, (DocumentKind)d.Type, corrId);
-    var pdfBytes = await RequestPdfOverRabbitAsync(payload, corrId, HttpContext.RequestAborted);
+        payload["PatientName"] = d.PatientName;
+        payload["DoctorName"] = d.DoctorName;
+        
+        var corrId = Guid.NewGuid().ToString();
+        var pdfBytes = await RequestPdfOverRabbitAsync(payload, corrId, HttpContext.RequestAborted);
         if (pdfBytes == null) return StatusCode(504, "PDF generation timed out");
+        
         var fileName = $"document-{d.Id}.pdf";
-    _logger.LogInformation("Returning generated PDF for DocumentId={DocumentId}, SizeBytes={Size}, CorrelationId={CorrelationId}", d.Id, pdfBytes.Length, corrId);
         return File(pdfBytes, "application/pdf", fileName);
     }
 
-    private async Task EnrichNamesIfMissingAsync(DocumentsService.Models.Document d, CancellationToken outerCt)
+    private async Task EnrichNamesIfMissingAsync(DocumentsService.Models.Document d)
     {
         if (!string.IsNullOrWhiteSpace(d.PatientName) && !string.IsNullOrWhiteSpace(d.DoctorName)) return;
-        try
+        
+        bool changed = false;
+        if (string.IsNullOrWhiteSpace(d.PatientName))
         {
-            using var cts = CancellationTokenSource.CreateLinkedTokenSource(outerCt);
-            cts.CancelAfter(TimeSpan.FromSeconds(1));
-
-            bool changed = false;
-            if (string.IsNullOrWhiteSpace(d.PatientName))
-            {
-                var name = await ResolvePatientNameQuickAsync(d.PatientId, cts.Token);
-                if (!string.IsNullOrWhiteSpace(name)) { d.PatientName = name; changed = true; }
-            }
-            if (string.IsNullOrWhiteSpace(d.DoctorName))
-            {
-                var name = await ResolveDoctorNameQuickAsync(d.DoctorId, cts.Token);
-                if (!string.IsNullOrWhiteSpace(name)) { d.DoctorName = name; changed = true; }
-            }
-            if (changed)
-            {
-                await _db.SaveChangesAsync(outerCt);
-            }
+            var name = await ResolvePatientNameQuickAsync(d.PatientId);
+            if (!string.IsNullOrWhiteSpace(name)) { d.PatientName = name; changed = true; }
         }
-        catch { /* ignore enrichment failure */ }
+        if (string.IsNullOrWhiteSpace(d.DoctorName))
+        {
+            var name = await ResolveDoctorNameQuickAsync(d.DoctorId);
+            if (!string.IsNullOrWhiteSpace(name)) { d.DoctorName = name; changed = true; }
+        }
+        if (changed)
+        {
+            await _db.SaveChangesAsync();
+        }
     }
 
-    // Admin endpoint to backfill denormalized names for existing documents
     [HttpPost("admin/backfill-names")]
     [Authorize]
     public async Task<ActionResult<BackfillNamesResult>> BackfillNames([FromQuery] int batchSize = 200)
@@ -366,18 +354,9 @@ public class DocumentsController : ControllerBase
         }
 
         var remaining = await _db.Documents.CountAsync(d => d.PatientName == null || d.DoctorName == null);
-        var result = new BackfillNamesResult
-        (
-            Processed: docs.Count,
-            Updated: updated,
-            Skipped: skipped,
-            Remaining: remaining
-        );
-        _logger.LogInformation("BackfillNames processed={Processed} updated={Updated} skipped={Skipped} remaining={Remaining}", result.Processed, result.Updated, result.Skipped, result.Remaining);
-        return Ok(result);
+        return Ok(new BackfillNamesResult(docs.Count, updated, skipped, remaining));
     }
 
-    // Admin endpoint to directly set denormalized names for documents matching provided IDs
     [HttpPost("admin/set-names")]
     [Authorize]
     public async Task<ActionResult<BackfillNamesResult>> SetNames([FromBody] SetNamesRequest req)
@@ -386,10 +365,10 @@ public class DocumentsController : ControllerBase
         if (validationError != null) return BadRequest(validationError);
 
         var docs = await FilterDocuments(req).ToListAsync();
-    var updated = docs.Count(d => ApplyNameUpdates(d, req));
+        var updated = docs.Count(d => ApplyNameUpdates(d, req));
         if (updated > 0) await _db.SaveChangesAsync();
         var remaining = await _db.Documents.CountAsync(d => d.PatientName == null || d.DoctorName == null);
-        return Ok(new BackfillNamesResult(Processed: docs.Count, Updated: updated, Skipped: docs.Count - updated, Remaining: remaining));
+        return Ok(new BackfillNamesResult(docs.Count, updated, docs.Count - updated, remaining));
     }
 
     private static string? ValidateSetNames(SetNamesRequest req)
@@ -425,19 +404,13 @@ public class DocumentsController : ControllerBase
         var beforeDoctor = d.DoctorName;
 
         if (beforePatient == null)
-            d.PatientName = await GetNameSafeAsync(() => ResolvePatientNameAsync(d.PatientId));
+            d.PatientName = await ResolvePatientNameAsync(d.PatientId); // Direct call
         if (beforeDoctor == null)
-            d.DoctorName = await GetNameSafeAsync(() => ResolveDoctorNameAsync(d.DoctorId));
+            d.DoctorName = await ResolveDoctorNameAsync(d.DoctorId); // Direct call
 
         var changed = !string.Equals(beforePatient, d.PatientName, StringComparison.Ordinal) ||
                       !string.Equals(beforeDoctor, d.DoctorName, StringComparison.Ordinal);
         return (changed, !changed);
-    }
-
-    private static async Task<string?> GetNameSafeAsync(Func<Task<string?>> resolver)
-    {
-        try { return await resolver(); }
-        catch { return null; }
     }
 
     private static Dictionary<string, object?> BuildPdfPayload(DocumentsService.Models.Document d)
@@ -530,21 +503,17 @@ public class DocumentsController : ControllerBase
 
     private async Task<byte[]?> RequestPdfOverRabbitAsync(object payload, string corrId, CancellationToken ct)
     {
-        // Create async channel for RPC
         await using var channel = await _rabbitConn.CreateChannelAsync(cancellationToken: ct);
         
         const string requestQueue = "pdf.generate.document";
         
-        // Declare request queue (durable for production reliability - must match PdfService)
         await channel.QueueDeclareAsync(requestQueue, durable: true, exclusive: false, autoDelete: false, cancellationToken: ct);
 
-        // Declare exclusive reply queue for this request
         var replyQueueResult = await channel.QueueDeclareAsync(queue: "", durable: false, exclusive: true, autoDelete: true, cancellationToken: ct);
         var replyQueue = replyQueueResult.QueueName;
         
         var tcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
         
-        // Create async consumer for reply
         var consumer = new AsyncEventingBasicConsumer(channel);
         consumer.ReceivedAsync += async (model, ea) =>
         {
@@ -553,17 +522,11 @@ public class DocumentsController : ControllerBase
                 var incomingCorrId = ea.BasicProperties.CorrelationId;
                 if (incomingCorrId == corrId)
                 {
-                    _logger.LogInformation("Received PDF response for CorrId={CorrId}, Bytes={Bytes}", incomingCorrId, ea.Body.Length);
                     tcs.TrySetResult(ea.Body.ToArray());
-                }
-                else
-                {
-                    _logger.LogWarning("Received mismatched PDF response. Expected={Expected}, Got={Got}", corrId, incomingCorrId);
                 }
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Error processing PDF response for CorrId={CorrId}", corrId);
                 tcs.TrySetException(ex);
             }
             await Task.CompletedTask;
@@ -571,7 +534,6 @@ public class DocumentsController : ControllerBase
         
         await channel.BasicConsumeAsync(consumer: consumer, queue: replyQueue, autoAck: true, cancellationToken: ct);
 
-        // Prepare message properties
         var props = new BasicProperties
         {
             ReplyTo = replyQueue,
@@ -581,8 +543,6 @@ public class DocumentsController : ControllerBase
 
         var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = null });
         var body = Encoding.UTF8.GetBytes(json);
-        
-        _logger.LogInformation("Publishing PDF req to {Queue}, ReplyTo={ReplyTo}, CorrId={CorrId}", requestQueue, replyQueue, corrId);
         
         await channel.BasicPublishAsync(
             exchange: string.Empty, 
@@ -594,7 +554,7 @@ public class DocumentsController : ControllerBase
 
         // Wait for response with timeout
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(TimeSpan.FromSeconds(30)); // Increased timeout for PDF generation
+        cts.CancelAfter(TimeSpan.FromSeconds(30));
         
         try 
         {
@@ -606,15 +566,12 @@ public class DocumentsController : ControllerBase
         }
         catch (OperationCanceledException) 
         {
-            _logger.LogError("PDF generation timed out (30s) for CorrId={CorrId}", corrId);
             return null;
         }
 
-        _logger.LogError("PDF generation timed out (task mismatch) for CorrId={CorrId}", corrId);
         return null;
     }
 
-    // Helpers
     private static string CatalogBase(HttpContext ctx)
         => ctx.RequestServices.GetService<IConfiguration>()?["CATALOG_SERVICE_BASE_URL"]
            ?? "http://medical-catalog-service:8083";
@@ -657,7 +614,6 @@ public class DocumentsController : ControllerBase
         catch { return null; }
     }
 
-    // Name resolution helpers
     private sealed record DoctorDirectoryDto(string DoctorId, string UserId, string FirstName, string LastName);
     private sealed record ArchivedDoctorDto(Guid DoctorId, string? FullName);
     private sealed record PatientOverviewDto(string PatientId, string UserId, string? FirstName, string? LastName);
@@ -674,7 +630,6 @@ public class DocumentsController : ControllerBase
         }
         catch
         {
-            // Fallback to ArchiveService
             try
             {
                 using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)) };
@@ -700,24 +655,22 @@ public class DocumentsController : ControllerBase
         catch { return null; }
     }
 
-    // Quick resolvers with short timeouts for read-time enrichment
-    private async Task<string?> ResolveDoctorNameQuickAsync(Guid doctorId, CancellationToken ct)
+    private async Task<string?> ResolveDoctorNameQuickAsync(Guid doctorId)
     {
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri(PractitionerBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-            var dto = await http.GetFromJsonAsync<DoctorDirectoryDto>($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory", ct);
+            var dto = await http.GetFromJsonAsync<DoctorDirectoryDto>($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory");
             if (dto == null) return null;
             var full = ($"{dto.FirstName} {dto.LastName}").Trim();
             return string.IsNullOrWhiteSpace(full) ? null : full;
         }
         catch
         {
-            // Fallback to ArchiveService (best-effort, short timeout)
             try
             {
                 using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}", ct);
+                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}");
                 if (dto2 == null) return null;
                 var full = ($"{dto2.FullName}").Trim();
                 return string.IsNullOrWhiteSpace(full) ? null : full;
@@ -726,12 +679,12 @@ public class DocumentsController : ControllerBase
         }
     }
 
-    private async Task<string?> ResolvePatientNameQuickAsync(Guid patientId, CancellationToken ct)
+    private async Task<string?> ResolvePatientNameQuickAsync(Guid patientId)
     {
         try
         {
             using var http = new HttpClient { BaseAddress = new Uri(PatientBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-            var dto = await http.GetFromJsonAsync<PatientOverviewDto>($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}", ct);
+            var dto = await http.GetFromJsonAsync<PatientOverviewDto>($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}");
             if (dto == null) return null;
             var full = ($"{dto.FirstName} {dto.LastName}").Trim();
             return string.IsNullOrWhiteSpace(full) ? null : full;

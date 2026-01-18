@@ -26,9 +26,6 @@ public class MarkMessageAsReadHandler : IRequestHandler<MarkMessageAsReadCommand
             _logger.LogWarning("Message {MessageId} not found when marking as read", request.MessageId);
             return false;
         }
-
-        // Only the recipient can mark as read? Or sender too? Usually recipient.
-        // If strict security needed: if (message.RecipientId != request.UserId) ...
         
         if (!message.IsRead)
         {

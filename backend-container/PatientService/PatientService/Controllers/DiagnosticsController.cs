@@ -8,6 +8,7 @@ namespace PatientService.Controllers;
 
 [ApiController]
 [Route("api/patient/diag")] 
+[Authorize(Roles = "Owner,Admin")]
 public class DiagnosticsController : ControllerBase
 {
     private readonly PatientDbContext _db;

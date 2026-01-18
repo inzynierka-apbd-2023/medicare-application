@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient";
+import { api } from "./api";
 
 export interface DoctorPerformanceSummaryResponse {
   totalDoctors: number;
@@ -15,12 +15,6 @@ export interface DoctorPerformanceFilters {
   endDate?: string;
 }
 
-interface ApiResult<T> {
-  success: boolean;
-  data: T | null;
-  error: string | null;
-}
-
 const buildQuery = (filters?: DoctorPerformanceFilters) => {
   if (!filters) return "";
   const p = new URLSearchParams();
@@ -31,29 +25,11 @@ const buildQuery = (filters?: DoctorPerformanceFilters) => {
 };
 
 export const doctorPerformanceApi = {
-  async getSummary(
+  getSummary: async (
     filters?: DoctorPerformanceFilters
-  ): Promise<ApiResult<DoctorPerformanceSummaryResponse>> {
-    try {
-      const res = await apiClient.get(
-        `/practitioner/doctor-performance/summary${buildQuery(filters)}`
-      );
-      return { success: true, data: res.data, error: null };
-    } catch (err: unknown) {
-      let message = "Failed to load doctor performance summary";
-      if (err && typeof err === "object" && "response" in err) {
-        const response = (
-          err as { response?: { data?: { errors?: string | string[] } } }
-        ).response;
-        if (response?.data?.errors) {
-          message = Array.isArray(response.data.errors)
-            ? response.data.errors.join(", ")
-            : response.data.errors;
-        }
-      } else if (err instanceof Error) {
-        message = err.message;
-      }
-      return { success: false, data: null, error: message };
-    }
+  ): Promise<DoctorPerformanceSummaryResponse> => {
+    return api.get<DoctorPerformanceSummaryResponse>(
+      `/practitioner/doctor-performance/summary${buildQuery(filters)}`
+    );
   },
 };

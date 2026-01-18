@@ -116,7 +116,8 @@ resource billingservice 'Microsoft.App/containerApps@2024-03-01' = {
               type: 'rabbitmq'
               metadata: {
                 queueName: 'billing.user_created'
-                queueLength: '1'
+                mode: 'QueueLength'
+                value: '1'
               }
               auth: [
                 {
@@ -132,12 +133,13 @@ resource billingservice 'Microsoft.App/containerApps@2024-03-01' = {
               type: 'rabbitmq'
               metadata: {
                 queueName: 'billing.payment_requests'
-                queueLength: '1'
+                mode: 'QueueLength'
+                value: '1'
               }
               auth: [
                 {
                   secretRef: 'connectionstrings--rabbitmq'
-                  triggerParameter: 'host'
+                  triggerParameter: 'host' 
                 }
               ]
             }
@@ -148,7 +150,8 @@ resource billingservice 'Microsoft.App/containerApps@2024-03-01' = {
               type: 'rabbitmq'
               metadata: {
                 queueName: 'billing.appointment_created'
-                queueLength: '1'
+                mode: 'QueueLength'
+                value: '1'
               }
               auth: [
                 {

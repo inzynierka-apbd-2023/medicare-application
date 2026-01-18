@@ -21,19 +21,9 @@ import {
   LoadingOverlay,
 } from "../../../shared/components";
 import { useLoadingService } from "../../../shared/hooks/useLoadingService";
-import { analyticsApi } from "../../../shared/services/analyticsApi";
-import {
-  appointmentMetricsApi,
-  AppointmentMetricsResponse as ApptMetrics,
-} from "../../../shared/services/appointmentMetricsApi";
-import {
-  doctorPerformanceApi,
-  DoctorPerformanceSummaryResponse,
-} from "../../../shared/services/doctorPerformanceApi";
-import {
-  patientMetricsApi,
-  PatientMetricsResponse,
-} from "../../../shared/services/patientMetricsApi";
+import { appointmentMetricsApi } from "../../../shared/services/appointmentMetricsApi";
+import { doctorPerformanceApi } from "../../../shared/services/doctorPerformanceApi";
+import { patientMetricsApi } from "../../../shared/services/patientMetricsApi";
 import { revenueMetricsApi } from "../../../shared/services/revenueMetricsApi";
 import { DashboardLayout } from "../shared/components";
 
@@ -45,6 +35,8 @@ interface RevenueMetrics {
   revenueGrowth: number;
   totalAppointmentPayments: number;
   totalSubscriptionPayments: number;
+  yearlyAppointmentRevenue: number;
+  yearlySubscriptionRevenue: number;
 }
 
 interface PatientMetrics {
@@ -102,15 +94,13 @@ const OwnerDashboard: React.FC = () => {
         const endDate = new Date().toISOString().split("T")[0];
 
         const [
-          analyticsResponse,
-          patientMetricsResponse,
-          appointmentMetricsResponse,
-          doctorPerformanceSummaryResponse,
-          dailyRevenueResponse,
-          monthlyRevenueResponse,
-          yearlyRevenueResponse,
+          patientMetrics,
+          apptMetrics,
+          doctorPerfSummary,
+          dailyRevenue,
+          monthlyRevenue,
+          yearlyRevenue,
         ] = await Promise.all([
-          analyticsApi.getDashboardData({ startDate, endDate }),
           patientMetricsApi.getPatientMetrics({ startDate, endDate }),
           appointmentMetricsApi.getAppointmentMetrics({ startDate, endDate }),
           doctorPerformanceApi.getSummary({ startDate, endDate }),
@@ -122,42 +112,16 @@ const OwnerDashboard: React.FC = () => {
           revenueMetricsApi.getYearlyRevenue(new Date().getFullYear()),
         ]);
 
-        if (!analyticsResponse.success)
-          throw new Error(
-            analyticsResponse.error || "Failed to fetch analytics data"
-          );
-        if (!patientMetricsResponse.success)
-          throw new Error(
-            patientMetricsResponse.error || "Failed to fetch patient metrics"
-          );
-        if (!appointmentMetricsResponse.success)
-          throw new Error(
-            appointmentMetricsResponse.error ||
-              "Failed to fetch appointment metrics"
-          );
-        if (!doctorPerformanceSummaryResponse.success)
-          throw new Error(
-            doctorPerformanceSummaryResponse.error ||
-              "Failed to fetch doctor performance summary"
-          );
-
-        const patientMetrics: PatientMetricsResponse =
-          patientMetricsResponse.data!;
-        const apptMetrics: ApptMetrics = appointmentMetricsResponse.data!;
-        const doctorPerfSummary: DoctorPerformanceSummaryResponse =
-          doctorPerformanceSummaryResponse.data!;
-        const dailyRevenue = dailyRevenueResponse;
-        const monthlyRevenue = monthlyRevenueResponse;
-        const yearlyRevenue = yearlyRevenueResponse;
-
         const transformedData: OwnerDashboardData = {
           revenue: {
             dailyRevenue: dailyRevenue.totalRevenue,
             monthlyRevenue: monthlyRevenue.totalRevenue,
             yearlyRevenue: yearlyRevenue.totalRevenue,
             revenueGrowth: monthlyRevenue.growthPercentage ?? 0,
-            totalAppointmentPayments: monthlyRevenue.totalRevenue,
-            totalSubscriptionPayments: 0,
+            totalAppointmentPayments: monthlyRevenue.appointmentRevenue,
+            totalSubscriptionPayments: monthlyRevenue.subscriptionRevenue,
+            yearlyAppointmentRevenue: yearlyRevenue.appointmentRevenue,
+            yearlySubscriptionRevenue: yearlyRevenue.subscriptionRevenue,
           },
           patients: {
             totalActivePatients: patientMetrics.totalActivePatients,
@@ -219,6 +183,8 @@ const OwnerDashboard: React.FC = () => {
             revenueGrowth: 0,
             totalAppointmentPayments: 0,
             totalSubscriptionPayments: 0,
+            yearlyAppointmentRevenue: 0,
+            yearlySubscriptionRevenue: 0,
           },
           patients: {
             totalActivePatients: 0,
@@ -250,9 +216,9 @@ const OwnerDashboard: React.FC = () => {
   }, [executeInitialLoad]);
 
   const formatCurrency = (amount: number) => {
-    return new Intl.NumberFormat("en-US", {
+    return new Intl.NumberFormat("pl-PL", {
       style: "currency",
-      currency: "USD",
+      currency: "PLN",
       minimumFractionDigits: 0,
       maximumFractionDigits: 0,
     }).format(amount);
@@ -436,18 +402,6 @@ const OwnerDashboard: React.FC = () => {
                       dashboardData.patients.patientRetentionRate
                     )}
                   </span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm text-gray-600">Average Rating</span>
-                  <div className="flex items-center gap-1">
-                    <Star className="w-4 h-4 text-yellow-500 fill-current" />
-                    <span className="text-lg font-semibold text-gray-900">
-                      {dashboardData.patients.averageRating}/5.0
-                    </span>
-                    <span className="text-xs text-gray-500">
-                      ({dashboardData.patients.totalRatings})
-                    </span>
-                  </div>
                 </div>
               </div>
             </Card>

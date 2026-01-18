@@ -91,13 +91,8 @@ export const useAnalytics = (
     setError(null);
 
     try {
-      const response = await analyticsApi.getAppointmentMetrics(filters);
-
-      if (response.success) {
-        setMetrics(response.data);
-      } else {
-        setError(response.error || "Failed to fetch metrics");
-      }
+      const data = await analyticsApi.getAppointmentMetrics(filters);
+      setMetrics(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch metrics");
     } finally {
@@ -110,13 +105,8 @@ export const useAnalytics = (
     setError(null);
 
     try {
-      const response = await analyticsApi.getAppointmentTrends(filters);
-
-      if (response.success) {
-        setTrends(response.data);
-      } else {
-        setError(response.error || "Failed to fetch trends");
-      }
+      const data = await analyticsApi.getAppointmentTrends(filters);
+      setTrends(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch trends");
     } finally {
@@ -129,13 +119,8 @@ export const useAnalytics = (
     setError(null);
 
     try {
-      const response = await analyticsApi.getDoctorPerformance(filters);
-
-      if (response.success) {
-        setDoctorPerformance(response.data);
-      } else {
-        setError(response.error || "Failed to fetch doctor performance");
-      }
+      const data = await analyticsApi.getDoctorPerformance(filters);
+      setDoctorPerformance(data);
     } catch (err) {
       setError(
         err instanceof Error
@@ -152,13 +137,8 @@ export const useAnalytics = (
     setError(null);
 
     try {
-      const response = await analyticsApi.getSpecializationStats(filters);
-
-      if (response.success) {
-        setSpecializationStats(response.data);
-      } else {
-        setError(response.error || "Failed to fetch specialization stats");
-      }
+      const data = await analyticsApi.getSpecializationStats(filters);
+      setSpecializationStats(data);
     } catch (err) {
       setError(
         err instanceof Error
@@ -175,14 +155,10 @@ export const useAnalytics = (
     setError(null);
 
     try {
-      const response = await analyticsApi.getTimeSlotAnalysis(filters);
+      const data = await analyticsApi.getTimeSlotAnalysis(filters);
 
-      if (response.success) {
-        setTimeSlotData(response.data.timeSlots);
-        setWeeklyData(response.data.weeklyData);
-      } else {
-        setError(response.error || "Failed to fetch time slot analysis");
-      }
+      setTimeSlotData(data.timeSlots);
+      setWeeklyData(data.weeklyData);
     } catch (err) {
       setError(
         err instanceof Error

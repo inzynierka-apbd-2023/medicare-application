@@ -11,17 +11,16 @@ namespace UserService.Controllers;
 public class AuthController : ControllerBase
 {
     private readonly IMediator _mediator;
+    private readonly IConfiguration _configuration;
 
-    public AuthController(IMediator mediator)
+    public AuthController(IMediator mediator, IConfiguration configuration)
     {
         _mediator = mediator;
+        _configuration = configuration;
     }
 
-    /// <summary>
-    /// User login
-    /// </summary>
     [HttpPost("login")]
-    [ProducesResponseType(typeof(RefreshTokenResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> Login(LoginDto loginDto)
     {
@@ -42,14 +41,12 @@ public class AuthController : ControllerBase
                 : Unauthorized(new { message = result.ErrorMessage });
         }
 
-        return Ok(result.TokenResponse);
+        SetTokenCookies(result.TokenResponse.AccessToken, result.TokenResponse.RefreshToken);
+        return Ok(result.TokenResponse.User);
     }
 
-    /// <summary>
-    /// User registration
-    /// </summary>
     [HttpPost("register")]
-    [ProducesResponseType(typeof(RefreshTokenResponseDto), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status409Conflict)]
     public async Task<IActionResult> Register(CreateUserDto createUserDto)
     {
@@ -75,12 +72,10 @@ public class AuthController : ControllerBase
             return Conflict(new { message = result.ErrorMessage });
         }
 
-        return Created(string.Empty, result.TokenResponse);
+        SetTokenCookies(result.TokenResponse.AccessToken, result.TokenResponse.RefreshToken);
+        return Created(string.Empty, result.TokenResponse.User);
     }
 
-    /// <summary>
-    /// Test JWT token (for development/testing purposes)
-    /// </summary>
     [HttpPost("test-token")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> TestToken(TestTokenDto testTokenDto)
@@ -97,17 +92,26 @@ public class AuthController : ControllerBase
         return Ok(new { token = result.Token });
     }
 
-    /// <summary>
-    /// Refresh token
-    /// </summary>
     [HttpPost("refresh")]
-    [ProducesResponseType(typeof(RefreshTokenResponseDto), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(UserResponseDto), StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<IActionResult> RefreshToken(RefreshRequestDto req)
     {
+        string? refreshToken = req.RefreshToken;
+
+        if (string.IsNullOrWhiteSpace(refreshToken) && Request.Cookies.TryGetValue("refreshToken", out var cookieToken))       
+        {
+            refreshToken = cookieToken;
+        }
+
+        if (string.IsNullOrWhiteSpace(refreshToken))
+        {
+             return Unauthorized(new { message = "No refresh token provided" });
+        }
+
         var result = await _mediator.Send(new RefreshTokenCommand
         {
-            RefreshToken = req.RefreshToken,
+            RefreshToken = refreshToken,
             ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString(),
             UserAgent = Request.Headers.UserAgent.ToString()
         });
@@ -117,34 +121,41 @@ public class AuthController : ControllerBase
             return Unauthorized(new { message = result.ErrorMessage });
         }
 
-        return Ok(result.TokenResponse);
+        SetTokenCookies(result.TokenResponse.AccessToken, result.TokenResponse.RefreshToken);
+        return Ok(result.TokenResponse.User);
     }
 
-    /// <summary>
-    /// Logout (revoke refresh token)
-    /// </summary>
     [HttpPost("logout")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> Logout([FromBody] RefreshRequestDto? req)
     {
         string? refresh = req?.RefreshToken;
+        
+        if (string.IsNullOrWhiteSpace(refresh) && Request.Cookies.TryGetValue("refreshToken", out var cookieToken))
+        {
+            refresh = cookieToken;
+        }
+
         if (string.IsNullOrWhiteSpace(refresh) && Request.Headers.TryGetValue("X-Refresh-Token", out var headerVal))
         {
             refresh = headerVal.FirstOrDefault();
         }
 
-        var result = await _mediator.Send(new LogoutCommand
+        if (!string.IsNullOrWhiteSpace(refresh))
         {
-            RefreshToken = refresh,
-            ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString()
-        });
+            await _mediator.Send(new LogoutCommand
+            {
+                RefreshToken = refresh,
+                ClientIp = HttpContext.Connection.RemoteIpAddress?.ToString()
+            });
+        }
 
-        return Ok(new { message = result.Message });
+        Response.Cookies.Delete("accessToken");
+        Response.Cookies.Delete("refreshToken");
+
+        return Ok(new { message = "Logged out successfully" });
     }
 
-    /// <summary>
-    /// Request password reset - sends reset email
-    /// </summary>
     [HttpPost("forgot-password")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     public async Task<IActionResult> ForgotPassword([FromBody] ForgotPasswordDto dto)
@@ -153,9 +164,6 @@ public class AuthController : ControllerBase
         return Ok(new { message = result.Message });
     }
 
-    /// <summary>
-    /// Reset password using token
-    /// </summary>
     [HttpPost("reset-password")]
     [ProducesResponseType(StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
@@ -175,9 +183,6 @@ public class AuthController : ControllerBase
         return Ok(new { message = "Password has been reset successfully" });
     }
 
-    /// <summary>
-    /// Change password for authenticated user
-    /// </summary>
     [HttpPost("change-password")]
     [Authorize]
     [ProducesResponseType(StatusCodes.Status200OK)]
@@ -187,7 +192,9 @@ public class AuthController : ControllerBase
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
-        var userIdClaim = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        var userIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value 
+                          ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                          
         if (string.IsNullOrEmpty(userIdClaim) || !Guid.TryParse(userIdClaim, out var userId))
         {
             return Unauthorized();
@@ -206,5 +213,44 @@ public class AuthController : ControllerBase
         }
 
         return Ok(new { message = "Password updated successfully" });
+    }
+
+    private void SetTokenCookies(string accessToken, string refreshToken)
+    {
+        var jwtExpiryMinutes = int.Parse(_configuration.GetSection("Jwt")["ExpiryInMinutes"] ?? "15");
+        var refreshExpiryDays = int.Parse(_configuration.GetSection("RefreshToken")["ExpiryInDays"] ?? "7");
+        var refreshCookiePath = _configuration.GetSection("RefreshToken")["CookiePath"] ?? "/api/auth/refresh";
+
+        var cookieSection = _configuration.GetSection("Cookie");
+        var httpOnly = bool.Parse(cookieSection["HttpOnly"] ?? "true");
+        var secure = bool.Parse(cookieSection["Secure"] ?? "true");
+        var sameSiteStr = cookieSection["SameSite"] ?? "None";
+        var sameSite = sameSiteStr switch
+        {
+            "Strict" => SameSiteMode.Strict,
+            "Lax" => SameSiteMode.Lax,
+            "None" => SameSiteMode.None,
+            _ => SameSiteMode.None
+        };
+
+        var accessOptions = new CookieOptions
+        {
+            HttpOnly = httpOnly,
+            Secure = secure,
+            SameSite = sameSite,
+            Expires = DateTime.UtcNow.AddMinutes(jwtExpiryMinutes)
+        };
+
+        var refreshOptions = new CookieOptions
+        {
+            HttpOnly = httpOnly,
+            Secure = secure,
+            SameSite = sameSite,
+            Expires = DateTime.UtcNow.AddDays(refreshExpiryDays),
+            Path = refreshCookiePath
+        };
+
+        Response.Cookies.Append("accessToken", accessToken, accessOptions);
+        Response.Cookies.Append("refreshToken", refreshToken, refreshOptions);
     }
 }

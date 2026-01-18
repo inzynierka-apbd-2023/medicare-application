@@ -80,7 +80,7 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({
     }
   }, [patientId, selectedRecord, selectPatient, isLoading, error]); // Only re-run if these change
 
-  // Note: Search term is initialized with patientId from URL and stays editable
+  // Search term initialized with patientId from URL
   // User can freely modify the search bar after initial page load
 
   const formatDate = (dateString: string) => {

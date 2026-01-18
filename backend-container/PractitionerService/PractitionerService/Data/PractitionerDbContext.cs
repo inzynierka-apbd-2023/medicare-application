@@ -15,6 +15,7 @@ public class PractitionerDbContext : DbContext
     public DbSet<DoctorSpecialization> DoctorSpecializations => Set<DoctorSpecialization>();
     public DbSet<DoctorSchedule> DoctorSchedules => Set<DoctorSchedule>();
     public DbSet<DoctorStatistics> DoctorStatistics => Set<DoctorStatistics>();
+    public DbSet<Rate> Rates => Set<Rate>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -89,6 +90,15 @@ public class PractitionerDbContext : DbContext
             e.HasKey(ds => ds.DoctorId);
             e.Property(ds => ds.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(ds => ds.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+        });
+
+        modelBuilder.Entity<Rate>(e =>
+        {
+            e.ToTable("Rate", schema: "practitioner");
+            e.HasKey(r => r.Id);
+            e.Property(r => r.Id).HasDefaultValueSql("NEWID()");
+            e.Property(r => r.Rated_At).HasDefaultValueSql("SYSUTCDATETIME()");
+            e.HasIndex(r => r.Doctor_User_Id); // meaningful index for lookups
         });
 
         // View mapping - view is created at startup in Program.cs

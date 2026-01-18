@@ -145,6 +145,39 @@ namespace PractitionerService.Migrations
                     b.ToTable("Doctor_Specialization", "practitioner");
                 });
 
+            modelBuilder.Entity("PractitionerService.Models.DoctorStatistics", b =>
+                {
+                    b.Property<Guid>("DoctorId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CompletedAppointments")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("TotalAppointments")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalRatingCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalRatingSum")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("DoctorId");
+
+                    b.ToTable("DoctorStatistics", "practitioner");
+                });
+
             modelBuilder.Entity("PractitionerService.Models.MedicalService", b =>
                 {
                     b.Property<Guid>("Id")
@@ -164,6 +197,44 @@ namespace PractitionerService.Migrations
                     b.HasKey("Id");
 
                     b.ToTable("Service", "practitioner");
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.Rate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<Guid?>("Appointment_Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("Doctor_User_Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Is_Anonymous")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("Patient_User_Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte?>("Rate_Value")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime>("Rated_At")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Doctor_User_Id");
+
+                    b.ToTable("Rate", "practitioner");
                 });
 
             modelBuilder.Entity("PractitionerService.Models.Receptionist", b =>

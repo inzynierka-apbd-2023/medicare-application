@@ -4,11 +4,11 @@ import { Menu, User, X } from "lucide-react";
 
 import { DropdownMenu } from "../features/profile/components";
 import { useAuth } from "../shared/auth/AuthContext";
-import { notificationsApi } from "../shared/services/notificationsApi";
 import {
   getDefaultDashboard,
   getNavigationForRole,
 } from "../shared/constants/routes";
+import { notificationsApi } from "../shared/services/notificationsApi";
 
 export default function Header() {
   const { user } = useAuth();
@@ -38,8 +38,6 @@ export default function Header() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Poll unread notifications lightly when header is mounted and user changes
-  // Pull in location to refresh on route changes
   const location = useLocation();
 
   useEffect(() => {
@@ -49,36 +47,46 @@ export default function Header() {
         setUnreadCount(0);
         return;
       }
-      const res = await notificationsApi.getForRecipient(user.id, true);
-      if (res.success) setUnreadCount(res.data.length);
+      try {
+        const data = await notificationsApi.getForRecipient(user.id, true);
+        setUnreadCount(data.length);
+      } catch {
+        // Silently fail for polling
+      }
     };
 
-    // Initial fetch on mount
     fetchUnread();
 
-    // Live-refresh on app-wide notification updates (e.g., mark-as-read)
-    const onUpdated = () => { fetchUnread(); };
-    window.addEventListener("notifications:updated", onUpdated as EventListener);
+    const onUpdated = () => {
+      fetchUnread();
+    };
+    window.addEventListener(
+      "notifications:updated",
+      onUpdated as (e: Event) => void
+    );
 
-    // Refresh when window regains focus or tab becomes visible (handles navigation races)
-    const onFocus = () => { fetchUnread(); };
-    const onVisibility = () => { if (document.visibilityState === "visible") fetchUnread(); };
+    const onFocus = () => {
+      fetchUnread();
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === "visible") fetchUnread();
+    };
     window.addEventListener("focus", onFocus);
     document.addEventListener("visibilitychange", onVisibility);
 
-    // Periodic lightweight refresh
     timer = window.setInterval(fetchUnread, 60000);
 
     return () => {
       if (timer) window.clearInterval(timer);
-      window.removeEventListener("notifications:updated", onUpdated as EventListener);
+      window.removeEventListener(
+        "notifications:updated",
+        onUpdated as (e: Event) => void
+      );
       window.removeEventListener("focus", onFocus);
       document.removeEventListener("visibilitychange", onVisibility);
     };
-  // Also re-run when user changes or route changes
   }, [user?.id, location?.pathname]);
 
-  // Get navigation items based on user role
   const navItems = user ? getNavigationForRole(user.role) : [];
 
   const linkClasses =

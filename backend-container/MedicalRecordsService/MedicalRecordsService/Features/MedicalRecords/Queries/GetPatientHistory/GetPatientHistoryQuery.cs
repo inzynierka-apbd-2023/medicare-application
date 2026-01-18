@@ -16,7 +16,6 @@ public class GetPatientHistoryHandler : IRequestHandler<GetPatientHistoryQuery, 
     {
         var patientId = request.PatientId;
 
-        // 1. Fetch Medical Records
         var records = await _db.MedicalRecords
             .AsNoTracking()
             .Where(r => r.PatientId == patientId)
@@ -25,20 +24,17 @@ public class GetPatientHistoryHandler : IRequestHandler<GetPatientHistoryQuery, 
 
         var recordIds = records.Select(r => r.Id).ToList();
 
-        // 2. Fetch Diagnoses (via MedicalRecordId)
         var conditions = await _db.Diagnoses
             .AsNoTracking()
             .Where(d => recordIds.Contains(d.MedicalRecordId))
             .ToListAsync(cancellationToken);
 
-        // 3. Fetch Prescriptions (By PatientId directly as per schema)
         var medications = await _db.Prescriptions
             .AsNoTracking()
             .Where(p => p.PatientId == patientId)
             .OrderByDescending(p => p.PrescribedDate)
             .ToListAsync(cancellationToken);
 
-        // 4. Fetch Vitals (By PatientId directly)
         var vitals = await _db.VitalSigns
             .AsNoTracking()
             .Where(v => v.PatientId == patientId)

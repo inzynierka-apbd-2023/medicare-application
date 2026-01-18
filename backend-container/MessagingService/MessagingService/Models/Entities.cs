@@ -92,24 +92,17 @@ public class MessageReceipt
     public DateTime CreatedAt { get; set; }
 }
 
-/// <summary>
-/// Denormalized table tracking which doctors a patient can message.
-/// Populated via RabbitMQ events when appointments are created.
-/// </summary>
 public class PatientDoctorContact
 {
     [Key]
     public Guid Id { get; set; }
     
-    /// <summary>Patient's User ID</summary>
     [Required]
     public Guid PatientUserId { get; set; }
     
-    /// <summary>Doctor's User ID (used for messaging)</summary>
     [Required]
     public Guid DoctorUserId { get; set; }
     
-    /// <summary>Doctor's profile ID in PractitionerService</summary>
     public Guid? DoctorProfileId { get; set; }
     
     [MaxLength(200)]
@@ -118,10 +111,8 @@ public class PatientDoctorContact
     [MaxLength(200)]
     public string? DoctorSpecialization { get; set; }
     
-    /// <summary>When the first appointment was created</summary>
     public DateTime FirstContactAt { get; set; }
     
-    /// <summary>When the last appointment was created</summary>
     public DateTime LastContactAt { get; set; }
     
     public DateTime CreatedAt { get; set; }

@@ -45,19 +45,21 @@ public class AppointmentEventListener : BackgroundService
                 using var scope = _serviceProvider.CreateScope();
                 var db = scope.ServiceProvider.GetRequiredService<PractitionerDbContext>();
 
+                var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+
                 if (routingKey == "appointment.created")
                 {
-                    var evt = JsonSerializer.Deserialize<AppointmentCreatedEvent>(message);
+                    var evt = JsonSerializer.Deserialize<AppointmentCreatedEvent>(message, options);
                     if (evt != null) await HandleAppointmentCreated(db, evt);
                 }
                 else if (routingKey == "appointment.updated")
                 {
-                    var evt = JsonSerializer.Deserialize<AppointmentUpdatedEvent>(message);
+                    var evt = JsonSerializer.Deserialize<AppointmentUpdatedEvent>(message, options);
                     if (evt != null) await HandleAppointmentUpdated(db, evt);
                 }
                 else if (routingKey == "appointment.rated")
                 {
-                    var evt = JsonSerializer.Deserialize<AppointmentRatedEvent>(message);
+                    var evt = JsonSerializer.Deserialize<AppointmentRatedEvent>(message, options);
                     if (evt != null) await HandleAppointmentRated(db, evt);
                 }
 
@@ -102,7 +104,7 @@ public class AppointmentEventListener : BackgroundService
 
     private async Task HandleAppointmentUpdated(PractitionerDbContext db, AppointmentUpdatedEvent evt)
     {
-        if (evt.Status == "Completed")
+        if (string.Equals(evt.Status, "Completed", StringComparison.OrdinalIgnoreCase))
         {
             var stats = await db.DoctorStatistics.FindAsync(evt.DoctorId);
             if (stats == null)

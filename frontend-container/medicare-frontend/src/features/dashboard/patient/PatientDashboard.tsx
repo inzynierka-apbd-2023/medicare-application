@@ -87,26 +87,14 @@ export default function PatientDashboard() {
     const fetchDashboardData = async () => {
       try {
         // Fetch notifications and documents in parallel
-        const [notificationsResponse, documentsResponse] = await Promise.all([
+        const [notificationsData, documents] = await Promise.all([
           notificationsApi.getForRecipient(currentPatientId, false),
           patientDashboardApi.getRecentDocuments(currentPatientId),
         ]);
 
-        if (notificationsResponse.success) {
-          setNotifications(notificationsResponse.data as Notification[]);
-        } else {
-          throw new Error(
-            notificationsResponse.error || "Failed to fetch notifications"
-          );
-        }
+        setNotifications(notificationsData);
 
-        if (documentsResponse.success) {
-          setDocuments(documentsResponse.data);
-        } else {
-          throw new Error(
-            documentsResponse.error || "Failed to fetch documents"
-          );
-        }
+        setDocuments(documents);
       } catch (err) {
         const errorMessage =
           err instanceof Error ? err.message : "Failed to load dashboard data";
@@ -151,27 +139,15 @@ export default function PatientDashboard() {
 
   const handleMarkNotificationAsRead = async (notificationId: string) => {
     try {
-      const response = await notificationsApi.markAsRead(notificationId);
-      if (response.success) {
-        setNotifications((prev: Notification[]) => {
-          const updated = prev.map((notif: Notification) =>
-            notif.id === notificationId ? { ...notif, read: true } : notif
-          );
-          return updated;
-        });
-        // Best-effort broadcast (Header listens and will refresh unread badge)
-        try {
-          window.dispatchEvent(
-            new CustomEvent("notifications:updated", {
-              detail: { kind: "read", id: notificationId },
-            })
-          );
-        } catch {
-          // Ignore error
-        }
-      } else {
-        throw new Error("Failed to mark notification as read");
-      }
+      await patientDashboardApi.markNotificationAsRead(notificationId);
+
+      setNotifications((prev: Notification[]) => {
+        const updated = prev.map((notif: Notification) =>
+          notif.id === notificationId ? { ...notif, read: true } : notif
+        );
+        return updated;
+      });
+      // Event logic is handled in patientDashboardApi
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
     }

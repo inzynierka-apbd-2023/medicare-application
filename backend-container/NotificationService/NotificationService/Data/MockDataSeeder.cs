@@ -3,9 +3,6 @@ using NotificationService.Models;
 
 namespace NotificationService.Data;
 
-/// <summary>
-/// Shared deterministic IDs for cross-service mock data references
-/// </summary>
 public static class MockIds
 {
     // Patient User IDs (from UserService)
@@ -80,7 +77,6 @@ public static class MockDataSeeder
             }
         }
 
-        // Add more notifications to reach 7+ per user (additional notifications for patients and doctors)
         var additionalNotifications = new[]
         {
             (Guid.NewGuid(), MockIds.PatientUser1, "Your insurance claim has been submitted", (byte)6, "BillingService", false, "/billing/claims", "Normal"),
@@ -126,11 +122,6 @@ public static class MockDataSeeder
         if (created > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Created {created} notification records.");
-        }
-        else
-        {
-            Console.WriteLine("[MockDataSeeder] All notification mock data already exists.");
         }
     }
 }

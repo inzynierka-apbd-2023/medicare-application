@@ -19,9 +19,15 @@ server {
   
   # Defaults for all proxies
   proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-  # proxy_set_header X-Forwarded-Proto $scheme; # Removed to allow Azure Ingress header (https) to pass through
+  proxy_set_header X-Forwarded-Proto $scheme; 
   proxy_set_header X-Forwarded-Host $host;
   
+  # Security Headers
+  add_header Strict-Transport-Security "max-age=31536000; includeSubDomains" always;
+  add_header X-Frame-Options "DENY" always;
+  add_header X-Content-Type-Options "nosniff" always;
+  add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
   # SSL Proxy Settings (Required for internal HTTPS)
   proxy_ssl_server_name on;
   proxy_ssl_verify off;

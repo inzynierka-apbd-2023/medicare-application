@@ -3,13 +3,8 @@ using DocumentsService.Models;
 
 namespace DocumentsService.Data;
 
-/// <summary>
-/// Shared deterministic IDs for cross-service mock data references
-/// Patient/Doctor IDs match User IDs from UserService for seamless auth integration
-/// </summary>
 public static class MockIds
 {
-    // Patient IDs (matching User IDs from UserService for login integration)
     public static readonly Guid Patient1 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000001");
     public static readonly Guid Patient2 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000002");
     public static readonly Guid Patient3 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000003");
@@ -18,7 +13,6 @@ public static class MockIds
     public static readonly Guid Patient6 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000006");
     public static readonly Guid Patient7 = Guid.Parse("aaaaaaaa-0001-0001-0001-000000000007");
 
-    // Doctor IDs (matching User IDs from UserService for login integration)
     public static readonly Guid Doctor1 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000001");
     public static readonly Guid Doctor2 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000002");
     public static readonly Guid Doctor3 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000003");
@@ -27,7 +21,6 @@ public static class MockIds
     public static readonly Guid Doctor6 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000006");
     public static readonly Guid Doctor7 = Guid.Parse("bbbbbbbb-0002-0002-0002-000000000007");
 
-    // Appointment IDs (from AppointmentService)
     public static readonly Guid Appointment1 = Guid.Parse("55555555-5555-5555-5555-000000000001");
     public static readonly Guid Appointment2 = Guid.Parse("55555555-5555-5555-5555-000000000002");
     public static readonly Guid Appointment3 = Guid.Parse("55555555-5555-5555-5555-000000000003");
@@ -36,7 +29,6 @@ public static class MockIds
     public static readonly Guid Appointment6 = Guid.Parse("55555555-5555-5555-5555-000000000006");
     public static readonly Guid Appointment7 = Guid.Parse("55555555-5555-5555-5555-000000000007");
 
-    // Document IDs
     public static readonly Guid Document1 = Guid.Parse("aaaa1111-1111-1111-1111-000000000001");
     public static readonly Guid Document2 = Guid.Parse("aaaa1111-1111-1111-1111-000000000002");
     public static readonly Guid Document3 = Guid.Parse("aaaa1111-1111-1111-1111-000000000003");
@@ -58,18 +50,12 @@ public static class MockDataSeeder
     {
         int created = 0;
 
-        // Get document types
         var docTypes = await db.DocumentTypes.ToDictionaryAsync(t => t.Code, t => t);
-        if (!docTypes.Any())
-        {
-            Console.WriteLine("[MockDataSeeder] No document types found! Skipping seeding.");
-            return;
-        }
+        if (!docTypes.Any()) return;
 
         var patientNames = new[] { "Alice Johnson", "Bob Smith", "Carol Williams", "David Brown", "Emma Davis", "Frank Miller", "Grace Wilson" };
         var doctorNames = new[] { "Dr. John Carter", "Dr. Sarah Chen", "Dr. Michael Roberts", "Dr. Emily Thompson", "Dr. James Wilson", "Dr. Lisa Anderson", "Dr. Robert Martinez" };
 
-        // Document data: (docId, patientIdx, doctorIdx, typeCode, notes)
         var documentData = new[]
         {
             (MockIds.Document1, 0, 0, "VISIT_NOTE", "Initial consultation - comprehensive health assessment"),
@@ -80,7 +66,6 @@ public static class MockDataSeeder
             (MockIds.Document6, 5, 5, "VISIT_NOTE", "Follow-up visit after procedure"),
             (MockIds.Document6, 5, 5, "VISIT_NOTE", "Follow-up visit after procedure"),
             (MockIds.Document7, 6, 6, "PRESCRIPTION", "Post-operative pain management prescription"),
-            // Add Lab Results for Patient1 (index 0) to verify API connection
             (MockIds.Document8, 0, 0, "LAB_RESULTS", "Annual health checkup blood work")
         };
 
@@ -120,14 +105,12 @@ public static class MockDataSeeder
             await db.SaveChangesAsync();
         }
 
-        // Add type-specific details for each document
         var existingVisitDocs = await db.VisitDocuments.Select(v => v.DocumentId).ToHashSetAsync();
         var existingPrescriptions = await db.Prescriptions.Select(p => p.DocumentId).ToHashSetAsync();
         var existingReferrals = await db.Referrals.Select(r => r.DocumentId).ToHashSetAsync();
         var existingSickLeaves = await db.SickLeaves.Select(s => s.DocumentId).ToHashSetAsync();
         var existingLabResults = await db.LabResults.Select(l => l.DocumentId).ToHashSetAsync();
 
-        // Visit Notes
         if (!existingVisitDocs.Contains(MockIds.Document1))
         {
             db.VisitDocuments.Add(new VisitDocument
@@ -160,7 +143,6 @@ public static class MockDataSeeder
             created++;
         }
 
-        // Prescriptions
         if (!existingPrescriptions.Contains(MockIds.Document2))
         {
             db.Prescriptions.Add(new Prescription
@@ -199,7 +181,6 @@ public static class MockDataSeeder
             created++;
         }
 
-        // Referral
         if (!existingReferrals.Contains(MockIds.Document3))
         {
             db.Referrals.Add(new Referral
@@ -215,7 +196,6 @@ public static class MockDataSeeder
             created++;
         }
 
-        // Sick Leave
         if (!existingSickLeaves.Contains(MockIds.Document4))
         {
             db.SickLeaves.Add(new SickLeave
@@ -230,7 +210,6 @@ public static class MockDataSeeder
             created++;
         }
 
-        // Lab Results
         if (!existingLabResults.Contains(MockIds.Document5))
         {
             var labResult = new LabResults
@@ -248,7 +227,6 @@ public static class MockDataSeeder
             db.LabResults.Add(labResult);
             await db.SaveChangesAsync();
 
-            // Add individual test results
             var testResults = new[]
             {
                 ("718-7", "Hemoglobin", "14.5", 14.5m, "g/dL", "12.0-17.5", "Normal", false),
@@ -279,7 +257,6 @@ public static class MockDataSeeder
             }
         }
 
-        // Lab Results for Document8 (Patient1)
         if (!existingLabResults.Contains(MockIds.Document8))
         {
             var labResult = new LabResults
@@ -323,7 +300,6 @@ public static class MockDataSeeder
             }
         }
 
-        // Add Document Assignments (link documents to appointments)
         var existingAssignments = await db.DocumentAssignments
             .Select(a => new { a.DocumentId, a.AppointmentId })
             .ToListAsync();
@@ -360,11 +336,6 @@ public static class MockDataSeeder
         if (created > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Created {created} document records (documents, visit notes, prescriptions, referrals, sick leaves, lab results, assignments).");
-        }
-        else
-        {
-            Console.WriteLine("[MockDataSeeder] All document mock data already exists.");
         }
     }
 }

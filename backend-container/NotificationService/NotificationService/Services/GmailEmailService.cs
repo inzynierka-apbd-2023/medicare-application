@@ -5,9 +5,6 @@ using Microsoft.Extensions.Options;
 
 namespace NotificationService.Services;
 
-/// <summary>
-/// Gmail SMTP email service implementation using MailKit
-/// </summary>
 public class GmailEmailService : IEmailService
 {
     private readonly SmtpSettings _settings;
@@ -142,9 +139,6 @@ public class GmailEmailService : IEmailService
     }
 }
 
-/// <summary>
-/// SMTP configuration settings
-/// </summary>
 public class SmtpSettings
 {
     public string Host { get; set; } = "smtp.gmail.com";

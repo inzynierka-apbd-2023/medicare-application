@@ -8,14 +8,12 @@ namespace MedicalRecordsService.Controllers;
 
 [ApiController]
 [Route("api/medical-records/prescriptions")]
+[Authorize]
 public class PrescriptionsController : ControllerBase
 {
     private readonly MedicalRecordsDbContext _db;
     public PrescriptionsController(MedicalRecordsDbContext db) => _db = db;
 
-    /// <summary>
-    /// Get all prescriptions with optional filters
-    /// </summary>
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] Guid? patientId,
@@ -127,7 +125,6 @@ public class PrescriptionsController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdatePrescriptionStatusRequest req)
     {
         var prescription = await _db.Prescriptions.FindAsync(id);
@@ -141,7 +138,6 @@ public class PrescriptionsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize]
     public async Task<IActionResult> DeletePrescription(Guid id)
     {
         var prescription = await _db.Prescriptions.FindAsync(id);

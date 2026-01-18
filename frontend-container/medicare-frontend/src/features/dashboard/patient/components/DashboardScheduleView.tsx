@@ -1,5 +1,4 @@
 import { useMemo } from "react";
-import { getStatusColors } from "../../../scheduler/utils/statusColors";
 import type { EventContentArg } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
@@ -8,6 +7,7 @@ import { Calendar as CalendarIcon, Clock } from "lucide-react";
 
 import { Card } from "../../../../shared/components";
 import type { Appointment } from "../../../scheduler/types";
+import { getStatusColors } from "../../../scheduler/utils/statusColors";
 
 import "./DashboardScheduleView.css";
 
@@ -67,9 +67,9 @@ export default function DashboardScheduleView({
         const endDate = new Date(startDate);
         endDate.setMinutes(endDate.getMinutes() + appointment.durationMinutes);
 
-  const statusColors = getStatusColors(appointment.status?.name);
-  const backgroundColor = statusColors.bg;
-  const borderColor = statusColors.border;
+        const statusColors = getStatusColors(appointment.status?.name);
+        const backgroundColor = statusColors.bg;
+        const borderColor = statusColors.border;
 
         return {
           id: appointment.id,

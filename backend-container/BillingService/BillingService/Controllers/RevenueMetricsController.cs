@@ -9,7 +9,7 @@ namespace BillingService.Controllers;
 
 /// <summary>
 /// Provides revenue metrics endpoints for Owner dashboard.
-/// NOTE: Implementation logic intentionally omitted (stub) - only wiring & validation.
+/// Implementation logic intentionally omitted (stub) - only wiring & validation.
 /// </summary>
 [ApiController]
 [Route("api/billing/revenue-metrics")]

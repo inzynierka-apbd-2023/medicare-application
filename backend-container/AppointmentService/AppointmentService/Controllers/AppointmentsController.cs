@@ -9,11 +9,13 @@ using System.Text.Json;
 using AppointmentService.Features.Scheduler.DTOs;
 using AppointmentService.Features.Scheduler.Queries;
 using MediatR;
+using AppointmentService.Services;
 
 namespace AppointmentService.Controllers;
 
 [ApiController]
 [Route("api/appointment/[controller]")]
+[Authorize]
 public class AppointmentsController : ControllerBase
 {
 
@@ -22,18 +24,19 @@ public class AppointmentsController : ControllerBase
     private readonly ILogger<AppointmentsController> _logger;
     private readonly AppointmentService.Services.IBillingServiceClient _billingClient;
     private readonly IMediator _mediator;
+    private readonly IPatientProfileClient _patientProfileClient;
 
-    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, ILogger<AppointmentsController> logger, AppointmentService.Services.IBillingServiceClient billingClient, IMediator mediator)
+    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, ILogger<AppointmentsController> logger, AppointmentService.Services.IBillingServiceClient billingClient, IMediator mediator, IPatientProfileClient patientProfileClient)
     {
         _db = db;
         _mqConnection = mqConnection;
         _logger = logger;
         _billingClient = billingClient;
         _mediator = mediator;
+        _patientProfileClient = patientProfileClient;
     }
 
     [HttpPost]
-    [Authorize]
     public async Task<IActionResult> CreateAppointment([FromBody] CreateAppointmentRequest req)
     {
         if (req.PatientId == Guid.Empty || req.DoctorId == Guid.Empty)
@@ -41,45 +44,33 @@ public class AppointmentsController : ControllerBase
         if (req.ScheduledAt == default || req.ScheduledEndAt == default || req.ScheduledEndAt <= req.ScheduledAt)
             return BadRequest("Invalid scheduled times");
 
-        try
+        // 0. Pre-generate ID
+        var apptId = Guid.NewGuid();
+
+        var appointment = new Appointment
         {
-            // 0. Pre-generate ID
-            var apptId = Guid.NewGuid();
+            Id = apptId,
+            PatientId = req.PatientId,
+            DoctorId = req.DoctorId,
+            ScheduledAt = req.ScheduledAt,
+            ScheduledEndAt = req.ScheduledEndAt,
+            AppointmentType = req.AppointmentType,
+            Notes = req.Notes,
+            ServiceId = req.ServiceId,
+            Category = req.Category,
+            Room = req.Room,
+            CreatedAt = DateTime.UtcNow,
+            UpdatedAt = DateTime.UtcNow,
+            IsPaid = false,
+            PaymentProcessed = false
+        };
 
-            var appointment = new Appointment
-            {
-                Id = apptId,
-                PatientId = req.PatientId,
-                DoctorId = req.DoctorId,
-                ScheduledAt = req.ScheduledAt,
-                ScheduledEndAt = req.ScheduledEndAt,
-                AppointmentType = req.AppointmentType,
-                Notes = req.Notes,
-                ServiceId = req.ServiceId,
-                Category = req.Category,
-                Room = req.Room,
-                CreatedAt = DateTime.UtcNow,
-                UpdatedAt = DateTime.UtcNow,
-                IsPaid = false, // Default to unpaid
-                PaymentProcessed = false // Waiting for BillingService to process
-            };
+        _db.Appointments.Add(appointment);
+        await _db.SaveChangesAsync();
 
-            _db.Appointments.Add(appointment);
-            await _db.SaveChangesAsync();
+        await PublishAppointmentCreatedAsync(appointment);
 
-            // Publish event (still useful for other services, but not for billing loop)
-            await PublishAppointmentCreatedAsync(appointment);
-
-            return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment);
-        }
-        catch (DbUpdateException ex)
-        {
-            return StatusCode(500, new { message = "Database update failed", error = ex.Message, inner = ex.InnerException?.Message });
-        }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Failed to create appointment", error = ex.Message, inner = ex.InnerException?.Message });
-        }
+        return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment);
     }
 
     [HttpGet("stats")]
@@ -114,8 +105,14 @@ public class AppointmentsController : ControllerBase
                 .Where(a => a.PatientId == patientId)
                 .OrderBy(a => a.ScheduledAt)
                 .ToListAsync();
+
+            // Enrich with Patient Data
+            var patientProfiles = await _patientProfileClient.GetPatientProfilesAsync(new[] { patientId });
+            var patientProfile = patientProfiles.FirstOrDefault();
+
             foreach (var a in appointments)
             {
+                a.Patient = patientProfile;
                 if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
                 {
                     a.Status = "Overdue";
@@ -140,8 +137,18 @@ public class AppointmentsController : ControllerBase
                 .Where(a => a.DoctorId == doctorId)
                 .OrderBy(a => a.ScheduledAt)
                 .ToListAsync();
+
+            // Enrich with Patient Data
+            var patientIds = appointments.Select(a => a.PatientId).Distinct();
+            var patients = await _patientProfileClient.GetPatientProfilesAsync(patientIds);
+            var patientMap = patients.ToDictionary(p => p.PatientId);
+
             foreach (var a in appointments)
             {
+                if (patientMap.TryGetValue(a.PatientId, out var p))
+                {
+                    a.Patient = p;
+                }
                 if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
                 {
                     a.Status = "Overdue";
@@ -156,7 +163,6 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateStatusRequest req)
     {
         var appointment = await _db.Appointments.FindAsync(id);
@@ -172,7 +178,6 @@ public class AppointmentsController : ControllerBase
     }
     
     [HttpPost("{id}/mock-payment")]
-    [Authorize]
     public async Task<IActionResult> ProcessMockPayment(Guid id, [FromBody] MockPaymentRequest req)
     {
         var appointment = await _db.Appointments.FindAsync(id);
@@ -291,7 +296,6 @@ public class AppointmentsController : ControllerBase
     }
 
     [HttpPut("{id}")]
-    [Authorize]
     public async Task<IActionResult> UpdateAppointment(Guid id, [FromBody] UpdateAppointmentRequestDto req)
     {
         var appointment = await _db.Appointments.FindAsync(id);
@@ -314,7 +318,6 @@ public class AppointmentsController : ControllerBase
         return Ok(appointment);
     }
     [HttpPost("{id}/rate")]
-    [Authorize]
     public async Task<IActionResult> RateAppointment(Guid id, [FromBody] RateAppointmentRequest req)
     {
         var appointment = await _db.Appointments.FindAsync(id);
@@ -333,7 +336,7 @@ public class AppointmentsController : ControllerBase
             Is_Anonymous = false
         };
 
-        _db.Set<Rate>().Add(rate); // Assuming DbSet<Rate> is available or via Set<Rate>()
+        _db.Set<Rate>().Add(rate);
         await _db.SaveChangesAsync();
 
         // 2. Publish event

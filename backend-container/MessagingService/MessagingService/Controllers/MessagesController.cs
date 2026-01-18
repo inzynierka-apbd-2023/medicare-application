@@ -8,6 +8,7 @@ namespace MessagingService.Controllers;
 
 [ApiController]
 [Route("api/messaging/[controller]")]
+[Authorize]
 public class MessagesController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -18,7 +19,6 @@ public class MessagesController : ControllerBase
     }
 
     [HttpPost]
-    [Authorize]
     public async Task<IActionResult> SendMessage([FromBody] SendMessageRequest req)
     {
         var command = new SendMessageCommand(
@@ -47,17 +47,11 @@ public class MessagesController : ControllerBase
     [HttpGet("conversation/{userId1}/{userId2}")]
     public async Task<IActionResult> GetMessages(Guid userId1, Guid userId2)
     {
-        // userId1 is typically the current user, userId2 is the other person
         var query = new GetMessagesQuery(userId1, userId2);
         var result = await _mediator.Send(query);
         return Ok(result);
     }
 
-    /// <summary>
-    /// Get available message recipients for a user.
-    /// For patients: returns doctors they have appointments with.
-    /// For doctors: returns patients they have appointments with.
-    /// </summary>
     [HttpGet("recipients/{userId}")]
     public async Task<IActionResult> GetAvailableRecipients(Guid userId, [FromQuery] string userRole = "patient")
     {

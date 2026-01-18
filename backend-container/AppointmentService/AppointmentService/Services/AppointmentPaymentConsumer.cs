@@ -26,15 +26,12 @@ public class AppointmentPaymentConsumer : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        Console.WriteLine("[ApptPaymentConsumer] 🔌 Connecting...");
         try
         {
             _channel = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
             await _channel.ExchangeDeclareAsync("billing.events", ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
             await _channel.QueueDeclareAsync("appointment.billing.updates", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
             await _channel.QueueBindAsync("appointment.billing.updates", "billing.events", "billing.appointment_payment_processed", arguments: null, cancellationToken: stoppingToken);
-            
-            Console.WriteLine("[ApptPaymentConsumer] ✅ Connected and bound to billing.appointment_payment_processed");
         }
         catch (Exception ex)
         {
@@ -49,13 +46,10 @@ public class AppointmentPaymentConsumer : BackgroundService
             {
                 var body = ea.Body.ToArray();
                 var msg = Encoding.UTF8.GetString(body);
-                Console.WriteLine($"[ApptPaymentConsumer] 📨 Received update: {msg}");
-                
                 var evt = JsonSerializer.Deserialize<AppointmentBillingProcessed>(msg, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
 
                 if (evt != null)
                 {
-                    Console.WriteLine($"[ApptPaymentConsumer] 🔄 Updating Appt {evt.AppointmentId} -> IsPaid={evt.IsPaid}");
                     _logger.LogInformation("Processing payment update for appt {Id}: IsPaid={IsPaid}", evt.AppointmentId, evt.IsPaid);
                     await UpdateAppointmentAsync(evt, stoppingToken);
                 }

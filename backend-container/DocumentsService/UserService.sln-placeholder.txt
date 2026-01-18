@@ -1,1 +1,0 @@
-This folder contains the DocumentsService .NET 8 Web API project. It is built via Docker and docker-compose.

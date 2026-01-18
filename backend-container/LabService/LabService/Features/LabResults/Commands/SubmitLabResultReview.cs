@@ -4,7 +4,6 @@ using LabService.Models;
 
 namespace LabService.Features.LabResults.Commands;
 
-// Command to submit a lab result review
 public record SubmitLabResultReviewCommand(
     Guid LabResultId,
     Guid ReviewedByDoctorId,

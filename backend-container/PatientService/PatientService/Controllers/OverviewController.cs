@@ -7,6 +7,7 @@ namespace PatientService.Controllers;
 
 [ApiController]
 [Route("api/patient/[controller]")]
+[Authorize]
 public class OverviewController : ControllerBase
 {
     private readonly PatientDbContext _db;

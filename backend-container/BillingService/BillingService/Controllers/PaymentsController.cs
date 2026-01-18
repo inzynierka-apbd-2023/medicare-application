@@ -9,6 +9,7 @@ namespace BillingService.Controllers;
 
 [ApiController]
 [Route("api/[controller]")]
+[Authorize]
 public class PaymentsController : ControllerBase
 {
     private readonly BillingDbContext _db;
@@ -16,7 +17,6 @@ public class PaymentsController : ControllerBase
 
     // Create payment intent (appointment or subscription)
     [HttpPost("intents")]
-    [Authorize]
     public async Task<ActionResult<PaymentIntent>> CreateIntent([FromBody] CreateIntentRequest req)
     {
         if (req.AmountCents <= 0) return BadRequest("amount required");
@@ -37,7 +37,6 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpGet("intents/{id}")]
-    [Authorize]
     public async Task<ActionResult<PaymentIntent>> GetIntent(Guid id)
     {
         var i = await _db.PaymentIntents.FindAsync(id);
@@ -46,7 +45,6 @@ public class PaymentsController : ControllerBase
 
     // Record transaction in ledger
     [HttpPost("intents/{id}/transactions")]
-    [Authorize]
     public async Task<ActionResult> RecordTransaction(Guid id, [FromBody] RecordTransactionRequest req)
     {
         var intent = await _db.PaymentIntents.FindAsync(id);
@@ -78,7 +76,6 @@ public class PaymentsController : ControllerBase
 
     // Manage subscription renewal (create intent for next period)
     [HttpPost("subscriptions/{contractId}/renewals")]
-    [Authorize]
     public async Task<ActionResult<PaymentIntent>> CreateRenewal(Guid contractId)
     {
         var c = await _db.SubscriptionContracts.FindAsync(contractId);

@@ -30,26 +30,24 @@ public class JwtService : IJwtService
         var secretKey = jwtSettings["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey not configured");
         var issuer = jwtSettings["Issuer"] ?? "UserService";
         var audience = jwtSettings["Audience"] ?? "MedicareApp";
-        var expiryHours = int.Parse(jwtSettings["ExpiryInHours"] ?? "24");
+        var expiryMinutes = int.Parse(jwtSettings["ExpiryInMinutes"] ?? "15");
 
         var key = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey));
         var credentials = new SigningCredentials(key, SecurityAlgorithms.HmacSha256);
 
         var claims = new[]
         {
-            new Claim(ClaimTypes.NameIdentifier, userId.ToString()),
-            new Claim(ClaimTypes.Name, username),
-            new Claim(ClaimTypes.Role, role),
-            new Claim("userId", userId.ToString()),
-            new Claim("username", username),
-            new Claim("role", role)
+            new Claim(JwtRegisteredClaimNames.Sub, userId.ToString()),
+            new Claim(JwtRegisteredClaimNames.UniqueName, username),
+            new Claim("role", role), 
+            new Claim(JwtRegisteredClaimNames.Jti, Guid.NewGuid().ToString())
         };
 
         var token = new JwtSecurityToken(
             issuer: issuer,
             audience: audience,
             claims: claims,
-            expires: DateTime.UtcNow.AddHours(expiryHours),
+            expires: DateTime.UtcNow.AddMinutes(expiryMinutes),
             signingCredentials: credentials
         );
 
@@ -75,8 +73,8 @@ public class JwtService : IJwtService
     public (string token, DateTime expiresAt) GenerateAccessToken(UserResponseDto user)
     {
         var token = GenerateToken(user);
-        var expiryHours = int.Parse(_configuration.GetSection("Jwt")["ExpiryInHours"] ?? "24");
-        return (token, DateTime.UtcNow.AddHours(expiryHours));
+        var expiryMinutes = int.Parse(_configuration.GetSection("Jwt")["ExpiryInMinutes"] ?? "15");
+        return (token, DateTime.UtcNow.AddMinutes(expiryMinutes));
     }
 
     public (string refreshToken, DateTime expiresAt, string hash) GenerateRefreshToken()

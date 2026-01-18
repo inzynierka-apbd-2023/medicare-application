@@ -15,7 +15,6 @@ public class UsersController : ControllerBase
         _userService = userService;
     }
 
-    // GET: api/users/availability?email=...&username=... (no auth, used during sign-up)
     [HttpGet("availability")]
     [AllowAnonymous]
     public async Task<ActionResult<object>> CheckAvailability([FromQuery] string? email, [FromQuery] string? username)
@@ -34,9 +33,8 @@ public class UsersController : ControllerBase
         return Ok(result);
     }
 
-    // GET: api/users/{id}
-    // Note: No authorization required - allows cross-service lookup of user profiles
     [HttpGet("{id}")]
+    [Authorize]
     public async Task<ActionResult<UserResponseDto>> GetById(Guid id)
     {
         var user = await _userService.GetUserByIdAsync(id);
@@ -44,25 +42,27 @@ public class UsersController : ControllerBase
         return Ok(user);
     }
 
-    // PUT: api/users/{id}
     [HttpPut("{id}")]
     [Authorize]
     public async Task<ActionResult<UserResponseDto>> Update(Guid id, [FromBody] UpdateUserDto dto)
     {
         if (!ModelState.IsValid) return BadRequest(ModelState);
-        try
+
+        var currentUserIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value 
+                                 ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (currentUserIdClaim == null || !Guid.TryParse(currentUserIdClaim, out var currentUserId))
         {
-            var updated = await _userService.UpdateUserAsync(id, dto);
-            if (updated == null) return NotFound();
-            return Ok(updated);
+             return Unauthorized();
         }
-        catch (InvalidOperationException ex)
+
+        if (currentUserId != id && !User.IsInRole("Admin")) 
         {
-            return Conflict(new { message = ex.Message });
+            return Forbid();
         }
-        catch (Exception ex)
-        {
-            return StatusCode(500, new { message = "Internal server error", error = ex.Message });
-        }
+
+        var updated = await _userService.UpdateUserAsync(id, dto);
+        if (updated == null) return NotFound();
+        return Ok(updated);
     }
 }

@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, CheckCircle, Mail } from "lucide-react";
 
 import { useAuth } from "../../shared/auth/AuthContext";
-import { apiClient } from "../../shared/services/apiClient";
+import { authService } from "../../shared/services/authService";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");
@@ -19,12 +19,10 @@ export default function ForgotPassword() {
     setError("");
 
     try {
-      await apiClient.post("/auth/forgot-password", { email });
-      // Identify assuming we have useAuth hook available or context
+      await authService.forgotPassword(email);
       logout();
       setIsSubmitted(true);
     } catch {
-      // Still show success to prevent email enumeration
       setIsSubmitted(true);
     } finally {
       setIsLoading(false);

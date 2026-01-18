@@ -1,3 +1,6 @@
+import { toastMessages } from "../toast/toastMessages";
+
+import { handleApiCall } from "./api";
 import { apiClient } from "./apiClient";
 
 export interface BackendMedicalRecord {
@@ -16,11 +19,11 @@ export interface BackendMedicalRecord {
 
 export interface BackendDiagnosis {
   id: string;
-  medicalRecordId: string; // Visits linkage
+  medicalRecordId: string;
   icd10Code: string;
   description: string;
-  type: string; // Primary/Secondary
-  status?: string; // Not in backend entity explicitly but maybe we can infer
+  type: string;
+  status?: string;
   createdAt: string;
 }
 
@@ -61,33 +64,38 @@ export interface BackendPatientHistory {
   vitals: BackendVitalSigns[];
 }
 
-export interface ApiResponse<T> {
+export interface MedicalRecordsApiResponse<T> {
   success: boolean;
   data: T;
   message?: string;
 }
 
 export const medicalRecordsApi = {
-  async getPatientHistory(
+  getPatientHistory: async (
     patientId: string
-  ): Promise<ApiResponse<BackendPatientHistory | null>> {
-    try {
-      const response = await apiClient.get<BackendPatientHistory>(
-        `/medical-records/records/patient-history/${patientId}`
-      );
-      return { success: true, data: response.data };
-    } catch (e: unknown) {
-      // If 404, it means no history found, which is valid for new patients.
-      const axiosError = e as { response?: { status?: number } };
-      if (axiosError.response && axiosError.response.status === 404) {
-        return { success: true, data: null };
-      }
-      // Suppress console log as per user request
-      return {
-        success: false,
-        data: null,
-        message: "Failed to fetch patient history",
-      };
+  ): Promise<MedicalRecordsApiResponse<BackendPatientHistory | null>> => {
+    const result = await handleApiCall(
+      () =>
+        apiClient
+          .get<BackendPatientHistory>(
+            `/medical-records/records/patient-history/${patientId}`
+          )
+          .then((res) => res.data),
+      { showToastOnError: false }
+    );
+
+    if (result.success) {
+      return { success: true, data: result.data };
     }
+
+    if (result.status === 404) {
+      return { success: true, data: null };
+    }
+
+    return {
+      success: false,
+      data: null,
+      message: result.error || toastMessages.medicalRecords.fetchHistoryError,
+    };
   },
 };

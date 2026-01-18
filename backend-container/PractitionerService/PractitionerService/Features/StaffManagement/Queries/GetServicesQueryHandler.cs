@@ -26,8 +26,8 @@ namespace PractitionerService.Features.StaffManagement.Queries
                         Id = s.Id,
                         Name = s.Name,
                         Description = s.Description,
-                        DurationMinutes = 30, // Default duration - add this field to entity if needed
-                        IsActive = true // Add this field to entity if needed
+                        DurationMinutes = 30, // Default duration
+                        IsActive = true
                     })
                     .ToListAsync(cancellationToken);
 

@@ -1,8 +1,8 @@
 import { useEffect, useState } from "react";
 
 import type { Appointment } from "../../features/appointments/types";
-import { appointmentsApi } from "../services/appointmentsApi";
 import { useAuth } from "../auth/AuthContext";
+import { appointmentsApi } from "../services/appointmentsApi";
 
 interface UseAppointmentsReturn {
   appointments: Appointment[];
@@ -32,7 +32,7 @@ export const useAppointments = (): UseAppointmentsReturn => {
         return;
       }
 
-  const response = await appointmentsApi.getAppointmentsForPatient(user.id);
+      const response = await appointmentsApi.getAppointmentsForPatient(user.id);
 
       if (response.success) {
         setAppointments(response.data);

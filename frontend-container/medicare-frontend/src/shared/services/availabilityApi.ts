@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient";
+import { api } from "./api";
 
 export interface AvailabilityResponse {
   emailExists?: boolean;
@@ -7,17 +7,20 @@ export interface AvailabilityResponse {
 
 export const availabilityApi = {
   async checkEmail(email: string, signal?: AbortSignal): Promise<boolean> {
-    const res = await apiClient.get<AvailabilityResponse>(`/users/availability`, {
+    const res = await api.get<AvailabilityResponse>(`/users/availability`, {
       params: { email },
-      signal,
+      ...(signal ? { signal } : {}),
     });
-    return Boolean(res.data.emailExists);
+    return Boolean(res.emailExists);
   },
-  async checkUsername(username: string, signal?: AbortSignal): Promise<boolean> {
-    const res = await apiClient.get<AvailabilityResponse>(`/users/availability`, {
+  async checkUsername(
+    username: string,
+    signal?: AbortSignal
+  ): Promise<boolean> {
+    const res = await api.get<AvailabilityResponse>(`/users/availability`, {
       params: { username },
-      signal,
+      ...(signal ? { signal } : {}),
     });
-    return Boolean(res.data.usernameExists);
+    return Boolean(res.usernameExists);
   },
 };

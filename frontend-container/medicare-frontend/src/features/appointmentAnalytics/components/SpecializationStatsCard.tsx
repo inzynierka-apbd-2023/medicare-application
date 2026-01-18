@@ -15,17 +15,7 @@ import {
 } from "recharts";
 
 import { Card } from "../../../shared/components";
-
-interface SpecializationStats {
-  specialization: string;
-  totalAppointments: number;
-  totalPatients: number;
-  totalDoctors: number;
-  averageAppointmentDuration: number;
-  revenue: number;
-  completionRate: number;
-  averageRating: number;
-}
+import { SpecializationStats } from "../../../shared/services/analyticsApi";
 
 interface SpecializationStatsCardProps {
   data: SpecializationStats[];

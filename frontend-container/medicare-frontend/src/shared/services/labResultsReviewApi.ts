@@ -1,6 +1,7 @@
-import { apiClient } from "./apiClient";
+import { toastMessages } from "../toast/toastMessages";
 
-// Backend response types
+import { api, type ApiResponse, handleApiCall } from "./api";
+
 interface BackendPendingLabResult {
   id: string;
   patientId: string;
@@ -73,7 +74,6 @@ interface BackendLabResultReview {
   recommendations?: string;
 }
 
-// Frontend-compatible types
 export interface LabResultReview {
   id: string;
   documentId: string;
@@ -94,7 +94,6 @@ export interface LabResultReviewRequest {
   reviewNotes: string;
 }
 
-// Document type for compatibility
 interface LabDocument {
   id: string;
   patientId: string;
@@ -118,13 +117,6 @@ interface LabDocument {
   };
 }
 
-interface ApiResponse<T> {
-  success: boolean;
-  data: T;
-  error?: string;
-}
-
-// Map backend priority to frontend priority
 const mapPriority = (priority: string): "routine" | "urgent" | "critical" => {
   const lower = priority.toLowerCase();
   if (lower === "urgent" || lower === "high") return "urgent";
@@ -132,7 +124,6 @@ const mapPriority = (priority: string): "routine" | "urgent" | "critical" => {
   return "routine";
 };
 
-// Map backend review status to frontend
 const mapReviewStatus = (status: string): LabResultReview["reviewStatus"] => {
   const lower = status.toLowerCase();
   if (lower === "reviewed" || lower === "approved") return "approved";
@@ -142,219 +133,171 @@ const mapReviewStatus = (status: string): LabResultReview["reviewStatus"] => {
   return "pending_review";
 };
 
-class LabResultsReviewApiService {
-  // Get lab result documents that need review
-  async getLabResultsForReview(): Promise<ApiResponse<LabDocument[]>> {
-    try {
-      const response = await apiClient.get<BackendPendingLabResult[]>(
-        "/lab/labresults/pending-review"
-      );
+const transformPendingResultToDocument = (
+  r: BackendPendingLabResult
+): LabDocument => ({
+  id: r.id,
+  patientId: r.patientId,
+  type: "Lab_Results" as const,
+  createdAt: r.createdAt,
+  notes: r.orderNotes || "",
+  data: {
+    testType: r.testName,
+    testDate: r.resultDate.split("T")[0],
+    laboratory: "Medical Laboratory",
+    status: r.flag === "Normal" ? "Normal" : "Abnormal",
+    results: [
+      {
+        parameter: r.testName,
+        value: r.value || "",
+        unit: r.unit || "",
+        referenceRange: r.referenceRange || "",
+        status: r.flag || "Normal",
+      },
+    ],
+    interpretation: r.comments || "",
+  },
+});
 
-      // Transform backend results to Document format
-      const documents: LabDocument[] = response.data.map((r) => ({
-        id: r.id,
-        patientId: r.patientId,
-        type: "Lab_Results" as const,
-        createdAt: r.createdAt,
-        notes: r.orderNotes || "",
-        data: {
-          testType: r.testName,
-          testDate: r.resultDate.split("T")[0],
-          laboratory: "Medical Laboratory",
-          status: r.flag === "Normal" ? "Normal" : "Abnormal",
-          results: [
-            {
-              parameter: r.testName,
-              value: r.value || "",
-              unit: r.unit || "",
-              referenceRange: r.referenceRange || "",
-              status: r.flag || "Normal",
-            },
-          ],
-          interpretation: r.comments || "",
-        },
-      }));
+const transformPendingResultToReview = (
+  r: BackendPendingLabResult
+): LabResultReview => ({
+  id: `review_${r.id}`,
+  documentId: r.id,
+  reviewedById: "",
+  reviewStatus: mapReviewStatus(r.reviewStatus),
+  priority: mapPriority(r.priority),
+});
 
-      return { success: true, data: documents };
-    } catch (error) {
-      console.error("Failed to fetch lab results:", error);
-      return {
-        success: false,
-        data: [],
-        error: "Failed to fetch lab results for review",
-      };
-    }
-  }
+const transformBackendReviewToReview = (
+  response: BackendLabResultReview,
+  status: LabResultReview["reviewStatus"] = mapReviewStatus(
+    response.reviewStatus
+  )
+): LabResultReview => ({
+  id: response.id,
+  documentId: response.labResultId,
+  reviewedById: response.reviewedByDoctorId,
+  reviewStatus: status,
+  reviewNotes: response.reviewNotes || "",
+  reviewedAt: response.reviewedAt,
+  priority: "routine",
+});
 
-  // Get review status for lab results
-  async getLabResultReviews(): Promise<ApiResponse<LabResultReview[]>> {
-    try {
-      const response = await apiClient.get<BackendPendingLabResult[]>(
-        "/lab/labresults/pending-review"
-      );
+const transformDetailToDocument = (
+  detail: BackendLabResultDetail
+): LabDocument => ({
+  id: detail.result.id,
+  patientId: detail.result.patientId,
+  type: "Lab_Results",
+  createdAt: detail.result.createdAt,
+  notes: detail.order?.clinicalNotes || "",
+  data: {
+    testType: detail.test?.testName || "Lab Test",
+    testDate: detail.result.resultDate.split("T")[0],
+    laboratory: "Medical Laboratory",
+    status: detail.result.flag === "Normal" ? "Normal" : "Abnormal",
+    results: [
+      {
+        parameter: detail.test?.testName || "Result",
+        value: detail.result.value || "",
+        unit: detail.result.unit || "",
+        referenceRange: detail.result.referenceRange || "",
+        status: detail.result.flag || "Normal",
+      },
+    ],
+    interpretation: detail.result.comments || "",
+  },
+});
 
-      // Transform to review format
-      const reviews: LabResultReview[] = response.data.map((r) => ({
-        id: `review_${r.id}`,
-        documentId: r.id,
-        reviewedById: "",
-        reviewStatus: mapReviewStatus(r.reviewStatus),
-        priority: mapPriority(r.priority),
-      }));
+const mapReviewStatusToBackend = (
+  status: LabResultReviewRequest["reviewStatus"]
+): string => {
+  if (status === "approved") return "Reviewed";
+  if (status === "requires_followup") return "RequiresFollowUp";
+  return "InReview";
+};
 
-      return { success: true, data: reviews };
-    } catch (error) {
-      console.error("Failed to fetch lab reviews:", error);
-      return {
-        success: false,
-        data: [],
-        error: "Failed to fetch lab result reviews",
-      };
-    }
-  }
+export const labResultsReviewApi = {
+  getLabResultsForReview: async (): Promise<ApiResponse<LabDocument[]>> => {
+    return handleApiCall(
+      async () => {
+        const data = await api.get<BackendPendingLabResult[]>(
+          "/lab/labresults/pending-review"
+        );
+        return data.map(transformPendingResultToDocument);
+      },
+      { showToastOnSuccess: false }
+    );
+  },
 
-  // Submit a lab result review
-  async submitLabResultReview(
+  getLabResultReviews: async (): Promise<ApiResponse<LabResultReview[]>> => {
+    return handleApiCall(
+      async () => {
+        const data = await api.get<BackendPendingLabResult[]>(
+          "/lab/labresults/pending-review"
+        );
+        return data.map(transformPendingResultToReview);
+      },
+      { showToastOnSuccess: false }
+    );
+  },
+
+  submitLabResultReview: async (
     request: LabResultReviewRequest
-  ): Promise<ApiResponse<LabResultReview>> {
-    try {
-      // Get user ID from localStorage token
-      const token = localStorage.getItem("authToken");
-      let doctorId = "00000000-0000-0000-0000-000000000000";
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          doctorId = payload.sub || payload.userId || doctorId;
-        } catch {
-          // Use default
-        }
+  ): Promise<ApiResponse<LabResultReview>> => {
+    return handleApiCall(
+      async () => {
+        const backendStatus = mapReviewStatusToBackend(request.reviewStatus);
+
+        const response = await api.post<BackendLabResultReview>(
+          `/lab/labresults/${request.documentId}/review`,
+          {
+            reviewStatus: backendStatus,
+            reviewNotes: request.reviewNotes,
+            recommendations: null,
+          }
+        );
+
+        return transformBackendReviewToReview(response);
+      },
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.labResultsReview.submitReviewSuccess,
       }
+    );
+  },
 
-      const backendStatus =
-        request.reviewStatus === "approved"
-          ? "Reviewed"
-          : request.reviewStatus === "requires_followup"
-            ? "RequiresFollowUp"
-            : "InReview";
-
-      const response = await apiClient.post<BackendLabResultReview>(
-        `/lab/labresults/${request.documentId}/review`,
-        {
-          reviewedByDoctorId: doctorId,
-          reviewStatus: backendStatus,
-          reviewNotes: request.reviewNotes,
-          recommendations: null,
-        }
-      );
-
-      const review: LabResultReview = {
-        id: response.data.id,
-        documentId: response.data.labResultId,
-        reviewedById: response.data.reviewedByDoctorId,
-        reviewStatus: mapReviewStatus(response.data.reviewStatus),
-        reviewNotes: response.data.reviewNotes || "",
-        reviewedAt: response.data.reviewedAt,
-        priority: "routine",
-      };
-
-      return { success: true, data: review };
-    } catch (error) {
-      console.error("Failed to submit review:", error);
-      return {
-        success: false,
-        data: {} as LabResultReview,
-        error: "Failed to submit lab result review",
-      };
-    }
-  }
-
-  // Quick approve a lab result
-  async quickApproveLabResult(
+  quickApproveLabResult: async (
     documentId: string
-  ): Promise<ApiResponse<LabResultReview>> {
-    try {
-      // Get user ID from localStorage token
-      const token = localStorage.getItem("authToken");
-      let doctorId = "00000000-0000-0000-0000-000000000000";
-      if (token) {
-        try {
-          const payload = JSON.parse(atob(token.split(".")[1]));
-          doctorId = payload.sub || payload.userId || doctorId;
-        } catch {
-          // Use default
-        }
+  ): Promise<ApiResponse<LabResultReview>> => {
+    return handleApiCall(
+      async () => {
+        const response = await api.post<BackendLabResultReview>(
+          `/lab/labresults/${documentId}/quick-approve`,
+          {}
+        );
+
+        return transformBackendReviewToReview(response, "approved");
+      },
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.labResultsReview.quickApproveSuccess,
       }
+    );
+  },
 
-      const response = await apiClient.post<BackendLabResultReview>(
-        `/lab/labresults/${documentId}/quick-approve`,
-        { doctorId }
-      );
-
-      const review: LabResultReview = {
-        id: response.data.id,
-        documentId: response.data.labResultId,
-        reviewedById: response.data.reviewedByDoctorId,
-        reviewStatus: "approved",
-        reviewNotes: response.data.reviewNotes || "",
-        reviewedAt: response.data.reviewedAt,
-        priority: "routine",
-      };
-
-      return { success: true, data: review };
-    } catch (error) {
-      console.error("Failed to quick approve:", error);
-      return {
-        success: false,
-        data: {} as LabResultReview,
-        error: "Failed to approve lab result",
-      };
-    }
-  }
-
-  // Get lab result document by ID
-  async getLabResultDocument(
+  getLabResultDocument: async (
     documentId: string
-  ): Promise<ApiResponse<LabDocument | null>> {
-    try {
-      const response = await apiClient.get<BackendLabResultDetail>(
-        `/lab/labresults/${documentId}/detail`
-      );
-
-      const detail = response.data;
-      const document: LabDocument = {
-        id: detail.result.id,
-        patientId: detail.result.patientId,
-        type: "Lab_Results",
-        createdAt: detail.result.createdAt,
-        notes: detail.order?.clinicalNotes || "",
-        data: {
-          testType: detail.test?.testName || "Lab Test",
-          testDate: detail.result.resultDate.split("T")[0],
-          laboratory: "Medical Laboratory",
-          status: detail.result.flag === "Normal" ? "Normal" : "Abnormal",
-          results: [
-            {
-              parameter: detail.test?.testName || "Result",
-              value: detail.result.value || "",
-              unit: detail.result.unit || "",
-              referenceRange: detail.result.referenceRange || "",
-              status: detail.result.flag || "Normal",
-            },
-          ],
-          interpretation: detail.result.comments || "",
-        },
-      };
-
-      return { success: true, data: document };
-    } catch (error) {
-      console.error("Failed to fetch lab result document:", error);
-      return {
-        success: false,
-        data: null,
-        error: "Failed to fetch lab result document",
-      };
-    }
-  }
-}
-
-export const labResultsReviewApi = new LabResultsReviewApiService();
+  ): Promise<ApiResponse<LabDocument | null>> => {
+    return handleApiCall(
+      async () => {
+        const detail = await api.get<BackendLabResultDetail>(
+          `/lab/labresults/${documentId}/detail`
+        );
+        return transformDetailToDocument(detail);
+      },
+      { showToastOnSuccess: false }
+    );
+  },
+};

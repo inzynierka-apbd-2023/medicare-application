@@ -1,9 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { useToastContext } from "../ui/toast";
 
 import type { Appointment, Document } from "../../features/documents/types";
-import { documentsApi } from "../services/documentsApi";
 import { useAuth } from "../auth/AuthContext";
+import { documentsApi } from "../services/documentsApi";
+import { toastMessages, useToast } from "../toast";
 
 interface UseDocumentsParams {
   appointmentId?: string;
@@ -27,12 +27,11 @@ export const useDocuments = (
   const [appointments, setAppointments] = useState<Appointment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { showToast } = useToastContext();
+  const { showWarning, showError } = useToast();
 
   const effectiveFilters = useMemo(() => {
     const filters: { appointmentId?: string; patientId?: string } = {};
     if (params?.appointmentId) filters.appointmentId = params.appointmentId;
-    // Default to current user id when patientId not explicitly passed
     const pid = params?.patientId ?? user?.id;
     if (pid) filters.patientId = pid;
     return filters;
@@ -43,7 +42,8 @@ export const useDocuments = (
     setError(null);
 
     try {
-  const response = await documentsApi.getDocumentsWithAppointments(effectiveFilters);
+      const response =
+        await documentsApi.getDocumentsWithAppointments(effectiveFilters);
 
       if (response.success) {
         setDocuments(response.data.documents);
@@ -62,22 +62,23 @@ export const useDocuments = (
   const downloadDocument = async (doc: Document): Promise<void> => {
     const url = `${location.origin}/api/documents/${doc.id}/pdf`;
     try {
-      const token = localStorage.getItem("authToken");
       const headers: Record<string, string> = {};
-      if (token) headers["Authorization"] = `Bearer ${token}`;
       const res = await fetch(url, {
         method: "GET",
         headers,
+        credentials: "include",
       });
 
       if (!res.ok) {
         if (res.status === 504) {
-          showToast("The PDF generator took too long. Please try again in a moment.", { type: "warning" });
+          showWarning(toastMessages.documents.pdfTimeoutError);
         } else if (res.status === 400) {
           const msg = await res.text();
-          showToast(msg || "This document type cannot be exported as PDF yet.", { type: "warning" });
+          showWarning(msg || toastMessages.documents.pdfNotSupported);
         } else {
-          showToast(`Failed to download document (HTTP ${res.status})`, { type: "error" });
+          showError(
+            `${toastMessages.documents.downloadHttpError} (HTTP ${res.status})`
+          );
         }
         return;
       }
@@ -93,7 +94,7 @@ export const useDocuments = (
       URL.revokeObjectURL(dlUrl);
     } catch (err) {
       console.error("Error downloading document:", err);
-      showToast("An error occurred while downloading the document", { type: "error" });
+      showError(toastMessages.documents.downloadError);
     }
   };
 

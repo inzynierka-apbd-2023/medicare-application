@@ -25,7 +25,6 @@ public class User
     [Column("Is_Active")]
     public bool IsActive { get; set; } = true;
 
-    // Authentication fields - we'll add these to the existing table
     [Column("Username")]
     [MaxLength(50)]
     public string? Username { get; set; }
@@ -34,7 +33,6 @@ public class User
     [MaxLength(255)]
     public string? PasswordHash { get; set; }
 
-    // Navigation properties
     [ForeignKey("RoleId")]
     public virtual Role? Role { get; set; }
 

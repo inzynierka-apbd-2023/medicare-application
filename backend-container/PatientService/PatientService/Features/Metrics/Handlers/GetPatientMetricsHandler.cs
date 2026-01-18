@@ -14,6 +14,24 @@ public class GetPatientMetricsHandler : IRequestHandler<GetPatientMetricsQuery, 
     {
         var end = request.EndDate ?? DateTime.UtcNow.Date;
         var start = request.StartDate ?? end.AddDays(-30);
-        return await _service.GetMetricsAsync(start, end, cancellationToken);
+        try 
+        {
+            return await _service.GetMetricsAsync(start, end, cancellationToken);
+        }
+        catch (Exception ex)
+        {
+            Console.WriteLine($"[MetricsError] Failed to fetch patient metrics: {ex.Message}");
+            return new PatientMetricsResponse 
+            {
+                StartDate = start,
+                EndDate = end,
+                TotalActivePatients = 0,
+                NewPatients = 0,
+                RetentionRate = 0,
+                AverageRating = 0,
+                TotalRatings = 0,
+                IsStub = true
+            };
+        }
     }
 }

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
 
 import { useAuth } from "../../../shared/auth/AuthContext";
-import DoctorScheduleApiService from "../../../shared/services/doctorScheduleApi";
+import doctorScheduleApi from "../../../shared/services/doctorScheduleApi";
 import type { DoctorScheduleEvent } from "../../scheduler/types/doctorScheduler";
 import type { TodayAppointment } from "../types";
 
@@ -14,8 +14,6 @@ interface UseTodaysAppointmentsReturn {
   markAsNoShow: (id: string) => Promise<boolean>;
 }
 
-// Mock data for today's appointments
-// Map API response to TodayAppointment
 const mapToTodayAppointment = (evt: DoctorScheduleEvent): TodayAppointment => {
   return {
     id: evt.id,
@@ -58,18 +56,9 @@ export const useTodaysAppointments = (): UseTodaysAppointmentsReturn => {
       setLoading(true);
       setError(null);
 
-      const response = await DoctorScheduleApiService.getTodaysAppointments(
-        user.id
-      );
-
-      if (response.success && response.data) {
-        // Map backend events to frontend appointments
-        // response.data is DoctorScheduleEvent[]
-        const mappedAppointments = response.data.map(mapToTodayAppointment);
-        setAppointments(mappedAppointments);
-      } else {
-        throw new Error(response.error || "Failed to fetch appointments");
-      }
+      const data = await doctorScheduleApi.getTodaysAppointments(user.id);
+      const mappedAppointments = data.map(mapToTodayAppointment);
+      setAppointments(mappedAppointments);
     } catch (err) {
       setError(
         err instanceof Error
@@ -83,39 +72,28 @@ export const useTodaysAppointments = (): UseTodaysAppointmentsReturn => {
 
   const markAsCompleted = async (id: string): Promise<boolean> => {
     try {
-      const response =
-        await DoctorScheduleApiService.markAppointmentCompleted(id);
-
-      if (response.success) {
-        setAppointments((prev) =>
-          prev.map((apt) =>
-            apt.id === id ? { ...apt, status: "completed" as const } : apt
-          )
-        );
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error("Failed to mark appointment as completed:", err);
+      await doctorScheduleApi.markAppointmentCompleted(id);
+      setAppointments((prev) =>
+        prev.map((apt) =>
+          apt.id === id ? { ...apt, status: "completed" as const } : apt
+        )
+      );
+      return true;
+    } catch {
       return false;
     }
   };
 
   const markAsNoShow = async (id: string): Promise<boolean> => {
     try {
-      const response = await DoctorScheduleApiService.markAppointmentNoShow(id);
-
-      if (response.success) {
-        setAppointments((prev) =>
-          prev.map((apt) =>
-            apt.id === id ? { ...apt, status: "no-show" as const } : apt
-          )
-        );
-        return true;
-      }
-      return false;
-    } catch (err) {
-      console.error("Failed to mark appointment as no-show:", err);
+      await doctorScheduleApi.markAppointmentNoShow(id);
+      setAppointments((prev) =>
+        prev.map((apt) =>
+          apt.id === id ? { ...apt, status: "no-show" as const } : apt
+        )
+      );
+      return true;
+    } catch {
       return false;
     }
   };

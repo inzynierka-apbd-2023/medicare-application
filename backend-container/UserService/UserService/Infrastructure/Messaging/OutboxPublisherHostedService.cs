@@ -111,9 +111,6 @@ public class OutboxPublisherHostedService : BackgroundService
 
     public override void Dispose()
     {
-        // Connection is singleton and managed by DI container, do NOT dispose it here.
-        // Channel should be disposed, but Dispose() is sync.
-        // Prefer explicit cleanup if possible, but for BackgroundService, runtime handles it.
         base.Dispose();
     }
 }

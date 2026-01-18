@@ -188,19 +188,7 @@ class PrescriptionsApi {
   }
 
   async getPatients(): Promise<Patient[]> {
-    try {
-      // Use the patientsApi to get patients
-      // This requires a user ID, so we'll try to get from auth
-      const token = localStorage.getItem("authToken");
-      if (!token) return [];
-
-      // Parse user ID from token or use a workaround
-      // For now, return empty and let the component handle it
-      return [];
-    } catch (error) {
-      console.error("Failed to fetch patients:", error);
-      return [];
-    }
+    return [];
   }
 
   async getDoctors(): Promise<Doctor[]> {

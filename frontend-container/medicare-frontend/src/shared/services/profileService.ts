@@ -72,12 +72,8 @@ export const profileService = {
     currentPassword: string,
     newPassword: string
   ): Promise<void> {
-    const { apiClient } = await import("../services/apiClient");
-    await apiClient.post("/auth/change-password", {
-      currentPassword,
-      newPassword,
-      confirmPassword: newPassword,
-    });
+    const { authService } = await import("./authService");
+    await authService.changePassword(currentPassword, newPassword);
   },
 };
 

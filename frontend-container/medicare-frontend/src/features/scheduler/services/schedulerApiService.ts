@@ -28,6 +28,15 @@ interface BackendAppointment {
   serviceId?: string;
   isPaid?: boolean;
   requiresPayment?: boolean;
+  patient?: {
+    patientId: string;
+    userId: string;
+    firstName?: string;
+    lastName?: string;
+    email?: string;
+    phone?: string;
+    dateOfBirth?: string;
+  };
 }
 
 // Backend doctor directory response
@@ -120,16 +129,26 @@ export class SchedulerApiService {
       colorCode: colors.bg,
     };
 
-    // Placeholder patient - will be enriched by hooks or service
-    const patient: Patient = {
-      id: String(backend.patientId),
-      userId: String(backend.patientId),
-      firstName: "",
-      lastName: "",
-      email: "",
-      phone: "",
-      dateOfBirth: new Date(0).toISOString(),
-    };
+    // Use enriched patient data from backend if available, otherwise placeholder
+    const patient: Patient = backend.patient
+      ? {
+          id: String(backend.patient.patientId || backend.patientId),
+          userId: String(backend.patient.userId || backend.patientId),
+          firstName: backend.patient.firstName || "",
+          lastName: backend.patient.lastName || "",
+          email: backend.patient.email || "",
+          phone: backend.patient.phone || "",
+          dateOfBirth: backend.patient.dateOfBirth || new Date(0).toISOString(),
+        }
+      : {
+          id: String(backend.patientId),
+          userId: String(backend.patientId),
+          firstName: "",
+          lastName: "",
+          email: "",
+          phone: "",
+          dateOfBirth: new Date(0).toISOString(),
+        };
 
     const ui: Appointment = {
       id: String(backend.id),
@@ -508,7 +527,7 @@ export class SchedulerApiService {
 
         const specializations: Specialization[] = specIds.map((id) => ({
           id,
-          name: "", // Names populated by separate call if needed, or by UI
+          name: "",
           description: "",
           serviceId: "",
           service: undefined as unknown as Service,
@@ -946,7 +965,7 @@ export class SchedulerApiService {
 
   // Stats - real implementation
   static async getDashboardStats(): Promise<SchedulerStats> {
-    // Return empty stats - dashboard will calculate from actual appointments if needed
+    // Return empty stats.
     // or implement real endpoint later
     return {
       totalAppointments: 0,

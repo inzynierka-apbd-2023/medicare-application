@@ -3,10 +3,6 @@ using MedicalRecordsService.Models;
 
 namespace MedicalRecordsService.Data;
 
-/// <summary>
-/// Shared deterministic IDs for cross-service mock data references
-/// Patient/Doctor IDs match User IDs from UserService for seamless auth integration
-/// </summary>
 public static class MockIds
 {
     // Patient IDs (matching User IDs from UserService for login integration)
@@ -216,11 +212,6 @@ public static class MockDataSeeder
         if (created > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Created {created} medical records (records, prescriptions, diagnoses, vital signs).");
-        }
-        else
-        {
-            Console.WriteLine("[MockDataSeeder] All medical records mock data already exists.");
         }
     }
 }

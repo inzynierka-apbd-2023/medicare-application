@@ -7,6 +7,7 @@ namespace AppointmentService.Controllers;
 
 [ApiController]
 [Route("api/appointment/[controller]")]
+[Authorize]
 public class SchedulesController : ControllerBase
 {
     private readonly AppointmentDbContext _db;

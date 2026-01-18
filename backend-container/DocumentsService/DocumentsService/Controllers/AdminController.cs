@@ -31,7 +31,6 @@ public class AdminController : ControllerBase
                 await using var tx = await _db.Database.BeginTransactionAsync();
                 try
                 {
-                    // Purge in dependency order
                     await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
                     await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
                     await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
@@ -74,7 +73,6 @@ public class AdminController : ControllerBase
                 await using var tx = await _db.Database.BeginTransactionAsync();
                 try
                 {
-                    // Purge only document data; keep Document_Type and Lab_Test_Type
                     await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
                     await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
                     await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
@@ -123,7 +121,6 @@ public class AdminController : ControllerBase
         var patientId = Guid.NewGuid();
         var doctorId = Guid.NewGuid();
 
-        // Visit note
         var visit = new Document
         {
             PatientId = patientId,
@@ -146,7 +143,6 @@ public class AdminController : ControllerBase
             FollowUpDate = DateTime.UtcNow.Date.AddDays(7)
         });
 
-        // Prescription (Paracetamol as example)
         var rxDoc = new Document
         {
             PatientId = patientId,
@@ -166,12 +162,10 @@ public class AdminController : ControllerBase
             DurationDays = 3,
             Instructions = "After meals",
             RefillsRemaining = 0,
-            // Optional catalog projection
             AtcCode = "N02BE01",
             AtcName = "Paracetamol"
         });
 
-        // Lab results (CBC snippet)
         var labDoc = new Document
         {
             PatientId = patientId,
@@ -194,7 +188,6 @@ public class AdminController : ControllerBase
         };
         db.LabResults.Add(results);
 
-        // Ensure Lab_Test_Type projections for a couple of LOINC codes (common ones)
         async Task<LabTestType> EnsureLoincAsync(string code, string name, string? exampleUnits = null)
         {
             var t = await db.LabTestTypes.FirstOrDefaultAsync(x => x.LoincCode == code);
@@ -237,7 +230,6 @@ public class AdminController : ControllerBase
             }
         );
 
-        // Referral and Sick Leave examples
         var referralDoc = new Document
         {
             PatientId = patientId,

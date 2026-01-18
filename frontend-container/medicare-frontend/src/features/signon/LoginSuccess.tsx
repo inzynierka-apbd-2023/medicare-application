@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { CheckCircle } from "lucide-react";
 
@@ -9,17 +9,17 @@ export default function LoginSuccess() {
   const navigate = useNavigate();
   const { user } = useAuth();
 
-  useEffect(() => {
-    // Auto redirect to appropriate dashboard after 3 seconds
-    const timer = setTimeout(() => {
-      const dashboardRoute = user?.role
-        ? getDefaultDashboard(user.role)
-        : "/patient-dashboard";
-      navigate(dashboardRoute);
-    }, 3000);
+  const redirectToDashboard = useCallback(() => {
+    const dashboardRoute = user?.role
+      ? getDefaultDashboard(user.role)
+      : "/patient-dashboard";
+    navigate(dashboardRoute);
+  }, [navigate, user?.role]);
 
+  useEffect(() => {
+    const timer = setTimeout(redirectToDashboard, 3000);
     return () => clearTimeout(timer);
-  }, [navigate, user]);
+  }, [redirectToDashboard]);
 
   const getDashboardRoute = () => {
     return user?.role ? getDefaultDashboard(user.role) : "/patient-dashboard";
@@ -36,8 +36,8 @@ export default function LoginSuccess() {
           {user?.role === "Doctor"
             ? `Welcome, Dr. ${user?.lastName || ""}`
             : user?.role === "Patient" || user?.role === "Receptionist"
-            ? `Welcome, ${user?.firstName || ""}`
-            : "Welcome Back!"}
+              ? `Welcome, ${user?.firstName || ""}`
+              : "Welcome Back!"}
         </h1>
 
         <p className="success-text">

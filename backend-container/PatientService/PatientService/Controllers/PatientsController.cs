@@ -12,6 +12,7 @@ namespace PatientService.Controllers;
 
 [ApiController]
 [Route("api/patient/[controller]")]
+[Authorize]
 public class PatientsController : ControllerBase
 {
     private readonly IMediator _mediator;
@@ -19,7 +20,6 @@ public class PatientsController : ControllerBase
 
     // Register patient; PrimaryDoctorId is optional but recommended
     [HttpPost]
-    [Authorize]
     public async Task<IActionResult> Register([FromBody] RegisterPatientRequest req)
     {
         if (req.UserId == Guid.Empty) return BadRequest("UserId is required");
@@ -47,7 +47,7 @@ public class PatientsController : ControllerBase
     }
 
     [HttpDelete("{id}")]
-    [Authorize(Roles = "admin,receptionist")]
+    [Authorize(Roles = "Admin,Receptionist")]
     public async Task<IActionResult> Delete(Guid id)
     {
         var success = await _mediator.Send(new DeletePatientCommand(id));
@@ -56,7 +56,6 @@ public class PatientsController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize]
     public async Task<IActionResult> ChangeStatus(Guid id, [FromBody] ChangeStatusRequest req)
     {
         var success = await _mediator.Send(new ChangePatientStatusCommand(id, req.Status));
@@ -65,7 +64,6 @@ public class PatientsController : ControllerBase
     }
 
     [HttpPut("{id}/emergency-contacts")]
-    [Authorize]
     public async Task<IActionResult> SetEmergencyContacts(Guid id, [FromBody] List<EmergencyContactRequest> contacts)
     {
         // Map request DTO to Command DTO
@@ -76,7 +74,6 @@ public class PatientsController : ControllerBase
     }
 
     [HttpPut("{id}/insurance")]
-    [Authorize]
     public async Task<IActionResult> UpdateInsurance(Guid id, [FromBody] InsuranceRequest req)
     {
         var success = await _mediator.Send(new UpdateInsuranceCommand(id, req.Provider, req.PolicyNumber, req.ValidFrom, req.ValidTo));
@@ -85,7 +82,6 @@ public class PatientsController : ControllerBase
     }
 
     [HttpPut("{id}/primary-doctor")]
-    [Authorize]
     public async Task<IActionResult> SetPrimaryDoctor(Guid id, [FromBody] SetPrimaryDoctorRequest req)
     {
         var success = await _mediator.Send(new SetPrimaryDoctorCommand(id, req.DoctorId));

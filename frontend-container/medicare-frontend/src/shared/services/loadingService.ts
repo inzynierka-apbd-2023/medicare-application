@@ -7,10 +7,9 @@ class LoadingService {
   private loadingListeners: LoadingListener[] = [];
   private errorListeners: ErrorListener[] = [];
 
-  // Loading state management
   show(): void {
     this.isLoading = true;
-    this.error = null; // Clear any previous errors
+    this.error = null;
     this.notifyLoadingListeners();
     this.notifyErrorListeners();
   }
@@ -20,10 +19,9 @@ class LoadingService {
     this.notifyLoadingListeners();
   }
 
-  // Error state management
   setError(error: string | null): void {
     this.error = error;
-    this.isLoading = false; // Hide loading when error occurs
+    this.isLoading = false;
     this.notifyLoadingListeners();
     this.notifyErrorListeners();
   }
@@ -33,7 +31,6 @@ class LoadingService {
     this.notifyErrorListeners();
   }
 
-  // Getters
   getIsLoading(): boolean {
     return this.isLoading;
   }
@@ -42,10 +39,8 @@ class LoadingService {
     return this.error;
   }
 
-  // Listener management
   addLoadingListener(listener: LoadingListener): () => void {
     this.loadingListeners.push(listener);
-    // Return unsubscribe function
     return () => {
       this.loadingListeners = this.loadingListeners.filter(
         (l) => l !== listener
@@ -55,25 +50,16 @@ class LoadingService {
 
   addErrorListener(listener: ErrorListener): () => void {
     this.errorListeners.push(listener);
-    // Return unsubscribe function
     return () => {
       this.errorListeners = this.errorListeners.filter((l) => l !== listener);
     };
   }
 
-  // Helper method for async operations
   async executeWithLoading<T>(asyncOperation: () => Promise<T>): Promise<T> {
-    try {
-      this.show();
-      const result = await asyncOperation();
-      this.hide();
-      return result;
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "An unexpected error occurred";
-      this.setError(errorMessage);
-      throw error;
-    }
+    this.show();
+    const result = await asyncOperation();
+    this.hide();
+    return result;
   }
 
   private notifyLoadingListeners(): void {
@@ -85,6 +71,5 @@ class LoadingService {
   }
 }
 
-// Export singleton instance
 export const loadingService = new LoadingService();
 export type { ErrorListener, LoadingListener };

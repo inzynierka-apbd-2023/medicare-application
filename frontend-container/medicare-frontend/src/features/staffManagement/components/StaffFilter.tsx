@@ -28,11 +28,11 @@ export const StaffFilter: React.FC<StaffFilterProps> = ({
   };
 
   const handleStatusChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
-    onStatusFilterChange(e.target.value as any);
+    onStatusFilterChange(e.target.value as "Active" | "Archived" | "All");
   };
 
   return (
-  <div className="flex flex-col sm:flex-row gap-4 mb-6">
+    <div className="flex flex-col sm:flex-row gap-4 mb-6">
       {/* Search Input */}
       <div className="flex-1">
         <SearchInput

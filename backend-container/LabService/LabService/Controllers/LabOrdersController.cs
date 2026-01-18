@@ -7,6 +7,7 @@ using LabService.Models;
 namespace LabService.Controllers;
 
 [ApiController]
+[Authorize]
 [Route("api/lab/[controller]")]
 public class LabOrdersController : ControllerBase
 {
@@ -14,7 +15,6 @@ public class LabOrdersController : ControllerBase
     public LabOrdersController(LabDbContext db) => _db = db;
 
     [HttpPost]
-    [Authorize]
     public async Task<IActionResult> CreateOrder([FromBody] CreateLabOrderRequest req)
     {
         var order = new LabOrder
@@ -63,7 +63,6 @@ public class LabOrdersController : ControllerBase
     }
 
     [HttpPost("{id}/tests")]
-    [Authorize]
     public async Task<IActionResult> AddTestToOrder(Guid id, [FromBody] AddLabTestRequest req)
     {
         var order = await _db.LabOrders.FindAsync(id);
@@ -85,7 +84,6 @@ public class LabOrdersController : ControllerBase
     }
 
     [HttpPut("{id}/status")]
-    [Authorize]
     public async Task<IActionResult> UpdateStatus(Guid id, [FromBody] UpdateOrderStatusRequest req)
     {
         var order = await _db.LabOrders.FindAsync(id);

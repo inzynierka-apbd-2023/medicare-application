@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient";
+import { api } from "./api";
 
 export interface DailyRevenueResponse {
   date: string;
@@ -56,21 +56,15 @@ export interface PaymentTypeBreakdown {
 }
 
 export const revenueMetricsApi = {
-  /**
-   * Get daily revenue metrics
-   */
   getDailyRevenue: async (date?: string): Promise<DailyRevenueResponse> => {
     const params = date ? { date } : {};
-    const response = await apiClient.get<DailyRevenueResponse>(
+    const response = await api.get<DailyRevenueResponse>(
       "/billing/revenue-metrics/daily",
       { params }
     );
-    return response.data;
+    return response;
   },
 
-  /**
-   * Get monthly revenue metrics
-   */
   getMonthlyRevenue: async (
     year?: number,
     month?: number
@@ -78,28 +72,22 @@ export const revenueMetricsApi = {
     const params: Record<string, number> = {};
     if (year) params.year = year;
     if (month) params.month = month;
-    const response = await apiClient.get<MonthlyRevenueResponse>(
+    const response = await api.get<MonthlyRevenueResponse>(
       "/billing/revenue-metrics/monthly",
       { params }
     );
-    return response.data;
+    return response;
   },
 
-  /**
-   * Get yearly revenue metrics
-   */
   getYearlyRevenue: async (year?: number): Promise<YearlyRevenueResponse> => {
     const params = year ? { year } : {};
-    const response = await apiClient.get<YearlyRevenueResponse>(
+    const response = await api.get<YearlyRevenueResponse>(
       "/billing/revenue-metrics/yearly",
       { params }
     );
-    return response.data;
+    return response;
   },
 
-  /**
-   * Get payment types breakdown
-   */
   getPaymentTypes: async (
     startDate?: string,
     endDate?: string
@@ -107,10 +95,11 @@ export const revenueMetricsApi = {
     const params: Record<string, string> = {};
     if (startDate) params.startDate = startDate;
     if (endDate) params.endDate = endDate;
-    const response = await apiClient.get<PaymentTypesResponse>(
+    const response = await api.get<PaymentTypesResponse>(
       "/billing/revenue-metrics/payment-types",
       { params }
     );
-    return response.data;
+    return response;
   },
 };
+//

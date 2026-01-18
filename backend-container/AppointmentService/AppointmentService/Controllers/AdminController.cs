@@ -6,6 +6,7 @@ using Microsoft.EntityFrameworkCore;
 
 [ApiController]
 [Route("api/appointment/admin")] 
+[Authorize(Roles = "Owner,Admin")]
 public class AdminController : ControllerBase
 {
     private readonly AppointmentDbContext _db;

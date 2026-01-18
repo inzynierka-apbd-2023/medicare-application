@@ -13,8 +13,9 @@ export const DropdownMenu: React.FC = () => {
       // Clear auth state and tokens
       logout();
       // Best-effort cleanup of any cached session data
-      sessionStorage.clear();
-      localStorage.removeItem("authToken");
+      // Best-effort cleanup of any cached session data
+      // sessionStorage.clear();
+      // localStorage.removeItem("authToken");
     } finally {
       // Navigate to login
       navigate("/login", { replace: true });

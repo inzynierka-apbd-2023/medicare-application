@@ -83,21 +83,18 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
           const recipients: User[] = [];
 
           // 1. Fetch from Messaging Service (Contacts)
-          const res = await messagesApi.getAvailableRecipients(
-            userType,
-            userId
-          );
-          if (res.success) {
-            res.data.forEach((d) => {
-              recipients.push({
-                id: d.id,
-                name: d.name,
-                role: d.type,
-                specialty: d.specialization || "General",
-                email: "", // API doesn't return email, placeholder
-              } as User);
-            });
-          }
+          const availableRecipientsList =
+            await messagesApi.getAvailableRecipients(userType, userId);
+
+          availableRecipientsList.forEach((d) => {
+            recipients.push({
+              id: d.id,
+              name: d.name,
+              role: d.type,
+              specialty: d.specialization || "General",
+              email: "", // API doesn't return email, placeholder
+            } as User);
+          });
 
           // 2. If Doctor, also fetch Patients from Patient Service (to ensure all patients are visible)
           if (userType === "doctor") {

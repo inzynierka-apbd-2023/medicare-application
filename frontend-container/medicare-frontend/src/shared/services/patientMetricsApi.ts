@@ -1,4 +1,4 @@
-import { apiClient } from "./apiClient";
+import { api } from "./api";
 
 export interface PatientMetricsResponse {
   totalActivePatients: number;
@@ -13,13 +13,7 @@ export interface PatientMetricsResponse {
 
 export interface PatientMetricsFilters {
   startDate?: string; // yyyy-MM-dd
-  endDate?: string;   // yyyy-MM-dd
-}
-
-interface ApiResult<T> {
-  success: boolean;
-  data: T | null;
-  error: string | null;
+  endDate?: string; // yyyy-MM-dd
 }
 
 const buildQuery = (filters?: PatientMetricsFilters) => {
@@ -32,18 +26,11 @@ const buildQuery = (filters?: PatientMetricsFilters) => {
 };
 
 export const patientMetricsApi = {
-  async getPatientMetrics(filters?: PatientMetricsFilters): Promise<ApiResult<PatientMetricsResponse>> {
-    try {
-      const res = await apiClient.get(`/patient/metrics${buildQuery(filters)}`);
-      return { success: true, data: res.data, error: null };
-    } catch (err: any) {
-      let message = "Failed to load patient metrics";
-      if (err.response?.data?.errors) {
-        message = Array.isArray(err.response.data.errors) ? err.response.data.errors.join(", ") : err.response.data.errors;
-      } else if (err.message) {
-        message = err.message;
-      }
-      return { success: false, data: null, error: message };
-    }
-  }
+  getPatientMetrics: async (
+    filters?: PatientMetricsFilters
+  ): Promise<PatientMetricsResponse> => {
+    return api.get<PatientMetricsResponse>(
+      `/patient/metrics${buildQuery(filters)}`
+    );
+  },
 };

@@ -1,49 +1,29 @@
 import {
   createContext,
   ReactNode,
+  useCallback,
   useContext,
   useEffect,
   useMemo,
-  useRef,
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
 
-import { AuthResponse, authService, AuthUser } from "../services/authService";
+import { useApiToastInit } from "../hooks/useApiToastInit";
+import {
+  authService,
+  AuthUser,
+  RegisterRequest,
+} from "../services/authService";
 import { usersApi } from "../services/usersApi";
-
-// ===== DEVELOPMENT MOCK =====
-const DEV_MOCK_OWNER = false; // Disabled
-const MOCK_OWNER_USER: AuthUser = {
-  id: "mock-owner-id",
-  username: "owner-dev",
-  email: "owner@dev.com",
-  firstName: "Dev",
-  lastName: "Owner",
-  role: "Doctor",
-  phoneNumber: "+1234567890",
-  dateOfBirth: "1980-01-01",
-  avatarUrl: null,
-  address: "123 Dev Street",
-};
-const MOCK_TOKEN = "mock-owner-token-for-development";
+import { toastMessages, useToast } from "../toast";
 
 interface AuthState {
   user: AuthUser | null;
-  token: string | null;
   loading: boolean;
+  error: string | null;
   login: (username: string, password: string) => Promise<boolean>;
-  register: (data: {
-    username: string;
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    phoneNumber?: string;
-    dateOfBirth?: string;
-    role?: string;
-    planId?: string;
-  }) => Promise<AuthResponse>;
+  register: (data: RegisterRequest) => Promise<AuthUser>;
   updateProfile: (
     data: {
       phoneNumber?: string;
@@ -53,220 +33,152 @@ interface AuthState {
     userIdOverride?: string
   ) => Promise<void>;
   logout: () => void;
-  error: string | null;
+}
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
 }
 
 const Ctx = createContext<AuthState | undefined>(undefined);
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const navigate = useNavigate();
-  // === DEVELOPMENT MOCK SETUP ===
-  const [user, setUser] = useState<AuthUser | null>(() => {
-    if (DEV_MOCK_OWNER) {
-      console.log("🚧 DEV MODE: Using mock owner user");
-      return MOCK_OWNER_USER;
-    }
+  const { showError } = useToast();
 
-    try {
-      const raw = sessionStorage.getItem("authUser");
-      if (raw) return JSON.parse(raw) as AuthUser;
-    } catch {
-      /* ignore */
-    }
-    return null;
-  });
+  useApiToastInit();
 
-  const [token, setToken] = useState<string | null>(() => {
-    if (DEV_MOCK_OWNER) {
-      return MOCK_TOKEN;
-    }
-    return authService.getToken();
-  });
-
-  const memAccessRef = useRef<string | null>(
-    DEV_MOCK_OWNER ? MOCK_TOKEN : authService.getToken()
-  );
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const applyAuth = (resp: AuthResponse) => {
-    const at = resp.accessToken || resp.token || null;
-    setToken(at);
-    memAccessRef.current = at;
-    setUser(resp.user);
-    try {
-      sessionStorage.setItem("authUser", JSON.stringify(resp.user));
-    } catch {
-      /* ignore storage errors */
-    }
-  };
-
-  const login = async (
-    username: string,
-    password: string
-  ): Promise<boolean> => {
-    if (DEV_MOCK_OWNER) {
-      console.log("🚧 DEV MODE: Mock login as owner");
-      setUser(MOCK_OWNER_USER);
-      setToken(MOCK_TOKEN);
-      memAccessRef.current = MOCK_TOKEN;
-      return true;
-    }
-
-    setLoading(true);
-    setError(null);
-    try {
-      // Trim inputs to avoid accidental whitespace issues from paste/typing
-      const resp = await authService.login(username.trim(), password.trim());
-      applyAuth(resp);
-      return true;
-    } catch (e: unknown) {
-      const error = e as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || "Login failed");
-      return false;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const register = async (data: {
-    username: string;
-    email: string;
-    password: string;
-    firstName: string;
-    lastName: string;
-    phoneNumber?: string;
-    dateOfBirth?: string;
-    role?: string;
-    planId?: string;
-  }): Promise<AuthResponse> => {
-    setLoading(true);
-    setError(null);
-    try {
-      const resp = await authService.register(data);
-      applyAuth(resp);
-      return resp;
-    } catch (e: unknown) {
-      const error = e as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || "Registration failed");
-      throw e;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const updateProfile = async (
-    data: {
-      phoneNumber?: string;
-      dateOfBirth?: string;
-      avatarUrl?: string | null;
+  /* ... */
+  const login = useCallback(
+    async (username: string, password: string): Promise<boolean> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const authUser = await authService.login(
+          username.trim(),
+          password.trim()
+        );
+        setUser(authUser);
+        return true;
+      } catch (e: unknown) {
+        const err = e as ApiError;
+        const errorMessage =
+          err.response?.data?.message || toastMessages.auth.loginError;
+        setError(errorMessage);
+        return false;
+      } finally {
+        setLoading(false);
+      }
     },
-    userIdOverride?: string
-  ) => {
-    setLoading(true);
-    setError(null);
-    try {
-      // Real API: persist and refresh
-      const targetUserId = userIdOverride ?? user?.id;
-      if (!targetUserId) throw new Error("Missing user id");
-      const dto: {
+    []
+  );
+
+  const register = useCallback(
+    async (data: RegisterRequest): Promise<AuthUser> => {
+      setLoading(true);
+      setError(null);
+      try {
+        const authUser = await authService.register(data);
+        setUser(authUser);
+        return authUser;
+      } catch (e: unknown) {
+        const err = e as ApiError;
+        const errorMessage =
+          err.response?.data?.message || toastMessages.auth.registerError;
+        setError(errorMessage);
+        throw e;
+      } finally {
+        setLoading(false);
+      }
+    },
+    []
+  );
+
+  const updateProfile = useCallback(
+    async (
+      data: {
         phoneNumber?: string;
         dateOfBirth?: string;
         avatarUrl?: string | null;
-      } = {};
-      if (data.phoneNumber !== undefined) dto.phoneNumber = data.phoneNumber;
-      if (data.dateOfBirth !== undefined) dto.dateOfBirth = data.dateOfBirth;
-      if (data.avatarUrl !== undefined) dto.avatarUrl = data.avatarUrl ?? null;
-      await usersApi.updateProfile(targetUserId, dto);
-      const fresh = await usersApi.getUser(targetUserId);
-      setUser((prev: AuthUser | null) =>
-        prev ? { ...prev, ...fresh } : fresh
-      );
-    } catch (e: unknown) {
-      const error = e as { response?: { data?: { message?: string } } };
-      setError(error.response?.data?.message || "Failed to update profile");
-      throw e;
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const logout = () => {
-    // Clear persisted token and any user state
-    authService.logout();
-    try {
-      sessionStorage.clear();
-      localStorage.removeItem("authToken");
-    } catch {
-      /* ignore */
-    }
-    setUser(null);
-    setToken(null);
-  };
-
-  useEffect(() => {
-    // Skip storage hydration in dev mock mode
-    if (DEV_MOCK_OWNER) {
-      console.log("🚧 DEV MODE: Skipping storage hydration, using mock data");
-      return;
-    }
-
-    // Hydrate from storage on mount if available
-    if (!user) {
+      },
+      userIdOverride?: string
+    ) => {
+      setLoading(true);
+      setError(null);
       try {
-        const raw = sessionStorage.getItem("authUser");
-        if (raw) {
-          const parsed: AuthUser = JSON.parse(raw);
-          setUser(parsed);
-        }
-      } catch {
-        /* ignore parse */
+        const targetUserId = userIdOverride ?? user?.id;
+        if (!targetUserId) throw new Error("Missing user id");
+        const dto: {
+          phoneNumber?: string;
+          dateOfBirth?: string;
+          avatarUrl?: string | null;
+        } = {};
+        if (data.phoneNumber !== undefined) dto.phoneNumber = data.phoneNumber;
+        if (data.dateOfBirth !== undefined) dto.dateOfBirth = data.dateOfBirth;
+        if (data.avatarUrl !== undefined)
+          dto.avatarUrl = data.avatarUrl ?? null;
+        await usersApi.updateProfile(targetUserId, dto);
+        const fresh = await usersApi.getUser(targetUserId);
+        setUser((prev: AuthUser | null) =>
+          prev ? { ...prev, ...fresh } : fresh
+        );
+      } catch (e: unknown) {
+        const err = e as ApiError;
+        const errorMessage =
+          err.response?.data?.message || toastMessages.auth.profileUpdateError;
+        setError(errorMessage);
+        throw e;
+      } finally {
+        setLoading(false);
       }
-    }
-    if (!token) {
-      const existing = authService.getToken();
-      if (existing) {
-        setToken(existing);
-        memAccessRef.current = existing;
-      }
-    }
-    // We intentionally run only once on mount for initial hydration.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    },
+    [user?.id]
+  );
+
+  const clearAuthSession = useCallback(() => {
+    setUser(null);
   }, []);
 
-  // Listen for global auth:logout events from apiClient
+  const logout = useCallback(() => {
+    authService.logout(); // This handles API call and success toast
+    clearAuthSession();
+  }, [clearAuthSession]);
+
+  const handleAuthLogout = useCallback(() => {
+    // Only clear session, don't call API logout again
+    clearAuthSession();
+    showError(toastMessages.auth.sessionExpired);
+    navigate("/login");
+  }, [clearAuthSession, navigate, showError]);
+
   useEffect(() => {
-    const handleAuthLogout = () => {
-      console.log(
-        "🔒 [AuthContext] Received auth:logout event. Logging out and redirecting..."
-      );
-      logout();
-      navigate("/login");
-    };
     window.addEventListener("auth:logout", handleAuthLogout);
     return () => window.removeEventListener("auth:logout", handleAuthLogout);
-  }, [logout, navigate]);
+  }, [handleAuthLogout]);
 
   const ctxValue = useMemo(
     () => ({
       user,
-      token,
       loading,
+      error,
       login,
       register,
       updateProfile,
       logout,
-      error,
     }),
-    // Functions are stable enough; we knowingly exclude them.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [user, token, loading, error]
+    [user, loading, error, login, register, updateProfile, logout]
   );
 
   return <Ctx.Provider value={ctxValue}>{children}</Ctx.Provider>;
 };
 
-// eslint-disable-next-line react-refresh/only-export-components
 export const useAuth = () => {
   const ctx = useContext(Ctx);
   if (!ctx) throw new Error("useAuth must be used within AuthProvider");

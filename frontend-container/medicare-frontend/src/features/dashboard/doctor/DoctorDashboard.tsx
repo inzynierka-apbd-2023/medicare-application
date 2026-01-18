@@ -5,7 +5,7 @@ import { MessageCircle } from "lucide-react";
 import Header from "../../../layout/Header";
 import { useAuth } from "../../../shared/auth/AuthContext";
 import { Card, Modal } from "../../../shared/components";
-import doctorDashboardApiService, {
+import doctorDashboardApi, {
   DoctorQuickStat,
 } from "../../../shared/services/doctorDashboardApi";
 import { messagesApi } from "../../../shared/services/messagesApi";
@@ -50,48 +50,43 @@ export default function DoctorDashboard() {
       try {
         setLoading(true);
         // 1. Resolve Doctor ID from User ID
-        const profileRes = await doctorDashboardApiService.getDoctorByUserId(
-          user.id
-        );
+        let doctorProfile;
+        try {
+          doctorProfile = await doctorDashboardApi.getDoctorByUserId(user.id);
+        } catch (error: unknown) {
+          const axiosErr = error as { response?: { status?: number } };
+          if (axiosErr?.response?.status !== 404) {
+            throw error;
+          }
+          // 404 means profile doesn't exist, proceed to registration logic
+        }
 
-        if (profileRes.success && profileRes.data?.id) {
-          const realDoctorId = profileRes.data.id;
+        if (doctorProfile?.id) {
+          const realDoctorId = doctorProfile.id;
           console.log(
             `[DoctorDashboard] user.id=${user.id}, realDoctorId=${realDoctorId}`
           );
           setDoctorId(realDoctorId);
           // Load stats, notifications, and messages in parallel
-          const [statsRes, notifRes, msgRes] = await Promise.all([
-            doctorDashboardApiService.getQuickStats(realDoctorId),
-            notificationsApi.getForRecipient(user.id, false),
+          const [statsData, notifData, msgRes] = await Promise.all([
+            doctorDashboardApi
+              .getQuickStats(realDoctorId)
+              .catch(() => [] as DoctorQuickStat[]),
+            notificationsApi.getForRecipient(user.id, false).catch((err) => {
+              console.error("Failed to load notifications", err);
+              return [] as Notification[];
+            }),
             messagesApi.getConversations(user.id, "doctor"),
           ]);
 
-          if (statsRes.success) {
-            console.log("[DoctorDashboard] Quick stats:", statsRes.data);
-            setQuickStats(statsRes.data);
-          }
+          setQuickStats(statsData);
+          setNotifications(notifData);
 
-          if (notifRes.success && notifRes.data) {
-            console.log("[DoctorDashboard] Notifications:", notifRes.data);
-            setNotifications(notifRes.data as Notification[]);
-          } else {
-            console.log(
-              "[DoctorDashboard] Notifications API failed or empty:",
-              notifRes
-            );
-          }
-
-          if (msgRes.success && msgRes.data) {
-            console.log("[DoctorDashboard] Conversations:", msgRes.data);
-            // Transform conversations to PatientMessage format - show only unread
-            const unreadConversations = msgRes.data
+          if (msgRes) {
+            const unreadConversations = msgRes
               .filter((conv) => conv.unreadCount > 0)
               .slice(0, 5);
-            console.log(
-              "[DoctorDashboard] Unread conversations:",
-              unreadConversations
-            );
+
             const messages: PatientMessage[] = unreadConversations.map(
               (conv) => ({
                 id: conv.participantId,
@@ -100,53 +95,44 @@ export default function DoctorDashboard() {
               })
             );
             setRecentMessages(messages);
-          } else {
-            console.log(
-              "[DoctorDashboard] Messages API failed or empty:",
-              msgRes
-            );
           }
           setMessagesLoading(false);
         } else {
-          // Auto-recovery: If 404/not found, try to register the doctor
-          console.log(
-            "Doctor profile missing. Attempting auto-registration..."
-          );
-          const regRes = await doctorDashboardApiService.registerDoctor(
-            user.id
-          );
-          if (regRes.success && regRes.data?.id) {
-            const newDoctorId = regRes.data.id;
-            setDoctorId(newDoctorId);
-            // Retry stats and data load
-            const [statsRes, notifRes, msgRes] = await Promise.all([
-              doctorDashboardApiService.getQuickStats(newDoctorId),
-              notificationsApi.getForRecipient(user.id, false),
-              messagesApi.getConversations(user.id, "doctor"),
-            ]);
+          try {
+            const newProfile = await doctorDashboardApi.registerDoctor(user.id);
+            if (newProfile?.id) {
+              const newDoctorId = newProfile.id;
+              setDoctorId(newDoctorId);
+              const [statsDataResult, notifDataResult, msgRes] =
+                await Promise.all([
+                  doctorDashboardApi
+                    .getQuickStats(newDoctorId)
+                    .catch(() => [] as DoctorQuickStat[]),
+                  notificationsApi
+                    .getForRecipient(user.id, false)
+                    .catch(() => [] as Notification[]),
+                  messagesApi.getConversations(user.id, "doctor"),
+                ]);
 
-            if (statsRes.success) {
-              setQuickStats(statsRes.data);
+              setQuickStats(statsDataResult);
+              setNotifications(notifDataResult); // Directly set data, error caught by catch
+
+              if (msgRes) {
+                const unreadConversations = msgRes
+                  .filter((conv) => conv.unreadCount > 0)
+                  .slice(0, 5);
+                const messages: PatientMessage[] = unreadConversations.map(
+                  (conv) => ({
+                    id: conv.participantId,
+                    patient: conv.participantName || "Unknown Patient",
+                    text: conv.lastMessage?.content || "New message",
+                  })
+                );
+                setRecentMessages(messages);
+              }
+              setMessagesLoading(false);
             }
-            if (notifRes.success && notifRes.data) {
-              setNotifications(notifRes.data as Notification[]);
-            }
-            if (msgRes.success && msgRes.data) {
-              // Transform conversations to PatientMessage format - show only unread
-              const unreadConversations = msgRes.data
-                .filter((conv) => conv.unreadCount > 0)
-                .slice(0, 5);
-              const messages: PatientMessage[] = unreadConversations.map(
-                (conv) => ({
-                  id: conv.participantId,
-                  patient: conv.participantName || "Unknown Patient",
-                  text: conv.lastMessage?.content || "New message",
-                })
-              );
-              setRecentMessages(messages);
-            }
-            setMessagesLoading(false);
-          } else {
+          } catch (_regError) {
             setError(
               "Doctor profile not found and auto-creation failed. Please contact support."
             );
@@ -163,17 +149,14 @@ export default function DoctorDashboard() {
     initDashboard();
   }, [user?.id]);
 
-  // Mark notification as read
   const handleMarkNotificationAsRead = async (notificationId: string) => {
     try {
-      const response = await notificationsApi.markAsRead(notificationId);
-      if (response.success) {
-        setNotifications((prev) =>
-          prev.map((notif) =>
-            notif.id === notificationId ? { ...notif, read: true } : notif
-          )
-        );
-      }
+      await notificationsApi.markAsRead(notificationId);
+      setNotifications((prev) =>
+        prev.map((notif) =>
+          notif.id === notificationId ? { ...notif, read: true } : notif
+        )
+      );
     } catch (err) {
       console.error("Failed to mark notification as read:", err);
     }

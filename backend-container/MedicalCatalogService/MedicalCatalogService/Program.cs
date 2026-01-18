@@ -44,26 +44,7 @@ try
     builder.Services.AddControllers();
 
     // JWT Authentication with proper token validation
-    var jwt = builder.Configuration.GetSection("Jwt");
-    var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
-    var issuer = jwt["Issuer"] ?? "MedicareApp";
-    var audience = jwt["Audience"] ?? "MedicareUsers";
-    builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-        .AddJwtBearer(o =>
-        {
-            o.MapInboundClaims = false;
-            o.TokenValidationParameters = new TokenValidationParameters
-            {
-                ValidateIssuer = true,
-                ValidateAudience = true,
-                ValidateLifetime = true,
-                ValidateIssuerSigningKey = true,
-                ValidIssuer = issuer,
-                ValidAudience = audience,
-                IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(secretKey)),
-                RoleClaimType = "role"
-            };
-        });
+    builder.AddMedicareAuthentication();
     builder.Services.AddAuthorization(options =>
     {
         options.AddPolicy("CatalogImport", policy =>
@@ -86,7 +67,19 @@ try
         c.SwaggerDoc("v1", new OpenApiInfo { Title = "MedicalCatalog API", Version = "v1" });
     });
 
-    builder.Services.AddCors(o => o.AddDefaultPolicy(p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod()));
+    builder.Services.AddCors(o =>
+    {
+        o.AddPolicy("DefaultPolicy", p =>
+        {
+            var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+            if (allowed == null || allowed.Length == 0)
+            {
+               var origins = allowed ?? Array.Empty<string>();
+               if (origins.Length == 0) throw new InvalidOperationException("CORS AllowedOrigins must be configured in appsettings.");
+            }
+            p.WithOrigins(allowed).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+        });
+    });
 
     var app = builder.Build();
 
@@ -96,7 +89,7 @@ try
         app.UseSwaggerUI();
     }
 
-    app.UseCors();
+    app.UseCors("DefaultPolicy");
     app.UseAuthentication();
     app.UseAuthorization();
 

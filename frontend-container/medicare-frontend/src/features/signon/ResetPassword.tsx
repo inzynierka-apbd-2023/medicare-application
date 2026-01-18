@@ -2,12 +2,22 @@ import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { ArrowLeft, CheckCircle, Eye, EyeOff, Lock } from "lucide-react";
 
-import { apiClient } from "../../shared/services/apiClient";
+import { authService } from "../../shared/services/authService";
+import { toastMessages, useToast } from "../../shared/toast";
+
+interface ApiError {
+  response?: {
+    data?: {
+      message?: string;
+    };
+  };
+}
 
 export default function ResetPassword() {
   const [searchParams] = useSearchParams();
   const token = searchParams.get("token") || "";
   const navigate = useNavigate();
+  const { showError: showErrorToast } = useToast();
 
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
@@ -30,29 +40,30 @@ export default function ResetPassword() {
 
     if (password !== confirmPassword) {
       setError("Passwords do not match");
+      showErrorToast(toastMessages.validation.passwordMismatch);
       return;
     }
 
     const validationError = validatePassword(password);
     if (validationError) {
       setError(validationError);
+      showErrorToast(validationError);
       return;
     }
 
     setIsLoading(true);
 
     try {
-      await apiClient.post("/auth/reset-password", {
-        token,
-        newPassword: password,
-      });
+      await authService.resetPassword(token, password);
+      // showSuccess(toastMessages.auth.resetPasswordSuccess); // Handled by service
       setIsSuccess(true);
     } catch (err: unknown) {
-      const error = err as { response?: { data?: { message?: string } } };
-      setError(
-        error.response?.data?.message ||
-          "Failed to reset password. Please try again."
-      );
+      const apiError = err as ApiError;
+      const errorMessage =
+        apiError.response?.data?.message ||
+        toastMessages.auth.resetPasswordError;
+      setError(errorMessage);
+      // showErrorToast(errorMessage); // Handled by service
     } finally {
       setIsLoading(false);
     }

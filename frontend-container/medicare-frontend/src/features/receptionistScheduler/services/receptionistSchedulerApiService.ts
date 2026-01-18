@@ -229,7 +229,7 @@ export class ReceptionistSchedulerApiService {
             : appointmentData.appointmentType) as
             | "in-person"
             | "virtual"
-            | "phone", // Cast to avoid strict union mismatch if needed, or ensure types match exactly
+            | "phone",
           ...(appointmentData.appointmentCategory && {
             category: appointmentData.appointmentCategory,
           }),

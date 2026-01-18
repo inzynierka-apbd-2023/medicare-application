@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 
-import DoctorScheduleApiService from "../../../shared/services/doctorScheduleApi";
+import doctorScheduleApi from "../../../shared/services/doctorScheduleApi";
 import type {
   DoctorCalendarEvent,
   DoctorScheduleEvent,
@@ -9,7 +9,7 @@ import type {
 interface UseDoctorScheduleProps {
   doctorId?: string;
   autoRefresh?: boolean;
-  refreshInterval?: number; // in milliseconds
+  refreshInterval?: number;
 }
 
 interface UseDoctorScheduleReturn {
@@ -35,7 +35,7 @@ interface UseDoctorScheduleReturn {
 export const useDoctorSchedule = ({
   doctorId,
   autoRefresh = false,
-  refreshInterval = 30000, // 30 seconds
+  refreshInterval = 30000,
 }: UseDoctorScheduleProps = {}): UseDoctorScheduleReturn => {
   const [schedule, setSchedule] = useState<DoctorScheduleEvent[]>([]);
   const [selectedAppointment, setSelectedAppointment] =
@@ -50,14 +50,12 @@ export const useDoctorSchedule = ({
   );
   const [error, setError] = useState<string | null>(null);
 
-  // Convert schedule to calendar events
   const calendarEvents: DoctorCalendarEvent[] = schedule.map((appointment) => {
     const appointmentDate = new Date(`${appointment.date}T${appointment.time}`);
     const endDate = new Date(
       appointmentDate.getTime() + appointment.duration * 60 * 1000
     );
 
-    // Determine time status
     const now = new Date();
     const isToday = appointmentDate.toDateString() === now.toDateString();
     let timeStatus:
@@ -79,15 +77,11 @@ export const useDoctorSchedule = ({
       }
     }
 
-    // Determine color based on status
-    let color = "#3B82F6"; // Blue for scheduled
-    if (timeStatus === "completed")
-      color = "#10B981"; // Green
-    else if (timeStatus === "no-show")
-      color = "#EF4444"; // Red
-    else if (timeStatus === "current")
-      color = "#F59E0B"; // Orange
-    else if (timeStatus === "overdue") color = "#DC2626"; // Dark red
+    let color = "#3B82F6";
+    if (timeStatus === "completed") color = "#10B981";
+    else if (timeStatus === "no-show") color = "#EF4444";
+    else if (timeStatus === "current") color = "#F59E0B";
+    else if (timeStatus === "overdue") color = "#DC2626";
 
     return {
       id: appointment.id,
@@ -103,63 +97,37 @@ export const useDoctorSchedule = ({
   });
 
   const refreshSchedule = useCallback(async () => {
-    // Prevent fetching if doctorId is invalid or a placeholder
-    // We allow fetching even for "current-doctor-id" as the layout might resolve it,
-    // but typically we want a real ID. For now, we'll try to fetch if it's not empty.
     if (!doctorId) {
-      console.log(`[useDoctorSchedule] Skipping fetch - no doctorId`);
       return;
     }
 
-    console.log(`[useDoctorSchedule] Starting fetch for doctorId: ${doctorId}`);
     setIsLoading(true);
     setError(null);
 
     try {
-      // Get both schedule and today's appointments in parallel
-      // Calculate start and end of current month to ensure we cover enough range for the calendar
-      // Or at least a reasonable window around the current view.
-      // For simplicity, let's fetch the current month + previous/next week buffer
       const now = new Date();
       const startRange = new Date(now.getFullYear(), now.getMonth(), 1);
-      startRange.setDate(startRange.getDate() - 7); // Buffer
+      startRange.setDate(startRange.getDate() - 7);
 
       const endRange = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-      endRange.setDate(endRange.getDate() + 7); // Buffer
+      endRange.setDate(endRange.getDate() + 7);
 
-      console.log(
-        `[useDoctorSchedule] Fetching schedule from ${startRange.toISOString().split("T")[0]} to ${endRange.toISOString().split("T")[0]}`
-      );
-
-      const [scheduleResponse, todaysResponse] = await Promise.all([
-        DoctorScheduleApiService.getDoctorSchedule(
+      const [scheduleData, todaysData] = await Promise.all([
+        doctorScheduleApi.getDoctorSchedule(
           doctorId,
           startRange.toISOString().split("T")[0],
           endRange.toISOString().split("T")[0]
         ),
-        DoctorScheduleApiService.getTodaysAppointments(doctorId),
+        doctorScheduleApi.getTodaysAppointments(doctorId),
       ]);
 
-      console.log(`[useDoctorSchedule] Schedule response:`, scheduleResponse);
-      console.log(`[useDoctorSchedule] Today's response:`, todaysResponse);
-
-      if (scheduleResponse.success && todaysResponse.success) {
-        setSchedule(scheduleResponse.data);
-        setTodaysAppointments(todaysResponse.data);
-      } else {
-        setError(
-          scheduleResponse.error ||
-            todaysResponse.error ||
-            "Failed to fetch schedule"
-        );
-      }
+      setSchedule(scheduleData);
+      setTodaysAppointments(todaysData);
     } catch (err) {
-      console.error(`[useDoctorSchedule] Error:`, err);
       setError(
         err instanceof Error ? err.message : "An unexpected error occurred"
       );
     } finally {
-      console.log(`[useDoctorSchedule] Fetch complete`);
       setIsLoading(false);
     }
   }, [doctorId]);
@@ -174,20 +142,10 @@ export const useDoctorSchedule = ({
   const markAppointmentCompleted = useCallback(
     async (appointmentId: string): Promise<boolean> => {
       try {
-        const response =
-          await DoctorScheduleApiService.markAppointmentCompleted(
-            appointmentId
-          );
-        if (response.success) {
-          await refreshSchedule();
-          return true;
-        }
-        setError(response.error || "Failed to mark appointment as completed");
-        return false;
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An unexpected error occurred"
-        );
+        await doctorScheduleApi.markAppointmentCompleted(appointmentId);
+        await refreshSchedule();
+        return true;
+      } catch {
         return false;
       }
     },
@@ -197,18 +155,10 @@ export const useDoctorSchedule = ({
   const markAppointmentNoShow = useCallback(
     async (appointmentId: string): Promise<boolean> => {
       try {
-        const response =
-          await DoctorScheduleApiService.markAppointmentNoShow(appointmentId);
-        if (response.success) {
-          await refreshSchedule();
-          return true;
-        }
-        setError(response.error || "Failed to mark appointment as no-show");
-        return false;
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An unexpected error occurred"
-        );
+        await doctorScheduleApi.markAppointmentNoShow(appointmentId);
+        await refreshSchedule();
+        return true;
+      } catch {
         return false;
       }
     },
@@ -218,20 +168,10 @@ export const useDoctorSchedule = ({
   const addAppointmentNotes = useCallback(
     async (appointmentId: string, notes: string): Promise<boolean> => {
       try {
-        const response = await DoctorScheduleApiService.addAppointmentNotes(
-          appointmentId,
-          notes
-        );
-        if (response.success) {
-          await refreshSchedule();
-          return true;
-        }
-        setError(response.error || "Failed to add appointment notes");
-        return false;
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An unexpected error occurred"
-        );
+        await doctorScheduleApi.addAppointmentNotes(appointmentId, notes);
+        await refreshSchedule();
+        return true;
+      } catch {
         return false;
       }
     },
@@ -241,24 +181,14 @@ export const useDoctorSchedule = ({
   const getAppointmentDetails = useCallback(
     async (appointmentId: string): Promise<DoctorScheduleEvent | null> => {
       try {
-        const response =
-          await DoctorScheduleApiService.getAppointmentDetails(appointmentId);
-        if (response.success) {
-          return response.data;
-        }
-        setError(response.error || "Failed to fetch appointment details");
-        return null;
-      } catch (err) {
-        setError(
-          err instanceof Error ? err.message : "An unexpected error occurred"
-        );
+        return await doctorScheduleApi.getAppointmentDetails(appointmentId);
+      } catch {
         return null;
       }
     },
     []
   );
 
-  // Auto-refresh functionality
   useEffect(() => {
     refreshSchedule();
   }, [refreshSchedule]);

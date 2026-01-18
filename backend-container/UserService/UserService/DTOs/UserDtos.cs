@@ -60,10 +60,8 @@ public class UpdateUserDto
 
     public bool? IsActive { get; set; }
 
-    // Optional profile fields not previously exposed
     public string? AvatarUrl { get; set; }
 
-    // Newly added address fields
     public string? AddressLine1 { get; set; }
     public string? AddressLine2 { get; set; }
     public string? City { get; set; }
@@ -82,9 +80,7 @@ public class UserResponseDto
     public string? PhoneNumber { get; set; }
     public string Role { get; set; } = string.Empty;
     public DateTime? DateOfBirth { get; set; }
-    // Aggregated address (AddressLine1, AddressLine2, City, State, ZipCode, Country)
     public string? Address { get; set; }
-    // Individual address fields for frontend use
     public string? AddressLine1 { get; set; }
     public string? AddressLine2 { get; set; }
     public string? City { get; set; }

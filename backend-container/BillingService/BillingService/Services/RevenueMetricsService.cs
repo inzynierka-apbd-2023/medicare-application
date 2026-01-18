@@ -125,6 +125,25 @@ public class RevenueMetricsService : IRevenueMetricsService
             });
         }
 
+        // Calculate growth percentage (Revenue vs Previous Month)
+        var prevMonthDate = startDate.AddMonths(-1);
+        var prevMonthEnd = startDate.AddDays(-1);
+        
+        var prevMonthRevenue = await _context.PaymentTransactions
+            .Where(pt => pt.OccurredAt >= prevMonthDate && pt.OccurredAt <= prevMonthEnd
+                        && pt.Type == Models.TransactionType.Capture)
+            .SumAsync(t => t.AmountCents, cancellationToken) / 100.0m;
+            
+        decimal growthPercentage = 0;
+        if (prevMonthRevenue > 0)
+        {
+            growthPercentage = ((totalRevenue - prevMonthRevenue) / prevMonthRevenue) * 100m;
+        }
+        else if (totalRevenue > 0)
+        {
+            growthPercentage = 100m; // 100% growth if starting from 0
+        }
+
         return new MonthlyRevenueResponse
         {
             Year = year,
@@ -133,6 +152,7 @@ public class RevenueMetricsService : IRevenueMetricsService
             AppointmentRevenue = appointmentRevenue,
             SubscriptionRevenue = subscriptionRevenue,
             TransactionCount = transactionCount,
+            GrowthPercentage = Math.Round(growthPercentage, 1),
             DailyBreakdown = dailyBreakdown
         };
     }

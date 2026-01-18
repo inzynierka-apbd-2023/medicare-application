@@ -9,7 +9,7 @@ namespace AppointmentService.Features.DoctorSchedule.Services;
 /// <summary>
 /// Doctor schedule service - simplified to match patient pattern.
 /// Returns appointments without cross-schema enrichment.
-/// Frontend can enrich with patient data if needed (same as patient view enriches doctor data).
+/// Frontend can enrich with patient data.
 /// </summary>
 public class DoctorScheduleService : IDoctorScheduleService
 {

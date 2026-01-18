@@ -7,6 +7,7 @@ namespace PractitionerService.Controllers;
 
 [ApiController]
 [Route("api/practitioner/catalog")]
+[Authorize]
 public class CatalogController : ControllerBase
 {
     private readonly PractitionerDbContext _db;

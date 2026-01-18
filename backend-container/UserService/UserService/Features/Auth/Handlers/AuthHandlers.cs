@@ -9,9 +9,6 @@ using UserService.Services;
 
 namespace UserService.Features.Auth.Handlers;
 
-/// <summary>
-/// Handler for RegisterUserCommand
-/// </summary>
 public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, RegisterUserResponse>
 {
     private readonly IUserService _userService;
@@ -116,9 +113,6 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, Register
     }
 }
 
-/// <summary>
-/// Handler for LoginUserCommand
-/// </summary>
 public class LoginUserHandler : IRequestHandler<LoginUserCommand, LoginUserResponse>
 {
     private readonly IUserService _userService;
@@ -175,9 +169,6 @@ public class LoginUserHandler : IRequestHandler<LoginUserCommand, LoginUserRespo
     }
 }
 
-/// <summary>
-/// Handler for RefreshTokenCommand
-/// </summary>
 public class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, RefreshTokenResponse>
 {
     private readonly UserDbContext _db;
@@ -250,9 +241,6 @@ public class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, RefreshT
     }
 }
 
-/// <summary>
-/// Handler for LogoutCommand
-/// </summary>
 public class LogoutHandler : IRequestHandler<LogoutCommand, LogoutResponse>
 {
     private readonly UserDbContext _db;
@@ -286,9 +274,6 @@ public class LogoutHandler : IRequestHandler<LogoutCommand, LogoutResponse>
     }
 }
 
-/// <summary>
-/// Handler for ForgotPasswordCommand
-/// </summary>
 public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, ForgotPasswordResponse>
 {
     private readonly UserDbContext _db;
@@ -357,9 +342,6 @@ public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, Forg
     }
 }
 
-/// <summary>
-/// Handler for ResetPasswordCommand
-/// </summary>
 public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand, ResetPasswordResponse>
 {
     private readonly UserDbContext _db;
@@ -416,9 +398,6 @@ public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand, ResetP
     }
 }
 
-/// <summary>
-/// Handler for ChangePasswordCommand
-/// </summary>
 public class ChangePasswordHandler : IRequestHandler<ChangePasswordCommand, ChangePasswordResponse>
 {
     private readonly UserDbContext _db;
@@ -445,9 +424,6 @@ public class ChangePasswordHandler : IRequestHandler<ChangePasswordCommand, Chan
     }
 }
 
-/// <summary>
-/// Handler for GenerateTestTokenCommand
-/// </summary>
 public class GenerateTestTokenHandler : IRequestHandler<GenerateTestTokenCommand, TestTokenResponse>
 {
     private readonly IJwtService _jwtService;

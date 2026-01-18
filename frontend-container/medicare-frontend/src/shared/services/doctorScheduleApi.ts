@@ -1,181 +1,84 @@
 import type { DoctorScheduleEvent } from "../../features/scheduler/types/doctorScheduler";
+import { toastMessages } from "../toast/toastMessages";
 
-import { ApiResponse, createErrorResponse } from "./api";
+import { api } from "./api";
 
 export interface DoctorScheduleResponse {
   schedule: DoctorScheduleEvent[];
   totalCount: number;
 }
 
-class DoctorScheduleApiService {
-  private getAuthHeaders() {
-    const token =
-      localStorage.getItem("authToken") || sessionStorage.getItem("authToken");
-    return {
-      "Content-Type": "application/json",
-      ...(token && { Authorization: `Bearer ${token}` }),
-    };
-  }
-
-  async getDoctorSchedule(
-    doctorId: string,
-    startDate?: string,
-    endDate?: string,
-    _status?: string
-  ): Promise<ApiResponse<DoctorScheduleEvent[]>> {
-    try {
-      // The original implementation used a single endpoint for doctor schedule.
-      // The requested change introduces a more complex logic involving two services.
-      // For the purpose of this edit, we will adapt the new fetch calls.
-      // Note: The provided snippet for `startStr` and `endStr` is not defined,
-      // so we will use `startDate` and `endDate` directly, assuming they are in a format
-      // suitable for `encodeURIComponent`.
-      // Also, the snippet doesn't show how to combine results from two fetches into DoctorScheduleEvent[],
-      // so we'll return a placeholder success response after the fetches.
-
-      // 1. Fetch appointments via AppointmentService
-      const startStr = startDate || ""; // Assuming startDate is available or can be empty
-      const endStr = endDate || ""; // Assuming endDate is available or can be empty
-
-      const appsRes = await fetch(
-        `/api/appointment/doctor-schedule/${doctorId}?startDate=${encodeURIComponent(startStr)}&endDate=${encodeURIComponent(endStr)}`,
-        { headers: this.getAuthHeaders() }
-      );
-      if (!appsRes.ok) throw new Error(`Fetch apps failed: ${appsRes.status}`);
-      const responseData: DoctorScheduleResponse = await appsRes.json();
-
-      // 2. Fetch availability via PractitionerService (optional/unused in this view but kept for reference)
-      // ...
-
-      // Return only the list of appointments to match Promise<ApiResponse<DoctorScheduleEvent[]>>
-      return { success: true, data: responseData.schedule || [] };
-    } catch (error) {
-      console.error("Failed to fetch doctor schedule:", error);
-      return createErrorResponse("Failed to fetch doctor schedule");
-    }
-  }
-
-  async getTodaysAppointments(
-    doctorId: string
-  ): Promise<ApiResponse<DoctorScheduleEvent[]>> {
-    try {
-      const response = await fetch(
-        `/api/appointment/doctor-schedule/${doctorId}/today`,
-        {
-          method: "GET",
-          headers: this.getAuthHeaders(),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data: DoctorScheduleResponse = await response.json();
-      return { success: true, data: data.schedule };
-    } catch (error) {
-      console.error("Failed to fetch today's appointments:", error);
-      return createErrorResponse("Failed to fetch today's appointments");
-    }
-  }
-
-  async getAppointmentDetails(
-    appointmentId: string
-  ): Promise<ApiResponse<DoctorScheduleEvent>> {
-    try {
-      const response = await fetch(
-        `/api/appointment/doctor-schedule/appointment/${appointmentId}`,
-        {
-          method: "GET",
-          headers: this.getAuthHeaders(),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      return { success: true, data };
-    } catch (error) {
-      console.error("Failed to fetch appointment details:", error);
-      return createErrorResponse("Failed to fetch appointment details");
-    }
-  }
-
-  async markAppointmentCompleted(
-    appointmentId: string
-  ): Promise<ApiResponse<boolean>> {
-    try {
-      const response = await fetch(
-        `/api/appointment/doctor-schedule/appointment/${appointmentId}/status`,
-        {
-          method: "PUT",
-          headers: this.getAuthHeaders(),
-          body: JSON.stringify({ status: "completed" }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return { success: true, data: true };
-    } catch (error) {
-      console.error("Failed to mark appointment as completed:", error);
-      return createErrorResponse("Failed to mark appointment as completed");
-    }
-  }
-
-  async markAppointmentNoShow(
-    appointmentId: string
-  ): Promise<ApiResponse<boolean>> {
-    try {
-      const response = await fetch(
-        `/api/appointment/doctor-schedule/appointment/${appointmentId}/status`,
-        {
-          method: "PUT",
-          headers: this.getAuthHeaders(),
-          body: JSON.stringify({ status: "no-show" }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return { success: true, data: true };
-    } catch (error) {
-      console.error("Failed to mark appointment as no-show:", error);
-      return createErrorResponse("Failed to mark appointment as no-show");
-    }
-  }
-
-  async addAppointmentNotes(
-    appointmentId: string,
-    notes: string
-  ): Promise<ApiResponse<boolean>> {
-    try {
-      const response = await fetch(
-        `/api/appointment/doctor-schedule/appointment/${appointmentId}/notes`,
-        {
-          method: "PUT",
-          headers: this.getAuthHeaders(),
-          body: JSON.stringify({ notes }),
-        }
-      );
-
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      return { success: true, data: true };
-    } catch (error) {
-      console.error("Failed to add appointment notes:", error);
-      return createErrorResponse("Failed to add appointment notes");
-    }
-  }
+interface StatusUpdateRequest {
+  status: "completed" | "no-show";
 }
 
-const doctorScheduleApiService = new DoctorScheduleApiService();
-export default doctorScheduleApiService;
+interface NotesUpdateRequest {
+  notes: string;
+}
+
+const SCHEDULE_BASE_URL = "/api/appointment/doctor-schedule";
+
+const doctorScheduleApi = {
+  getDoctorSchedule: async (
+    doctorId: string,
+    startDate?: string,
+    endDate?: string
+  ): Promise<DoctorScheduleEvent[]> => {
+    const startStr = startDate || "";
+    const endStr = endDate || "";
+    const url = `${SCHEDULE_BASE_URL}/${doctorId}?startDate=${encodeURIComponent(startStr)}&endDate=${encodeURIComponent(endStr)}`;
+
+    const responseData = await api.get<DoctorScheduleResponse>(url);
+    return responseData.schedule || [];
+  },
+
+  getTodaysAppointments: async (
+    doctorId: string
+  ): Promise<DoctorScheduleEvent[]> => {
+    const url = `${SCHEDULE_BASE_URL}/${doctorId}/today`;
+    const responseData = await api.get<DoctorScheduleResponse>(url);
+    return responseData.schedule;
+  },
+
+  getAppointmentDetails: async (
+    appointmentId: string
+  ): Promise<DoctorScheduleEvent> => {
+    const url = `${SCHEDULE_BASE_URL}/appointment/${appointmentId}`;
+    return api.get<DoctorScheduleEvent>(url);
+  },
+
+  markAppointmentCompleted: async (appointmentId: string): Promise<boolean> => {
+    const url = `${SCHEDULE_BASE_URL}/appointment/${appointmentId}/status`;
+    const body: StatusUpdateRequest = { status: "completed" };
+    await api.put<void>(url, body, undefined, {
+      showToastOnSuccess: true,
+      successMessage: toastMessages.doctorSchedule.markCompletedSuccess,
+    });
+    return true;
+  },
+
+  markAppointmentNoShow: async (appointmentId: string): Promise<boolean> => {
+    const url = `${SCHEDULE_BASE_URL}/appointment/${appointmentId}/status`;
+    const body: StatusUpdateRequest = { status: "no-show" };
+    await api.put<void>(url, body, undefined, {
+      showToastOnSuccess: true,
+      successMessage: toastMessages.doctorSchedule.markNoShowSuccess,
+    });
+    return true;
+  },
+
+  addAppointmentNotes: async (
+    appointmentId: string,
+    notes: string
+  ): Promise<boolean> => {
+    const url = `${SCHEDULE_BASE_URL}/appointment/${appointmentId}/notes`;
+    const body: NotesUpdateRequest = { notes };
+    await api.put<void>(url, body, undefined, {
+      showToastOnSuccess: true,
+      successMessage: toastMessages.doctorSchedule.addNotesSuccess,
+    });
+    return true;
+  },
+};
+
+export default doctorScheduleApi;

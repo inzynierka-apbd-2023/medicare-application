@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import { Save } from "lucide-react";
 
-import { Button, Modal, Input } from "../../../shared/components";
+import { Button, Input, Modal } from "../../../shared/components";
 import { staffApi } from "../../../shared/services/staffApi";
 import type { ScheduleEntry, StaffMember } from "../types";
 
@@ -9,6 +9,19 @@ interface ScheduleEditorProps {
   doctor: StaffMember | null;
   isOpen: boolean;
   onClose: () => void;
+}
+
+interface UnavailableSlotBackend {
+  dayOfWeek?: number;
+  DayOfWeek?: number;
+  start?: string | number;
+  Start?: string | number;
+  startTime?: string | number;
+  StartTime?: string | number;
+  end?: string | number;
+  End?: string | number;
+  endTime?: string | number;
+  EndTime?: string | number;
 }
 
 const dayNames = [
@@ -21,7 +34,11 @@ const dayNames = [
   "Saturday",
 ];
 
-export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ doctor, isOpen, onClose }) => {
+export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
+  doctor,
+  isOpen,
+  onClose,
+}) => {
   const [entries, setEntries] = useState<ScheduleEntry[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -33,27 +50,45 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ doctor, isOpen, 
       setError(null);
       const res = await staffApi.getAvailability(doctor.id);
       if (res.success) {
-        // Backend returns list with DayOfWeek, StartTime, EndTime or camelCase depending on serializer
-        const mapped = (res.data || []).map((s: any) => ({
-          dayOfWeek: s.dayOfWeek ?? s.DayOfWeek,
-          start: (s.start ?? s.Start ?? s.startTime ?? s.StartTime)?.toString().slice(0,5),
-          end: (s.end ?? s.End ?? s.endTime ?? s.EndTime)?.toString().slice(0,5),
-        })) as ScheduleEntry[];
+        const mapped = ((res.data || []) as UnavailableSlotBackend[]).map(
+          (s) => ({
+            dayOfWeek: s.dayOfWeek ?? s.DayOfWeek ?? 0,
+            start:
+              (s.start ?? s.Start ?? s.startTime ?? s.StartTime)
+                ?.toString()
+                .slice(0, 5) || "00:00",
+            end:
+              (s.end ?? s.End ?? s.endTime ?? s.EndTime)
+                ?.toString()
+                .slice(0, 5) || "00:00",
+          })
+        ) as ScheduleEntry[];
         setEntries(mapped);
       } else {
-        setError(res.errors?.[0] || res.message || "Failed to load availability");
+        setError(
+          res.errors?.[0] || res.message || "Failed to load availability"
+        );
       }
       setLoading(false);
     };
     if (isOpen) load();
   }, [doctor, isOpen]);
 
-  const updateEntry = (idx: number, field: keyof ScheduleEntry, value: string | number) => {
-    setEntries((prev) => prev.map((e, i) => (i === idx ? { ...e, [field]: value } : e)));
+  const updateEntry = (
+    idx: number,
+    field: keyof ScheduleEntry,
+    value: string | number
+  ) => {
+    setEntries((prev) =>
+      prev.map((e, i) => (i === idx ? { ...e, [field]: value } : e))
+    );
   };
 
   const addEntry = () => {
-    setEntries((prev) => [...prev, { dayOfWeek: 1, start: "09:00", end: "17:00" }]);
+    setEntries((prev) => [
+      ...prev,
+      { dayOfWeek: 1, start: "09:00", end: "17:00" },
+    ]);
   };
 
   const removeEntry = (idx: number) => {
@@ -72,9 +107,12 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ doctor, isOpen, 
       byDay[e.dayOfWeek].push(e);
     });
     for (const day in byDay) {
-      const list = byDay[day as any].slice().sort((a, b) => a.start.localeCompare(b.start));
+      const list = byDay[Number(day)]
+        .slice()
+        .sort((a, b) => a.start.localeCompare(b.start));
       for (let i = 1; i < list.length; i++) {
-        if (list[i].start < list[i - 1].end) return `Overlapping slots on ${dayNames[Number(day)]}`;
+        if (list[i].start < list[i - 1].end)
+          return `Overlapping slots on ${dayNames[Number(day)]}`;
       }
     }
     return null;
@@ -90,7 +128,11 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ doctor, isOpen, 
     setLoading(true);
     const res = await staffApi.setAvailability(
       doctor.id,
-      entries.map((e) => ({ dayOfWeek: e.dayOfWeek, start: e.start, end: e.end }))
+      entries.map((e) => ({
+        dayOfWeek: e.dayOfWeek,
+        start: e.start,
+        end: e.end,
+      }))
     );
     setLoading(false);
     if (res.success) {
@@ -107,35 +149,63 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({ doctor, isOpen, 
         {error && <div className="text-red-600 text-sm">{error}</div>}
         <div className="space-y-3">
           {entries.map((e, idx) => (
-            <div key={`${e.dayOfWeek}-${e.start}-${e.end}-${idx}`} className="grid grid-cols-12 gap-2 items-end">
+            <div
+              key={`${e.dayOfWeek}-${e.start}-${e.end}-${idx}`}
+              className="grid grid-cols-12 gap-2 items-end"
+            >
               <div className="col-span-4">
-                <label htmlFor={`day-${idx}`} className="block text-sm font-medium text-gray-700 mb-1">Day</label>
+                <label
+                  htmlFor={`day-${idx}`}
+                  className="block text-sm font-medium text-gray-700 mb-1"
+                >
+                  Day
+                </label>
                 <select
                   className="w-full px-3 py-2 rounded-lg border border-gray-300"
                   id={`day-${idx}`}
                   value={e.dayOfWeek}
-                  onChange={(ev) => updateEntry(idx, "dayOfWeek", parseInt(ev.target.value, 10))}
+                  onChange={(ev) =>
+                    updateEntry(idx, "dayOfWeek", parseInt(ev.target.value, 10))
+                  }
                 >
                   {dayNames.map((n, i) => (
-                    <option key={`day-${n}`} value={i}>{n}</option>
+                    <option key={`day-${n}`} value={i}>
+                      {n}
+                    </option>
                   ))}
                 </select>
               </div>
               <div className="col-span-3">
-                <Input label="Start" type="time" value={e.start} onChange={(ev) => updateEntry(idx, "start", ev.target.value)} />
+                <Input
+                  label="Start"
+                  type="time"
+                  value={e.start}
+                  onChange={(ev) => updateEntry(idx, "start", ev.target.value)}
+                />
               </div>
               <div className="col-span-3">
-                <Input label="End" type="time" value={e.end} onChange={(ev) => updateEntry(idx, "end", ev.target.value)} />
+                <Input
+                  label="End"
+                  type="time"
+                  value={e.end}
+                  onChange={(ev) => updateEntry(idx, "end", ev.target.value)}
+                />
               </div>
               <div className="col-span-2 flex gap-2">
-                <Button variant="outline" onClick={() => removeEntry(idx)}>Remove</Button>
+                <Button variant="outline" onClick={() => removeEntry(idx)}>
+                  Remove
+                </Button>
               </div>
             </div>
           ))}
-          <Button variant="outline" onClick={addEntry}>+ Add Slot</Button>
+          <Button variant="outline" onClick={addEntry}>
+            + Add Slot
+          </Button>
         </div>
         <div className="flex justify-end gap-3 pt-4">
-          <Button variant="outline" onClick={onClose}>Cancel</Button>
+          <Button variant="outline" onClick={onClose}>
+            Cancel
+          </Button>
           <Button variant="primary" onClick={handleSave} disabled={loading}>
             <Save size={16} className="mr-2" /> Save
           </Button>
