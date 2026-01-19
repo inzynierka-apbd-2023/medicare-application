@@ -218,11 +218,6 @@ public static class MockDataSeeder
         if (created > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Created {created} catalog records (ICD-10, LOINC, ATC, panels, releases).");
-        }
-        else
-        {
-            Console.WriteLine("[MockDataSeeder] All catalog mock data already exists.");
         }
     }
 }

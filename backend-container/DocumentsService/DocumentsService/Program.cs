@@ -74,6 +74,8 @@ builder.Services.AddHealthChecks().AddDbContextCheck<DocumentsDbContext>();
 
 var app = builder.Build();
 
+app.UseGlobalExceptionHandling();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -82,6 +84,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseCors("DefaultPolicy");
+app.UseDefaultRateLimiting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

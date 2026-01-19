@@ -556,17 +556,10 @@ public class DocumentsController : ControllerBase
         using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
         cts.CancelAfter(TimeSpan.FromSeconds(30));
         
-        try 
+        var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
+        if (completedTask == tcs.Task) 
         {
-            var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
-            if (completedTask == tcs.Task) 
-            {
-                return await tcs.Task;
-            }
-        }
-        catch (OperationCanceledException) 
-        {
-            return null;
+            return await tcs.Task;
         }
 
         return null;
@@ -592,26 +585,24 @@ public class DocumentsController : ControllerBase
 
     private async Task<AtcResult?> LookupAtcAsync(string code)
     {
-        try
-        {
-            using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
-            var list = await http.GetFromJsonAsync<List<AtcDto>>("/api/catalog/atc?q=" + Uri.EscapeDataString(code));
-            var hit = list?.FirstOrDefault(x => string.Equals(x.AtcCode, code, StringComparison.OrdinalIgnoreCase));
-            return hit == null ? null : new AtcResult(hit.AtcCode, hit.AtcName ?? hit.AtcCode);
-        }
-        catch { return null; }
+        using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
+        var resp = await http.GetAsync("/api/catalog/atc?q=" + Uri.EscapeDataString(code));
+        if (!resp.IsSuccessStatusCode) return null;
+
+        var list = await resp.Content.ReadFromJsonAsync<List<AtcDto>>();
+        var hit = list?.FirstOrDefault(x => string.Equals(x.AtcCode, code, StringComparison.OrdinalIgnoreCase));
+        return hit == null ? null : new AtcResult(hit.AtcCode, hit.AtcName ?? hit.AtcCode);
     }
 
     private async Task<AtcResult?> SearchAtcAsync(string query)
     {
-        try
-        {
-            using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
-            var list = await http.GetFromJsonAsync<List<AtcDto>>("/api/catalog/atc?q=" + Uri.EscapeDataString(query));
-            var hit = list?.FirstOrDefault();
-            return hit == null ? null : new AtcResult(hit.AtcCode, hit.AtcName ?? hit.AtcCode);
-        }
-        catch { return null; }
+        using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
+        var resp = await http.GetAsync("/api/catalog/atc?q=" + Uri.EscapeDataString(query));
+        if (!resp.IsSuccessStatusCode) return null;
+
+        var list = await resp.Content.ReadFromJsonAsync<List<AtcDto>>();
+        var hit = list?.FirstOrDefault();
+        return hit == null ? null : new AtcResult(hit.AtcCode, hit.AtcName ?? hit.AtcCode);
     }
 
     private sealed record DoctorDirectoryDto(string DoctorId, string UserId, string FirstName, string LastName);
@@ -620,76 +611,80 @@ public class DocumentsController : ControllerBase
 
     private async Task<string?> ResolveDoctorNameAsync(Guid doctorId)
     {
-        try
+        using var http = new HttpClient { BaseAddress = new Uri(PractitionerBase(HttpContext)) };
+        var resp = await http.GetAsync($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory");
+        if (resp.IsSuccessStatusCode)
         {
-            using var http = new HttpClient { BaseAddress = new Uri(PractitionerBase(HttpContext)) };
-            var dto = await http.GetFromJsonAsync<DoctorDirectoryDto>($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory");
-            if (dto == null) return null;
-            var full = ($"{dto.FirstName} {dto.LastName}").Trim();
-            return string.IsNullOrWhiteSpace(full) ? null : full;
-        }
-        catch
-        {
-            try
+            var dto = await resp.Content.ReadFromJsonAsync<DoctorDirectoryDto>();
+            if (dto != null)
             {
-                using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)) };
-                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}");
-                if (dto2 == null) return null;
+                var full = ($"{dto.FirstName} {dto.LastName}").Trim();
+                if (!string.IsNullOrWhiteSpace(full)) return full;
+            }
+        }
+
+        using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)) };
+        var resp2 = await http2.GetAsync($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}");
+        if (resp2.IsSuccessStatusCode)
+        {
+            var dto2 = await resp2.Content.ReadFromJsonAsync<ArchivedDoctorDto>();
+            if (dto2 != null)
+            {
                 var full = ($"{dto2.FullName}").Trim();
                 return string.IsNullOrWhiteSpace(full) ? null : full;
             }
-            catch { return null; }
         }
+        return null;
     }
 
     private async Task<string?> ResolvePatientNameAsync(Guid patientId)
     {
-        try
-        {
-            using var http = new HttpClient { BaseAddress = new Uri(PatientBase(HttpContext)) };
-            var dto = await http.GetFromJsonAsync<PatientOverviewDto>($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}");
-            if (dto == null) return null;
-            var full = ($"{dto.FirstName} {dto.LastName}").Trim();
-            return string.IsNullOrWhiteSpace(full) ? null : full;
-        }
-        catch { return null; }
+        using var http = new HttpClient { BaseAddress = new Uri(PatientBase(HttpContext)) };
+        var resp = await http.GetAsync($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}");
+        if (!resp.IsSuccessStatusCode) return null;
+        var dto = await resp.Content.ReadFromJsonAsync<PatientOverviewDto>();
+        if (dto == null) return null;
+        var full = ($"{dto.FirstName} {dto.LastName}").Trim();
+        return string.IsNullOrWhiteSpace(full) ? null : full;
     }
 
     private async Task<string?> ResolveDoctorNameQuickAsync(Guid doctorId)
     {
-        try
+        using var http = new HttpClient { BaseAddress = new Uri(PractitionerBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
+        var resp = await http.GetAsync($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory");
+        if (resp.IsSuccessStatusCode)
         {
-            using var http = new HttpClient { BaseAddress = new Uri(PractitionerBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-            var dto = await http.GetFromJsonAsync<DoctorDirectoryDto>($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory");
-            if (dto == null) return null;
-            var full = ($"{dto.FirstName} {dto.LastName}").Trim();
-            return string.IsNullOrWhiteSpace(full) ? null : full;
-        }
-        catch
-        {
-            try
+            var dto = await resp.Content.ReadFromJsonAsync<DoctorDirectoryDto>();
+            if (dto != null)
             {
-                using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-                var dto2 = await http2.GetFromJsonAsync<ArchivedDoctorDto>($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}");
-                if (dto2 == null) return null;
+                var full = ($"{dto.FirstName} {dto.LastName}").Trim();
+                if (!string.IsNullOrWhiteSpace(full)) return full;
+            }
+        }
+
+        using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
+        var resp2 = await http2.GetAsync($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}");
+        if (resp2.IsSuccessStatusCode)
+        {
+            var dto2 = await resp2.Content.ReadFromJsonAsync<ArchivedDoctorDto>();
+            if (dto2 != null)
+            {
                 var full = ($"{dto2.FullName}").Trim();
                 return string.IsNullOrWhiteSpace(full) ? null : full;
             }
-            catch { return null; }
         }
+        return null;
     }
 
     private async Task<string?> ResolvePatientNameQuickAsync(Guid patientId)
     {
-        try
-        {
-            using var http = new HttpClient { BaseAddress = new Uri(PatientBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-            var dto = await http.GetFromJsonAsync<PatientOverviewDto>($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}");
-            if (dto == null) return null;
-            var full = ($"{dto.FirstName} {dto.LastName}").Trim();
-            return string.IsNullOrWhiteSpace(full) ? null : full;
-        }
-        catch { return null; }
+        using var http = new HttpClient { BaseAddress = new Uri(PatientBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
+        var resp = await http.GetAsync($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}");
+        if (!resp.IsSuccessStatusCode) return null;
+        var dto = await resp.Content.ReadFromJsonAsync<PatientOverviewDto>();
+        if (dto == null) return null;
+        var full = ($"{dto.FirstName} {dto.LastName}").Trim();
+        return string.IsNullOrWhiteSpace(full) ? null : full;
     }
 
     private sealed record LoincDto(
@@ -706,24 +701,20 @@ public class DocumentsController : ControllerBase
 
     private async Task<LoincDto?> LookupLoincAsync(string code)
     {
-        try
-        {
-            using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
-            var list = await http.GetFromJsonAsync<List<LoincDto>>("/api/catalog/loinc?q=" + Uri.EscapeDataString(code));
-            return list?.FirstOrDefault(x => string.Equals(x.LoincNum, code, StringComparison.OrdinalIgnoreCase));
-        }
-        catch { return null; }
+        using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
+        var resp = await http.GetAsync("/api/catalog/loinc?q=" + Uri.EscapeDataString(code));
+        if (!resp.IsSuccessStatusCode) return null;
+        var list = await resp.Content.ReadFromJsonAsync<List<LoincDto>>();
+        return list?.FirstOrDefault(x => string.Equals(x.LoincNum, code, StringComparison.OrdinalIgnoreCase));
     }
 
     private async Task<LoincDto?> SearchLoincAsync(string query)
     {
-        try
-        {
-            using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
-            var list = await http.GetFromJsonAsync<List<LoincDto>>("/api/catalog/loinc?q=" + Uri.EscapeDataString(query));
-            return list?.FirstOrDefault();
-        }
-        catch { return null; }
+        using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
+        var resp = await http.GetAsync("/api/catalog/loinc?q=" + Uri.EscapeDataString(query));
+        if (!resp.IsSuccessStatusCode) return null;
+        var list = await resp.Content.ReadFromJsonAsync<List<LoincDto>>();
+        return list?.FirstOrDefault();
     }
 
     private sealed record LoincResolution(LabTestType? Type, LoincDto? Loinc, string? Code, string? Error);

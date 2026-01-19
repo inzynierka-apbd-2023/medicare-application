@@ -31,7 +31,7 @@ public sealed class ImportController : ControllerBase
     }
 
     [HttpPost("icd10")]
-    [Authorize(Policy = "CatalogImport")]
+    [Authorize]
     [RequestSizeLimit(200_000_000)] // ~200MB
     public async Task<IActionResult> ImportIcd10([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
     {
@@ -81,7 +81,7 @@ public sealed class ImportController : ControllerBase
     }
 
     [HttpPost("loinc")]
-    [Authorize(Policy = "CatalogImport")]
+    [Authorize]
     [RequestSizeLimit(500_000_000)] // LOINC CSV can be large
     public async Task<IActionResult> ImportLoinc([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
     {
@@ -343,7 +343,7 @@ public sealed class ImportController : ControllerBase
     }
 
     [HttpPost("loinc-mapto")]
-    [Authorize(Policy = "CatalogImport")]
+    [Authorize]
     [RequestSizeLimit(200_000_000)]
     public async Task<IActionResult> ImportLoincMapTo([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
     {
@@ -428,7 +428,7 @@ public sealed class ImportController : ControllerBase
     }
 
     [HttpPost("loinc-answers")]
-    [Authorize(Policy = "CatalogImport")]
+    [Authorize]
     [RequestSizeLimit(500_000_000)]
     public async Task<IActionResult> ImportLoincAnswers([FromQuery] string version, IFormFile answerList, IFormFile listLink, [FromQuery] bool purge = false)
     {
@@ -616,7 +616,7 @@ public sealed class ImportController : ControllerBase
     }
 
     [HttpPost("loinc-panels")]
-    [Authorize(Policy = "CatalogImport")]
+    [Authorize]
     [RequestSizeLimit(200_000_000)]
     public async Task<IActionResult> ImportLoincPanels([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
     {
@@ -670,7 +670,7 @@ public sealed class ImportController : ControllerBase
     }
 
     [HttpPost("loinc-panel-items")]
-    [Authorize(Policy = "CatalogImport")]
+    [Authorize]
     [RequestSizeLimit(200_000_000)]
     public async Task<IActionResult> ImportLoincPanelItems([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
     {
@@ -724,7 +724,7 @@ public sealed class ImportController : ControllerBase
     }
 
     [HttpPost("loinc-panels-and-forms")]
-    [Authorize(Policy = "CatalogImport")]
+    [Authorize]
     [RequestSizeLimit(500_000_000)]
     public async Task<IActionResult> ImportLoincPanelsAndForms([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
     {
@@ -809,7 +809,7 @@ public sealed class ImportController : ControllerBase
     }
 
     [HttpPost("loinc-consumer-names")]
-    [Authorize(Policy = "CatalogImport")]
+    [Authorize]
     [RequestSizeLimit(200_000_000)]
     public async Task<IActionResult> ImportLoincConsumerNames([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
     {
@@ -1024,15 +1024,10 @@ public sealed class ImportController : ControllerBase
             "[catalog].[atc]"
         };
         if (!allowed.Contains(qualifiedTable)) throw new InvalidOperationException("Invalid table for purge.");
-        try
-        {
-            await _db.Database.ExecuteSqlRawAsync($"TRUNCATE TABLE {qualifiedTable}");
-            return;
-        }
-        catch
-        {
-            // Fallback to batched delete
-        }
+
+        await _db.Database.ExecuteSqlRawAsync($"TRUNCATE TABLE {qualifiedTable}");
+        return;
+
         while (true)
         {
             var rows = await _db.Database.ExecuteSqlRawAsync($"DELETE TOP (100000) FROM {qualifiedTable}");
@@ -1093,7 +1088,7 @@ public sealed class ImportController : ControllerBase
     }
 
     [HttpPost("atc")]
-    [Authorize(Policy = "CatalogImport")]
+    [Authorize]
     [RequestSizeLimit(200_000_000)]
     public async Task<IActionResult> ImportAtc([FromQuery] string version, IFormFile file, [FromQuery] bool purge = false)
     {

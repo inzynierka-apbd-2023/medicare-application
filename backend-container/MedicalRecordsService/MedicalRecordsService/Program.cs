@@ -74,6 +74,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
+app.UseGlobalExceptionHandling();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
@@ -83,6 +85,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseForwardedHeaders();
 app.UseCors("DefaultPolicy");
+app.UseDefaultRateLimiting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

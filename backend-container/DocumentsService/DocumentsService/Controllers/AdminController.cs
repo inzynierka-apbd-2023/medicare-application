@@ -24,39 +24,32 @@ public class AdminController : ControllerBase
         if (_env.IsProduction()) return Forbid("Not allowed in production.");
 
         var strategy = _db.Database.CreateExecutionStrategy();
-        try
+        await strategy.ExecuteAsync(async () =>
         {
-            await strategy.ExecuteAsync(async () =>
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
             {
-                await using var tx = await _db.Database.BeginTransactionAsync();
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Prescription;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Referral;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Sick_Leave;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Visit_Document;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.[Document];");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Type;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Prescription;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Referral;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Sick_Leave;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Visit_Document;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.[Document];");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Type;");
 
-                    await SeedAsync(_db);
+                await SeedAsync(_db);
 
-                    await tx.CommitAsync();
-                }
-                catch
-                {
-                    await tx.RollbackAsync();
-                    throw;
-                }
-            });
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            return Problem($"Purge/seed failed: {ex.Message}");
-        }
+                await tx.CommitAsync();
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        });
+        return NoContent();
     }
 
     [HttpPost("purge-documents")]
@@ -66,35 +59,28 @@ public class AdminController : ControllerBase
         if (_env.IsProduction()) return Forbid("Not allowed in production.");
 
         var strategy = _db.Database.CreateExecutionStrategy();
-        try
+        await strategy.ExecuteAsync(async () =>
         {
-            await strategy.ExecuteAsync(async () =>
+            await using var tx = await _db.Database.BeginTransactionAsync();
+            try
             {
-                await using var tx = await _db.Database.BeginTransactionAsync();
-                try
-                {
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Prescription;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Referral;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Sick_Leave;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Visit_Document;");
-                    await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.[Document];");
-                    await tx.CommitAsync();
-                }
-                catch
-                {
-                    await tx.RollbackAsync();
-                    throw;
-                }
-            });
-            return NoContent();
-        }
-        catch (Exception ex)
-        {
-            return Problem($"Purge failed: {ex.Message}");
-        }
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Prescription;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Referral;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Sick_Leave;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Visit_Document;");
+                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.[Document];");
+                await tx.CommitAsync();
+            }
+            catch
+            {
+                await tx.RollbackAsync();
+                throw;
+            }
+        });
+        return NoContent();
     }
 
     private static async Task SeedAsync(DocumentsDbContext db)
