@@ -1,5 +1,11 @@
+using System.Threading.RateLimiting;
+using Medicare.ServiceDefaults.ErrorHandling;
+using Medicare.ServiceDefaults.Webhooks;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Diagnostics.HealthChecks;
+using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.RateLimiting;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 using Microsoft.Extensions.Logging;
@@ -21,14 +27,69 @@ public static class Extensions
 
         builder.Services.ConfigureHttpClientDefaults(http =>
         {
-            // Turn on resilience by default
             http.AddStandardResilienceHandler();
-
-            // Turn on service discovery by default
             http.AddServiceDiscovery();
         });
 
+        builder.AddGlobalExceptionHandling();
+        builder.AddDefaultRateLimiting();
+
         return builder;
+    }
+
+    public static IHostApplicationBuilder AddGlobalExceptionHandling(this IHostApplicationBuilder builder)
+    {
+        builder.Services.AddExceptionHandler<GlobalExceptionHandler>();
+        builder.Services.AddProblemDetails();
+
+        return builder;
+    }
+
+    public static WebApplication UseGlobalExceptionHandling(this WebApplication app)
+    {
+        app.UseExceptionHandler();
+
+        return app;
+    }
+
+    public static IHostApplicationBuilder AddDefaultRateLimiting(this IHostApplicationBuilder builder)
+    {
+        builder.Services.AddRateLimiter(options =>
+        {
+            options.RejectionStatusCode = StatusCodes.Status429TooManyRequests;
+
+            options.GlobalLimiter = PartitionedRateLimiter.Create<HttpContext, string>(context =>
+            {
+                var factory = RateLimitPartition.GetFixedWindowLimiter(
+                    partitionKey: context.User.Identity?.Name ?? context.Connection.RemoteIpAddress?.ToString() ?? "unknown",
+                    factory: partition =>
+                    {
+                        var section = builder.Configuration.GetSection("RateLimiting");
+                        var permitLimit = section.GetValue<int?>("PermitLimit") ?? 100;
+                        var windowSeconds = section.GetValue<int?>("WindowSeconds") ?? 60;
+                        var queueLimit = section.GetValue<int?>("QueueLimit") ?? 5;
+
+                        return new FixedWindowRateLimiterOptions
+                        {
+                            AutoReplenishment = true,
+                            PermitLimit = permitLimit,
+                            Window = TimeSpan.FromSeconds(windowSeconds),
+                            QueueLimit = queueLimit,
+                            QueueProcessingOrder = QueueProcessingOrder.OldestFirst
+                        };
+                    });
+
+                return factory;
+            });
+        });
+
+        return builder;
+    }
+
+    public static WebApplication UseDefaultRateLimiting(this WebApplication app)
+    {
+        app.UseRateLimiter();
+        return app;
     }
 
     public static IHostApplicationBuilder ConfigureOpenTelemetry(this IHostApplicationBuilder builder)
@@ -68,19 +129,12 @@ public static class Extensions
                 .WithTracing(tracing => tracing.AddOtlpExporter());
         }
 
-        // Uncomment the following lines to enable the Azure Monitor exporter (requires the Azure.Monitor.OpenTelemetry.AspNetCore package)
-        //if (!string.IsNullOrEmpty(builder.Configuration["APPLICATIONINSIGHTS_CONNECTION_STRING"]))
-        //{
-        //    builder.Services.AddOpenTelemetry().UseAzureMonitor();
-        //}
-
         return builder;
     }
 
     public static IHostApplicationBuilder AddDefaultHealthChecks(this IHostApplicationBuilder builder)
     {
         builder.Services.AddHealthChecks()
-            // Add a default liveness check to ensure app is responsive
             .AddCheck("self", () => HealthCheckResult.Healthy(), ["live"]);
 
         return builder;
@@ -88,22 +142,28 @@ public static class Extensions
 
     public static WebApplication MapDefaultEndpoints(this WebApplication app)
     {
-        // Adding health checks endpoints to applications in non-development environments has security implications.
-        // See https://aka.ms/dotnet/aspire/healthchecks for details.
         if (app.Environment.IsDevelopment())
         {
-            // Development-only endpoints or info
         }
 
-        // All health checks must pass for app to be considered ready to accept traffic after starting
         app.MapHealthChecks("/health");
 
-        // Only health checks tagged with the "live" tag must pass for app to be considered alive
         app.MapHealthChecks("/alive", new HealthCheckOptions
         {
             Predicate = r => r.Tags.Contains("live")
         });
 
         return app;
+    }
+
+    public static IServiceCollection AddWebhookSignatureValidation(this IServiceCollection services)
+    {
+        services.AddScoped<WebhookSignatureFilter>();
+        services.Configure<Microsoft.AspNetCore.Mvc.MvcOptions>(options =>
+        {
+            options.Filters.Add<WebhookSignatureFilter>();
+        });
+
+        return services;
     }
 }
