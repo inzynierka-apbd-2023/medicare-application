@@ -98,20 +98,18 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
           // 2. If Doctor, also fetch Patients from Patient Service (to ensure all patients are visible)
           if (userType === "doctor") {
-            const patientsRes = await patientsApi.getPatients(userId);
-            if (patientsRes.success) {
-              patientsRes.data.forEach((p) => {
-                // Check if already in list
-                if (!recipients.find((r) => r.id === p.id)) {
-                  recipients.push({
-                    id: p.id,
-                    name: p.name,
-                    role: "patient",
-                    email: p.email || "",
-                  } as User);
-                }
-              });
-            }
+            const patients = await patientsApi.getPatients(userId);
+            patients.forEach((p) => {
+              // Check if already in list
+              if (!recipients.find((r) => r.id === p.id)) {
+                recipients.push({
+                  id: p.id,
+                  name: p.name,
+                  role: "patient",
+                  email: p.email || "",
+                } as User);
+              }
+            });
           }
 
           // 3. If Receptionist, fetch ALL doctors and ALL patients

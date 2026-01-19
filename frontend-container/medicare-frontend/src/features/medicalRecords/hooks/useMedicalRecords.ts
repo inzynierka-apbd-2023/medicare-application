@@ -38,16 +38,13 @@ export const useMedicalRecords = (
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Helper to map backend data to frontend model
   const mapToPatientMedicalRecord = useCallback(
     (
       profile: BackendPatientProfile,
       history: BackendPatientHistory,
-      doctorMap: Map<string, string> // Map of doctorId -> doctorName
+      doctorMap: Map<string, string>
     ): PatientMedicalRecord => {
-      // Map Visits
       const visits: MedicalVisit[] = history.records.map((r) => {
-        // Find vitals for this record
         const v = history.vitals.find((v) => v.medicalRecordId === r.id);
         let vitalSigns: VitalSigns | undefined;
         if (v) {
@@ -172,24 +169,19 @@ export const useMedicalRecords = (
       setIsLoading(true);
       setError(null);
       try {
-        // Fetch profile, history, and doctors in parallel
-        const [profileRes, historyRes, doctorsRes] = await Promise.all([
+        const [profile, historyRes, doctors] = await Promise.all([
           patientsApi.getPatientProfile(patientId),
           medicalRecordsApi.getPatientHistory(patientId),
           staffApi.getStaff({ role: "Doctor" }),
         ]);
 
-        if (!profileRes.success || !profileRes.data) {
-          // If profile fetch fails, we can't show anything.
-          throw new Error(
-            profileRes.message || "Failed to fetch patient profile"
-          );
+        if (!profile) {
+          throw new Error("Failed to fetch patient profile");
         }
 
-        // Create doctor lookup map
         const doctorMap = new Map<string, string>();
-        if (doctorsRes.success && doctorsRes.data) {
-          for (const doc of doctorsRes.data) {
+        if (doctors) {
+          for (const doc of doctors) {
             if (doc.role === "Doctor") {
               const name =
                 `Dr. ${doc.profile.firstName} ${doc.profile.lastName}`.trim();
@@ -198,8 +190,6 @@ export const useMedicalRecords = (
           }
         }
 
-        const profile = profileRes.data;
-        // History might be null if 404 (new patient), that's fine.
         const history = historyRes.data || {
           patientId,
           records: [],
@@ -213,7 +203,6 @@ export const useMedicalRecords = (
         setRecords([record]);
       } catch (err: unknown) {
         setError(err instanceof Error ? err.message : "Failed to load record");
-        // Console log removed as per request
       } finally {
         setIsLoading(false);
       }
@@ -245,29 +234,23 @@ export const useMedicalRecords = (
       setError(null);
 
       try {
-        // If query is a UUID, try to fetch directly
         if (query.match(/^[0-9a-fA-F-]{36}$/)) {
           await fetchFullPatientRecord(query);
         } else {
-          // Implemented search via existing Patient List
           if (user?.id) {
-            const res = await patientsApi.getPatients(user.id);
-            if (res.success && res.data.length > 0) {
-              // Find ANY matching patient, not just case-sensitive or exact.
-              // User complains "alice" didn't work. Lowercase check is good.
-              const found = res.data.find((p) =>
+            const patients = await patientsApi.getPatients(user.id);
+            if (patients.length > 0) {
+              const found = patients.find((p) =>
                 p.name.toLowerCase().includes(query.toLowerCase())
               );
 
               if (found) {
                 await fetchFullPatientRecord(found.id);
               } else {
-                // Explicitly set error/state so UI knows
                 setSelectedRecord(null);
                 setError(`No patient found matching "${query}"`);
               }
             } else {
-              // No patients in list at all
               setSelectedRecord(null);
               setError("No patients found in your list");
             }
@@ -275,7 +258,6 @@ export const useMedicalRecords = (
         }
       } catch (_e) {
         setError("Search failed");
-        // Console log removed
       } finally {
         setIsLoading(false);
       }

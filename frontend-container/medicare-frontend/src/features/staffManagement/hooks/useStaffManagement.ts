@@ -73,26 +73,13 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
 
       const req: { isActive?: boolean } = {};
       if (statusFilter !== "All") req.isActive = statusFilter === "Active";
-      const [staffResponse, specializationsResponse] = await Promise.all([
+      const [staffData, specializationsData] = await Promise.all([
         staffApi.getStaff(req),
         staffApi.getSpecializations(),
       ]);
 
-      if (staffResponse.success) {
-        // All staff roles are now supported (Doctors + Receptionists)
-        setStaff(staffResponse.data);
-      } else {
-        setError(staffResponse.errors?.[0] || "Failed to fetch staff");
-      }
-
-      if (specializationsResponse.success) {
-        setSpecializations(specializationsResponse.data);
-      } else {
-        console.warn(
-          "Failed to fetch specializations:",
-          specializationsResponse.errors?.[0]
-        );
-      }
+      setStaff(staffData);
+      setSpecializations(specializationsData);
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "An unexpected error occurred"
@@ -110,36 +97,23 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
     async (data: CreateStaffRequest): Promise<boolean> => {
       try {
         setError(null);
-        const response = await staffApi.createStaff(data);
+        const created = await staffApi.createStaff(data);
 
-        if (response.success) {
-          const created = response.data;
-          // Optimistically add created (with credentials) to top of list
-          setStaff((prev) => [
-            created as StaffMember,
-            ...prev.filter((s) => s.id !== created.id),
-          ]);
-          // Refresh the list from server, then re-attach credentials to the created doctor (one-time)
-          await fetchStaff();
-          setStaff((prev) =>
-            prev.map((s) =>
-              s.id === created.id &&
-              created.role === "Doctor" &&
-              created.credentials
-                ? ({ ...s, credentials: created.credentials } as StaffMember)
-                : s
-            )
-          );
-          // Best-effort toast is handled by caller
-          return true;
-        } else {
-          setError(
-            response.errors?.[0] ||
-              response.message ||
-              "Failed to create staff member"
-          );
-          return false;
-        }
+        setStaff((prev) => [
+          created as StaffMember,
+          ...prev.filter((s) => s.id !== created.id),
+        ]);
+        await fetchStaff();
+        setStaff((prev) =>
+          prev.map((s) =>
+            s.id === created.id &&
+            created.role === "Doctor" &&
+            created.credentials
+              ? ({ ...s, credentials: created.credentials } as StaffMember)
+              : s
+          )
+        );
+        return true;
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "An unexpected error occurred"
@@ -158,16 +132,11 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
           ...data,
           role: data.role!,
         };
-        const response = await staffApi.updateStaff(data.id, updateRequest);
+        const updated = await staffApi.updateStaff(data.id, updateRequest);
 
-        if (response.success) {
-          await fetchStaff(); // Refresh the list
-          setSelectedStaff(response.data); // Update selected staff if it was the updated one
-          return true;
-        } else {
-          setError(response.errors?.[0] || "Failed to update staff member");
-          return false;
-        }
+        await fetchStaff(); // Refresh the list
+        setSelectedStaff(updated); // Update selected staff if it was the updated one
+        return true;
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "An unexpected error occurred"
@@ -182,18 +151,13 @@ export const useStaffManagement = (): UseStaffManagementReturn => {
     async (id: string): Promise<boolean> => {
       try {
         setError(null);
-        const response = await staffApi.deleteStaff(id);
+        await staffApi.deleteStaff(id);
 
-        if (response.success) {
-          await fetchStaff(); // Refresh the list
-          if (selectedStaff?.id === id) {
-            setSelectedStaff(null); // Deselect if the deleted staff was selected
-          }
-          return true;
-        } else {
-          setError(response.errors?.[0] || "Deleting staff is not supported");
-          return false;
+        await fetchStaff(); // Refresh the list
+        if (selectedStaff?.id === id) {
+          setSelectedStaff(null); // Deselect if the deleted staff was selected
         }
+        return true;
       } catch (err) {
         setError(
           err instanceof Error ? err.message : "An unexpected error occurred"

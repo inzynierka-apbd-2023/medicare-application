@@ -84,9 +84,9 @@ export const useReadOnlyScheduler = (
   // Fetch doctors from backend
   const fetchDoctors = useCallback(async () => {
     try {
-      const response = await staffApi.getStaff({ role: "Doctor" });
-      if (response.success && response.data) {
-        const doctors = response.data.filter((s) => s.role === "Doctor");
+      const doctorsData = await staffApi.getStaff({ role: "Doctor" });
+      if (doctorsData) {
+        const doctors = doctorsData.filter((s) => s.role === "Doctor");
         const map = new Map<
           string,
           { firstName: string; lastName: string; specialization: string }
@@ -274,24 +274,15 @@ export const useReadOnlyScheduler = (
     setIsLoading(true);
 
     try {
-      const response = await staffApi.getStaff({ role: "Doctor" });
-      if (response.success && response.data) {
+      const doctorsData = await staffApi.getStaff({ role: "Doctor" });
+      if (doctorsData) {
         const lowerQuery = query.toLowerCase();
-        const filtered: Doctor[] = response.data
+        const filtered: Doctor[] = doctorsData
           .filter((s) => s.role === "Doctor")
           .filter((doc) => {
             const fullName =
               `${doc.profile.firstName} ${doc.profile.lastName}`.toLowerCase();
-            const specialization =
-              "specializations" in doc
-                ? ((
-                    doc as { specializations?: { name: string }[] }
-                  ).specializations?.[0]?.name?.toLowerCase() ?? "")
-                : "";
-            return (
-              fullName.includes(lowerQuery) ||
-              specialization.includes(lowerQuery)
-            );
+            return fullName.includes(lowerQuery);
           })
           .map((doc) => ({
             id: doc.id,
@@ -302,10 +293,9 @@ export const useReadOnlyScheduler = (
                 ? ((doc as { specializations?: { name: string }[] })
                     .specializations?.[0]?.name ?? "General Practice")
                 : "General Practice",
-            email: doc.profile.email,
+            email: doc.profile.email || "",
             phone: doc.profile.phone || "",
           }));
-
         setDoctorSearchResults(filtered);
       } else {
         setDoctorSearchResults([]);

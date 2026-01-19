@@ -79,11 +79,10 @@ export class ReceptionistDashboardApiService {
   static async getDashboardData(): Promise<ReceptionistDashboardData> {
     try {
       // Fetch doctors from PractitionerService
-      const doctorsResponse = await staffApi.getStaff({ role: "Doctor" });
-      const doctors =
-        doctorsResponse.success && doctorsResponse.data
-          ? doctorsResponse.data.filter((s) => s.role === "Doctor")
-          : [];
+      const doctorsData = await staffApi.getStaff({ role: "Doctor" });
+      const doctors = doctorsData
+        ? doctorsData.filter((s) => s.role === "Doctor")
+        : [];
 
       // Build doctor lookup map: userId -> { name, specialization }
       const doctorMap = new Map<

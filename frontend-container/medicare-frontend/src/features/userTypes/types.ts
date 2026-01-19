@@ -22,7 +22,6 @@ export interface PatientListProps {
   onSearchChange: (term: string) => void;
   sortKey: SortKey;
   onSortChange: (key: SortKey) => void;
-  onPatientAction: (action: PatientAction, patient: Patient) => void;
   isLoading?: boolean;
 }
 

@@ -39,29 +39,24 @@ export const usePrescriptions = () => {
     try {
       if (!user?.id) return;
 
-      // Fetch patients using the patientsApi
-      const response = await patientsApi.getPatients(user.id);
-      if (response.success && response.data) {
-        // Map to the Patient type expected by prescriptions
-        // Backend returns 'age', calculate approximate dateOfBirth
-        const mappedPatients: Patient[] = response.data.map((p) => {
-          // Calculate approximate DOB from age
-          const today = new Date();
-          const year = today.getFullYear() - (p.age || 0);
-          const approximateDob = new Date(year, 0, 1);
+      const data = await patientsApi.getPatients(user.id);
 
-          return {
-            id: p.id,
-            name: p.name,
-            email: p.email || "",
-            phone: p.phone || "",
-            dateOfBirth: approximateDob,
-            allergies: [],
-            medicalHistory: [],
-          };
-        });
-        setPatients(mappedPatients);
-      }
+      const mappedPatients: Patient[] = data.map((p) => {
+        const today = new Date();
+        const year = today.getFullYear() - (p.age || 0);
+        const approximateDob = new Date(year, 0, 1);
+
+        return {
+          id: p.id,
+          name: p.name,
+          email: p.email || "",
+          phone: p.phone || "",
+          dateOfBirth: approximateDob,
+          allergies: [],
+          medicalHistory: [],
+        };
+      });
+      setPatients(mappedPatients);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to fetch patients");
     }

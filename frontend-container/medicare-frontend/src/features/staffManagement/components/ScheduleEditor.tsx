@@ -48,28 +48,27 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
       if (!doctor || doctor.role !== "Doctor") return;
       setLoading(true);
       setError(null);
-      const res = await staffApi.getAvailability(doctor.id);
-      if (res.success) {
-        const mapped = ((res.data || []) as UnavailableSlotBackend[]).map(
-          (s) => ({
-            dayOfWeek: s.dayOfWeek ?? s.DayOfWeek ?? 0,
-            start:
-              (s.start ?? s.Start ?? s.startTime ?? s.StartTime)
-                ?.toString()
-                .slice(0, 5) || "00:00",
-            end:
-              (s.end ?? s.End ?? s.endTime ?? s.EndTime)
-                ?.toString()
-                .slice(0, 5) || "00:00",
-          })
-        ) as ScheduleEntry[];
+      try {
+        const data = await staffApi.getAvailability(doctor.id);
+        const mapped = ((data || []) as UnavailableSlotBackend[]).map((s) => ({
+          dayOfWeek: s.dayOfWeek ?? s.DayOfWeek ?? 0,
+          start:
+            (s.start ?? s.Start ?? s.startTime ?? s.StartTime)
+              ?.toString()
+              .slice(0, 5) || "00:00",
+          end:
+            (s.end ?? s.End ?? s.endTime ?? s.EndTime)
+              ?.toString()
+              .slice(0, 5) || "00:00",
+        })) as ScheduleEntry[];
         setEntries(mapped);
-      } else {
+      } catch (err) {
         setError(
-          res.errors?.[0] || res.message || "Failed to load availability"
+          err instanceof Error ? err.message : "Failed to load availability"
         );
+      } finally {
+        setLoading(false);
       }
-      setLoading(false);
     };
     if (isOpen) load();
   }, [doctor, isOpen]);
@@ -126,19 +125,22 @@ export const ScheduleEditor: React.FC<ScheduleEditorProps> = ({
       return;
     }
     setLoading(true);
-    const res = await staffApi.setAvailability(
-      doctor.id,
-      entries.map((e) => ({
-        dayOfWeek: e.dayOfWeek,
-        start: e.start,
-        end: e.end,
-      }))
-    );
-    setLoading(false);
-    if (res.success) {
+    try {
+      await staffApi.setAvailability(
+        doctor.id,
+        entries.map((e) => ({
+          dayOfWeek: e.dayOfWeek,
+          start: e.start,
+          end: e.end,
+        }))
+      );
       onClose();
-    } else {
-      setError(res.errors?.[0] || res.message || "Failed to save availability");
+    } catch (err) {
+      setError(
+        err instanceof Error ? err.message : "Failed to save availability"
+      );
+    } finally {
+      setLoading(false);
     }
   };
 
