@@ -1,4 +1,6 @@
-import { apiClient } from "./apiClient";
+import { toastMessages } from "../toast/toastMessages";
+
+import { api } from "./api";
 
 export interface PlanDto {
   code: string;
@@ -31,43 +33,40 @@ export interface UpdateSubscriptionResponse {
 }
 
 export const plansApi = {
-  /**
-   * Get all available plans
-   */
   async getPlans(): Promise<PlanDto[]> {
-    const response = await apiClient.get<PlanDto[]>("/billing/plans");
-    return response.data;
+    return await api.get<PlanDto[]>("/billing/plans", undefined, {
+      showToastOnSuccess: false,
+    });
   },
 
-  /**
-   * Get a specific plan by code
-   */
   async getPlan(code: string): Promise<PlanDto> {
-    const response = await apiClient.get<PlanDto>(`/billing/plans/${code}`);
-    return response.data;
+    return await api.get<PlanDto>(`/billing/plans/${code}`, undefined, {
+      showToastOnSuccess: false,
+    });
   },
 
-  /**
-   * Get the current patient's plan
-   */
   async getPatientPlan(patientId: string): Promise<PatientPlanResponse> {
-    const response = await apiClient.get<PatientPlanResponse>(
-      `/billing/plans/patient/${patientId}`
+    return await api.get<PatientPlanResponse>(
+      `/billing/plans/patient/${patientId}`,
+      undefined,
+      {
+        showToastOnSuccess: false,
+      }
     );
-    return response.data;
   },
 
-  /**
-   * Update subscription plan (upgrade/downgrade)
-   */
   async updateSubscription(
     patientId: string,
     newPlanCode: string
   ): Promise<UpdateSubscriptionResponse> {
-    const response = await apiClient.put<UpdateSubscriptionResponse>(
+    return await api.put<UpdateSubscriptionResponse>(
       `/billing/plans/patient/${patientId}/subscription`,
-      { newPlanCode }
+      { newPlanCode },
+      undefined,
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.plans.updateSubscriptionSuccess,
+      }
     );
-    return response.data;
   },
 };

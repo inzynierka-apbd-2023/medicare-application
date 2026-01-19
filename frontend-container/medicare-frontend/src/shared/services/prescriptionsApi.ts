@@ -5,11 +5,11 @@ import {
   PrescriptionFilter,
   PrescriptionFormData,
 } from "../../features/prescriptions/types";
+import { toastMessages } from "../toast/toastMessages";
 
-import { apiClient } from "./apiClient";
+import { api } from "./api";
 import { staffApi } from "./staffApi";
 
-// Backend prescription model (single medication per row)
 interface BackendPrescription {
   id: string;
   medicalRecordId: string;
@@ -27,7 +27,6 @@ interface BackendPrescription {
   updatedAt: string;
 }
 
-// Map backend prescription to frontend format
 const mapBackendToFrontend = (bp: BackendPrescription): Prescription => {
   const prescribedDate = new Date(bp.prescribedDate);
   const validUntil = new Date(prescribedDate);
@@ -66,47 +65,43 @@ class PrescriptionsApi {
   async getPrescriptions(
     filters: PrescriptionFilter = {}
   ): Promise<Prescription[]> {
-    try {
-      const params = new URLSearchParams();
-      if (filters.patientId) params.append("patientId", filters.patientId);
-      if (filters.doctorId) params.append("doctorId", filters.doctorId);
-      if (filters.status) params.append("status", filters.status);
-      if (filters.searchTerm) params.append("search", filters.searchTerm);
+    const params = new URLSearchParams();
+    if (filters.patientId) params.append("patientId", filters.patientId);
+    if (filters.doctorId) params.append("doctorId", filters.doctorId);
+    if (filters.status) params.append("status", filters.status);
+    if (filters.searchTerm) params.append("search", filters.searchTerm);
 
-      const queryString = params.toString();
-      const url = `/medical-records/prescriptions${queryString ? `?${queryString}` : ""}`;
+    const queryString = params.toString();
+    const url = `/medical-records/prescriptions${queryString ? `?${queryString}` : ""}`;
 
-      const response = await apiClient.get<BackendPrescription[]>(url);
-      return response.data.map(mapBackendToFrontend);
-    } catch (error) {
-      console.error("Failed to fetch prescriptions:", error);
-      return [];
-    }
+    const response = await api.get<BackendPrescription[]>(url);
+    return response.map(mapBackendToFrontend);
   }
 
   async getPrescriptionById(id: string): Promise<Prescription | null> {
-    try {
-      const response = await apiClient.get<BackendPrescription>(
-        `/medical-records/prescriptions/${id}`
-      );
-      return mapBackendToFrontend(response.data);
-    } catch (error) {
-      console.error("Failed to fetch prescription:", error);
-      return null;
-    }
+    const response = await api.get<BackendPrescription>(
+      `/medical-records/prescriptions/${id}`
+    );
+    return mapBackendToFrontend(response);
   }
 
   async createPrescription(data: PrescriptionFormData): Promise<Prescription> {
-    // Create a prescription for each medication since backend stores one medication per row
     const responses: BackendPrescription[] = [];
 
-    for (const medication of data.medications) {
-      if (!medication.name) continue; // Skip empty medications
+    const medications = data.medications || [];
+
+    if (medications.length === 0) {
+      throw new Error("No medications to save");
+    }
+
+    for (let i = 0; i < medications.length; i++) {
+      const medication = medications[i];
+      if (!medication.name) continue;
 
       const payload = {
-        medicalRecordId: "00000000-0000-0000-0000-000000000000", // Placeholder - should be real
+        medicalRecordId: "00000000-0000-0000-0000-000000000000",
         patientId: data.patientId,
-        doctorId: "00000000-0000-0000-0000-000000000000", // Will be set by auth context
+        doctorId: "00000000-0000-0000-0000-000000000000",
         medicationName: medication.name,
         atcCode: null,
         dosage: medication.dosage,
@@ -116,16 +111,22 @@ class PrescriptionsApi {
         prescribedDate: new Date().toISOString(),
       };
 
-      const response = await apiClient.post<BackendPrescription>(
+      const isLast = i === medications.length - 1;
+
+      const response = await api.post<BackendPrescription>(
         "/medical-records/prescriptions",
-        payload
+        payload,
+        undefined,
+        {
+          showToastOnSuccess: isLast,
+          successMessage: toastMessages.prescriptions.createSuccess,
+        }
       );
-      responses.push(response.data);
+      responses.push(response);
     }
 
-    // Return the first prescription for backward compatibility
     if (responses.length === 0) {
-      throw new Error("No medications to save");
+      throw new Error("No medications were saved");
     }
     return mapBackendToFrontend(responses[0]);
   }
@@ -140,7 +141,6 @@ class PrescriptionsApi {
       throw new Error("No medications to save");
     }
 
-    // Update the existing prescription with the first medication
     const firstMed = medications[0];
     const payload = {
       medicationName: firstMed?.name || "",
@@ -151,15 +151,21 @@ class PrescriptionsApi {
       status: null,
     };
 
-    const response = await apiClient.put<BackendPrescription>(
+    const hasMoreMeds = medications.length > 1;
+
+    const response = await api.put<BackendPrescription>(
       `/medical-records/prescriptions/${id}`,
-      payload
+      payload,
+      undefined,
+      {
+        showToastOnSuccess: !hasMoreMeds,
+        successMessage: toastMessages.prescriptions.updateSuccess,
+      }
     );
 
-    // Create new prescriptions for any additional medications (starting from index 1)
     for (let i = 1; i < medications.length; i++) {
       const med = medications[i];
-      if (!med.name) continue; // Skip empty medications
+      if (!med.name) continue;
 
       const newPayload = {
         medicalRecordId: "00000000-0000-0000-0000-000000000000",
@@ -174,17 +180,27 @@ class PrescriptionsApi {
         prescribedDate: new Date().toISOString(),
       };
 
-      await apiClient.post<BackendPrescription>(
+      const isLast = i === medications.length - 1;
+
+      await api.post<BackendPrescription>(
         "/medical-records/prescriptions",
-        newPayload
+        newPayload,
+        undefined,
+        {
+          showToastOnSuccess: isLast,
+          successMessage: toastMessages.prescriptions.updateSuccess,
+        }
       );
     }
 
-    return mapBackendToFrontend(response.data);
+    return mapBackendToFrontend(response);
   }
 
   async deletePrescription(id: string): Promise<void> {
-    await apiClient.delete(`/medical-records/prescriptions/${id}`);
+    await api.delete(`/medical-records/prescriptions/${id}`, undefined, {
+      showToastOnSuccess: true,
+      successMessage: toastMessages.prescriptions.deleteSuccess,
+    });
   }
 
   async getPatients(): Promise<Patient[]> {
@@ -192,33 +208,28 @@ class PrescriptionsApi {
   }
 
   async getDoctors(): Promise<Doctor[]> {
-    try {
-      const response = await staffApi.getStaff({ role: "Doctor" });
-      if (response.success && response.data) {
-        interface DoctorExtended {
-          specializations?: Array<{ name: string }>;
-          licenseNumber?: string;
-        }
-        return response.data
-          .filter((s) => s.role === "Doctor")
-          .map((doc) => {
-            const docExtended = doc as typeof doc & DoctorExtended;
-            return {
-              id: doc.id,
-              name: `Dr. ${doc.profile.firstName} ${doc.profile.lastName}`,
-              specialization:
-                docExtended.specializations?.[0]?.name || "General Practice",
-              licenseNumber: docExtended.licenseNumber || "",
-              email: doc.profile.email,
-              phone: doc.profile.phone || "",
-            };
-          });
+    const doctors = await staffApi.getStaff({ role: "Doctor" });
+    if (doctors) {
+      interface DoctorExtended {
+        specializations?: Array<{ name: string }>;
+        licenseNumber?: string;
       }
-      return [];
-    } catch (error) {
-      console.error("Failed to fetch doctors:", error);
-      return [];
+      return doctors
+        .filter((s) => s.role === "Doctor")
+        .map((doc) => {
+          const docExtended = doc as typeof doc & DoctorExtended;
+          return {
+            id: doc.id,
+            name: `Dr. ${doc.profile.firstName} ${doc.profile.lastName}`,
+            specialization:
+              docExtended.specializations?.[0]?.name || "General Practice",
+            licenseNumber: docExtended.licenseNumber || "",
+            email: doc.profile.email,
+            phone: doc.profile.phone || "",
+          };
+        });
     }
+    return [];
   }
 
   async getPharmacies(): Promise<
@@ -230,7 +241,6 @@ class PrescriptionsApi {
       email: string;
     }[]
   > {
-    // Pharmacies are not yet in backend - return empty
     return [];
   }
 
@@ -238,15 +248,19 @@ class PrescriptionsApi {
     id: string,
     status: Prescription["status"]
   ): Promise<Prescription> {
-    const response = await apiClient.put<BackendPrescription>(
+    const response = await api.put<BackendPrescription>(
       `/medical-records/prescriptions/${id}/status`,
-      { status: status.charAt(0).toUpperCase() + status.slice(1) }
+      { status: status.charAt(0).toUpperCase() + status.slice(1) },
+      undefined,
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.prescriptions.statusUpdateSuccess,
+      }
     );
-    return mapBackendToFrontend(response.data);
+    return mapBackendToFrontend(response);
   }
 
   async generatePrescriptionPDF(id: string): Promise<Blob> {
-    // PDF generation not yet in backend
     const pdfContent = `Prescription ID: ${id}\nGenerated on: ${new Date().toISOString()}`;
     return new Blob([pdfContent], { type: "application/pdf" });
   }

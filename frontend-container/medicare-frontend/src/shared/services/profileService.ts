@@ -1,8 +1,9 @@
 import type { ProfileData } from "../../features/profile/types";
+import { toastMessages } from "../toast/toastMessages";
 
-import { usersApi } from "./usersApi";
+import { api } from "./api";
 
-interface BasicUserDto {
+interface UserDto {
   id: string;
   username: string;
   email: string;
@@ -15,7 +16,7 @@ interface BasicUserDto {
   address?: string | null;
 }
 
-function mapToProfileData(user: BasicUserDto): ProfileData {
+function mapToProfileData(user: UserDto): ProfileData {
   const base: ProfileData = {
     id: user.id,
     name: `${user.firstName} ${user.lastName}`.trim(),
@@ -26,7 +27,6 @@ function mapToProfileData(user: BasicUserDto): ProfileData {
     address: user.address || "",
     dateOfBirth: user.dateOfBirth ? user.dateOfBirth.slice(0, 10) : "",
     membershipLevel: "",
-    // Treat backend role separately; avoid showing raw 'patient' as a membership
     membershipName:
       user.role && user.role.toLowerCase() !== "patient" ? user.role : "",
     profilePicture: "",
@@ -37,7 +37,7 @@ function mapToProfileData(user: BasicUserDto): ProfileData {
 
 export const profileService = {
   async getProfile(userId: string): Promise<ProfileData> {
-    const user = (await usersApi.getUser(userId)) as BasicUserDto;
+    const user = await api.get<UserDto>(`/users/${userId}`);
     return mapToProfileData(user);
   },
 
@@ -53,17 +53,18 @@ export const profileService = {
       email?: string;
       addressLine1?: string;
     } = {};
+
     if (data.phone !== undefined) dto.phoneNumber = data.phone;
     if (data.dateOfBirth) dto.dateOfBirth = data.dateOfBirth;
     if (data.firstName) dto.firstName = data.firstName;
     if (data.lastName) dto.lastName = data.lastName;
     if (data.email) dto.email = data.email;
-    if (data.address) dto.addressLine1 = data.address; // simple mapping
-    if (data.firstName !== undefined) dto.firstName = data.firstName;
-    if (data.lastName !== undefined) dto.lastName = data.lastName;
-    if (data.email !== undefined) dto.email = data.email;
-    await usersApi.updateProfile(userId, dto);
-    const fresh = (await usersApi.getUser(userId)) as BasicUserDto;
+    if (data.address) dto.addressLine1 = data.address;
+
+    const fresh = await api.put<UserDto>(`/users/${userId}`, dto, undefined, {
+      showToastOnSuccess: true,
+      successMessage: toastMessages.auth.profileUpdateSuccess,
+    });
     return mapToProfileData(fresh);
   },
 

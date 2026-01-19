@@ -32,23 +32,19 @@ export const useProfile = (userId?: string): UseProfileResult => {
       if (!effectiveUserId) throw new Error("Missing user id");
       const data = await profileService.getProfile(effectiveUserId);
       setProfileData(data);
-    } catch (err) {
+    } catch (_err) {
       setError("An error occurred while loading your profile");
-      console.error("Profile fetch error:", err);
     } finally {
       setIsLoading(false);
     }
   };
 
   const updateProfile = async (data: Partial<ProfileData>) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       if (!effectiveUserId) throw new Error("Missing user id");
       const updated = await profileService.updateProfile(effectiveUserId, data);
       setProfileData(updated);
-    } catch (err) {
-      console.error("Profile update error:", err);
-      throw err;
     } finally {
       setIsLoading(false);
     }
@@ -58,17 +54,14 @@ export const useProfile = (userId?: string): UseProfileResult => {
     currentPassword: string,
     newPassword: string
   ) => {
+    setIsLoading(true);
     try {
-      setIsLoading(true);
       if (!effectiveUserId) throw new Error("Missing user id");
       await profileService.changePassword(
         effectiveUserId,
         currentPassword,
         newPassword
       );
-    } catch (err) {
-      console.error("Password change error:", err);
-      throw err;
     } finally {
       setIsLoading(false);
     }
