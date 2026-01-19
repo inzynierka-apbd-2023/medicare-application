@@ -12,7 +12,6 @@ public class AdminController : ControllerBase
     private readonly AppointmentDbContext _db;
     public AdminController(AppointmentDbContext db) { _db = db; }
 
-    // Reset the sent flag so the notifier can republish messages for the next 24 hours
     [HttpPost("reset-upcoming-flags")] 
     public async Task<IActionResult> ResetUpcomingFlags()
     {
@@ -28,7 +27,6 @@ public class AdminController : ControllerBase
         return Ok(new { reset = affected });
     }
     
-    // Defensive cleanup to purge appointments by doctor id (supports either entity or user id)
     [HttpDelete("purge-appointments/{doctorId}")]
     public async Task<IActionResult> PurgeAppointments(Guid doctorId)
     {

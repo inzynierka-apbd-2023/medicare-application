@@ -1,7 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PatientService.Models;
+using PatientService.Data;
 
-namespace PatientService.Data;
+namespace PatientService.Data.Seeders;
 
 public static class MockIds
 {

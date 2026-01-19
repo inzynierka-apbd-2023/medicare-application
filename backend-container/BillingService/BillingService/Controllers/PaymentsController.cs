@@ -15,7 +15,6 @@ public class PaymentsController : ControllerBase
     private readonly BillingDbContext _db;
     public PaymentsController(BillingDbContext db) { _db = db; }
 
-    // Create payment intent (appointment or subscription)
     [HttpPost("intents")]
     public async Task<ActionResult<PaymentIntent>> CreateIntent([FromBody] CreateIntentRequest req)
     {
@@ -43,7 +42,6 @@ public class PaymentsController : ControllerBase
         return i == null ? NotFound() : i;
     }
 
-    // Record transaction in ledger
     [HttpPost("intents/{id}/transactions")]
     public async Task<ActionResult> RecordTransaction(Guid id, [FromBody] RecordTransactionRequest req)
     {
@@ -63,7 +61,6 @@ public class PaymentsController : ControllerBase
         };
         _db.PaymentTransactions.Add(tx);
 
-        // Update intent status minimally
         if (req.Type == TransactionType.Authorization || req.Type == TransactionType.Capture)
             intent.Status = PaymentIntentStatus.Succeeded;
         if (req.Type == TransactionType.Failure)
@@ -74,7 +71,6 @@ public class PaymentsController : ControllerBase
         return NoContent();
     }
 
-    // Manage subscription renewal (create intent for next period)
     [HttpPost("subscriptions/{contractId}/renewals")]
     public async Task<ActionResult<PaymentIntent>> CreateRenewal(Guid contractId)
     {
@@ -103,7 +99,6 @@ public class PaymentsController : ControllerBase
         return CreatedAtAction(nameof(GetIntent), new { id = intent.Id }, intent);
     }
 
-    // Webhook receiver (idempotent)
     [HttpPost("webhooks/{provider}")]
     [AllowAnonymous]
     public async Task<ActionResult> Webhook(string provider)

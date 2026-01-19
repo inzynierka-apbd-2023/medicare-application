@@ -50,7 +50,6 @@ public class PrescriptionsController : ControllerBase
     [HttpPost]
     public async Task<IActionResult> CreatePrescription([FromBody] CreatePrescriptionRequest req)
     {
-        // Use provided MedicalRecordId or generate a placeholder if empty/null
         var medicalRecordId = req.MedicalRecordId != Guid.Empty 
             ? req.MedicalRecordId 
             : Guid.NewGuid();

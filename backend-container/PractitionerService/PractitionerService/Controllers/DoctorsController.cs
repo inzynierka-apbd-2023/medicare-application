@@ -4,12 +4,9 @@ using Microsoft.EntityFrameworkCore;
 using PractitionerService.Data;
 using PractitionerService.Models;
 using RabbitMQ.Client;
-using Microsoft.Extensions.Configuration;
-using System.Net.Http;
+using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
-using System.Text.RegularExpressions;
-using System.Net.Http.Headers;
 
 namespace PractitionerService.Controllers;
 
@@ -56,8 +53,7 @@ public class DoctorsController : ControllerBase
     {
         var date = DateTime.UtcNow.ToString("yyyyMMdd");
         var lastInitial = string.IsNullOrWhiteSpace(p.LastName) ? "x" : p.LastName.Trim().Substring(0,1).ToLowerInvariant();
-        var baseName = $"doctor_{lastInitial}_{date}"; // e.g., doctor_a_20250818
-        return baseName;
+        return $"doctor_{lastInitial}_{date}";
     }
 
     private static string GenerateStrongPassword()
@@ -68,10 +64,8 @@ public class DoctorsController : ControllerBase
         const string symbols = "!@#$%^&*()_+[]{}-=";
         var rnd = Random.Shared;
         string Pick(string chars, int n) => new string(Enumerable.Range(0, n).Select(_ => chars[rnd.Next(chars.Length)]).ToArray());
-        // Ensure mix
         var parts = new[] { Pick(upper,2), Pick(lower,4), Pick(digits,2), Pick(symbols,2), Pick(lower+upper+digits+symbols,2) };
         var all = string.Concat(parts).ToCharArray();
-        // shuffle
         for (int i=0;i<all.Length;i++){ int j=rnd.Next(all.Length); (all[i],all[j])=(all[j],all[i]); }
         return new string(all);
     }
@@ -85,7 +79,6 @@ public class DoctorsController : ControllerBase
             var resp = await client.GetAsync($"/api/users/availability?username={Uri.EscapeDataString(tryName)}");
             if (!resp.IsSuccessStatusCode)
             {
-                // best effort: break and use current tryName
                 return tryName;
             }
             using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync());
@@ -104,10 +97,8 @@ public class DoctorsController : ControllerBase
         if (Missing(req.Profile.FirstName, req.Profile.LastName, req.Profile.Email))
             return BadRequest("FirstName, LastName, and Email are required");
 
-    // Create UserService HttpClient
-    var http = _httpFactory.CreateClient("UserService");
+        var http = _httpFactory.CreateClient("UserService");
 
-        // Preflight: check email availability to provide a friendly error before attempting registration
         try
         {
             var emailAvailability = await http.GetAsync($"/api/users/availability?email={Uri.EscapeDataString(req.Profile.Email)}");
@@ -122,15 +113,12 @@ public class DoctorsController : ControllerBase
         }
         catch
         {
-            // best-effort; proceed if availability check fails
         }
 
-        // Generate credentials
         var desired = GenerateUsername(req.Profile);
         var username = await EnsureUniqueUsernameAsync(http, desired);
         var password = GenerateStrongPassword();
 
-        // Register user
         var createUserPayload = new
         {
             username,
@@ -157,7 +145,6 @@ public class DoctorsController : ControllerBase
         if (string.IsNullOrWhiteSpace(userId)) return StatusCode(500, new { message = "User registration response missing Id" });
         if (string.IsNullOrWhiteSpace(accessToken)) return StatusCode(500, new { message = "User registration response missing access token" });
 
-        // Update extended profile fields
         var updatePayload = new
         {
             addressLine1 = req.Profile.AddressLine1,
@@ -180,7 +167,6 @@ public class DoctorsController : ControllerBase
             return StatusCode((int)updResp.StatusCode, new { message = "User profile update failed", details = body });
         }
 
-        // Create doctor and specializations (active by default)
         var now = DateTime.UtcNow;
         var doctor = new Doctor { Id = Guid.NewGuid(), UserId = Guid.Parse(userId!), Bio = req.Biography, IsActive = true, CreatedAt = now, UpdatedAt = now };
         _db.Doctors.Add(doctor);
@@ -192,7 +178,6 @@ public class DoctorsController : ControllerBase
             await _db.SaveChangesAsync();
         }
 
-        // Fetch directory projection for result
         var dir = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == doctor.Id);
         return CreatedAtAction(nameof(GetDoctorDirectoryById), new { id = doctor.Id }, new
         {
@@ -211,7 +196,6 @@ public class DoctorsController : ControllerBase
         return p.TryGetProperty(child, out var c) ? c.GetString() : null;
     }
 
-    // Register doctor (link to existing userId)
     [HttpPost]
     public async Task<IActionResult> RegisterDoctor([FromBody]   RegisterDoctorRequest req)
     {
@@ -229,7 +213,6 @@ public class DoctorsController : ControllerBase
         
         _db.Doctors.Add(doctor);
         await _db.SaveChangesAsync();
-    // Event publication omitted in this version
         return CreatedAtAction(nameof(GetDoctorById), new { id = doctor.Id }, new { doctor.Id, doctor.UserId });
     }
 
@@ -249,7 +232,6 @@ public class DoctorsController : ControllerBase
         return Ok(doctor);
     }
 
-    // Lightweight directory projection for a single doctor
     [HttpGet("{id}/directory")]
     public async Task<IActionResult> GetDoctorDirectoryById(Guid id)
     {
@@ -258,29 +240,23 @@ public class DoctorsController : ControllerBase
         return Ok(item);
     }
 
-    // Update specializations for a doctor
     [HttpPut("{id}/specializations")]
     public async Task<IActionResult> UpdateSpecializations(Guid id, [FromBody] UpdateSpecializationsRequest req)
     {
     if (!await _db.Doctors.AnyAsync(d => d.Id == id)) return NotFound(DoctorNotFound);
-        // Ensure all provided specialization IDs exist
         var specIds = req.SpecializationIds?.Distinct().ToList() ?? new();
         var existing = await _db.Specializations.Where(s => specIds.Contains(s.Id)).Select(s => s.Id).ToListAsync();
         if (existing.Count != specIds.Count) return BadRequest("One or more specialization IDs are invalid");
-        // Replace current set
         var current = _db.DoctorSpecializations.Where(ds => ds.DoctorId == id);
         _db.DoctorSpecializations.RemoveRange(current);
         _db.DoctorSpecializations.AddRange(specIds.Select(sid => new DoctorSpecialization { DoctorId = id, SpecializationId = sid }));
         await _db.SaveChangesAsync();
-    // Event publication omitted in this version
         return NoContent();
     }
 
-    // Catalog/search endpoint
     [HttpGet]
     public async Task<IActionResult> Search([FromQuery] Guid? specializationId, [FromQuery] Guid? serviceId, [FromQuery] string? q, [FromQuery] bool? isActive)
     {
-        // Query from projection view DoctorDirectory and filter
         var query = _db.Set<DoctorDirectory>().AsQueryable();
         if (isActive.HasValue)
         {
@@ -298,22 +274,17 @@ public class DoctorsController : ControllerBase
         }
         if (serviceId != null && serviceId != Guid.Empty)
         {
-            // map service -> specialization ids
             var specIds = await _db.SpecializationServices
                 .Where(ss => ss.ServiceId == serviceId.Value)
                 .Select(ss => ss.SpecializationId)
                 .ToListAsync();
             if (specIds.Count > 0)
             {
-                // intersect with doctor specialization CSV
-                // Specializations in DoctorDirectory are likely stored as comma-separated GUID strings 
-                // Stored as CSV strings, conversion needed for comparison.
                 var specIdStrings = specIds.Select(g => g.ToString()).ToList();
                 query = query.Where(d => d.Specializations != null && specIdStrings.Any(sid => d.Specializations!.Contains(sid)));
             }
             else
             {
-                // No mapping -> empty
                 return Ok(Array.Empty<DoctorDirectory>());
             }
         }
@@ -321,7 +292,6 @@ public class DoctorsController : ControllerBase
         return Ok(results);
     }
 
-    // Manage recurring availability
     [HttpPut("{id}/availability")]
     public async Task<IActionResult> SetAvailability(Guid id, [FromBody] List<ScheduleEntry> entries)
     {
@@ -339,15 +309,12 @@ public class DoctorsController : ControllerBase
         }).ToList();
         _db.DoctorSchedules.AddRange(toAdd);
         await _db.SaveChangesAsync();
-    // Event publication omitted in this version
         return NoContent();
     }
 
-    // Read recurring availability
     [HttpGet("{id}/availability")]
     public async Task<IActionResult> GetAvailability(Guid id)
     {
-        // Support lookup by either Doctor.Id or Doctor.UserId
         var doctor = await _db.Doctors.FirstOrDefaultAsync(d => d.Id == id || d.UserId == id);
         if (doctor == null) return NotFound("Doctor not found");
         
@@ -359,14 +326,12 @@ public class DoctorsController : ControllerBase
         return Ok(schedules);
     }
 
-    // Request doctor removal: emit event and remove from local tables
     [HttpDelete("{id}")]
     public async Task<IActionResult> DeleteDoctor(Guid id)
     {
         var doctor = await _db.Doctors.FindAsync(id);
         if (doctor == null) return NotFound("Doctor not found");
 
-        // Fetch lightweight directory info to enrich archival
         var dir = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
         List<object>? schedules = null;
         try
@@ -376,7 +341,7 @@ public class DoctorsController : ControllerBase
                 .ToListAsync();
             schedules = schedList.Cast<object>().ToList();
         }
-        catch { /* best-effort */ }
+        catch { }
 
         var snapshot = new
         {
@@ -393,9 +358,8 @@ public class DoctorsController : ControllerBase
             },
             Schedules = schedules
         };
-        var snapshotJson = System.Text.Json.JsonSerializer.Serialize(snapshot);
+        var snapshotJson = JsonSerializer.Serialize(snapshot);
 
-        // Compose enriched event
         var evt = new
         {
             DoctorId = doctor.Id,
@@ -408,20 +372,17 @@ public class DoctorsController : ControllerBase
             SnapshotJson = snapshotJson
         };
 
-        // Publish to RabbitMQ (best-effort)
-        // Publish to RabbitMQ (best-effort)
         try
         {
             await using var ch = await _rabbitConnection.CreateChannelAsync();
             await ch.ExchangeDeclareAsync(exchange: "practitioner.events", type: ExchangeType.Topic, durable: true);
-            var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(evt));
+            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt));
             
             var props = new BasicProperties();
             await ch.BasicPublishAsync(exchange: "practitioner.events", routingKey: "doctor.remove.requested", mandatory: false, basicProperties: props, body: body);
         }
-        catch { /* swallow to not block deletion */ }
+        catch { }
 
-    // Remove related records then soft-delete doctor (keep row, mark inactive)
         var specs = _db.DoctorSpecializations.Where(x => x.DoctorId == id);
         _db.DoctorSpecializations.RemoveRange(specs);
         var scheds = _db.DoctorSchedules.Where(x => x.DoctorId == id);

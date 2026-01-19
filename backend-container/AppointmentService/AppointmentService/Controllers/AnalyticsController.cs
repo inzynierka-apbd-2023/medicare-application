@@ -14,12 +14,10 @@ namespace AppointmentService.Controllers;
 public class AnalyticsController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<AnalyticsController> _logger;
 
-    public AnalyticsController(IMediator mediator, ILogger<AnalyticsController> logger)
+    public AnalyticsController(IMediator mediator)
     {
         _mediator = mediator;
-        _logger = logger;
     }
 
     [HttpGet("doctor-performance/summary")]
@@ -57,7 +55,6 @@ public class AnalyticsController : ControllerBase
         if (validationResults.Any())
         {
             var errors = validationResults.Select(r => r.ErrorMessage).ToArray();
-            _logger.LogWarning("Invalid analytics request: {Errors}", string.Join(", ", errors));
             return BadRequest(new { Errors = errors });
         }
 

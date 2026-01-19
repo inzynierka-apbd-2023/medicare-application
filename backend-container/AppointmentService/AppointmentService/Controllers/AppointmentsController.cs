@@ -21,16 +21,14 @@ public class AppointmentsController : ControllerBase
 
     private readonly AppointmentDbContext _db;
     private readonly IConnection _mqConnection;
-    private readonly ILogger<AppointmentsController> _logger;
     private readonly AppointmentService.Services.IBillingServiceClient _billingClient;
     private readonly IMediator _mediator;
     private readonly IPatientProfileClient _patientProfileClient;
 
-    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, ILogger<AppointmentsController> logger, AppointmentService.Services.IBillingServiceClient billingClient, IMediator mediator, IPatientProfileClient patientProfileClient)
+    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, AppointmentService.Services.IBillingServiceClient billingClient, IMediator mediator, IPatientProfileClient patientProfileClient)
     {
         _db = db;
         _mqConnection = mqConnection;
-        _logger = logger;
         _billingClient = billingClient;
         _mediator = mediator;
         _patientProfileClient = patientProfileClient;
@@ -200,7 +198,7 @@ public class AppointmentsController : ControllerBase
         appointment.UpdatedAt = DateTime.UtcNow;
         
         await _db.SaveChangesAsync();
-        _logger.LogInformation("Successfully processed mock payment for {Id}. Local DB updated.", id);
+
 
         return Ok(new { Success = true });
     }
@@ -252,12 +250,9 @@ public class AppointmentsController : ControllerBase
                                  mandatory: false,
                                  basicProperties: props,
                                  body: body);
-            
-            _logger.LogInformation("Published appointment.created for {Id}", appointment.Id);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Failed to publish appointment.created for {Id}", appointment.Id);
         }
     }
 
@@ -286,12 +281,9 @@ public class AppointmentsController : ControllerBase
                                  mandatory: false,
                                  basicProperties: props,
                                  body: body);
-            
-            _logger.LogInformation("Published appointment.updated for {Id} Status:{Status}", appointment.Id, appointment.Status);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Failed to publish appointment.updated for {Id}", appointment.Id);
         }
     }
 
@@ -369,12 +361,9 @@ public class AppointmentsController : ControllerBase
                                  mandatory: false,
                                  basicProperties: props,
                                  body: body);
-            
-            _logger.LogInformation("Published appointment.rated for {Id} Rating:{Rating}", appointment.Id, rating);
         }
-        catch (Exception ex)
+        catch
         {
-            _logger.LogError(ex, "Failed to publish appointment.rated for {Id}", appointment.Id);
         }
     }
 }

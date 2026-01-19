@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using PractitionerService.Data;
 using MediatR;
+using Microsoft.Extensions.Configuration;
+using PractitionerService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -16,7 +18,7 @@ builder.AddRabbitMQClient("rabbitmq");
 
 builder.Services.AddMediatR(typeof(Program).Assembly);
 
-builder.Services.AddHttpClient<PractitionerService.Services.IStaffService, PractitionerService.Services.StaffService>(client =>
+builder.Services.AddHttpClient<IStaffService, StaffService>(client =>
 {
     var userServiceUrl = builder.Configuration["Services:UserService:BaseUrl"] ?? "http://user-service:8080";
     client.BaseAddress = new Uri(userServiceUrl);
@@ -41,8 +43,8 @@ builder.Services.AddDbContext<PractitionerDbContext>((sp, options) =>
     });
 });
 
-builder.Services.AddHostedService<PractitionerService.Services.AppointmentEventListener>();
-builder.Services.AddHostedService<PractitionerService.Services.DoctorProfileRequestHandler>();
+builder.Services.AddHostedService<AppointmentEventListener>();
+builder.Services.AddHostedService<DoctorProfileRequestHandler>();
 
 builder.AddMedicareAuthentication();
 

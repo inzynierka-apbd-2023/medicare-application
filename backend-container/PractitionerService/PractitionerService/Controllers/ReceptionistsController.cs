@@ -31,7 +31,6 @@ public class ReceptionistsController : ControllerBase
         
         _db.Receptionists.Add(rec);
         await _db.SaveChangesAsync();
-        // TODO: publish ReceptionistRegistered
         return CreatedAtAction(nameof(GetReceptionistById), new { id = rec.Id }, new { rec.Id, rec.UserId });
     }
 

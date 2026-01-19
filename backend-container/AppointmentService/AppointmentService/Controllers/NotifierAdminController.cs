@@ -12,13 +12,12 @@ namespace AppointmentService.Controllers;
 [Authorize(Roles = "Owner,Admin")]
 public class NotifierAdminController : ControllerBase
 {
-    private readonly ILogger<NotifierAdminController> _logger;
     private readonly IServiceProvider _sp;
     private readonly IConnection _rabbitConnection;
 
-    public NotifierAdminController(ILogger<NotifierAdminController> logger, IServiceProvider sp, IConnection rabbitConnection)
+    public NotifierAdminController(IServiceProvider sp, IConnection rabbitConnection)
     {
-        _logger = logger; _sp = sp; _rabbitConnection = rabbitConnection;
+        _sp = sp; _rabbitConnection = rabbitConnection;
     }
 
     [HttpPost("run-once")]

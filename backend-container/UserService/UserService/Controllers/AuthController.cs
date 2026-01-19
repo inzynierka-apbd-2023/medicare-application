@@ -36,9 +36,7 @@ public class AuthController : ControllerBase
 
         if (!result.Success)
         {
-            return result.UserInactive 
-                ? Unauthorized(new { message = result.ErrorMessage }) 
-                : Unauthorized(new { message = result.ErrorMessage });
+            return Unauthorized(new { message = result.ErrorMessage });
         }
 
         SetTokenCookies(result.TokenResponse.AccessToken, result.TokenResponse.RefreshToken);

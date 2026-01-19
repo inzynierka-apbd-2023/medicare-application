@@ -7,28 +7,18 @@ using BillingService.Features.RevenueMetrics.Validators;
 
 namespace BillingService.Controllers;
 
-/// <summary>
-/// Provides revenue metrics endpoints for Owner dashboard.
-/// Implementation logic intentionally omitted (stub) - only wiring & validation.
-/// </summary>
 [ApiController]
 [Route("api/billing/revenue-metrics")]
 [Authorize(Roles = "Owner,Admin")]
 public class RevenueMetricsController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<RevenueMetricsController> _logger;
 
-    public RevenueMetricsController(IMediator mediator, ILogger<RevenueMetricsController> logger)
+    public RevenueMetricsController(IMediator mediator)
     {
         _mediator = mediator;
-        _logger = logger;
     }
 
-    /// <summary>
-    /// Returns daily revenue metrics for the specified date.
-    /// </summary>
-    /// <param name="date">Date for which to get revenue metrics (optional, defaults to today).</param>
     [HttpGet("daily")]
     [ProducesResponseType(typeof(DailyRevenueResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
@@ -40,7 +30,6 @@ public class RevenueMetricsController : ControllerBase
         var errors = DailyRevenueRequestValidator.Validate(requestDate).ToList();
         if (errors.Count > 0)
         {
-            _logger.LogWarning("Invalid daily revenue request for date {Date}: {Errors}", requestDate, string.Join("; ", errors));
             return BadRequest(new { Errors = errors });
         }
 
@@ -49,11 +38,6 @@ public class RevenueMetricsController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Returns monthly revenue metrics for the specified month and year.
-    /// </summary>
-    /// <param name="year">Year for which to get revenue metrics (optional, defaults to current year).</param>
-    /// <param name="month">Month for which to get revenue metrics (optional, defaults to current month).</param>
     [HttpGet("monthly")]
     [ProducesResponseType(typeof(MonthlyRevenueResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
@@ -66,7 +50,6 @@ public class RevenueMetricsController : ControllerBase
         var errors = MonthlyRevenueRequestValidator.Validate(requestYear, requestMonth).ToList();
         if (errors.Count > 0)
         {
-            _logger.LogWarning("Invalid monthly revenue request for {Year}-{Month:D2}: {Errors}", requestYear, requestMonth, string.Join("; ", errors));
             return BadRequest(new { Errors = errors });
         }
 
@@ -75,10 +58,6 @@ public class RevenueMetricsController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Returns yearly revenue metrics for the specified year.
-    /// </summary>
-    /// <param name="year">Year for which to get revenue metrics (optional, defaults to current year).</param>
     [HttpGet("yearly")]
     [ProducesResponseType(typeof(YearlyRevenueResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
@@ -89,7 +68,6 @@ public class RevenueMetricsController : ControllerBase
         var errors = YearlyRevenueRequestValidator.Validate(requestYear).ToList();
         if (errors.Count > 0)
         {
-            _logger.LogWarning("Invalid yearly revenue request for year {Year}: {Errors}", requestYear, string.Join("; ", errors));
             return BadRequest(new { Errors = errors });
         }
 
@@ -98,17 +76,11 @@ public class RevenueMetricsController : ControllerBase
         return Ok(result);
     }
 
-    /// <summary>
-    /// Returns payment types breakdown for the specified date range.
-    /// </summary>
-    /// <param name="startDate">Inclusive start date (optional, defaults to 30 days ago).</param>
-    /// <param name="endDate">Inclusive end date (optional, defaults to today).</param>
     [HttpGet("payment-types")]
     [ProducesResponseType(typeof(PaymentTypesResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<PaymentTypesResponse>> GetPaymentTypes([FromQuery] DateTime? startDate = null, [FromQuery] DateTime? endDate = null)
     {
-        // Normalize default period (last 30 days) if none provided
         if (!startDate.HasValue && !endDate.HasValue)
         {
             endDate = DateTime.UtcNow.Date;
@@ -129,7 +101,6 @@ public class RevenueMetricsController : ControllerBase
         var errors = PaymentTypesRequestValidator.Validate(startDate, endDate).ToList();
         if (errors.Count > 0)
         {
-            _logger.LogWarning("Invalid payment types request for period {StartDate} to {EndDate}: {Errors}", startDate, endDate, string.Join("; ", errors));
             return BadRequest(new { Errors = errors });
         }
 

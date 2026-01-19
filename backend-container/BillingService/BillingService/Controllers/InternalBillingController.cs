@@ -1,10 +1,12 @@
 using BillingService.Services;
 using Microsoft.AspNetCore.Mvc;
+using Microsoft.AspNetCore.Authorization;
 
 namespace BillingService.Controllers;
 
 [ApiController]
 [Route("api/billing/internal")]
+[Authorize]
 public class InternalBillingController : ControllerBase
 {
     private readonly AppointmentBillingService _billingService;

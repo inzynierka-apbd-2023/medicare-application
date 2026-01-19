@@ -1,3 +1,4 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using UserService.Data;
@@ -12,7 +13,7 @@ public class AdminController : ControllerBase
     public AdminController(UserDbContext db) => _db = db;
 
     [HttpGet("outbox")] 
-    [Microsoft.AspNetCore.Authorization.Authorize(Roles = "Admin")]
+    [Authorize(Roles = "Admin")]
     public async Task<ActionResult<IEnumerable<object>>> Outbox()
     {
         var items = await _db.OutboxEvents

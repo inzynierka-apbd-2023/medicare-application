@@ -12,11 +12,9 @@ namespace AppointmentService.Controllers;
 [Authorize(Roles = "Owner,Admin")]
 public class MetricsController : ControllerBase
 {
-    private readonly ILogger<MetricsController> _logger;
     private readonly IMediator _mediator;
-    public MetricsController(ILogger<MetricsController> logger, IMediator mediator)
+    public MetricsController(IMediator mediator)
     {
-        _logger = logger;
         _mediator = mediator;
     }
 
@@ -28,7 +26,6 @@ public class MetricsController : ControllerBase
         var errors = AppointmentMetricsRequestValidator.Validate(startDate, endDate).ToList();
         if (errors.Count > 0)
         {
-            _logger.LogWarning("Invalid appointment metrics request: {Errors}", string.Join("; ", errors));
             return BadRequest(new { Errors = errors });
         }
         if (!startDate.HasValue && !endDate.HasValue)

@@ -1,16 +1,17 @@
+using Azure.Identity;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.HttpOverrides;
+using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using System.Text;
 using UserService.Data;
-using UserService.Services;
-using UserService.Models;
-using Microsoft.Data.SqlClient;
-using Azure.Identity;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using UserService.Infrastructure.Messaging;
 using UserService.Data.Seeders;
+using UserService.Infrastructure.Messaging;
+using UserService.Models;
+using UserService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -25,8 +26,7 @@ builder.Services.AddControllers();
 
 builder.Services.AddDbContext<UserDbContext>((sp, options) =>
 {
-    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-    
+    options.ConfigureWarnings(w => w.Ignore(RelationalEventId.PendingModelChangesWarning));
     options.UseSqlServer(connectionString, sql =>
     {
         sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
@@ -84,13 +84,13 @@ builder.Services.AddHealthChecks().AddDbContextCheck<UserDbContext>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {
-    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
-                                Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.ForwardedHeaders = ForwardedHeaders.XForwardedFor | ForwardedHeaders.XForwardedProto;
     options.KnownNetworks.Clear();
     options.KnownProxies.Clear();
 });
 
 var app = builder.Build();
+
 await DbSeeder.SeedAsync(app.Services);
 
 if (app.Environment.IsDevelopment())

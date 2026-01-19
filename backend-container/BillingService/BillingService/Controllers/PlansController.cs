@@ -12,12 +12,10 @@ namespace BillingService.Controllers;
 public class PlansController : ControllerBase
 {
     private readonly IMediator _mediator;
-    private readonly ILogger<PlansController> _logger;
 
-    public PlansController(IMediator mediator, ILogger<PlansController> logger)
+    public PlansController(IMediator mediator)
     {
         _mediator = mediator;
-        _logger = logger;
     }
 
     [HttpGet]

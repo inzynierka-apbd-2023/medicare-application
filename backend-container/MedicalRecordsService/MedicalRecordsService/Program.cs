@@ -1,19 +1,10 @@
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using Microsoft.OpenApi.Models;
-using System.Text;
-using Microsoft.Data.SqlClient;
 using MedicalRecordsService.Data;
-using Microsoft.EntityFrameworkCore.Infrastructure;
-using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.OpenApi.Models;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-
-// Register MediatR
-builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
 var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"] 
                         ?? builder.Configuration.GetConnectionString("MedicareDb") 
@@ -21,23 +12,20 @@ var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
                         ?? throw new InvalidOperationException("No SQL connection string configured.");
 
 builder.Services.AddControllers();
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 
 builder.Services.AddDbContext<MedicalRecordsDbContext>((sp, options) =>
 {
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
-    
     options.UseSqlServer(connectionString, sql =>
     {
         sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
-        sql.MigrationsHistoryTable("__EFMigrationsHistory", "medical");
         sql.MigrationsAssembly(typeof(MedicalRecordsDbContext).Assembly.GetName().Name);
     });
 });
 
-// Auth
 builder.AddMedicareAuthentication();
 
-// CORS
 builder.Services.AddCors(o =>
 {
     o.AddPolicy("DefaultPolicy", p =>
@@ -45,7 +33,7 @@ builder.Services.AddCors(o =>
         var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
         if (allowed == null || allowed.Length == 0)
         {
-            var origins = allowed ?? Array.Empty<string>();
+            throw new InvalidOperationException("CORS AllowedOrigins must be configured in appsettings.");
         }
         p.WithOrigins(allowed).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
     });
@@ -54,10 +42,10 @@ builder.Services.AddCors(o =>
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
-    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Medicare Medical Records Service API", Version = "v1", Description = "Medical Records domain API" });
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Medicare Medical Records Service API", Version = "v1" });
     c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        Description = "JWT Authorization header using the Bearer scheme. Example: 'Bearer 12345abcdef'",
+        Description = "JWT Authorization header using the Bearer scheme.",
         Name = "Authorization",
         In = ParameterLocation.Header,
         Type = SecuritySchemeType.ApiKey,
@@ -76,6 +64,14 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddHealthChecks().AddDbContextCheck<MedicalRecordsDbContext>();
 
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
+                                Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -85,6 +81,7 @@ if (app.Environment.IsDevelopment())
 }
 
 app.UseHttpsRedirection();
+app.UseForwardedHeaders();
 app.UseCors("DefaultPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
@@ -96,3 +93,5 @@ await MedicalRecordsService.Data.Seeders.DbSeeder.SeedAsync(app.Services);
 app.MapDefaultEndpoints();
 
 await app.RunAsync();
+
+public partial class Program { }

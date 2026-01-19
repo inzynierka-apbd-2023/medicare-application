@@ -7,29 +7,18 @@ using PatientService.Features.Metrics.Queries;
 
 namespace PatientService.Controllers;
 
-/// <summary>
-/// Provides aggregated patient-related metrics for Owner/Admin dashboards.
-/// Provides aggregated patient-related metrics for Owner/Admin dashboards.
-/// </summary>
 [ApiController]
 [Route("api/patient/[controller]")]
 [Authorize(Roles = "Owner,Admin")]
 public class MetricsController : ControllerBase
 {
-    private readonly ILogger<MetricsController> _logger;
     private readonly IMediator _mediator;
 
-    public MetricsController(ILogger<MetricsController> logger, IMediator mediator)
+    public MetricsController(IMediator mediator)
     {
-        _logger = logger;
         _mediator = mediator;
     }
 
-    /// <summary>
-    /// Returns patient metrics for the specified (optional) date range.
-    /// </summary>
-    /// <param name="startDate">Inclusive start date (UTC date part). Optional.</param>
-    /// <param name="endDate">Inclusive end date (UTC date part). Optional.</param>
     [HttpGet]
     [ProducesResponseType(typeof(PatientMetricsResponse), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(object), StatusCodes.Status400BadRequest)]
@@ -38,11 +27,9 @@ public class MetricsController : ControllerBase
         var errors = PatientMetricsRequestValidator.Validate(startDate, endDate).ToList();
         if (errors.Count > 0)
         {
-            _logger.LogWarning("Invalid patient metrics request: {Errors}", string.Join("; ", errors));
             return BadRequest(new { Errors = errors });
         }
 
-        // Normalize default period (last 30 days) if none provided
         if (!startDate.HasValue && !endDate.HasValue)
         {
             endDate = DateTime.UtcNow.Date;

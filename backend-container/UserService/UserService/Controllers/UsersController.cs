@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 using UserService.DTOs;
 using UserService.Services;
 
@@ -10,6 +11,7 @@ namespace UserService.Controllers;
 public class UsersController : ControllerBase
 {
     private readonly IUserService _userService;
+
     public UsersController(IUserService userService)
     {
         _userService = userService;
@@ -17,18 +19,16 @@ public class UsersController : ControllerBase
 
     [HttpGet("availability")]
     [AllowAnonymous]
-    public async Task<ActionResult<object>> CheckAvailability([FromQuery] string? email, [FromQuery] string? username)
+    public async Task<ActionResult<Dictionary<string, object>>> CheckAvailability([FromQuery] string? email, [FromQuery] string? username)
     {
-        var result = new Dictionary<string, object?>();
+        var result = new Dictionary<string, object>();
         if (!string.IsNullOrWhiteSpace(email))
         {
-            var exists = await _userService.EmailExistsAsync(email);
-            result["emailExists"] = exists;
+            result["emailExists"] = await _userService.EmailExistsAsync(email);
         }
         if (!string.IsNullOrWhiteSpace(username))
         {
-            var exists = await _userService.UsernameExistsAsync(username);
-            result["usernameExists"] = exists;
+            result["usernameExists"] = await _userService.UsernameExistsAsync(username);
         }
         return Ok(result);
     }
@@ -49,7 +49,7 @@ public class UsersController : ControllerBase
         if (!ModelState.IsValid) return BadRequest(ModelState);
 
         var currentUserIdClaim = User.FindFirst(System.IdentityModel.Tokens.Jwt.JwtRegisteredClaimNames.Sub)?.Value 
-                                 ?? User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+                                 ?? User.FindFirst(ClaimTypes.NameIdentifier)?.Value;
 
         if (currentUserIdClaim == null || !Guid.TryParse(currentUserIdClaim, out var currentUserId))
         {
