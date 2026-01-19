@@ -60,8 +60,7 @@ export const useWallet = (): UseWalletReturn => {
           };
         }
       } catch {
-        // Subscription fetch may fail if patient has no subscription
-        console.log("No active subscription found for patient");
+        // Subscription may not exist for this patient
       }
 
       if (appointmentsResponse.success) {
@@ -94,29 +93,18 @@ export const useWallet = (): UseWalletReturn => {
     }
 
     try {
-      const response = await walletApi.mockPayAppointment(
-        appointmentId,
-        user.id,
-        method
+      await walletApi.mockPayAppointment(appointmentId, user.id, method);
+      setWallet((prev) =>
+        prev
+          ? {
+              ...prev,
+              unpaidAppointments: prev.unpaidAppointments.filter(
+                (apt) => apt.id !== appointmentId
+              ),
+            }
+          : prev
       );
-
-      if (response.success) {
-        // Remove the paid appointment from unpaid appointments list
-        setWallet((prev) =>
-          prev
-            ? {
-                ...prev,
-                unpaidAppointments: prev.unpaidAppointments.filter(
-                  (apt) => apt.id !== appointmentId
-                ),
-              }
-            : prev
-        );
-        return true;
-      } else {
-        setError(response.error || "Payment failed");
-        return false;
-      }
+      return true;
     } catch (err) {
       setError(err instanceof Error ? err.message : "Payment failed");
       return false;
@@ -130,18 +118,9 @@ export const useWallet = (): UseWalletReturn => {
     }
 
     try {
-      const response = await walletApi.renewSubscription(
-        wallet.subscription.id
-      );
-
-      if (response.success) {
-        // Refetch wallet data to get updated subscription status
-        await fetchWallet();
-        return true;
-      } else {
-        setError(response.error || "Failed to renew subscription");
-        return false;
-      }
+      await walletApi.renewSubscription(wallet.subscription.id);
+      await fetchWallet();
+      return true;
     } catch (err) {
       setError(
         err instanceof Error ? err.message : "Failed to renew subscription"

@@ -100,6 +100,20 @@ export const toastMessages = {
     markReadError: "Failed to mark message as read",
     fetchRecipientsError: "Failed to fetch recipients",
   },
+  plans: {
+    updateSubscriptionSuccess: "Subscription updated successfully",
+    updateSubscriptionError: "Failed to update subscription",
+  },
+  prescriptions: {
+    createSuccess: "Prescription created successfully",
+    updateSuccess: "Prescription updated successfully",
+    deleteSuccess: "Prescription deleted successfully",
+    statusUpdateSuccess: "Prescription status updated",
+  },
+  wallet: {
+    paymentSuccess: "Payment processed successfully",
+    renewSubscriptionSuccess: "Subscription renewed successfully",
+  },
 };
 
 export type ToastMessageKey = keyof typeof toastMessages;

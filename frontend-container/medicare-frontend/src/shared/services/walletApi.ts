@@ -1,11 +1,9 @@
 import type { Appointment } from "../../features/appointments/types";
+import { toastMessages } from "../toast/toastMessages";
 
-import { type ApiResponse, createErrorResponse } from "./api";
-import { apiClient } from "./apiClient";
+import { api } from "./api";
 
 export type PaymentStatus = "paid" | "not_paid";
-
-// Re-export the Appointment interface as WalletAppointment for consistency
 export type WalletAppointment = Appointment;
 
 export interface Subscription {
@@ -32,90 +30,37 @@ export interface PaymentIntentResponse {
 }
 
 export const walletApi = {
-  /**
-   * Renew subscription for a patient
-   */
   renewSubscription: async (
     contractId: string
-  ): Promise<ApiResponse<PaymentIntentResponse>> => {
-    try {
-      const response = await apiClient.post<PaymentIntentResponse>(
-        `/payments/subscriptions/${contractId}/renewals`
-      );
-      return { success: true, data: response.data };
-    } catch (_error) {
-      return createErrorResponse("Failed to renew subscription");
-    }
-  },
-
-  /**
-   * Process payment for an appointment
-   */
-  /**
-   * Process payment for an appointment (Mock)
-   */
-  payAppointment: async (
-    appointmentId: string,
-    _patientId: string,
-    _amountCents: number
-  ): Promise<ApiResponse<boolean>> => {
-    try {
-      await apiClient.post("/billing/payment/mock", {
-        appointmentId,
-        paymentMethod: "BLIK", // Default or passed? For now defaulting or we can add param
-      });
-      return { success: true, data: true };
-    } catch (err: unknown) {
-      const error = err as {
-        response?: {
-          data?:
-            | string
-            | { Message?: string; message?: string; Details?: string };
-        };
-        message?: string;
-      };
-      const data = error?.response?.data;
-      const msg =
-        (typeof data === "string"
-          ? data
-          : data?.Details || data?.Message || data?.message) ||
-        error?.message ||
-        "Payment processing failed";
-      return createErrorResponse(msg);
-    }
+  ): Promise<PaymentIntentResponse> => {
+    return api.post<PaymentIntentResponse>(
+      `/payments/subscriptions/${contractId}/renewals`,
+      undefined,
+      undefined,
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.wallet.renewSubscriptionSuccess,
+      }
+    );
   },
 
   mockPayAppointment: async (
     appointmentId: string,
     patientId: string,
     method: "BLIK" | "Card"
-  ): Promise<ApiResponse<boolean>> => {
-    try {
-      await apiClient.post(
-        `/appointment/appointments/${appointmentId}/mock-payment`,
-        {
-          patientId,
-          paymentMethod: method,
-        }
-      );
-      return { success: true, data: true };
-    } catch (err: unknown) {
-      const error = err as {
-        response?: {
-          data?:
-            | string
-            | { Message?: string; message?: string; Details?: string };
-        };
-        message?: string;
-      };
-      const data = error?.response?.data;
-      const msg =
-        (typeof data === "string"
-          ? data
-          : data?.Details || data?.Message || data?.message) ||
-        error?.message ||
-        "Payment processing failed";
-      return createErrorResponse(msg);
-    }
+  ): Promise<boolean> => {
+    await api.post(
+      `/appointment/appointments/${appointmentId}/mock-payment`,
+      {
+        patientId,
+        paymentMethod: method,
+      },
+      undefined,
+      {
+        showToastOnSuccess: true,
+        successMessage: toastMessages.wallet.paymentSuccess,
+      }
+    );
+    return true;
   },
 };
