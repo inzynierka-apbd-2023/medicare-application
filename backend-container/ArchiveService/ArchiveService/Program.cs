@@ -1,80 +1,88 @@
 using Microsoft.EntityFrameworkCore;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using System.Data.Common;
+using Microsoft.OpenApi.Models;
 using ArchiveService.Data;
-using ArchiveService.Models;
 using ArchiveService.Messaging;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore.Migrations;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
-// Services
-builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
+                     ?? builder.Configuration.GetConnectionString("MedicareDb")
+                     ?? builder.Configuration.GetConnectionString("ArchiveDb")
+                     ?? throw new InvalidOperationException("No SQL connection string configured.");
 
+builder.Services.AddControllers();
 
-// Configure MSSQL Connection
-// Configure MSSQL Connection
-const string AuthenticationKeyword = "Authentication";
-    
-    var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"] 
-                         ?? builder.Configuration.GetConnectionString("MedicareDb") 
-                         ?? builder.Configuration.GetConnectionString("ArchiveDb") 
-                         ?? throw new InvalidOperationException("No SQL connection string configured.");
+builder.Services.AddDbContext<ArchiveDbContext>((sp, options) =>
+{
+    options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));
+    options.UseSqlServer(connectionString, sql =>
+    {
+        sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        sql.MigrationsHistoryTable("__EFMigrationsHistory", "archive");
+        sql.MigrationsAssembly(typeof(ArchiveDbContext).Assembly.GetName().Name);
+    });
+});
 
-    LogConnectionInfo(connectionString, "Config");
+builder.AddMedicareAuthentication();
 
-builder.Services.AddDbContext<ArchiveDbContext>(options =>
-    options.UseSqlServer(connectionString));
+builder.Services.AddCors(o =>
+{
+    o.AddPolicy("DefaultPolicy", p =>
+    {
+        var allowed = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>();
+        if (allowed == null || allowed.Length == 0)
+        {
+            throw new InvalidOperationException("CORS AllowedOrigins must be configured in appsettings.");
+        }
+        p.WithOrigins(allowed).AllowAnyHeader().AllowAnyMethod().AllowCredentials();
+    });
+});
 
 builder.AddRabbitMQClient("rabbitmq");
 
 builder.Services.AddHostedService<DoctorArchiveConsumer>();
 
-// Auth (JWT)
-var jwt = builder.Configuration.GetSection("Jwt");
-var secretKey = jwt["SecretKey"] ?? throw new InvalidOperationException("JWT SecretKey is not configured");
-var issuer = jwt["Issuer"] ?? "MedicareApp";
-var audience = jwt["Audience"] ?? "MedicareUsers";
-builder.Services.AddAuthentication("Bearer")
-    .AddJwtBearer(o =>
+builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new OpenApiInfo { Title = "Archive Service API", Version = "v1" });
+    c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
     {
-        o.MapInboundClaims = false;
-        o.TokenValidationParameters = new Microsoft.IdentityModel.Tokens.TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidateAudience = true,
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ValidIssuer = issuer,
-            ValidAudience = audience,
-            IssuerSigningKey = new Microsoft.IdentityModel.Tokens.SymmetricSecurityKey(System.Text.Encoding.UTF8.GetBytes(secretKey)),
-            RoleClaimType = "role"
-        };
+        Description = "JWT Authorization header using the Bearer scheme.",
+        Name = "Authorization",
+        In = ParameterLocation.Header,
+        Type = SecuritySchemeType.ApiKey,
+        Scheme = "Bearer"
     });
+    c.AddSecurityRequirement(new OpenApiSecurityRequirement
+    {
+        {
+            new OpenApiSecurityScheme
+            {
+                Reference = new OpenApiReference { Type = ReferenceType.SecurityScheme, Id = "Bearer" }
+            }, Array.Empty<string>()
+        }
+    });
+});
 
-builder.Services.AddAuthorization();
+builder.Services.AddHealthChecks();
+
+builder.Services.Configure<ForwardedHeadersOptions>(options =>
+{
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
+                                Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
+    options.KnownNetworks.Clear();
+    options.KnownProxies.Clear();
+});
 
 var app = builder.Build();
 
-// Apply migrations at startup
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<ArchiveDbContext>();
-    try
-    {
-        // Standard migration application for MSSQL
-        db.Database.Migrate();
-    }
-    catch (Exception ex)
-    {
-        // Log detailed error if migration fails (e.g. connection issues)
-        var logger = scope.ServiceProvider.GetRequiredService<ILogger<Program>>();
-        logger.LogError(ex, "An error occurred while migrating the database.");
-    }
+    db.Database.Migrate();
 }
 
 if (app.Environment.IsDevelopment())
@@ -83,32 +91,16 @@ if (app.Environment.IsDevelopment())
     app.UseSwaggerUI();
 }
 
+app.UseHttpsRedirection();
+app.UseForwardedHeaders();
+app.UseCors("DefaultPolicy");
 app.UseAuthentication();
 app.UseAuthorization();
-
-// Minimal controller-style endpoints
-app.MapGet("/archive/doctors/{doctorId}", async (Guid doctorId, ArchiveDbContext db) =>
-{
-    var archived = await db.ArchivedDoctors.FindAsync(doctorId);
-    return archived is null ? Results.NotFound() : Results.Ok(archived);
-}).RequireAuthorization();
-
-app.MapGet("/healthz", () => Results.Ok(new { status = "ok" }));
+app.MapControllers();
+app.MapHealthChecks("/health");
 
 app.MapDefaultEndpoints();
 
-app.Run();
+await app.RunAsync();
 
-static void LogConnectionInfo(string conn, string source)
-{
-    try
-    {
-        var csb = new SqlConnectionStringBuilder(conn);
-        var auth = csb.ContainsKey(AuthenticationKeyword) ? csb[AuthenticationKeyword] : "(none)";
-        Console.WriteLine($"[Startup] Using SQL Server connection (source: {source}) -> Server: {csb.DataSource}, Database: {csb.InitialCatalog}, Auth: {auth}");
-    }
-    catch (Exception ex)
-    {
-        Console.WriteLine($"[Startup] Connection info parse failed: {ex.Message}");
-    }
-}
+public partial class Program { }
