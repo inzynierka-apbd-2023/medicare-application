@@ -25,85 +25,67 @@ public class PatientDetailsRequestConsumer : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        try
+        _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
+        
+        await _channel.ExchangeDeclareAsync(ExchangeName, ExchangeType.Direct, durable: true, cancellationToken: stoppingToken);
+        await _channel.QueueDeclareAsync(QueueName, durable: false, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
+        await _channel.QueueBindAsync(QueueName, ExchangeName, RoutingKey, cancellationToken: stoppingToken);
+        
+        await _channel.BasicQosAsync(0, 10, false, stoppingToken);
+
+        var consumer = new AsyncEventingBasicConsumer(_channel);
+        consumer.ReceivedAsync += async (_, ea) =>
         {
-            _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
-            
-            await _channel.ExchangeDeclareAsync(ExchangeName, ExchangeType.Direct, durable: true, cancellationToken: stoppingToken);
-            await _channel.QueueDeclareAsync(QueueName, durable: false, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
-            await _channel.QueueBindAsync(QueueName, ExchangeName, RoutingKey, cancellationToken: stoppingToken);
-            
-            await _channel.BasicQosAsync(0, 10, false, stoppingToken);
+            var props = ea.BasicProperties;
+            var replyTo = props?.ReplyTo;
+            var correlationId = props?.CorrelationId;
 
-            var consumer = new AsyncEventingBasicConsumer(_channel);
-            consumer.ReceivedAsync += async (_, ea) =>
+            if (string.IsNullOrEmpty(replyTo) || string.IsNullOrEmpty(correlationId))
             {
-                try
+                // Cannot reply
+                await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+                return;
+            }
+
+            var body = ea.Body.ToArray();
+            var message = Encoding.UTF8.GetString(body);
+            var request = JsonSerializer.Deserialize<PatientProfileRequest>(message, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
+
+            if (request == null || request.PatientIds == null || !request.PatientIds.Any())
+            {
+                // Empty response
+                await SendReplyAsync(new PatientProfileResponse(), replyTo, correlationId, stoppingToken);
+                await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+                return;
+            }
+
+            using var scope = _sp.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<PatientDbContext>();
+
+            var profiles = await db.Set<PatientOverview>()
+                .Where(p => request.PatientIds.Contains(p.PatientId))
+                .ToListAsync(stoppingToken);
+
+            var response = new PatientProfileResponse
+            {
+                Profiles = profiles.Select(p => new PatientProfileDto
                 {
-                    var props = ea.BasicProperties;
-                    var replyTo = props?.ReplyTo;
-                    var correlationId = props?.CorrelationId;
-
-                    if (string.IsNullOrEmpty(replyTo) || string.IsNullOrEmpty(correlationId))
-                    {
-                        // Cannot reply
-                        await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
-                        return;
-                    }
-
-                    var body = ea.Body.ToArray();
-                    var message = Encoding.UTF8.GetString(body);
-                    var request = JsonSerializer.Deserialize<PatientProfileRequest>(message, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-
-                    if (request == null || request.PatientIds == null || !request.PatientIds.Any())
-                    {
-                        // Empty response
-                        await SendReplyAsync(new PatientProfileResponse(), replyTo, correlationId, stoppingToken);
-                        await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
-                        return;
-                    }
-
-                    using var scope = _sp.CreateScope();
-                    var db = scope.ServiceProvider.GetRequiredService<PatientDbContext>();
-
-                    var profiles = await db.Set<PatientOverview>()
-                        .Where(p => request.PatientIds.Contains(p.PatientId))
-                        .ToListAsync(stoppingToken);
-
-                    var response = new PatientProfileResponse
-                    {
-                        Profiles = profiles.Select(p => new PatientProfileDto
-                        {
-                            PatientId = p.PatientId,
-                            UserId = p.UserId,
-                            FirstName = p.FirstName ?? "",
-                            LastName = p.LastName ?? "",
-                            Email = p.Email ?? "",
-                            Phone = p.Phone ?? "",
-                            DateOfBirth = p.DateOfBirth
-                        }).ToList()
-                    };
-
-                    await SendReplyAsync(response, replyTo, correlationId, stoppingToken);
-                    await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"[PatientDetailsRequestConsumer] Error processing request: {ex.Message}");
-                    // Ack to prevent endless loops on bad message format, or Nack if transient
-                    await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
-                }
+                    PatientId = p.PatientId,
+                    UserId = p.UserId,
+                    FirstName = p.FirstName ?? "",
+                    LastName = p.LastName ?? "",
+                    Email = p.Email ?? "",
+                    Phone = p.Phone ?? "",
+                    DateOfBirth = p.DateOfBirth
+                }).ToList()
             };
 
-            await _channel.BasicConsumeAsync(QueueName, autoAck: false, consumer: consumer, cancellationToken: stoppingToken);
-            
-            // Keep running
-            await Task.Delay(Timeout.Infinite, stoppingToken);
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"[PatientDetailsRequestConsumer] Startup failed: {ex.Message}");
-        }
+            await SendReplyAsync(response, replyTo, correlationId, stoppingToken);
+            await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+        };
+
+        await _channel.BasicConsumeAsync(QueueName, autoAck: false, consumer: consumer, cancellationToken: stoppingToken);
+        await Task.Delay(Timeout.Infinite, stoppingToken);
     }
 
     private async Task SendReplyAsync(PatientProfileResponse response, string replyTo, string correlationId, CancellationToken ct)

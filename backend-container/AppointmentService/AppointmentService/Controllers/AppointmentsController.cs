@@ -96,68 +96,53 @@ public class AppointmentsController : ControllerBase
     [HttpGet("patient/{patientId}")]
     public async Task<IActionResult> GetByPatientId(Guid patientId)
     {
-        try
+        var now = DateTime.Now;
+        var appointments = await _db.Appointments
+            .Where(a => a.PatientId == patientId)
+            .OrderBy(a => a.ScheduledAt)
+            .ToListAsync();
+
+        var patientProfiles = await _patientProfileClient.GetPatientProfilesAsync(new[] { patientId });
+        var patientProfile = patientProfiles.FirstOrDefault();
+
+        foreach (var a in appointments)
         {
-            var now = DateTime.Now;
-            var appointments = await _db.Appointments
-                .Where(a => a.PatientId == patientId)
-                .OrderBy(a => a.ScheduledAt)
-                .ToListAsync();
-
-            // Enrich with Patient Data
-            var patientProfiles = await _patientProfileClient.GetPatientProfilesAsync(new[] { patientId });
-            var patientProfile = patientProfiles.FirstOrDefault();
-
-            foreach (var a in appointments)
+            a.Patient = patientProfile;
+            if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
             {
-                a.Patient = patientProfile;
-                if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
-                {
-                    a.Status = "Overdue";
-                }
+                a.Status = "Overdue";
             }
-            return Ok(appointments);
         }
-        catch
-        {
-            // Graceful fallback if database not ready
-            return Ok(Array.Empty<Appointment>());
-        }
+
+        return Ok(appointments);
     }
 
     [HttpGet("doctor/{doctorId}")]
     public async Task<IActionResult> GetByDoctorId(Guid doctorId)
     {
-        try
+        var now = DateTime.Now;
+        var appointments = await _db.Appointments
+            .Where(a => a.DoctorId == doctorId)
+            .OrderBy(a => a.ScheduledAt)
+            .ToListAsync();
+
+        var patientIds = appointments.Select(a => a.PatientId).Distinct();
+        var patients = await _patientProfileClient.GetPatientProfilesAsync(patientIds);
+        var patientMap = patients.ToDictionary(p => p.PatientId);
+
+        foreach (var a in appointments)
         {
-            var now = DateTime.Now;
-            var appointments = await _db.Appointments
-                .Where(a => a.DoctorId == doctorId)
-                .OrderBy(a => a.ScheduledAt)
-                .ToListAsync();
-
-            // Enrich with Patient Data
-            var patientIds = appointments.Select(a => a.PatientId).Distinct();
-            var patients = await _patientProfileClient.GetPatientProfilesAsync(patientIds);
-            var patientMap = patients.ToDictionary(p => p.PatientId);
-
-            foreach (var a in appointments)
+            if (patientMap.TryGetValue(a.PatientId, out var p))
             {
-                if (patientMap.TryGetValue(a.PatientId, out var p))
-                {
-                    a.Patient = p;
-                }
-                if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
-                {
-                    a.Status = "Overdue";
-                }
+                a.Patient = p;
             }
-            return Ok(appointments);
+            if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
+            {
+                a.Status = "Overdue";
+            }
         }
-        catch
-        {
-            return Ok(Array.Empty<Appointment>());
-        }
+
+        return Ok(appointments);
     }
 
     [HttpPut("{id}/status")]
@@ -206,85 +191,67 @@ public class AppointmentsController : ControllerBase
     [HttpGet("analytics/today")]
     public async Task<IActionResult> GetTodaysAnalytics()
     {
-        try
-        {
-            var today = DateTime.Today;
-            var tomorrow = today.AddDays(1);
+        var today = DateTime.Today;
+        var tomorrow = today.AddDays(1);
 
-            var todaysAppointments = await _db.Appointments
-                .Where(a => a.ScheduledAt >= today && a.ScheduledAt < tomorrow)
-                .GroupBy(a => a.Status)
-                .Select(g => new { Status = g.Key, Count = g.Count() })
-                .ToListAsync();
+        var todaysAppointments = await _db.Appointments
+            .Where(a => a.ScheduledAt >= today && a.ScheduledAt < tomorrow)
+            .GroupBy(a => a.Status)
+            .Select(g => new { Status = g.Key, Count = g.Count() })
+            .ToListAsync();
 
-            return Ok(new { Date = today, Statistics = todaysAppointments });
-        }
-        catch
-        {
-            return Ok(new { Date = DateTime.Today, Statistics = Array.Empty<object>() });
-        }
+        return Ok(new { Date = today, Statistics = todaysAppointments });
     }
 
     private async Task PublishAppointmentCreatedAsync(Appointment appointment)
     {
-        try
+        await using var channel = await _mqConnection.CreateChannelAsync();
+        await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
+
+        var evt = new
         {
-            await using var channel = await _mqConnection.CreateChannelAsync();
-            await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
+            AppointmentId = appointment.Id,
+            PatientId = appointment.PatientId,
+            DoctorId = appointment.DoctorId,
+            ScheduledAt = appointment.ScheduledAt,
+            OccurredAt = DateTime.UtcNow
+        };
 
-            var evt = new
-            {
-                AppointmentId = appointment.Id,
-                PatientId = appointment.PatientId,
-                DoctorId = appointment.DoctorId,
-                ScheduledAt = appointment.ScheduledAt,
-                OccurredAt = DateTime.UtcNow
-            };
+        var json = JsonSerializer.Serialize(evt);
+        var body = Encoding.UTF8.GetBytes(json);
 
-            var json = JsonSerializer.Serialize(evt);
-            var body = Encoding.UTF8.GetBytes(json);
-
-            var props = new BasicProperties();
-            await channel.BasicPublishAsync(exchange: "appointment.events",
-                                 routingKey: "appointment.created",
-                                 mandatory: false,
-                                 basicProperties: props,
-                                 body: body);
-        }
-        catch
-        {
-        }
+        var props = new BasicProperties();
+        await channel.BasicPublishAsync(exchange: "appointment.events",
+                                routingKey: "appointment.created",
+                                mandatory: false,
+                                basicProperties: props,
+                                body: body);
     }
 
     private async Task PublishAppointmentUpdatedAsync(Appointment appointment)
     {
-        try
+        await using var channel = await _mqConnection.CreateChannelAsync();
+        await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
+
+        var evt = new
         {
-            await using var channel = await _mqConnection.CreateChannelAsync();
-            await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
+            AppointmentId = appointment.Id,
+            DoctorId = appointment.DoctorId,
+            Status = appointment.Status,
+            UpdatedAt = appointment.UpdatedAt,
+            OccurredAt = DateTime.UtcNow
+        };
 
-            var evt = new
-            {
-                AppointmentId = appointment.Id,
-                DoctorId = appointment.DoctorId,
-                Status = appointment.Status,
-                UpdatedAt = appointment.UpdatedAt,
-                OccurredAt = DateTime.UtcNow
-            };
+        var json = JsonSerializer.Serialize(evt);
+        var body = Encoding.UTF8.GetBytes(json);
 
-            var json = JsonSerializer.Serialize(evt);
-            var body = Encoding.UTF8.GetBytes(json);
+        var props = new BasicProperties();
+        await channel.BasicPublishAsync(exchange: "appointment.events",
+                                routingKey: "appointment.updated",
+                                mandatory: false,
+                                basicProperties: props,
+                                body: body);
 
-            var props = new BasicProperties();
-            await channel.BasicPublishAsync(exchange: "appointment.events",
-                                 routingKey: "appointment.updated",
-                                 mandatory: false,
-                                 basicProperties: props,
-                                 body: body);
-        }
-        catch
-        {
-        }
     }
 
     [HttpPut("{id}")]
@@ -309,6 +276,7 @@ public class AppointmentsController : ControllerBase
 
         return Ok(appointment);
     }
+
     [HttpPost("{id}/rate")]
     public async Task<IActionResult> RateAppointment(Guid id, [FromBody] RateAppointmentRequest req)
     {
@@ -339,32 +307,26 @@ public class AppointmentsController : ControllerBase
 
     private async Task PublishAppointmentRatedAsync(Appointment appointment, int rating)
     {
-        try
+        await using var channel = await _mqConnection.CreateChannelAsync();
+        await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
+
+        var evt = new
         {
-            await using var channel = await _mqConnection.CreateChannelAsync();
-            await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
+            AppointmentId = appointment.Id,
+            DoctorId = appointment.DoctorId,
+            Rating = rating,
+            OccurredAt = DateTime.UtcNow
+        };
 
-            var evt = new
-            {
-                AppointmentId = appointment.Id,
-                DoctorId = appointment.DoctorId,
-                Rating = rating,
-                OccurredAt = DateTime.UtcNow
-            };
+        var json = JsonSerializer.Serialize(evt);
+        var body = Encoding.UTF8.GetBytes(json);
 
-            var json = JsonSerializer.Serialize(evt);
-            var body = Encoding.UTF8.GetBytes(json);
-
-            var props = new BasicProperties();
-            await channel.BasicPublishAsync(exchange: "appointment.events",
-                                 routingKey: "appointment.rated",
-                                 mandatory: false,
-                                 basicProperties: props,
-                                 body: body);
-        }
-        catch
-        {
-        }
+        var props = new BasicProperties();
+        await channel.BasicPublishAsync(exchange: "appointment.events",
+                                routingKey: "appointment.rated",
+                                mandatory: false,
+                                basicProperties: props,
+                                body: body);
     }
 }
 

@@ -20,7 +20,6 @@ public class GetPatientMetricsHandler : IRequestHandler<GetPatientMetricsQuery, 
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[MetricsError] Failed to fetch patient metrics: {ex.Message}");
             return new PatientMetricsResponse 
             {
                 StartDate = start,

@@ -6,13 +6,9 @@ using AppointmentService.Models;
 
 namespace AppointmentService.Features.DoctorSchedule.Services;
 
-/// <summary>
-/// Doctor schedule service - simplified to match patient pattern.
-/// Returns appointments without cross-schema enrichment.
-/// Frontend can enrich with patient data.
-/// </summary>
 public class DoctorScheduleService : IDoctorScheduleService
 {
+    private const string UnknownPatient = "Unknown Patient";
     private readonly AppointmentDbContext _context;
 
     public DoctorScheduleService(AppointmentDbContext context)
@@ -27,39 +23,14 @@ public class DoctorScheduleService : IDoctorScheduleService
         string? status = null,
         CancellationToken cancellationToken = default)
     {
-        var query = _context.Appointments.Where(a => a.DoctorId == doctorId);
+        var appointments = await FetchAppointmentsAsync(doctorId, startDate, endDate, status, cancellationToken);
+        var profiles = await FetchPatientProfilesAsync(appointments, cancellationToken);
 
-        if (startDate.HasValue)
-            query = query.Where(a => a.ScheduledAt >= startDate.Value);
+        UpdateOverdueStatuses(appointments);
 
-        if (endDate.HasValue)
-            query = query.Where(a => a.ScheduledAt <= endDate.Value);
-
-        if (!string.IsNullOrEmpty(status))
-            query = query.Where(a => a.Status == status);
-
-        var appointments = await query
-            .OrderBy(a => a.ScheduledAt)
-            .ToListAsync(cancellationToken);
-
-        // Fetch patient profiles
-        var patientIds = appointments.Select(a => a.PatientId).Distinct().ToList();
-        var profiles = await _context.UserProfiles
-            .Where(p => patientIds.Contains(p.User_Id))
-            .ToDictionaryAsync(p => p.User_Id, cancellationToken);
-
-        // Update overdue status in-memory (same as AppointmentsController does)
-        var now = DateTime.Now;
-        foreach (var a in appointments)
-        {
-            if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
-            {
-                a.Status = "Overdue";
-            }
-        }
-
-        // Map to DTO with patient enrichment
-        var scheduleEvents = appointments.Select(a => MapToScheduleEvent(a, profiles.ContainsKey(a.PatientId) ? profiles[a.PatientId] : null)).ToList();
+        var scheduleEvents = appointments
+            .Select(a => MapToScheduleEvent(a, profiles.GetValueOrDefault(a.PatientId)))
+            .ToList();
 
         return new DoctorScheduleResponse
         {
@@ -136,32 +107,57 @@ public class DoctorScheduleService : IDoctorScheduleService
         return true;
     }
 
-    /// <summary>
-    /// Maps appointment to DTO with patient enrichment from UserProfile.
-    /// </summary>
-    private static DoctorScheduleEventDto MapToScheduleEvent(AppointmentService.Models.Appointment appointment, AppointmentService.Models.UserProfile? profile)
+    private async Task<List<Appointment>> FetchAppointmentsAsync(
+        Guid doctorId,
+        DateTime? startDate,
+        DateTime? endDate,
+        string? status,
+        CancellationToken cancellationToken)
     {
-        string patientName = "Unknown Patient";
-        int patientAge = 0;
-        string patientPhone = "";
-        string? patientEmail = null;
+        var query = _context.Appointments.Where(a => a.DoctorId == doctorId);
 
-        if (profile != null)
+        if (startDate.HasValue)
+            query = query.Where(a => a.ScheduledAt >= startDate.Value);
+
+        if (endDate.HasValue)
+            query = query.Where(a => a.ScheduledAt <= endDate.Value);
+
+        if (!string.IsNullOrEmpty(status))
+            query = query.Where(a => a.Status == status);
+
+        return await query.OrderBy(a => a.ScheduledAt).ToListAsync(cancellationToken);
+    }
+
+    private async Task<Dictionary<Guid, UserProfile>> FetchPatientProfilesAsync(
+        List<Appointment> appointments,
+        CancellationToken cancellationToken)
+    {
+        var patientIds = appointments.Select(a => a.PatientId).Distinct().ToList();
+
+        return await _context.UserProfiles
+            .Where(p => patientIds.Contains(p.User_Id))
+            .ToDictionaryAsync(p => p.User_Id, cancellationToken);
+    }
+
+    private static void UpdateOverdueStatuses(List<Appointment> appointments)
+    {
+        var now = DateTime.Now;
+
+        foreach (var appointment in appointments)
         {
-            patientName = $"{profile.FirstName} {profile.LastName}".Trim();
-            if (string.IsNullOrEmpty(patientName)) patientName = "Unknown Patient";
-            
-            if (profile.DateOfBirth.HasValue)
+            if (IsOverdue(appointment, now))
             {
-                var today = DateTime.Today;
-                var age = today.Year - profile.DateOfBirth.Value.Year;
-                if (profile.DateOfBirth.Value.Date > today.AddYears(-age)) age--;
-                patientAge = age;
+                appointment.Status = "Overdue";
             }
-            
-            patientPhone = profile.Phone ?? "";
-            patientEmail = profile.Email;
         }
+    }
+
+    private static bool IsOverdue(Appointment appointment, DateTime now) =>
+        (appointment.Status == "Scheduled" || appointment.Status == "Confirmed") && appointment.ScheduledEndAt < now;
+
+    private static DoctorScheduleEventDto MapToScheduleEvent(Appointment appointment, UserProfile? profile)
+    {
+        var (patientName, patientAge, patientPhone, patientEmail) = ExtractPatientDetails(profile);
 
         return new DoctorScheduleEventDto
         {
@@ -178,9 +174,40 @@ public class DoctorScheduleService : IDoctorScheduleService
             Status = appointment.Status.ToLower(),
             ChiefComplaint = appointment.ChiefComplaint,
             Notes = appointment.Notes,
-            MedicalHistory = new List<string>(), // Not in DB yet
-            Allergies = new List<string>(),      // Not in DB yet
-            CurrentMedications = new List<string>() // Not in DB yet
+            MedicalHistory = new List<string>(),
+            Allergies = new List<string>(),
+            CurrentMedications = new List<string>()
         };
+    }
+
+    private static (string Name, int Age, string Phone, string? Email) ExtractPatientDetails(UserProfile? profile)
+    {
+        if (profile == null)
+            return (UnknownPatient, 0, "", null);
+
+        var name = BuildPatientName(profile);
+        var age = CalculateAge(profile.DateOfBirth);
+
+        return (name, age, profile.Phone ?? "", profile.Email);
+    }
+
+    private static string BuildPatientName(UserProfile profile)
+    {
+        var name = $"{profile.FirstName} {profile.LastName}".Trim();
+        return string.IsNullOrEmpty(name) ? UnknownPatient : name;
+    }
+
+    private static int CalculateAge(DateTime? dateOfBirth)
+    {
+        if (!dateOfBirth.HasValue)
+            return 0;
+
+        var today = DateTime.Today;
+        var age = today.Year - dateOfBirth.Value.Year;
+
+        if (dateOfBirth.Value.Date > today.AddYears(-age))
+            age--;
+
+        return age;
     }
 }

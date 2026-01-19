@@ -99,20 +99,14 @@ public class DoctorsController : ControllerBase
 
         var http = _httpFactory.CreateClient("UserService");
 
-        try
+        var emailAvailability = await http.GetAsync($"/api/users/availability?email={Uri.EscapeDataString(req.Profile.Email)}");
+        if (emailAvailability.IsSuccessStatusCode)
         {
-            var emailAvailability = await http.GetAsync($"/api/users/availability?email={Uri.EscapeDataString(req.Profile.Email)}");
-            if (emailAvailability.IsSuccessStatusCode)
+            using var doc = JsonDocument.Parse(await emailAvailability.Content.ReadAsStringAsync());
+            if (doc.RootElement.TryGetProperty("emailExists", out var emailExistsEl) && emailExistsEl.GetBoolean())
             {
-                using var doc = JsonDocument.Parse(await emailAvailability.Content.ReadAsStringAsync());
-                if (doc.RootElement.TryGetProperty("emailExists", out var emailExistsEl) && emailExistsEl.GetBoolean())
-                {
-                    return Conflict(new { message = "A user with this email already exists. Please use a different email." });
-                }
+                return Conflict(new { message = "A user with this email already exists. Please use a different email." });
             }
-        }
-        catch
-        {
         }
 
         var desired = GenerateUsername(req.Profile);
@@ -334,14 +328,10 @@ public class DoctorsController : ControllerBase
 
         var dir = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
         List<object>? schedules = null;
-        try
-        {
-            var schedList = await _db.DoctorSchedules.Where(s => s.DoctorId == id)
-                .Select(s => new { s.DayOfWeek, Start = s.StartTime.ToString(), End = s.EndTime.ToString() })
-                .ToListAsync();
-            schedules = schedList.Cast<object>().ToList();
-        }
-        catch { }
+        var schedList = await _db.DoctorSchedules.Where(s => s.DoctorId == id)
+            .Select(s => new { s.DayOfWeek, Start = s.StartTime.ToString(), End = s.EndTime.ToString() })
+            .ToListAsync();
+        schedules = schedList.Cast<object>().ToList();
 
         var snapshot = new
         {
@@ -372,16 +362,12 @@ public class DoctorsController : ControllerBase
             SnapshotJson = snapshotJson
         };
 
-        try
-        {
-            await using var ch = await _rabbitConnection.CreateChannelAsync();
-            await ch.ExchangeDeclareAsync(exchange: "practitioner.events", type: ExchangeType.Topic, durable: true);
-            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt));
-            
-            var props = new BasicProperties();
-            await ch.BasicPublishAsync(exchange: "practitioner.events", routingKey: "doctor.remove.requested", mandatory: false, basicProperties: props, body: body);
-        }
-        catch { }
+        await using var ch = await _rabbitConnection.CreateChannelAsync();
+        await ch.ExchangeDeclareAsync(exchange: "practitioner.events", type: ExchangeType.Topic, durable: true);
+        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt));
+        
+        var props = new BasicProperties();
+        await ch.BasicPublishAsync(exchange: "practitioner.events", routingKey: "doctor.remove.requested", mandatory: false, basicProperties: props, body: body);
 
         var specs = _db.DoctorSpecializations.Where(x => x.DoctorId == id);
         _db.DoctorSpecializations.RemoveRange(specs);
