@@ -255,11 +255,6 @@ public static class MockDataSeeder
         if (created > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Created {created} messaging records (messages, threads, participants, thread messages, receipts).");
-        }
-        else
-        {
-            Console.WriteLine("[MockDataSeeder] All messaging mock data already exists.");
         }
 
         // Seed PatientDoctorContacts (for message recipient lookup)
@@ -308,7 +303,6 @@ public static class MockDataSeeder
         if (contactsCreated > 0)
         {
             await db.SaveChangesAsync();
-            Console.WriteLine($"[MockDataSeeder] Created {contactsCreated} PatientDoctorContact records.");
         }
 
 
@@ -317,9 +311,7 @@ public static class MockDataSeeder
             .ToListAsync();
 
         if (contactsNeedingUpdate.Any())
-        {
-            Console.WriteLine($"[MockDataSeeder] Found {contactsNeedingUpdate.Count} contacts needing name update.");
-            
+        {        
             foreach (var contact in contactsNeedingUpdate)
             {
                 var userProfile = await db.Database.SqlQueryRaw<UserProfileQueryResult>(
@@ -331,12 +323,10 @@ public static class MockDataSeeder
                 {
                     contact.DoctorName = $"Dr. {userProfile.FirstName} {userProfile.LastName}".Trim();
                     contact.UpdatedAt = DateTime.UtcNow;
-                    Console.WriteLine($"[MockDataSeeder] Updated contact for doctor {contact.DoctorUserId}: {contact.DoctorName}");
                 }
             }
 
             await db.SaveChangesAsync();
-            Console.WriteLine("[MockDataSeeder] Finished updating contact names.");
         }
 
     }

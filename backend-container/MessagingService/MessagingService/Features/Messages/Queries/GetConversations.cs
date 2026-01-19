@@ -21,6 +21,7 @@ public record UserProfileInfo(Guid Id, string? FirstName, string? LastName);
 
 public class GetConversationsHandler : IRequestHandler<GetConversationsQuery, List<ConversationDto>>
 {
+    private const string UnknownUser = "Unknown User";
     private readonly MessagingDbContext _db;
 
     public GetConversationsHandler(MessagingDbContext db)
@@ -43,78 +44,84 @@ public class GetConversationsHandler : IRequestHandler<GetConversationsQuery, Li
             .ToList();
 
         var patientDoctorContacts = await _db.PatientDoctorContacts.ToListAsync(cancellationToken);
+        var isPatient = request.UserType.Equals("patient", StringComparison.OrdinalIgnoreCase);
 
-        var conversations = grouped
-            .Select(g =>
-            {
-                var otherUserId = g.Key;
-                var lastMsg = g.First();
-                var unreadCount = g.Count(m => m.RecipientId == request.UserId && !m.IsRead);
-
-                string participantName = "Unknown User";
-                
-                if (request.UserType.Equals("patient", StringComparison.OrdinalIgnoreCase))
-                {
-                    var contact = patientDoctorContacts.FirstOrDefault(c => 
-                        c.PatientUserId == request.UserId && c.DoctorUserId == otherUserId);
-                    if (contact != null && !string.IsNullOrEmpty(contact.DoctorName))
-                    {
-                        participantName = contact.DoctorName;
-                    }
-                }
-                else
-                {
-                    var contact = patientDoctorContacts.FirstOrDefault(c => 
-                        c.DoctorUserId == request.UserId && c.PatientUserId == otherUserId);
-                }
-                
-                if (participantName == "Unknown User")
-                {
-                    if (lastMsg.SenderId == request.UserId)
-                    {
-                        if (!string.IsNullOrEmpty(lastMsg.RecipientName))
-                            participantName = lastMsg.RecipientName;
-                    }
-                    else
-                    {
-                        if (!string.IsNullOrEmpty(lastMsg.SenderName))
-                            participantName = lastMsg.SenderName;
-                    }
-                }
-                
-                if (participantName == "Unknown User")
-                {
-                    foreach (var msg in g)
-                    {
-                        if (msg.SenderId == otherUserId && !string.IsNullOrEmpty(msg.SenderName))
-                        {
-                            participantName = msg.SenderName;
-                            break;
-                        }
-                        if (msg.RecipientId == otherUserId && !string.IsNullOrEmpty(msg.RecipientName))
-                        {
-                            participantName = msg.RecipientName;
-                            break;
-                        }
-                    }
-                }
-
-                var participantType = request.UserType.Equals("patient", StringComparison.OrdinalIgnoreCase)
-                    ? "doctor"
-                    : "patient";
-
-                return new ConversationDto(
-                    Id: otherUserId,
-                    ParticipantName: participantName,
-                    ParticipantType: participantType,
-                    ParticipantId: otherUserId.ToString(),
-                    LastMessageContent: lastMsg.Content,
-                    UpdatedAt: lastMsg.CreatedAt,
-                    UnreadCount: unreadCount
-                );
-            })
+        return grouped
+            .Select(g => BuildConversationDto(g, request.UserId, isPatient, patientDoctorContacts))
             .ToList();
+    }
 
-        return conversations;
+    private static ConversationDto BuildConversationDto(
+        IGrouping<Guid, Message> messageGroup,
+        Guid requestUserId,
+        bool isPatient,
+        List<PatientDoctorContact> contacts)
+    {
+        var otherUserId = messageGroup.Key;
+        var lastMessage = messageGroup.First();
+        var unreadCount = messageGroup.Count(m => m.RecipientId == requestUserId && !m.IsRead);
+
+        var participantName = ResolveParticipantName(messageGroup, otherUserId, requestUserId, isPatient, contacts);
+        var participantType = isPatient ? "doctor" : "patient";
+
+        return new ConversationDto(
+            Id: otherUserId,
+            ParticipantName: participantName,
+            ParticipantType: participantType,
+            ParticipantId: otherUserId.ToString(),
+            LastMessageContent: lastMessage.Content,
+            UpdatedAt: lastMessage.CreatedAt,
+            UnreadCount: unreadCount
+        );
+    }
+
+    private static string ResolveParticipantName(
+        IGrouping<Guid, Message> messageGroup,
+        Guid otherUserId,
+        Guid requestUserId,
+        bool isPatient,
+        List<PatientDoctorContact> contacts)
+    {
+        return TryGetNameFromContacts(otherUserId, requestUserId, isPatient, contacts)
+            ?? TryGetNameFromLastMessage(messageGroup.First(), requestUserId)
+            ?? TryGetNameFromAllMessages(messageGroup, otherUserId)
+            ?? UnknownUser;
+    }
+
+    private static string? TryGetNameFromContacts(
+        Guid otherUserId,
+        Guid requestUserId,
+        bool isPatient,
+        List<PatientDoctorContact> contacts)
+    {
+        if (!isPatient)
+            return null;
+
+        var contact = contacts.FirstOrDefault(c => c.PatientUserId == requestUserId && c.DoctorUserId == otherUserId);
+
+        return !string.IsNullOrEmpty(contact?.DoctorName) ? contact.DoctorName : null;
+    }
+
+    private static string? TryGetNameFromLastMessage(Message lastMessage, Guid requestUserId)
+    {
+        var name = lastMessage.SenderId == requestUserId
+            ? lastMessage.RecipientName
+            : lastMessage.SenderName;
+
+        return string.IsNullOrEmpty(name) ? null : name;
+    }
+
+    private static string? TryGetNameFromAllMessages(IEnumerable<Message> messages, Guid otherUserId)
+    {
+        foreach (var message in messages)
+        {
+            if (message.SenderId == otherUserId && !string.IsNullOrEmpty(message.SenderName))
+                return message.SenderName;
+
+            if (message.RecipientId == otherUserId && !string.IsNullOrEmpty(message.RecipientName))
+                return message.RecipientName;
+        }
+
+        return null;
     }
 }

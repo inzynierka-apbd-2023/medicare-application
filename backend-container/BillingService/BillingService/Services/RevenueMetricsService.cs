@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using BillingService.Data;
 using BillingService.Features.RevenueMetrics.Queries;
 using BillingService.Features.RevenueMetrics.DTOs;
+using BillingService.Models;
 
 namespace BillingService.Services;
 
@@ -19,48 +20,15 @@ public class RevenueMetricsService : IRevenueMetricsService
         var startDate = date.ToDateTime(TimeOnly.MinValue);
         var endDate = date.ToDateTime(TimeOnly.MaxValue);
 
-        // Get successful payment transactions for the day
-        var successfulTransactions = await _context.PaymentTransactions
-            .Where(pt => pt.OccurredAt >= startDate && pt.OccurredAt <= endDate 
-                        && pt.Type == Models.TransactionType.Capture)
-            .ToListAsync(cancellationToken);
-
-        var totalRevenue = successfulTransactions.Sum(t => t.AmountCents) / 100.0m;
-        var transactionCount = successfulTransactions.Count;
-
-        // Get appointment-specific revenue
-        var appointmentPaymentIntents = await _context.PaymentIntents
-            .Where(pi => pi.Kind == Models.PaymentIntentKind.Appointment
-                        && pi.Status == Models.PaymentIntentStatus.Succeeded)
-            .Select(pi => pi.Id)
-            .ToListAsync(cancellationToken);
-
-        var appointmentTransactions = successfulTransactions
-            .Where(t => appointmentPaymentIntents.Contains(t.PaymentIntentId))
-            .ToList();
-
-        var appointmentRevenue = appointmentTransactions.Sum(t => t.AmountCents) / 100.0m;
-
-        // Get subscription-specific revenue
-        var subscriptionPaymentIntents = await _context.PaymentIntents
-            .Where(pi => pi.Kind == Models.PaymentIntentKind.Subscription
-                        && pi.Status == Models.PaymentIntentStatus.Succeeded)
-            .Select(pi => pi.Id)
-            .ToListAsync(cancellationToken);
-
-        var subscriptionTransactions = successfulTransactions
-            .Where(t => subscriptionPaymentIntents.Contains(t.PaymentIntentId))
-            .ToList();
-
-        var subscriptionRevenue = subscriptionTransactions.Sum(t => t.AmountCents) / 100.0m;
+        var revenueData = await GetRevenueDataForPeriodAsync(startDate, endDate, cancellationToken);
 
         return new DailyRevenueResponse
         {
             Date = date,
-            TotalRevenue = totalRevenue,
-            AppointmentRevenue = appointmentRevenue,
-            SubscriptionRevenue = subscriptionRevenue,
-            TransactionCount = transactionCount
+            TotalRevenue = revenueData.TotalRevenue,
+            AppointmentRevenue = revenueData.AppointmentRevenue,
+            SubscriptionRevenue = revenueData.SubscriptionRevenue,
+            TransactionCount = revenueData.TransactionCount
         };
     }
 
@@ -69,89 +37,18 @@ public class RevenueMetricsService : IRevenueMetricsService
         var startDate = new DateTime(year, month, 1);
         var endDate = startDate.AddMonths(1).AddDays(-1);
 
-        // Get successful payment transactions for the month
-        var successfulTransactions = await _context.PaymentTransactions
-            .Where(pt => pt.OccurredAt >= startDate && pt.OccurredAt <= endDate
-                        && pt.Type == Models.TransactionType.Capture)
-            .ToListAsync(cancellationToken);
-
-        var totalRevenue = successfulTransactions.Sum(t => t.AmountCents) / 100.0m;
-        var transactionCount = successfulTransactions.Count;
-
-        // Get appointment-specific revenue
-        var appointmentPaymentIntents = await _context.PaymentIntents
-            .Where(pi => pi.Kind == Models.PaymentIntentKind.Appointment
-                        && pi.Status == Models.PaymentIntentStatus.Succeeded)
-            .Select(pi => pi.Id)
-            .ToListAsync(cancellationToken);
-
-        var appointmentTransactions = successfulTransactions
-            .Where(t => appointmentPaymentIntents.Contains(t.PaymentIntentId))
-            .ToList();
-
-        var appointmentRevenue = appointmentTransactions.Sum(t => t.AmountCents) / 100.0m;
-
-        // Get subscription-specific revenue
-        var subscriptionPaymentIntents = await _context.PaymentIntents
-            .Where(pi => pi.Kind == Models.PaymentIntentKind.Subscription
-                        && pi.Status == Models.PaymentIntentStatus.Succeeded)
-            .Select(pi => pi.Id)
-            .ToListAsync(cancellationToken);
-
-        var subscriptionTransactions = successfulTransactions
-            .Where(t => subscriptionPaymentIntents.Contains(t.PaymentIntentId))
-            .ToList();
-
-        var subscriptionRevenue = subscriptionTransactions.Sum(t => t.AmountCents) / 100.0m;
-
-        // Calculate daily breakdown
-        var dailyBreakdown = new List<DailyRevenueItem>();
-        var daysInMonth = DateTime.DaysInMonth(year, month);
-
-        for (int day = 1; day <= daysInMonth; day++)
-        {
-            var dayStart = new DateTime(year, month, day);
-            var dayEnd = dayStart.AddDays(1).AddTicks(-1);
-
-            var dayTransactions = successfulTransactions
-                .Where(t => t.OccurredAt >= dayStart && t.OccurredAt <= dayEnd)
-                .ToList();
-
-            dailyBreakdown.Add(new DailyRevenueItem
-            {
-                Day = day,
-                Revenue = dayTransactions.Sum(t => t.AmountCents) / 100.0m,
-                TransactionCount = dayTransactions.Count
-            });
-        }
-
-        // Calculate growth percentage (Revenue vs Previous Month)
-        var prevMonthDate = startDate.AddMonths(-1);
-        var prevMonthEnd = startDate.AddDays(-1);
-        
-        var prevMonthRevenue = await _context.PaymentTransactions
-            .Where(pt => pt.OccurredAt >= prevMonthDate && pt.OccurredAt <= prevMonthEnd
-                        && pt.Type == Models.TransactionType.Capture)
-            .SumAsync(t => t.AmountCents, cancellationToken) / 100.0m;
-            
-        decimal growthPercentage = 0;
-        if (prevMonthRevenue > 0)
-        {
-            growthPercentage = ((totalRevenue - prevMonthRevenue) / prevMonthRevenue) * 100m;
-        }
-        else if (totalRevenue > 0)
-        {
-            growthPercentage = 100m; // 100% growth if starting from 0
-        }
+        var revenueData = await GetRevenueDataForPeriodAsync(startDate, endDate, cancellationToken);
+        var dailyBreakdown = BuildDailyBreakdown(revenueData.Transactions, year, month);
+        var growthPercentage = await CalculateGrowthPercentageAsync(startDate, revenueData.TotalRevenue, cancellationToken);
 
         return new MonthlyRevenueResponse
         {
             Year = year,
             Month = month,
-            TotalRevenue = totalRevenue,
-            AppointmentRevenue = appointmentRevenue,
-            SubscriptionRevenue = subscriptionRevenue,
-            TransactionCount = transactionCount,
+            TotalRevenue = revenueData.TotalRevenue,
+            AppointmentRevenue = revenueData.AppointmentRevenue,
+            SubscriptionRevenue = revenueData.SubscriptionRevenue,
+            TransactionCount = revenueData.TransactionCount,
             GrowthPercentage = Math.Round(growthPercentage, 1),
             DailyBreakdown = dailyBreakdown
         };
@@ -162,68 +59,16 @@ public class RevenueMetricsService : IRevenueMetricsService
         var startDate = new DateTime(year, 1, 1);
         var endDate = new DateTime(year + 1, 1, 1).AddTicks(-1);
 
-        // Get successful payment transactions for the year
-        var successfulTransactions = await _context.PaymentTransactions
-            .Where(pt => pt.OccurredAt >= startDate && pt.OccurredAt <= endDate
-                        && pt.Type == Models.TransactionType.Capture)
-            .ToListAsync(cancellationToken);
-
-        var totalRevenue = successfulTransactions.Sum(t => t.AmountCents) / 100.0m;
-        var transactionCount = successfulTransactions.Count;
-
-        // Get appointment-specific revenue
-        var appointmentPaymentIntents = await _context.PaymentIntents
-            .Where(pi => pi.Kind == Models.PaymentIntentKind.Appointment
-                        && pi.Status == Models.PaymentIntentStatus.Succeeded)
-            .Select(pi => pi.Id)
-            .ToListAsync(cancellationToken);
-
-        var appointmentTransactions = successfulTransactions
-            .Where(t => appointmentPaymentIntents.Contains(t.PaymentIntentId))
-            .ToList();
-
-        var appointmentRevenue = appointmentTransactions.Sum(t => t.AmountCents) / 100.0m;
-
-        // Get subscription-specific revenue
-        var subscriptionPaymentIntents = await _context.PaymentIntents
-            .Where(pi => pi.Kind == Models.PaymentIntentKind.Subscription
-                        && pi.Status == Models.PaymentIntentStatus.Succeeded)
-            .Select(pi => pi.Id)
-            .ToListAsync(cancellationToken);
-
-        var subscriptionTransactions = successfulTransactions
-            .Where(t => subscriptionPaymentIntents.Contains(t.PaymentIntentId))
-            .ToList();
-
-        var subscriptionRevenue = subscriptionTransactions.Sum(t => t.AmountCents) / 100.0m;
-
-        // Calculate monthly breakdown
-        var monthlyBreakdown = new List<MonthlyRevenueItem>();
-
-        for (int month = 1; month <= 12; month++)
-        {
-            var monthStart = new DateTime(year, month, 1);
-            var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
-
-            var monthTransactions = successfulTransactions
-                .Where(t => t.OccurredAt >= monthStart && t.OccurredAt <= monthEnd)
-                .ToList();
-
-            monthlyBreakdown.Add(new MonthlyRevenueItem
-            {
-                Month = month,
-                Revenue = monthTransactions.Sum(t => t.AmountCents) / 100.0m,
-                TransactionCount = monthTransactions.Count
-            });
-        }
+        var revenueData = await GetRevenueDataForPeriodAsync(startDate, endDate, cancellationToken);
+        var monthlyBreakdown = BuildMonthlyBreakdown(revenueData.Transactions, year);
 
         return new YearlyRevenueResponse
         {
             Year = year,
-            TotalRevenue = totalRevenue,
-            AppointmentRevenue = appointmentRevenue,
-            SubscriptionRevenue = subscriptionRevenue,
-            TransactionCount = transactionCount,
+            TotalRevenue = revenueData.TotalRevenue,
+            AppointmentRevenue = revenueData.AppointmentRevenue,
+            SubscriptionRevenue = revenueData.SubscriptionRevenue,
+            TransactionCount = revenueData.TransactionCount,
             MonthlyBreakdown = monthlyBreakdown
         };
     }
@@ -233,61 +78,137 @@ public class RevenueMetricsService : IRevenueMetricsService
         var start = startDate.ToDateTime(TimeOnly.MinValue);
         var end = endDate.ToDateTime(TimeOnly.MaxValue);
 
-        // Get successful payment transactions for the period
-        var successfulTransactions = await _context.PaymentTransactions
-            .Where(pt => pt.OccurredAt >= start && pt.OccurredAt <= end
-                        && pt.Type == Models.TransactionType.Capture)
-            .ToListAsync(cancellationToken);
+        var revenueData = await GetRevenueDataForPeriodAsync(start, end, cancellationToken);
 
-        var totalRevenue = successfulTransactions.Sum(t => t.AmountCents) / 100.0m;
-
-        // Get appointment-specific data
-        var appointmentPaymentIntents = await _context.PaymentIntents
-            .Where(pi => pi.Kind == Models.PaymentIntentKind.Appointment
-                        && pi.Status == Models.PaymentIntentStatus.Succeeded)
-            .ToListAsync(cancellationToken);
-
-        var appointmentTransactions = successfulTransactions
-            .Where(t => appointmentPaymentIntents.Any(api => api.Id == t.PaymentIntentId))
-            .ToList();
-
-        var appointmentRevenue = appointmentTransactions.Sum(t => t.AmountCents) / 100.0m;
-        var appointmentCount = appointmentTransactions.Count;
-
-        // Get subscription-specific data
-        var subscriptionPaymentIntents = await _context.PaymentIntents
-            .Where(pi => pi.Kind == Models.PaymentIntentKind.Subscription
-                        && pi.Status == Models.PaymentIntentStatus.Succeeded)
-            .ToListAsync(cancellationToken);
-
-        var subscriptionTransactions = successfulTransactions
-            .Where(t => subscriptionPaymentIntents.Any(spi => spi.Id == t.PaymentIntentId))
-            .ToList();
-
-        var subscriptionRevenue = subscriptionTransactions.Sum(t => t.AmountCents) / 100.0m;
-        var subscriptionCount = subscriptionTransactions.Count;
-
-        // Calculate percentages
-        var appointmentPercentage = totalRevenue > 0 ? (appointmentRevenue / totalRevenue) * 100 : 0;
-        var subscriptionPercentage = totalRevenue > 0 ? (subscriptionRevenue / totalRevenue) * 100 : 0;
+        var appointmentPercentage = CalculatePercentage(revenueData.AppointmentRevenue, revenueData.TotalRevenue);
+        var subscriptionPercentage = CalculatePercentage(revenueData.SubscriptionRevenue, revenueData.TotalRevenue);
 
         return new PaymentTypesBreakdownResponse
         {
             StartDate = startDate,
             EndDate = endDate,
-            TotalRevenue = totalRevenue,
+            TotalRevenue = revenueData.TotalRevenue,
             AppointmentPayments = new PaymentTypeData
             {
-                Revenue = appointmentRevenue,
-                Count = appointmentCount,
+                Revenue = revenueData.AppointmentRevenue,
+                Count = revenueData.AppointmentCount,
                 Percentage = appointmentPercentage
             },
             SubscriptionPayments = new PaymentTypeData
             {
-                Revenue = subscriptionRevenue,
-                Count = subscriptionCount,
+                Revenue = revenueData.SubscriptionRevenue,
+                Count = revenueData.SubscriptionCount,
                 Percentage = subscriptionPercentage
             }
         };
     }
+
+    private async Task<RevenueData> GetRevenueDataForPeriodAsync(DateTime startDate, DateTime endDate, CancellationToken cancellationToken)
+    {
+        var transactions = await _context.PaymentTransactions
+            .Where(pt => pt.OccurredAt >= startDate && pt.OccurredAt <= endDate
+                        && pt.Type == TransactionType.Capture)
+            .ToListAsync(cancellationToken);
+
+        var appointmentIntentIds = await GetPaymentIntentIdsByKindAsync(PaymentIntentKind.Appointment, cancellationToken);
+        var subscriptionIntentIds = await GetPaymentIntentIdsByKindAsync(PaymentIntentKind.Subscription, cancellationToken);
+
+        var appointmentTransactions = transactions.Where(t => appointmentIntentIds.Contains(t.PaymentIntentId)).ToList();
+        var subscriptionTransactions = transactions.Where(t => subscriptionIntentIds.Contains(t.PaymentIntentId)).ToList();
+
+        return new RevenueData(
+            Transactions: transactions,
+            TotalRevenue: ConvertCentsToDecimal(transactions.Sum(t => t.AmountCents)),
+            TransactionCount: transactions.Count,
+            AppointmentRevenue: ConvertCentsToDecimal(appointmentTransactions.Sum(t => t.AmountCents)),
+            AppointmentCount: appointmentTransactions.Count,
+            SubscriptionRevenue: ConvertCentsToDecimal(subscriptionTransactions.Sum(t => t.AmountCents)),
+            SubscriptionCount: subscriptionTransactions.Count
+        );
+    }
+
+    private async Task<HashSet<Guid>> GetPaymentIntentIdsByKindAsync(PaymentIntentKind kind, CancellationToken cancellationToken)
+    {
+        var ids = await _context.PaymentIntents
+            .Where(pi => pi.Kind == kind && pi.Status == PaymentIntentStatus.Succeeded)
+            .Select(pi => pi.Id)
+            .ToListAsync(cancellationToken);
+        
+        return ids.ToHashSet();
+    }
+
+    private async Task<decimal> CalculateGrowthPercentageAsync(DateTime currentMonthStart, decimal currentRevenue, CancellationToken cancellationToken)
+    {
+        var prevMonthStart = currentMonthStart.AddMonths(-1);
+        var prevMonthEnd = currentMonthStart.AddDays(-1);
+
+        var prevMonthRevenue = await _context.PaymentTransactions
+            .Where(pt => pt.OccurredAt >= prevMonthStart && pt.OccurredAt <= prevMonthEnd
+                        && pt.Type == TransactionType.Capture)
+            .SumAsync(t => t.AmountCents, cancellationToken) / 100.0m;
+
+        if (prevMonthRevenue > 0)
+            return ((currentRevenue - prevMonthRevenue) / prevMonthRevenue) * 100m;
+
+        return currentRevenue > 0 ? 100m : 0;
+    }
+
+    private static List<DailyRevenueItem> BuildDailyBreakdown(List<PaymentTransaction> transactions, int year, int month)
+    {
+        var daysInMonth = DateTime.DaysInMonth(year, month);
+        var breakdown = new List<DailyRevenueItem>();
+
+        for (int day = 1; day <= daysInMonth; day++)
+        {
+            var dayStart = new DateTime(year, month, day);
+            var dayEnd = dayStart.AddDays(1).AddTicks(-1);
+
+            var dayTransactions = transactions.Where(t => t.OccurredAt >= dayStart && t.OccurredAt <= dayEnd).ToList();
+
+            breakdown.Add(new DailyRevenueItem
+            {
+                Day = day,
+                Revenue = ConvertCentsToDecimal(dayTransactions.Sum(t => t.AmountCents)),
+                TransactionCount = dayTransactions.Count
+            });
+        }
+
+        return breakdown;
+    }
+
+    private static List<MonthlyRevenueItem> BuildMonthlyBreakdown(List<PaymentTransaction> transactions, int year)
+    {
+        var breakdown = new List<MonthlyRevenueItem>();
+
+        for (int month = 1; month <= 12; month++)
+        {
+            var monthStart = new DateTime(year, month, 1);
+            var monthEnd = monthStart.AddMonths(1).AddTicks(-1);
+
+            var monthTransactions = transactions.Where(t => t.OccurredAt >= monthStart && t.OccurredAt <= monthEnd).ToList();
+
+            breakdown.Add(new MonthlyRevenueItem
+            {
+                Month = month,
+                Revenue = ConvertCentsToDecimal(monthTransactions.Sum(t => t.AmountCents)),
+                TransactionCount = monthTransactions.Count
+            });
+        }
+
+        return breakdown;
+    }
+
+    private static decimal ConvertCentsToDecimal(long cents) => cents / 100.0m;
+
+    private static decimal CalculatePercentage(decimal part, decimal total) => total > 0 ? (part / total) * 100 : 0;
+
+    private record RevenueData(
+        List<PaymentTransaction> Transactions,
+        decimal TotalRevenue,
+        int TransactionCount,
+        decimal AppointmentRevenue,
+        int AppointmentCount,
+        decimal SubscriptionRevenue,
+        int SubscriptionCount
+    );
 }

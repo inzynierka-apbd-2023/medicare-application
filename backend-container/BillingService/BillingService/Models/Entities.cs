@@ -133,9 +133,6 @@ public class DoctorRevenueDashboard
     public int PaidAppointments { get; set; }
 }
 
-/// <summary>
-/// Subscription plan definitions with feature flags
-/// </summary>
 [Table("Plan", Schema = "billing")]
 public class Plan
 {

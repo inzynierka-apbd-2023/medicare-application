@@ -63,12 +63,16 @@ builder.Services.AddHostedService<NotificationService.Services.NotificationClean
 
 var app = builder.Build();
 
+app.UseGlobalExceptionHandling();
+
 if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
+app.UseCors("DefaultPolicy");
+app.UseDefaultRateLimiting();
 app.UseAuthentication();
 app.UseAuthorization();
 

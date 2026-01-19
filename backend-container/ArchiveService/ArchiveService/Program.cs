@@ -1,7 +1,8 @@
+using ArchiveService.Data;
+using ArchiveService.Data.Seeders;
+using ArchiveService.Messaging;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
-using ArchiveService.Data;
-using ArchiveService.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -79,11 +80,9 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
-using (var scope = app.Services.CreateScope())
-{
-    var db = scope.ServiceProvider.GetRequiredService<ArchiveDbContext>();
-    db.Database.Migrate();
-}
+app.UseGlobalExceptionHandling();
+
+await DbSeeder.SeedAsync(app.Services);
 
 if (app.Environment.IsDevelopment())
 {
@@ -94,6 +93,7 @@ if (app.Environment.IsDevelopment())
 app.UseHttpsRedirection();
 app.UseForwardedHeaders();
 app.UseCors("DefaultPolicy");
+app.UseDefaultRateLimiting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();

@@ -1,6 +1,7 @@
 using BillingService.Data;
 using BillingService.Models;
 using BillingService.Infrastructure.Events;
+using Medicare.ServiceDefaults.Webhooks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -101,6 +102,7 @@ public class PaymentsController : ControllerBase
 
     [HttpPost("webhooks/{provider}")]
     [AllowAnonymous]
+    [RequireWebhookSignature]
     public async Task<ActionResult> Webhook(string provider)
     {
         var payload = await new StreamReader(Request.Body).ReadToEndAsync();
