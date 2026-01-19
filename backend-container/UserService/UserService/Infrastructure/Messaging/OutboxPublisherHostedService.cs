@@ -39,12 +39,9 @@ public class OutboxPublisherHostedService : BackgroundService
         {
             _ch = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
             await _ch.ExchangeDeclareAsync(_opt.Exchange, ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
-            Console.WriteLine($"[OutboxPublisher] Connected to RabbitMQ exchange='{_opt.Exchange}'");
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"[OutboxPublisher] Failed to setup RabbitMQ channel: {ex.Message}");
-            // Simple retry loop for channel creation
              while (!stoppingToken.IsCancellationRequested && _ch == null)
             {
                 try
@@ -74,7 +71,6 @@ public class OutboxPublisherHostedService : BackgroundService
                     await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken);
                     continue;
                 }
-                Console.WriteLine($"[OutboxPublisher] 📬 Found {events.Count} pending outbox event(s) to publish...");
                 foreach (var evt in events)
                 {
                     var body = Encoding.UTF8.GetBytes(evt.PayloadJson);
@@ -85,25 +81,17 @@ public class OutboxPublisherHostedService : BackgroundService
                     
                     await _ch.BasicPublishAsync(_opt.Exchange, evt.Type, true, props, body, stoppingToken);
                     
-                    Console.WriteLine($"[OutboxPublisher] ✅ Published event id={evt.Id} type='{evt.Type}' to exchange='{_opt.Exchange}' routingKey='{evt.Type}'");
-                    Console.WriteLine($"[OutboxPublisher] 📄 Payload: {evt.PayloadJson}");
-                    // mark as published
                     evt.PublishedAt = DateTime.UtcNow;
                 }
                 await db.SaveChangesAsync(stoppingToken);
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"[OutboxPublisher] Error while publishing: {ex.Message}");
                 await Task.Delay(TimeSpan.FromSeconds(10), stoppingToken);
                 
-                // If channel is closed, try to reconnect? (For simplicity, we rely on restart policy or rudimentary check)
                 if (_ch == null || _ch.IsClosed)
                 {
-                     try 
-                     {
-                        _ch = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
-                     } catch { }
+                    _ch = await _conn.CreateChannelAsync(cancellationToken: stoppingToken);
                 }
             }
         }

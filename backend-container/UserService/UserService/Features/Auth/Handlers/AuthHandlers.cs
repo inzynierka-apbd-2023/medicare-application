@@ -6,6 +6,7 @@ using UserService.Features.Auth.Commands;
 using UserService.Infrastructure.Messaging;
 using UserService.Models;
 using UserService.Services;
+using static UserService.Services.CryptoHelpers;
 
 namespace UserService.Features.Auth.Handlers;
 
@@ -232,13 +233,6 @@ public class RefreshTokenHandler : IRequestHandler<RefreshTokenCommand, RefreshT
             }
         };
     }
-
-    private static string ComputeSha256(string input)
-    {
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-        return Convert.ToBase64String(bytes);
-    }
 }
 
 public class LogoutHandler : IRequestHandler<LogoutCommand, LogoutResponse>
@@ -264,13 +258,6 @@ public class LogoutHandler : IRequestHandler<LogoutCommand, LogoutResponse>
             await _db.SaveChangesAsync(cancellationToken);
         }
         return new LogoutResponse { Success = true, Message = "Logout successful" };
-    }
-
-    private static string ComputeSha256(string input)
-    {
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-        return Convert.ToBase64String(bytes);
     }
 }
 
@@ -333,13 +320,6 @@ public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, Forg
 
         return new ForgotPasswordResponse { Success = true, Message = "If the email exists, a reset link has been sent." };
     }
-
-    private static string ComputeSha256(string input)
-    {
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-        return Convert.ToBase64String(bytes);
-    }
 }
 
 public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand, ResetPasswordResponse>
@@ -388,13 +368,6 @@ public class ResetPasswordHandler : IRequestHandler<ResetPasswordCommand, ResetP
 
         await _db.SaveChangesAsync(cancellationToken);
         return new ResetPasswordResponse { Success = true };
-    }
-
-    private static string ComputeSha256(string input)
-    {
-        using var sha = System.Security.Cryptography.SHA256.Create();
-        var bytes = sha.ComputeHash(System.Text.Encoding.UTF8.GetBytes(input));
-        return Convert.ToBase64String(bytes);
     }
 }
 

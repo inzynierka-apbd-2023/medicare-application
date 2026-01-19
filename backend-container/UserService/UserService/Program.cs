@@ -91,6 +91,8 @@ builder.Services.Configure<ForwardedHeadersOptions>(options =>
 
 var app = builder.Build();
 
+app.UseGlobalExceptionHandling();
+
 await DbSeeder.SeedAsync(app.Services);
 
 if (app.Environment.IsDevelopment())
@@ -102,6 +104,7 @@ if (app.Environment.IsDevelopment())
 app.UseForwardedHeaders();
 app.UseHttpsRedirection();
 app.UseCors("DefaultPolicy");
+app.UseDefaultRateLimiting();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
