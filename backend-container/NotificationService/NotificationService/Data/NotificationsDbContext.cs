@@ -1,6 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using NotificationService.Models;
 
+using MassTransit;
+
 namespace NotificationService.Data;
 
 public class NotificationsDbContext : DbContext
@@ -12,6 +14,11 @@ public class NotificationsDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         modelBuilder.HasDefaultSchema("notifications");
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
+
 
         var e = modelBuilder.Entity<Notification>();
         e.ToTable("Notification");

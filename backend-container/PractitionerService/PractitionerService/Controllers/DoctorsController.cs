@@ -3,7 +3,8 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using PractitionerService.Data;
 using PractitionerService.Models;
-using RabbitMQ.Client;
+using MassTransit;
+using Medicare.Messaging.Contracts;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
@@ -17,15 +18,14 @@ public class DoctorsController : ControllerBase
 {
     private readonly PractitionerDbContext _db;
     private readonly IHttpClientFactory _httpFactory;
+    private readonly IPublishEndpoint _publishEndpoint;
     private const string DoctorNotFound = "Doctor not found";
 
-    private readonly IConnection _rabbitConnection;
-
-    public DoctorsController(PractitionerDbContext db, IHttpClientFactory httpFactory, IConnection rabbitConnection)
+    public DoctorsController(PractitionerDbContext db, IHttpClientFactory httpFactory, IPublishEndpoint publishEndpoint)
     {
         _db = db;
         _httpFactory = httpFactory;
-        _rabbitConnection = rabbitConnection;
+        _publishEndpoint = publishEndpoint;
     }
 
     public record CreateDoctorFullRequest(
@@ -350,24 +350,16 @@ public class DoctorsController : ControllerBase
         };
         var snapshotJson = JsonSerializer.Serialize(snapshot);
 
-        var evt = new
+        await _publishEndpoint.Publish<IDoctorArchived>(new
         {
             DoctorId = doctor.Id,
             DoctorUserId = doctor.UserId,
-            Type = "DoctorRemovalRequested",
-            At = DateTime.UtcNow,
+            OccurredAt = DateTime.UtcNow,
             FullName = dir == null ? null : ($"{dir.FirstName} {dir.LastName}").Trim(),
             Email = dir?.Email,
             Phone = dir?.Phone,
             SnapshotJson = snapshotJson
-        };
-
-        await using var ch = await _rabbitConnection.CreateChannelAsync();
-        await ch.ExchangeDeclareAsync(exchange: "practitioner.events", type: ExchangeType.Topic, durable: true);
-        var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt));
-        
-        var props = new BasicProperties();
-        await ch.BasicPublishAsync(exchange: "practitioner.events", routingKey: "doctor.remove.requested", mandatory: false, basicProperties: props, body: body);
+        });
 
         var specs = _db.DoctorSpecializations.Where(x => x.DoctorId == id);
         _db.DoctorSpecializations.RemoveRange(specs);
@@ -380,6 +372,7 @@ public class DoctorsController : ControllerBase
         return NoContent();
     }
 }
+
 
 public record RegisterDoctorRequest(Guid UserId, string? Bio);
 public record UpdateSpecializationsRequest(List<Guid> SpecializationIds);

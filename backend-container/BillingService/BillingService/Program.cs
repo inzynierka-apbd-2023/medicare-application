@@ -8,6 +8,11 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 builder.AddRabbitMQClient("rabbitmq");
+builder.AddMedicareMassTransit<BillingDbContext>(x =>
+{
+    x.AddConsumer<BillingService.Consumers.AppointmentCreatedConsumer>();
+    x.AddConsumer<BillingService.Consumers.PaymentInitiatedConsumer>();
+});
 
 var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
                      ?? builder.Configuration.GetConnectionString("MedicareDb")
@@ -20,6 +25,7 @@ builder.Services.AddWebhookSignatureValidation();
 builder.Services.AddScoped<IRevenueMetricsService, RevenueMetricsService>();
 builder.Services.AddScoped<AppointmentBillingService>();
 builder.Services.AddHostedService<BillingService.Infrastructure.Messaging.BillingEventConsumer>();
+
 
 builder.Services.AddDbContext<BillingDbContext>((sp, options) =>
 {

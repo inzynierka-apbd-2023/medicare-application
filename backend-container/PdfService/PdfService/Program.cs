@@ -1,17 +1,18 @@
+using MassTransit;
+using PdfService.Consumers;
 using PdfService.Services;
-using PdfService.Workers;
-using Microsoft.AspNetCore.Builder;
-using Microsoft.Extensions.DependencyInjection;
-using Microsoft.Extensions.Hosting;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
 
 // Add dependencies
-builder.AddRabbitMQClient("rabbitmq");
 builder.Services.AddSingleton<IPdfGenerator, QuestPdfGenerator>();
-builder.Services.AddHostedService<PdfGenerationWorker>();
+
+builder.AddMedicareMassTransit(x =>
+{
+    x.AddConsumer<PdfGenerationConsumer>();
+});
 
 // Add Standard Middleware dependencies
 builder.Services.AddControllers();

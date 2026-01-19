@@ -51,9 +51,11 @@ builder.Services.AddCors(o =>
 
 builder.Services.AddScoped<IUserService, UserServiceImpl>();
 builder.Services.AddScoped<IJwtService, JwtService>();
-builder.AddRabbitMQClient("rabbitmq");
-builder.Services.Configure<RabbitOptions>(builder.Configuration.GetSection("RABBITMQ"));
-builder.Services.AddHostedService<OutboxPublisherHostedService>();
+builder.AddMedicareMassTransit<UserDbContext>(x =>
+{
+    x.AddConsumer<UserService.Consumers.PatientGenericProfileConsumer>();
+});
+
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Program).Assembly));
 

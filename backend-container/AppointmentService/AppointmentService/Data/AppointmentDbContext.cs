@@ -1,5 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using AppointmentService.Models;
+using MassTransit;
+
 
 namespace AppointmentService.Data;
 
@@ -11,23 +13,16 @@ public class AppointmentDbContext : DbContext
     public DbSet<AppointmentSlot> AppointmentSlots => Set<AppointmentSlot>();
     public DbSet<Schedule> Schedules => Set<Schedule>();
     public DbSet<AppointmentCategory> AppointmentCategories => Set<AppointmentCategory>();
-    
-    // Analytics entities - read-only views of the main database
-    public DbSet<User> Users => Set<User>();
-    public DbSet<UserProfile> UserProfiles => Set<UserProfile>();
-    public DbSet<Doctor> Doctors => Set<Doctor>();
-    public DbSet<Patient> Patients => Set<Patient>();
-    public DbSet<Specialization> Specializations => Set<Specialization>();
-    public DbSet<DoctorSpecialization> DoctorSpecializations => Set<DoctorSpecialization>();
-    public DbSet<ScheduleAppointment> ScheduleAppointments => Set<ScheduleAppointment>();
-    public DbSet<ScheduleAppointmentStatus> ScheduleAppointmentStatuses => Set<ScheduleAppointmentStatus>();
-    public DbSet<AppointmentPayment> AppointmentPayments => Set<AppointmentPayment>();
-    public DbSet<Rate> Rates => Set<Rate>();
-    public DbSet<Notification> Notifications => Set<Notification>();
-    public DbSet<DoctorDirectory> DoctorDirectories => Set<DoctorDirectory>();
+
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
+
         modelBuilder.Entity<Appointment>(e =>
         {
             e.ToTable("Appointment", schema: "appointment");
@@ -85,96 +80,6 @@ public class AppointmentDbContext : DbContext
             e.Property(c => c.IsActive).HasDefaultValue(true);
             e.Property(c => c.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasIndex(c => c.Name);
-        });
-
-        // Configure analytics entities (read-only from other service schemas)
-        modelBuilder.Entity<User>(e =>
-        {
-            e.HasKey(u => u.Id);
-            e.Property(u => u.Id);
-            e.Property(u => u.Role_Id);
-            e.Property(u => u.Schedule_Id);
-            // Do not let EF migrations manage this table (exists in user schema)
-            e.ToTable("User", "user", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<UserProfile>(e =>
-        {
-            e.HasKey(up => up.User_Id);
-            e.Property(up => up.User_Id);
-            e.Property(up => up.FirstName).HasMaxLength(100);
-            e.Property(up => up.LastName).HasMaxLength(100);
-            e.Property(up => up.Email).HasMaxLength(255);
-            e.ToTable("User_Profile", "user", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<Doctor>(e =>
-        {
-            e.HasKey(d => d.Id);
-            e.Property(d => d.Id);
-            e.ToTable("Doctor", "practitioner", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<Patient>(e =>
-        {
-            e.HasKey(p => p.Id);
-            e.Property(p => p.Id);
-            e.ToTable("Patient", "patient", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<Specialization>(e =>
-        {
-            e.HasKey(s => s.Id);
-            e.Property(s => s.Id);
-            e.Property(s => s.Name).HasMaxLength(200);
-            e.ToTable("Specialization", "practitioner", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<DoctorSpecialization>(e =>
-        {
-            e.HasKey(ds => new { ds.DoctorId, ds.SpecializationId });
-            e.ToTable("Doctor_Specialization", "practitioner", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<ScheduleAppointment>(e =>
-        {
-            e.HasKey(sa => sa.Id);
-            e.Property(sa => sa.Id);
-            e.ToTable("Schedule_Appointment", "schedule", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<ScheduleAppointmentStatus>(e =>
-        {
-            e.HasKey(sas => sas.Id);
-            e.Property(sas => sas.Id);
-            e.ToTable("Schedule_Appointment_Status", "schedule", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<AppointmentPayment>(e =>
-        {
-            e.HasKey(ap => ap.Id);
-            e.Property(ap => ap.Id);
-            e.ToTable("Appointment_Payment", "billing", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<Rate>(e =>
-        {
-            e.HasKey(r => r.Id);
-            e.Property(r => r.Id);
-            e.ToTable("Rate", "practitioner", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<Notification>(e =>
-        {
-            e.HasKey(n => n.Id);
-            e.Property(n => n.Id);
-            e.ToTable("Notification", "notification", tb => tb.ExcludeFromMigrations());
-        });
-
-        modelBuilder.Entity<DoctorDirectory>(e =>
-        {
-            e.HasNoKey();
-            e.ToView("DoctorDirectory", "practitioner");
         });
     }
 }

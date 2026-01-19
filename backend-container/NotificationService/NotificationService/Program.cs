@@ -17,7 +17,13 @@ var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
 
 builder.Services.AddControllers();
 builder.AddRabbitMQClient("rabbitmq");
+builder.AddMedicareMassTransit<NotificationsDbContext>(x =>
+{
+    x.AddConsumer<NotificationService.Consumers.NotificationCreatedConsumer>();
+});
+
 builder.Services.AddHostedService<NotificationService.Services.NotificationConsumerService>();
+
 
 // Email service configuration
 builder.Services.Configure<NotificationService.Services.SmtpSettings>(builder.Configuration.GetSection("Smtp"));

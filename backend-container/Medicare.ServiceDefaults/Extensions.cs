@@ -15,6 +15,10 @@ using OpenTelemetry.Trace;
 
 namespace Microsoft.Extensions.Hosting;
 
+using MassTransit;
+using Medicare.Messaging.Contracts;
+using Microsoft.EntityFrameworkCore;
+
 public static class Extensions
 {
     public static IHostApplicationBuilder AddServiceDefaults(this IHostApplicationBuilder builder)
@@ -165,5 +169,54 @@ public static class Extensions
         });
 
         return services;
+    }
+
+    public static IHostApplicationBuilder AddMedicareMassTransit<TDbContext>(this IHostApplicationBuilder builder, Action<IBusRegistrationConfigurator>? configure = null)
+        where TDbContext : DbContext
+    {
+        builder.Services.AddMassTransit(x =>
+        {
+            x.SetKebabCaseEndpointNameFormatter();
+
+            // Configure Outbox with EF Core
+            x.AddEntityFrameworkOutbox<TDbContext>(o =>
+            {
+                o.QueryDelay = TimeSpan.FromSeconds(1);
+                o.UseSqlServer();
+                o.UseBusOutbox();
+            });
+
+            configure?.Invoke(x);
+
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                var connectionString = builder.Configuration.GetConnectionString("rabbitmq");
+                cfg.Host(connectionString);
+                
+                cfg.ConfigureEndpoints(context);
+            });
+        });
+
+        return builder;
+    }
+
+    public static IHostApplicationBuilder AddMedicareMassTransit(this IHostApplicationBuilder builder, Action<IBusRegistrationConfigurator>? configure = null)
+    {
+        builder.Services.AddMassTransit(x =>
+        {
+            x.SetKebabCaseEndpointNameFormatter();
+
+            configure?.Invoke(x);
+
+            x.UsingRabbitMq((context, cfg) =>
+            {
+                var connectionString = builder.Configuration.GetConnectionString("rabbitmq");
+                cfg.Host(connectionString);
+                
+                cfg.ConfigureEndpoints(context);
+            });
+        });
+
+        return builder;
     }
 }

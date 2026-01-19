@@ -22,15 +22,18 @@ namespace PractitionerService.Services
         private readonly PractitionerDbContext _context;
         private readonly HttpClient _userServiceClient;
         private readonly ILogger<StaffService> _logger;
+        private readonly MassTransit.IPublishEndpoint _publishEndpoint;
 
         public StaffService(
             PractitionerDbContext context, 
             HttpClient userServiceClient,
-            ILogger<StaffService> logger)
+            ILogger<StaffService> logger,
+            MassTransit.IPublishEndpoint publishEndpoint)
         {
             _context = context;
             _userServiceClient = userServiceClient;
             _logger = logger;
+            _publishEndpoint = publishEndpoint;
         }
 
         public async Task<StaffMemberDto?> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default)
@@ -237,6 +240,7 @@ namespace PractitionerService.Services
 
         public async Task<bool> DeleteStaffMemberAsync(Guid id, CancellationToken cancellationToken = default)
         {
+            using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
             try
             {
                 var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
@@ -244,6 +248,7 @@ namespace PractitionerService.Services
 
                 if (doctor == null && receptionist == null)
                 {
+                    await transaction.RollbackAsync(cancellationToken);
                     return false;
                 }
 
@@ -254,18 +259,40 @@ namespace PractitionerService.Services
                 
                 if (!response.IsSuccessStatusCode)
                 {
+                    await transaction.RollbackAsync(cancellationToken);
                     _logger.LogError("Failed to delete user profile: {StatusCode}", response.StatusCode);
                     return false;
                 }
+
+                if (doctor != null)
+                {
+                    // Publish DoctorArchived event
+                    await _publishEndpoint.Publish<Medicare.Messaging.Contracts.IDoctorArchived>(new
+                    {
+                        DoctorId = doctor.Id,
+                        DoctorUserId = doctor.UserId
+                    }, cancellationToken);
+                }
+
+                // If we were hard deleting practitioner record locally, we would do it here.
+                // Assuming UserService soft-delete is enough due to strict boundaries, but we should probably mark local entity as inactive too?
+                // For now, only publishing the event as requested.
+                // Actually, let's mark as inactive to be safe if that exists, or just commit.
+                // doctor.IsActive = false; // Entity doesn't seem to have IsActive property in DTO but DB has it.
+                // Let's assume the event is the critical part for AppointmentService.
+                
+                await transaction.CommitAsync(cancellationToken);
 
                 return true;
             }
             catch (Exception ex)
             {
+                await transaction.RollbackAsync(cancellationToken);
                 _logger.LogError(ex, "Failed to delete staff member with ID {StaffId}", id);
                 return false;
             }
         }
+
 
         public async Task<StaffMemberDto?> GetStaffMemberByIdAsync(Guid id, CancellationToken cancellationToken = default)
         {

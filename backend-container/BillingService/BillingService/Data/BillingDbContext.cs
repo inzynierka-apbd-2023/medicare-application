@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using BillingService.Models;
+using MassTransit;
 
 namespace BillingService.Data;
 
@@ -21,6 +22,10 @@ public class BillingDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema("billing");
+        
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
 
         const string SqlGuid = "NEWID()";
         const string SysUtc = "SYSUTCDATETIME()";

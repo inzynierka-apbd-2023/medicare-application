@@ -1,13 +1,11 @@
 using DocumentsService.Data;
 using DocumentsService.Contracts;
-using DocumentsService.Infrastructure.Events;
 using DocumentsService.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using RabbitMQ.Client;
-using RabbitMQ.Client.Events;
-using System.Text;
+using MassTransit;
+using Medicare.Messaging.Contracts;
 using System.Text.Json;
 
 namespace DocumentsService.Controllers;
@@ -17,16 +15,26 @@ namespace DocumentsService.Controllers;
 public class DocumentsController : ControllerBase
 {
     private readonly DocumentsDbContext _db;
-    private readonly IEventPublisher _events;
+    private readonly IPublishEndpoint _publishEndpoint;
+    private readonly IRequestClient<IGeneratePdfRequest> _pdfRequestClient;
+    private readonly IRequestClient<IGetPatient> _patientRequestClient;
+    private readonly IRequestClient<IGetDoctor> _doctorRequestClient;
     private readonly ILogger<DocumentsController> _logger;
-    private readonly IConnection _rabbitConn;
 
-    public DocumentsController(DocumentsDbContext db, IEventPublisher events, ILogger<DocumentsController> logger, IConnection rabbitConn) 
+    public DocumentsController(
+        DocumentsDbContext db, 
+        IPublishEndpoint publishEndpoint, 
+        IRequestClient<IGeneratePdfRequest> pdfRequestClient,
+        IRequestClient<IGetPatient> patientRequestClient,
+        IRequestClient<IGetDoctor> doctorRequestClient,
+        ILogger<DocumentsController> logger) 
     { 
         _db = db; 
-        _events = events; 
+        _publishEndpoint = publishEndpoint; 
+        _pdfRequestClient = pdfRequestClient;
+        _patientRequestClient = patientRequestClient;
+        _doctorRequestClient = doctorRequestClient;
         _logger = logger; 
-        _rabbitConn = rabbitConn;
     }
 
     [HttpPost]
@@ -55,13 +63,11 @@ public class DocumentsController : ControllerBase
             FileSizeBytes = req.FileSizeBytes
         };
         
-        // Attempt enrichment (best-effort)
-        doc.PatientName = await ResolvePatientNameQuickAsync(doc.PatientId) ?? doc.PatientName;
-        doc.DoctorName = await ResolveDoctorNameQuickAsync(doc.DoctorId) ?? doc.DoctorName;
+        await EnrichNamesIfMissingAsync(doc);
 
         _db.Documents.Add(doc);
         await _db.SaveChangesAsync();
-        await _events.PublishAsync(new DocumentCreated(doc.Id, doc.PatientId, doc.DoctorId, doc.Type, doc.CreatedAt));
+
         return CreatedAtAction(nameof(GetById), new { id = doc.Id }, doc);
     }
 
@@ -117,7 +123,6 @@ public class DocumentsController : ControllerBase
         payload.DocumentId = id;
         _db.VisitDocuments.Add(payload);
         await _db.SaveChangesAsync();
-        await _events.PublishAsync(new VisitNoteAdded(id));
         return NoContent();
     }
 
@@ -163,7 +168,6 @@ public class DocumentsController : ControllerBase
         };
         _db.Prescriptions.Add(entity);
         await _db.SaveChangesAsync();
-        await _events.PublishAsync(new PrescriptionIssued(id, entity.AtcCode, entity.Medication));
         return NoContent();
     }
 
@@ -176,7 +180,6 @@ public class DocumentsController : ControllerBase
         payload.DocumentId = id;
         _db.Referrals.Add(payload);
         await _db.SaveChangesAsync();
-        await _events.PublishAsync(new ReferralAdded(id));
         return NoContent();
     }
 
@@ -189,7 +192,6 @@ public class DocumentsController : ControllerBase
         payload.DocumentId = id;
         _db.SickLeaves.Add(payload);
         await _db.SaveChangesAsync();
-        await _events.PublishAsync(new SickLeaveAdded(id));
         return NoContent();
     }
 
@@ -258,7 +260,6 @@ public class DocumentsController : ControllerBase
 
         _db.LabResults.Add(entity);
         await _db.SaveChangesAsync();
-        await _events.PublishAsync(new LabResultsPosted(id, entity.Results?.Count ?? 0));
         return NoContent();
     }
 
@@ -273,7 +274,6 @@ public class DocumentsController : ControllerBase
         {
             _db.DocumentAssignments.Add(new DocumentAssignment { DocumentId = id, AppointmentId = req.AppointmentId });
             await _db.SaveChangesAsync();
-            await _events.PublishAsync(new DocumentAssignedToAppointment(id, req.AppointmentId));
         }
         return NoContent();
     }
@@ -298,32 +298,34 @@ public class DocumentsController : ControllerBase
         payload["PatientName"] = d.PatientName;
         payload["DoctorName"] = d.DoctorName;
         
-        var corrId = Guid.NewGuid().ToString();
-        var pdfBytes = await RequestPdfOverRabbitAsync(payload, corrId, HttpContext.RequestAborted);
-        if (pdfBytes == null) return StatusCode(504, "PDF generation timed out");
+        var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = null });
+        
+        var response = await _pdfRequestClient.GetResponse<IPdfGeneratedResponse>(new 
+        {
+                DocumentId = d.Id,
+                DocumentType = d.Type.ToString(),
+                PayloadJson = json
+        }, cancellationToken: HttpContext.RequestAborted);
         
         var fileName = $"document-{d.Id}.pdf";
-        return File(pdfBytes, "application/pdf", fileName);
+        return File(response.Message.PdfBytes, "application/pdf", fileName);
+
     }
 
     private async Task EnrichNamesIfMissingAsync(DocumentsService.Models.Document d)
     {
-        if (!string.IsNullOrWhiteSpace(d.PatientName) && !string.IsNullOrWhiteSpace(d.DoctorName)) return;
-        
-        bool changed = false;
-        if (string.IsNullOrWhiteSpace(d.PatientName))
+        // 1. Enrich Patient Name
+        if (string.IsNullOrEmpty(d.PatientName) || d.PatientName == "Unknown")
         {
-            var name = await ResolvePatientNameQuickAsync(d.PatientId);
-            if (!string.IsNullOrWhiteSpace(name)) { d.PatientName = name; changed = true; }
+            var response = await _patientRequestClient.GetResponse<IPatientProfile>(new { PatientId = d.PatientId }, cancellationToken: HttpContext.RequestAborted);
+            d.PatientName = $"{response.Message.FirstName} {response.Message.LastName}";
         }
-        if (string.IsNullOrWhiteSpace(d.DoctorName))
+
+        // 2. Enrich Doctor Name
+        if (string.IsNullOrEmpty(d.DoctorName) || d.DoctorName == "Unknown")
         {
-            var name = await ResolveDoctorNameQuickAsync(d.DoctorId);
-            if (!string.IsNullOrWhiteSpace(name)) { d.DoctorName = name; changed = true; }
-        }
-        if (changed)
-        {
-            await _db.SaveChangesAsync();
+            var response = await _doctorRequestClient.GetResponse<IDoctorProfile>(new { DoctorId = d.DoctorId }, cancellationToken: HttpContext.RequestAborted);
+            d.DoctorName = $"{response.Message.FirstName} {response.Message.LastName}";
         }
     }
 
@@ -403,10 +405,25 @@ public class DocumentsController : ControllerBase
         var beforePatient = d.PatientName;
         var beforeDoctor = d.DoctorName;
 
-        if (beforePatient == null)
-            d.PatientName = await ResolvePatientNameAsync(d.PatientId); // Direct call
-        if (beforeDoctor == null)
-            d.DoctorName = await ResolveDoctorNameAsync(d.DoctorId); // Direct call
+        if (string.IsNullOrEmpty(beforePatient) || beforePatient == "Unknown")
+        {
+             try 
+             {
+                var response = await _patientRequestClient.GetResponse<IPatientProfile>(new { PatientId = d.PatientId }, cancellationToken: HttpContext.RequestAborted);
+                d.PatientName = $"{response.Message.FirstName} {response.Message.LastName}";
+             }
+             catch (Exception) { /* ignore in backfill */ }
+        }
+
+        if (string.IsNullOrEmpty(beforeDoctor) || beforeDoctor == "Unknown")
+        {
+             try 
+             {
+                var response = await _doctorRequestClient.GetResponse<IDoctorProfile>(new { DoctorId = d.DoctorId }, cancellationToken: HttpContext.RequestAborted);
+                d.DoctorName = $"{response.Message.FirstName} {response.Message.LastName}";
+             }
+             catch (Exception) { /* ignore in backfill */ }
+        }
 
         var changed = !string.Equals(beforePatient, d.PatientName, StringComparison.Ordinal) ||
                       !string.Equals(beforeDoctor, d.DoctorName, StringComparison.Ordinal);
@@ -501,85 +518,6 @@ public class DocumentsController : ControllerBase
         return baseObj;
     }
 
-    private async Task<byte[]?> RequestPdfOverRabbitAsync(object payload, string corrId, CancellationToken ct)
-    {
-        await using var channel = await _rabbitConn.CreateChannelAsync(cancellationToken: ct);
-        
-        const string requestQueue = "pdf.generate.document";
-        
-        await channel.QueueDeclareAsync(requestQueue, durable: true, exclusive: false, autoDelete: false, cancellationToken: ct);
-
-        var replyQueueResult = await channel.QueueDeclareAsync(queue: "", durable: false, exclusive: true, autoDelete: true, cancellationToken: ct);
-        var replyQueue = replyQueueResult.QueueName;
-        
-        var tcs = new TaskCompletionSource<byte[]>(TaskCreationOptions.RunContinuationsAsynchronously);
-        
-        var consumer = new AsyncEventingBasicConsumer(channel);
-        consumer.ReceivedAsync += async (model, ea) =>
-        {
-            try
-            {
-                var incomingCorrId = ea.BasicProperties.CorrelationId;
-                if (incomingCorrId == corrId)
-                {
-                    tcs.TrySetResult(ea.Body.ToArray());
-                }
-            }
-            catch (Exception ex)
-            {
-                tcs.TrySetException(ex);
-            }
-            await Task.CompletedTask;
-        };
-        
-        await channel.BasicConsumeAsync(consumer: consumer, queue: replyQueue, autoAck: true, cancellationToken: ct);
-
-        var props = new BasicProperties
-        {
-            ReplyTo = replyQueue,
-            CorrelationId = corrId,
-            ContentType = "application/json"
-        };
-
-        var json = JsonSerializer.Serialize(payload, new JsonSerializerOptions { PropertyNamingPolicy = null });
-        var body = Encoding.UTF8.GetBytes(json);
-        
-        await channel.BasicPublishAsync(
-            exchange: string.Empty, 
-            routingKey: requestQueue, 
-            mandatory: false,
-            basicProperties: props, 
-            body: body,
-            cancellationToken: ct);
-
-        // Wait for response with timeout
-        using var cts = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        cts.CancelAfter(TimeSpan.FromSeconds(30));
-        
-        var completedTask = await Task.WhenAny(tcs.Task, Task.Delay(Timeout.Infinite, cts.Token));
-        if (completedTask == tcs.Task) 
-        {
-            return await tcs.Task;
-        }
-
-        return null;
-    }
-
-    private static string CatalogBase(HttpContext ctx)
-        => ctx.RequestServices.GetService<IConfiguration>()?["CATALOG_SERVICE_BASE_URL"]
-           ?? "http://medical-catalog-service:8083";
-
-    private static string PractitionerBase(HttpContext ctx)
-        => ctx.RequestServices.GetService<IConfiguration>()?["PRACTITIONER_SERVICE_BASE_URL"]
-           ?? "http://practitioner-service:8081";
-    private static string ArchiveBase(HttpContext ctx)
-        => ctx.RequestServices.GetService<IConfiguration>()?["ARCHIVE_SERVICE_BASE_URL"]
-           ?? "http://archive-service:8091";
-
-    private static string PatientBase(HttpContext ctx)
-        => ctx.RequestServices.GetService<IConfiguration>()?["PATIENT_SERVICE_BASE_URL"]
-           ?? "http://patient-service:8082";
-
     private sealed record AtcDto(string AtcCode, string? AtcName);
     private sealed record AtcResult(string Code, string Name);
 
@@ -605,87 +543,9 @@ public class DocumentsController : ControllerBase
         return hit == null ? null : new AtcResult(hit.AtcCode, hit.AtcName ?? hit.AtcCode);
     }
 
-    private sealed record DoctorDirectoryDto(string DoctorId, string UserId, string FirstName, string LastName);
-    private sealed record ArchivedDoctorDto(Guid DoctorId, string? FullName);
-    private sealed record PatientOverviewDto(string PatientId, string UserId, string? FirstName, string? LastName);
-
-    private async Task<string?> ResolveDoctorNameAsync(Guid doctorId)
-    {
-        using var http = new HttpClient { BaseAddress = new Uri(PractitionerBase(HttpContext)) };
-        var resp = await http.GetAsync($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory");
-        if (resp.IsSuccessStatusCode)
-        {
-            var dto = await resp.Content.ReadFromJsonAsync<DoctorDirectoryDto>();
-            if (dto != null)
-            {
-                var full = ($"{dto.FirstName} {dto.LastName}").Trim();
-                if (!string.IsNullOrWhiteSpace(full)) return full;
-            }
-        }
-
-        using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)) };
-        var resp2 = await http2.GetAsync($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}");
-        if (resp2.IsSuccessStatusCode)
-        {
-            var dto2 = await resp2.Content.ReadFromJsonAsync<ArchivedDoctorDto>();
-            if (dto2 != null)
-            {
-                var full = ($"{dto2.FullName}").Trim();
-                return string.IsNullOrWhiteSpace(full) ? null : full;
-            }
-        }
-        return null;
-    }
-
-    private async Task<string?> ResolvePatientNameAsync(Guid patientId)
-    {
-        using var http = new HttpClient { BaseAddress = new Uri(PatientBase(HttpContext)) };
-        var resp = await http.GetAsync($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}");
-        if (!resp.IsSuccessStatusCode) return null;
-        var dto = await resp.Content.ReadFromJsonAsync<PatientOverviewDto>();
-        if (dto == null) return null;
-        var full = ($"{dto.FirstName} {dto.LastName}").Trim();
-        return string.IsNullOrWhiteSpace(full) ? null : full;
-    }
-
-    private async Task<string?> ResolveDoctorNameQuickAsync(Guid doctorId)
-    {
-        using var http = new HttpClient { BaseAddress = new Uri(PractitionerBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-        var resp = await http.GetAsync($"/api/practitioner/doctors/{Uri.EscapeDataString(doctorId.ToString())}/directory");
-        if (resp.IsSuccessStatusCode)
-        {
-            var dto = await resp.Content.ReadFromJsonAsync<DoctorDirectoryDto>();
-            if (dto != null)
-            {
-                var full = ($"{dto.FirstName} {dto.LastName}").Trim();
-                if (!string.IsNullOrWhiteSpace(full)) return full;
-            }
-        }
-
-        using var http2 = new HttpClient { BaseAddress = new Uri(ArchiveBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-        var resp2 = await http2.GetAsync($"/archive/doctors/{Uri.EscapeDataString(doctorId.ToString())}");
-        if (resp2.IsSuccessStatusCode)
-        {
-            var dto2 = await resp2.Content.ReadFromJsonAsync<ArchivedDoctorDto>();
-            if (dto2 != null)
-            {
-                var full = ($"{dto2.FullName}").Trim();
-                return string.IsNullOrWhiteSpace(full) ? null : full;
-            }
-        }
-        return null;
-    }
-
-    private async Task<string?> ResolvePatientNameQuickAsync(Guid patientId)
-    {
-        using var http = new HttpClient { BaseAddress = new Uri(PatientBase(HttpContext)), Timeout = TimeSpan.FromSeconds(1) };
-        var resp = await http.GetAsync($"/api/patient/overview/{Uri.EscapeDataString(patientId.ToString())}");
-        if (!resp.IsSuccessStatusCode) return null;
-        var dto = await resp.Content.ReadFromJsonAsync<PatientOverviewDto>();
-        if (dto == null) return null;
-        var full = ($"{dto.FirstName} {dto.LastName}").Trim();
-        return string.IsNullOrWhiteSpace(full) ? null : full;
-    }
+    private static string CatalogBase(HttpContext ctx)
+        => ctx.RequestServices.GetService<IConfiguration>()?["CATALOG_SERVICE_BASE_URL"]
+           ?? "http://medical-catalog-service:8083";
 
     private sealed record LoincDto(
         string LoincNum,

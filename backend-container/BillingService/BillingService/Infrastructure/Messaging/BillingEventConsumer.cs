@@ -10,11 +10,6 @@ namespace BillingService.Infrastructure.Messaging;
 
 // Minimal record matching the one published by UserService
 public record UserRegistered(Guid UserId, string Username, string Email, DateTime OccurredAtUtc, string? PlanId);
-// Record from AppointmentService
-public record AppointmentCreated(Guid AppointmentId, Guid PatientId, Guid DoctorId, DateTime ScheduledAt, DateTime OccurredAt);
-public record AppointmentBillingProcessed(Guid AppointmentId, bool IsPaid, long AmountCents, string? PlanCode);
-
-public record PaymentInitiated(Guid AppointmentId, Guid PatientId, string PaymentMethod, DateTime Timestamp);
 
 public class BillingEventConsumer : BackgroundService
 {
@@ -41,18 +36,7 @@ public class BillingEventConsumer : BackgroundService
             await _channel.QueueDeclareAsync("billing.user_created", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
             await _channel.QueueBindAsync("billing.user_created", "user.events", "user.created", arguments: null, cancellationToken: stoppingToken);
 
-            // Bind to appointment.events
-            await _channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
-            await _channel.QueueDeclareAsync("billing.appointment_created", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: stoppingToken);
-            await _channel.QueueBindAsync("billing.appointment_created", "appointment.events", "appointment.created", arguments: null, cancellationToken: stoppingToken);
-
-            // Declare exchange for billing events
-            await _channel.ExchangeDeclareAsync("billing.events", ExchangeType.Topic, durable: true, cancellationToken: stoppingToken);
-            
-            // Bind to billing.payment_initiated
-            await _channel.QueueBindAsync("billing.payment_requests", "billing.events", "billing.payment_initiated", arguments: null, cancellationToken: stoppingToken);
-
-            _logger.LogInformation("Connected to RabbitMQ and ready to consume messages");
+            _logger.LogInformation("Connected to RabbitMQ and ready to consume messages (UserCreated)");
         }
         catch (Exception ex)
         {
@@ -76,22 +60,6 @@ public class BillingEventConsumer : BackgroundService
                         await HandleUserCreatedAsync(evt);
                     }
                 }
-                else if (ea.RoutingKey == "appointment.created") 
-                {
-                    var evt = JsonSerializer.Deserialize<AppointmentCreated>(msg, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    if (evt != null)
-                    {
-                        await HandleAppointmentCreatedAsync(evt);
-                    }
-                }
-                else if (ea.RoutingKey == "billing.payment_initiated")
-                {
-                    var evt = JsonSerializer.Deserialize<PaymentInitiated>(msg, new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-                    if (evt != null)
-                    {
-                        await HandlePaymentInitiatedAsync(evt);
-                    }
-                }
                 
                 await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
             }
@@ -103,8 +71,6 @@ public class BillingEventConsumer : BackgroundService
         };
 
         await _channel.BasicConsumeAsync("billing.user_created", false, consumer, cancellationToken: stoppingToken);
-        await _channel.BasicConsumeAsync("billing.payment_requests", false, consumer, cancellationToken: stoppingToken);
-        await _channel.BasicConsumeAsync("billing.appointment_created", false, consumer, cancellationToken: stoppingToken);
 
         while (!stoppingToken.IsCancellationRequested)
         {
@@ -153,102 +119,6 @@ public class BillingEventConsumer : BackgroundService
         await db.SaveChangesAsync();
         
         _logger.LogInformation($"Created subscription {sub.Id} for user {evt.UserId} with plan {planCode}");
-    }
-
-    private async Task HandleAppointmentCreatedAsync(AppointmentCreated evt)
-    {
-        using var scope = _sp.CreateScope();
-        var billingService = scope.ServiceProvider.GetRequiredService<BillingService.Services.AppointmentBillingService>();
-
-        try 
-        {
-            var result = await billingService.EvaluateAndRecordPaymentAsync(evt.AppointmentId, evt.PatientId, evt.ScheduledAt);
-
-            // Publish result so AppointmentService can update status
-            await PublishPaymentProcessedAsync(evt.AppointmentId, !result.IsFree && result.AmountCents == 0 /* free is paid */ || result.IsFree, result.AmountCents);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "Failed to evaluate billing for appointment {Id}", evt.AppointmentId);
-        }
-    }
-
-    private async Task HandlePaymentInitiatedAsync(PaymentInitiated evt)
-    {
-        using var scope = _sp.CreateScope();
-        var db = scope.ServiceProvider.GetRequiredService<BillingDbContext>();
-
-        try
-        {
-            // 1. Find or Create Billing Record (Idempotency)
-            var paymentRecord = await db.AppointmentPayments.FirstOrDefaultAsync(ap => ap.AppointmentId == evt.AppointmentId);
-            
-            if (paymentRecord == null)
-            {
-                 paymentRecord = new AppointmentPayment
-                 {
-                     AppointmentId = evt.AppointmentId,
-                     PatientId = evt.PatientId, 
-                     AmountCents = 30000, 
-                     Currency = "PLN",
-                     CreatedAt = DateTime.UtcNow,
-                     ForDate = DateTime.UtcNow
-                 };
-                 db.AppointmentPayments.Add(paymentRecord);
-            }
-            else if (paymentRecord.PaymentIntentId.HasValue) 
-            {
-                 // Resend event just in case
-                 await PublishPaymentProcessedAsync(evt.AppointmentId, true, paymentRecord.AmountCents);
-                 return;
-            }
-
-            // 2. Create Intent
-            var intent = new PaymentIntent
-            {
-                Id = Guid.NewGuid(),
-                Kind = PaymentIntentKind.Appointment,
-                SubjectId = evt.AppointmentId,
-                PatientId = evt.PatientId,
-                Provider = "mock",
-                AmountCents = paymentRecord.AmountCents,
-                Currency = "PLN",
-                Status = PaymentIntentStatus.Succeeded,
-                CreatedAt = DateTime.UtcNow,
-                ClientSecret = "mock_secret_" + Guid.NewGuid()
-            };
-            
-            db.PaymentIntents.Add(intent);
-            
-            // 3. Link
-            paymentRecord.PaymentIntentId = intent.Id;
-            
-            await db.SaveChangesAsync();
-            
-            // 4. Publish Event
-            await PublishPaymentProcessedAsync(evt.AppointmentId, true, paymentRecord.AmountCents); 
-        }
-        catch (Exception ex)
-        {
-             _logger.LogError(ex, "Error handling payment initiation");
-        }
-    }
-
-    private async Task PublishPaymentProcessedAsync(Guid appointmentId, bool isPaid, long amountCents)
-    {
-        await using var channel = await _conn.CreateChannelAsync();
-        // Exchange declared in setup
-        var evt = new AppointmentBillingProcessed(appointmentId, isPaid, amountCents, "MOCK");
-
-        var json = JsonSerializer.Serialize(evt, new JsonSerializerOptions { PropertyNamingPolicy = JsonNamingPolicy.CamelCase }); 
-        var body = Encoding.UTF8.GetBytes(json);
-
-        var props = new BasicProperties();
-        await channel.BasicPublishAsync(exchange: "billing.events",
-                                routingKey: "billing.appointment_payment_processed",
-                                mandatory: false,
-                                basicProperties: props,
-                                body: body);
     }
 
     public override void Dispose()

@@ -3,7 +3,8 @@ using System.Text.Json;
 using AppointmentService.Data;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
-using RabbitMQ.Client;
+using MassTransit;
+using Medicare.Messaging.Contracts;
 using Microsoft.AspNetCore.Authorization;
 namespace AppointmentService.Controllers;
 
@@ -13,11 +14,11 @@ namespace AppointmentService.Controllers;
 public class NotifierAdminController : ControllerBase
 {
     private readonly IServiceProvider _sp;
-    private readonly IConnection _rabbitConnection;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public NotifierAdminController(IServiceProvider sp, IConnection rabbitConnection)
+    public NotifierAdminController(IServiceProvider sp, IPublishEndpoint publishEndpoint)
     {
-        _sp = sp; _rabbitConnection = rabbitConnection;
+        _sp = sp; _publishEndpoint = publishEndpoint;
     }
 
     [HttpPost("run-once")]
@@ -35,10 +36,6 @@ public class NotifierAdminController : ControllerBase
             .Take(200)
             .ToListAsync();
 
-        await using var ch = await _rabbitConnection.CreateChannelAsync();
-        var queue = "notifications.events";
-        await ch.QueueDeclareAsync(queue, durable: true, exclusive: false, autoDelete: false);
-
         int published = 0;
         foreach (var appt in due)
         {
@@ -47,13 +44,17 @@ public class NotifierAdminController : ControllerBase
             var timeStr = when.ToString("HH:mm");
             var message = $"Reminder: You have an appointment on {dateStr} at {timeStr}.";
 
-            var evt = new { RecipientUserId = appt.PatientId, Description = message, Type = (byte)1, SourceService = "appointment-service", ActionUrl = $"/appointments/{appt.Id}", PriorityLevel = "Normal", ExpiresAt = (DateTime?)null };
-            var body = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(evt));
-            var props = new BasicProperties(); 
-            props.ContentType = "application/json"; 
-            props.DeliveryMode = DeliveryModes.Persistent;
-            
-            await ch.BasicPublishAsync(exchange: "", routingKey: queue, mandatory: false, basicProperties: props, body: body);
+            await _publishEndpoint.Publish<INotificationCreated>(new
+            {
+                RecipientUserId = appt.PatientId,
+                Description = message,
+                Type = (byte)1,
+                SourceService = "appointment-service",
+                ActionUrl = $"/appointments/{appt.Id}",
+                PriorityLevel = "Normal",
+                ExpiresAt = (DateTime?)null
+            });
+
             appt.UpcomingNotificationSentAt = DateTime.UtcNow;
             published++;
         }

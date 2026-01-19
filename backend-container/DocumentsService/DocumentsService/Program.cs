@@ -4,8 +4,8 @@ using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using DocumentsService.Data;
 using DocumentsService.Data.Seeders;
-using DocumentsService.Infrastructure.Events;
-using Microsoft.EntityFrameworkCore.Diagnostics;
+using Medicare.Messaging.Contracts;
+using MassTransit;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,8 +17,13 @@ var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
                         ?? throw new InvalidOperationException("No SQL connection string configured.");
 
 builder.Services.AddControllers();
-builder.AddRabbitMQClient("rabbitmq");
-builder.Services.AddSingleton<IEventPublisher, RabbitMqEventPublisher>();
+
+builder.AddMedicareMassTransit<DocumentsDbContext>(x =>
+{
+    x.AddRequestClient<IGeneratePdfRequest>();
+    x.AddRequestClient<IGetDoctor>();
+    x.AddRequestClient<IGetPatient>();
+});
 
 builder.Services.AddDbContext<DocumentsDbContext>((sp, options) =>
 {

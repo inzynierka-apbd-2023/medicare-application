@@ -1,11 +1,12 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using System.Net.Http;
+using System.Text.Json;
 using AppointmentService.Data;
 using AppointmentService.Models;
-using RabbitMQ.Client;
-using System.Text;
-using System.Text.Json;
+using MassTransit;
+using Medicare.Messaging.Contracts;
 using AppointmentService.Features.Scheduler.DTOs;
 using AppointmentService.Features.Scheduler.Queries;
 using MediatR;
@@ -20,19 +21,18 @@ public class AppointmentsController : ControllerBase
 {
 
     private readonly AppointmentDbContext _db;
-    private readonly IConnection _mqConnection;
-    private readonly AppointmentService.Services.IBillingServiceClient _billingClient;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly IMediator _mediator;
-    private readonly IPatientProfileClient _patientProfileClient;
+    private readonly IRequestClient<IGetPatient> _patientRequestClient;
 
-    public AppointmentsController(AppointmentDbContext db, IConnection mqConnection, AppointmentService.Services.IBillingServiceClient billingClient, IMediator mediator, IPatientProfileClient patientProfileClient)
+    public AppointmentsController(AppointmentDbContext db, IPublishEndpoint publishEndpoint, IMediator mediator, IRequestClient<IGetPatient> patientRequestClient)
     {
         _db = db;
-        _mqConnection = mqConnection;
-        _billingClient = billingClient;
+        _publishEndpoint = publishEndpoint;
         _mediator = mediator;
-        _patientProfileClient = patientProfileClient;
+        _patientRequestClient = patientRequestClient;
     }
+
 
     [HttpPost]
     public async Task<IActionResult> CreateAppointment([FromBody] CreateAppointmentRequest req)
@@ -64,13 +64,21 @@ public class AppointmentsController : ControllerBase
         };
 
         _db.Appointments.Add(appointment);
-        await _db.SaveChangesAsync();
+       
+        await _publishEndpoint.Publish<IAppointmentCreated>(new
+        {
+            AppointmentId = appointment.Id,
+            appointment.PatientId,
+            appointment.DoctorId,
+            appointment.ScheduledAt,
+            OccurredAt = DateTime.UtcNow
+        });
 
-        await PublishAppointmentCreatedAsync(appointment);
+        await _db.SaveChangesAsync();
 
         return CreatedAtAction(nameof(GetById), new { id = appointment.Id }, appointment);
     }
-
+    
     [HttpGet("stats")]
     public async Task<ActionResult<SchedulerStatsResponse>> GetStats([FromQuery] Guid? doctorId, [FromQuery] Guid? patientId)
     {
@@ -87,7 +95,6 @@ public class AppointmentsController : ControllerBase
         var now = DateTime.Now;
         if ((appointment.Status == "Scheduled" || appointment.Status == "Confirmed") && appointment.ScheduledEndAt < now)
         {
-            // Effective overdue on read
             appointment.Status = "Overdue";
         }
         return Ok(appointment);
@@ -102,12 +109,30 @@ public class AppointmentsController : ControllerBase
             .OrderBy(a => a.ScheduledAt)
             .ToListAsync();
 
-        var patientProfiles = await _patientProfileClient.GetPatientProfilesAsync(new[] { patientId });
-        var patientProfile = patientProfiles.FirstOrDefault();
 
+        var response = await _patientRequestClient.GetResponse<IPatientProfile>(new { PatientId = patientId });
+        var profile = response.Message;
+        
+        var patientDto = new PatientProfileDto
+        {
+            Id = profile.Id,
+            FirstName = profile.FirstName,
+            LastName = profile.LastName,
+            Email = profile.Email,
+            Phone = profile.Phone,
+            DateOfBirth = profile.DateOfBirth,
+            Gender = profile.Gender,
+            AddressLine1 = profile.AddressLine1,
+            AddressLine2 = profile.AddressLine2,
+            City = profile.City,
+            State = profile.State,
+            ZipCode = profile.ZipCode,
+            Country = profile.Country
+        };
+        
         foreach (var a in appointments)
         {
-            a.Patient = patientProfile;
+            a.Patient = patientDto;
             if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
             {
                 a.Status = "Overdue";
@@ -116,6 +141,7 @@ public class AppointmentsController : ControllerBase
 
         return Ok(appointments);
     }
+
 
     [HttpGet("doctor/{doctorId}")]
     public async Task<IActionResult> GetByDoctorId(Guid doctorId)
@@ -126,16 +152,39 @@ public class AppointmentsController : ControllerBase
             .OrderBy(a => a.ScheduledAt)
             .ToListAsync();
 
-        var patientIds = appointments.Select(a => a.PatientId).Distinct();
-        var patients = await _patientProfileClient.GetPatientProfilesAsync(patientIds);
-        var patientMap = patients.ToDictionary(p => p.PatientId);
+        var uniquePatientIds = appointments.Select(a => a.PatientId).Distinct();
+        
+        var profileTasks = uniquePatientIds.Select(async pid => 
+        {
+            var response = await _patientRequestClient.GetResponse<IPatientProfile>(new { PatientId = pid });
+            return response.Message;
+        });
+
+        var profiles = await Task.WhenAll(profileTasks);
+        var profileDict = profiles.Where(p => p != null).ToDictionary(p => p!.Id, p => new PatientProfileDto
+        {
+            Id = p!.Id,
+            FirstName = p.FirstName,
+            LastName = p.LastName,
+            Email = p.Email,
+            Phone = p.Phone,
+            DateOfBirth = p.DateOfBirth,
+            Gender = p.Gender,
+            AddressLine1 = p.AddressLine1,
+            AddressLine2 = p.AddressLine2,
+            City = p.City,
+            State = p.State,
+            ZipCode = p.ZipCode,
+            Country = p.Country
+        });
 
         foreach (var a in appointments)
         {
-            if (patientMap.TryGetValue(a.PatientId, out var p))
+            if (profileDict.TryGetValue(a.PatientId, out var patientDto))
             {
-                a.Patient = p;
+                a.Patient = patientDto;
             }
+
             if ((a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
             {
                 a.Status = "Overdue";
@@ -153,9 +202,17 @@ public class AppointmentsController : ControllerBase
 
         appointment.Status = req.Status;
         appointment.UpdatedAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
+        
+        await _publishEndpoint.Publish<IAppointmentUpdated>(new 
+        { 
+            AppointmentId = appointment.Id,
+            appointment.DoctorId,
+            appointment.Status,
+            appointment.UpdatedAt,
+            OccurredAt = DateTime.UtcNow
+        });
 
-        await PublishAppointmentUpdatedAsync(appointment);
+        await _db.SaveChangesAsync();
 
         return Ok(appointment);
     }
@@ -168,24 +225,17 @@ public class AppointmentsController : ControllerBase
 
         if (appointment.IsPaid) return Ok(new { Success = true, Message = "Already paid" });
 
-        // 1. Initiate payment via Billing Service (Async)
-        var (success, error) = await _billingClient.RecordMockPaymentAsync(id, req.PatientId, req.PaymentMethod);
-        
-        if (!success)
+        await _publishEndpoint.Publish<IBillingPaymentInitiated>(new
         {
-            return BadRequest(new { Message = "Billing service failed to record payment", Details = error });
-        }
-
-        // 2. Update local state immediately
-        appointment.IsPaid = true;
-        // Optionally update payment processed if not set
-        appointment.PaymentProcessed = true; 
-        appointment.UpdatedAt = DateTime.UtcNow;
+            AppointmentId = id,
+            req.PatientId,
+            req.PaymentMethod,
+            Timestamp = DateTime.UtcNow
+        });
         
         await _db.SaveChangesAsync();
 
-
-        return Ok(new { Success = true });
+        return Accepted(new { Success = true, Message = "Payment initiated" });
     }
 
     [HttpGet("analytics/today")]
@@ -203,65 +253,13 @@ public class AppointmentsController : ControllerBase
         return Ok(new { Date = today, Statistics = todaysAppointments });
     }
 
-    private async Task PublishAppointmentCreatedAsync(Appointment appointment)
-    {
-        await using var channel = await _mqConnection.CreateChannelAsync();
-        await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
-
-        var evt = new
-        {
-            AppointmentId = appointment.Id,
-            PatientId = appointment.PatientId,
-            DoctorId = appointment.DoctorId,
-            ScheduledAt = appointment.ScheduledAt,
-            OccurredAt = DateTime.UtcNow
-        };
-
-        var json = JsonSerializer.Serialize(evt);
-        var body = Encoding.UTF8.GetBytes(json);
-
-        var props = new BasicProperties();
-        await channel.BasicPublishAsync(exchange: "appointment.events",
-                                routingKey: "appointment.created",
-                                mandatory: false,
-                                basicProperties: props,
-                                body: body);
-    }
-
-    private async Task PublishAppointmentUpdatedAsync(Appointment appointment)
-    {
-        await using var channel = await _mqConnection.CreateChannelAsync();
-        await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
-
-        var evt = new
-        {
-            AppointmentId = appointment.Id,
-            DoctorId = appointment.DoctorId,
-            Status = appointment.Status,
-            UpdatedAt = appointment.UpdatedAt,
-            OccurredAt = DateTime.UtcNow
-        };
-
-        var json = JsonSerializer.Serialize(evt);
-        var body = Encoding.UTF8.GetBytes(json);
-
-        var props = new BasicProperties();
-        await channel.BasicPublishAsync(exchange: "appointment.events",
-                                routingKey: "appointment.updated",
-                                mandatory: false,
-                                basicProperties: props,
-                                body: body);
-
-    }
-
     [HttpPut("{id}")]
     public async Task<IActionResult> UpdateAppointment(Guid id, [FromBody] UpdateAppointmentRequestDto req)
     {
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment == null) return NotFound();
 
-        // Update fields that are allowed to be modified
-        if (req.Description != null) appointment.Notes = req.Description; // Allow clearing if empty string sent? or only if not null
+        if (req.Description != null) appointment.Notes = req.Description; 
         
         if (req.ScheduledAt.HasValue) appointment.ScheduledAt = req.ScheduledAt.Value;
         if (req.ScheduledEndAt.HasValue) appointment.ScheduledEndAt = req.ScheduledEndAt.Value;
@@ -283,50 +281,19 @@ public class AppointmentsController : ControllerBase
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment == null) return NotFound();
 
-        // 1. Create Rate entity
-        var rate = new Rate
-        {
-            Id = Guid.NewGuid(),
-            Rate_Value = req.Rating,
-            Description = req.Description,
-            Patient_User_Id = appointment.PatientId,
-            Doctor_User_Id = appointment.DoctorId,
-            Appointment_Id = appointment.Id,
-            Rated_At = DateTime.UtcNow,
-            Is_Anonymous = false
-        };
-
-        _db.Set<Rate>().Add(rate);
-        await _db.SaveChangesAsync();
-
-        // 2. Publish event
-        await PublishAppointmentRatedAsync(appointment, req.Rating);
-
-        return Ok(rate);
-    }
-
-    private async Task PublishAppointmentRatedAsync(Appointment appointment, int rating)
-    {
-        await using var channel = await _mqConnection.CreateChannelAsync();
-        await channel.ExchangeDeclareAsync("appointment.events", ExchangeType.Topic, durable: true);
-
-        var evt = new
+        await _publishEndpoint.Publish<IAppointmentRated>(new
         {
             AppointmentId = appointment.Id,
-            DoctorId = appointment.DoctorId,
-            Rating = rating,
+            appointment.DoctorId,
+            appointment.PatientId,
+            req.Rating,
+            req.Description,
             OccurredAt = DateTime.UtcNow
-        };
+        });
 
-        var json = JsonSerializer.Serialize(evt);
-        var body = Encoding.UTF8.GetBytes(json);
+        await _db.SaveChangesAsync();
 
-        var props = new BasicProperties();
-        await channel.BasicPublishAsync(exchange: "appointment.events",
-                                routingKey: "appointment.rated",
-                                mandatory: false,
-                                basicProperties: props,
-                                body: body);
+        return Ok(new { Message = "Rating submitted" });
     }
 }
 

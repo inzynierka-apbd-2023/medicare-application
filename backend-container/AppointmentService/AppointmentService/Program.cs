@@ -1,10 +1,13 @@
 using Microsoft.EntityFrameworkCore;
 using AppointmentService.Data;
 using AppointmentService.Services;
+using AppointmentService.Services.Messaging.Consumers;
+using AppointmentService.Services.Messaging.Notifiers;
 using AppointmentService.Features.DoctorSchedule.Services;
 using AppointmentService.Features.DoctorDashboard.Services;
 using AppointmentService.Data.Seeders;
 using System.Reflection;
+
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -43,11 +46,12 @@ builder.Services.AddCors(o =>
     });
 });
 
-builder.AddRabbitMQClient("rabbitmq");
-
-builder.Services.AddScoped<IBillingServiceClient, BillingServiceClient>();
-builder.Services.AddScoped<IDoctorProfileClient, DoctorProfileClient>();
-builder.Services.AddScoped<IPatientProfileClient, PatientProfileClient>();
+builder.AddMedicareMassTransit<AppointmentDbContext>(x =>
+{
+    x.AddConsumer<AppointmentPaymentConsumer>();
+    x.AddConsumer<DoctorArchivedConsumer>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IGetPatient>();
+});
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
@@ -58,8 +62,6 @@ builder.Services.AddScoped<IDoctorDashboardService, DoctorDashboardService>();
 
 builder.Services.AddHostedService<OverdueStatusUpdater>();
 builder.Services.AddHostedService<UpcomingAppointmentNotifier>();
-builder.Services.AddHostedService<DoctorArchivedConsumer>();
-builder.Services.AddHostedService<AppointmentPaymentConsumer>();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

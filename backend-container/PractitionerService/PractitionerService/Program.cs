@@ -14,9 +14,15 @@ var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
                      ?? throw new InvalidOperationException("No SQL connection string configured.");
 
 builder.Services.AddControllers();
-builder.AddRabbitMQClient("rabbitmq");
+
+builder.AddMedicareMassTransit<PractitionerDbContext>(x =>
+{
+    x.AddConsumer<PractitionerService.Consumers.AppointmentEventConsumer>();
+    x.AddConsumer<PractitionerService.Consumers.DoctorProfileConsumer>();
+});
 
 builder.Services.AddMediatR(typeof(Program).Assembly);
+
 
 builder.Services.AddHttpClient<IStaffService, StaffService>(client =>
 {
@@ -43,8 +49,7 @@ builder.Services.AddDbContext<PractitionerDbContext>((sp, options) =>
     });
 });
 
-builder.Services.AddHostedService<AppointmentEventListener>();
-builder.Services.AddHostedService<DoctorProfileRequestHandler>();
+
 
 builder.AddMedicareAuthentication();
 
