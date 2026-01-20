@@ -15,6 +15,9 @@ export interface DoctorScheduleEvent {
   medicalHistory?: string[];
   allergies?: string[];
   currentMedications?: string[];
+  // Visit note related fields
+  visitNoteDocumentId?: string;
+  hasVisitNote?: boolean;
 }
 
 export interface DoctorScheduleModalProps {
@@ -24,6 +27,7 @@ export interface DoctorScheduleModalProps {
   onMarkCompleted?: (appointmentId: string) => Promise<boolean>;
   onMarkNoShow?: (appointmentId: string) => Promise<boolean>;
   onAddNotes?: (appointmentId: string, notes: string) => Promise<boolean>;
+  onOpenVisitNote?: (appointment: DoctorScheduleEvent) => void;
 }
 
 export interface DoctorSchedulerProps {

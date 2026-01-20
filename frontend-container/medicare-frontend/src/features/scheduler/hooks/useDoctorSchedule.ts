@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
 
 import doctorScheduleApi from "../../../shared/services/doctorScheduleApi";
+import { visitNoteApi } from "../../../shared/services/visitNoteApi";
+import type { VisitNoteData } from "../components/VisitNoteModal";
 import type {
   DoctorCalendarEvent,
   DoctorScheduleEvent,
@@ -30,6 +32,18 @@ interface UseDoctorScheduleReturn {
   getAppointmentDetails: (
     appointmentId: string
   ) => Promise<DoctorScheduleEvent | null>;
+  // Visit note functions
+  getVisitNoteForAppointment: (
+    appointmentId: string
+  ) => Promise<VisitNoteData | null>;
+  createVisitNote: (
+    appointment: DoctorScheduleEvent,
+    visitNoteData: VisitNoteData
+  ) => Promise<boolean>;
+  updateVisitNote: (
+    documentId: string,
+    visitNoteData: VisitNoteData
+  ) => Promise<boolean>;
 }
 
 export const useDoctorSchedule = ({
@@ -199,6 +213,71 @@ export const useDoctorSchedule = ({
     []
   );
 
+  // Visit note functions
+  const getVisitNoteForAppointment = useCallback(
+    async (appointmentId: string): Promise<VisitNoteData | null> => {
+      try {
+        const result =
+          await visitNoteApi.getVisitNoteForAppointment(appointmentId);
+        if (result.success && result.data?.visitNote) {
+          return result.data.visitNote;
+        }
+        return null;
+      } catch {
+        return null;
+      }
+    },
+    []
+  );
+
+  const createVisitNote = useCallback(
+    async (
+      appointment: DoctorScheduleEvent,
+      visitNoteData: VisitNoteData
+    ): Promise<boolean> => {
+      if (!doctorId) return false;
+
+      try {
+        const result = await visitNoteApi.createVisitNote(
+          appointment.patientId,
+          doctorId,
+          appointment.id,
+          visitNoteData
+        );
+
+        if (result.success) {
+          // Refresh schedule to update the hasVisitNote flag
+          await refreshSchedule();
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    },
+    [doctorId, refreshSchedule]
+  );
+
+  const updateVisitNote = useCallback(
+    async (documentId: string, visitNoteData: VisitNoteData): Promise<boolean> => {
+      try {
+        const result = await visitNoteApi.updateVisitNote(
+          documentId,
+          visitNoteData
+        );
+
+        if (result.success) {
+          await refreshSchedule();
+          return true;
+        }
+        return false;
+      } catch {
+        return false;
+      }
+    },
+    [refreshSchedule]
+  );
+
   useEffect(() => {
     refreshSchedule();
   }, [refreshSchedule]);
@@ -224,5 +303,8 @@ export const useDoctorSchedule = ({
     markAppointmentNoShow,
     addAppointmentNotes,
     getAppointmentDetails,
+    getVisitNoteForAppointment,
+    createVisitNote,
+    updateVisitNote,
   };
 };

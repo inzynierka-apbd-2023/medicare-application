@@ -4,10 +4,12 @@ import {
   Calendar,
   CheckCircle,
   Clock,
+  Edit,
   FileText,
   Mail,
   Phone,
   Pill,
+  PlusCircle,
   Save,
   User,
   XCircle,
@@ -23,6 +25,7 @@ export const DoctorScheduleModal: React.FC<DoctorScheduleModalProps> = ({
   onMarkCompleted,
   onMarkNoShow,
   onAddNotes,
+  onOpenVisitNote,
 }) => {
   const [notes, setNotes] = useState(appointment?.notes || "");
   const [isEditingNotes, setIsEditingNotes] = useState(false);
@@ -94,6 +97,18 @@ export const DoctorScheduleModal: React.FC<DoctorScheduleModalProps> = ({
   const isNoShow = appointment.status === "no-show";
   const canModifyStatus =
     !isCompleted && !isNoShow && appointment.status !== "cancelled";
+
+  // Check if appointment is in the past (eligible for visit note)
+  const now = new Date();
+  const isAppointmentPast = now > appointmentDateTime;
+  const canCreateOrEditVisitNote =
+    isAppointmentPast && appointment.status !== "cancelled";
+
+  const handleOpenVisitNote = () => {
+    if (onOpenVisitNote) {
+      onOpenVisitNote(appointment);
+    }
+  };
 
   return (
     <Modal
@@ -320,6 +335,29 @@ export const DoctorScheduleModal: React.FC<DoctorScheduleModalProps> = ({
               <XCircle className="w-4 h-4 mr-2" />
               Mark as No-Show
             </Button>
+          </div>
+        )}
+
+        {/* Visit Note Button - Only show for past appointments */}
+        {canCreateOrEditVisitNote && onOpenVisitNote && (
+          <div className="pt-4 border-t">
+            {appointment.hasVisitNote ? (
+              <Button
+                onClick={handleOpenVisitNote}
+                className="flex items-center w-full justify-center bg-amber-600 hover:bg-amber-700"
+              >
+                <Edit className="w-4 h-4 mr-2" />
+                Edit Visit Note
+              </Button>
+            ) : (
+              <Button
+                onClick={handleOpenVisitNote}
+                className="flex items-center w-full justify-center bg-blue-600 hover:bg-blue-700"
+              >
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Generate Visit Note
+              </Button>
+            )}
           </div>
         )}
       </div>
