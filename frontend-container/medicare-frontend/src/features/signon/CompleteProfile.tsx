@@ -63,6 +63,13 @@ const CompleteProfile: React.FC = () => {
         ...registerData,
         phoneNumber: form.phone || registerData.phoneNumber,
         dateOfBirth: form.dateOfBirth || registerData.dateOfBirth,
+        addressLine1: form.addressLine1,
+        addressLine2: form.addressLine2,
+        city: form.city,
+        state: form.state,
+        zipCode: form.zipCode,
+        country: form.country,
+        avatarUrl: form.avatarUrl,
       };
 
       const reg = await register(
@@ -78,12 +85,12 @@ const CompleteProfile: React.FC = () => {
                 ? form.avatarUrl
                 : "",
           },
-          reg.user.id
+          reg.id
         );
       }
 
       // Redirect: Admins go straight to their dashboard, others see success page
-      if (reg.user.role === "Admin") {
+      if (reg.role === "Admin") {
         navigate(getDefaultDashboard("Admin"));
       } else {
         navigate("/registration-success");

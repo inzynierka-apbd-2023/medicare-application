@@ -4,13 +4,13 @@ using Microsoft.EntityFrameworkCore;
 using PatientService.Data;
 using PatientService.Models;
 
-namespace PatientService.Messaging.Consumers;
+namespace PatientService.Features.Patients.Consumers;
 
-public class PatientDetailsConsumer : IConsumer<IGetPatient>
+public class GetPatientConsumer : IConsumer<IGetPatient>
 {
     private readonly PatientDbContext _db;
 
-    public PatientDetailsConsumer(PatientDbContext db)
+    public GetPatientConsumer(PatientDbContext db)
     {
         _db = db;
     }
@@ -39,15 +39,15 @@ public class PatientDetailsConsumer : IConsumer<IGetPatient>
             LastName = profile.LastName ?? "",
             Email = profile.Email ?? "",
             Phone = profile.Phone ?? "",
-            DateOfBirth = profile.DateOfBirth,
+            profile.DateOfBirth,
             // Add other properties if available in PatientOverview
-            Gender = (string?)null,
-            AddressLine1 = (string?)null,
-            AddressLine2 = (string?)null,
-            City = (string?)null,
-            State = (string?)null,
-            ZipCode = (string?)null,
-            Country = (string?)null,
+            Gender = profile.Gender,
+            AddressLine1 = profile.AddressLine1,
+            AddressLine2 = profile.AddressLine2,
+            City = profile.City,
+            State = profile.State,
+            ZipCode = profile.ZipCode,
+            Country = profile.Country,
             BloodType = patient?.BloodType
         });
     }

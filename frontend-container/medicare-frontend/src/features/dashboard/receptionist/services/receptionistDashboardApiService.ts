@@ -144,35 +144,47 @@ export class ReceptionistDashboardApiService {
         availableDoctors: 0, // Will be calculated below
       };
 
-      // Fetch patient details for today's appointments
+      // Fetch patient details for today's appointments in batch
       const uniquePatientIds = Array.from(
         new Set(todaysAppointments.map((a) => a.patientId))
       );
 
       const patientMap = new Map<string, string>();
-      await Promise.all(
-        uniquePatientIds.map(async (pid) => {
-          try {
-            // Try fetching from patient service
-            const res = await api.get(`/patient/Patients/${pid}`);
-            if (res.data) {
-              // Use name property if available, otherwise fallback to first/last or Unknown
-              const p = res.data;
+
+      if (uniquePatientIds.length > 0) {
+        try {
+          // Batch fetch using the new endpoint
+          interface PatientBatchResponse {
+            patientId?: string;
+            id?: string;
+            name?: string;
+            firstName?: string;
+            lastName?: string;
+          }
+          const res = await api.post<PatientBatchResponse[]>(
+            "/patient/Patients/batch",
+            uniquePatientIds
+          );
+          if (res.data) {
+            for (const p of res.data) {
               let name = "Unknown Patient";
+              // Check if p has name/firstName/lastName properties
               if (p.name) {
                 name = p.name;
               } else if (p.firstName || p.lastName) {
                 name = `${p.firstName || ""} ${p.lastName || ""}`.trim();
               }
-              patientMap.set(pid, name);
+              const pid = p.patientId || p.id; // handle case sensitivity or different model mapping if needed
+              if (pid) {
+                patientMap.set(pid, name || "Unknown Patient");
+              }
             }
-          } catch (err) {
-            console.error(`Failed to fetch patient ${pid}:`, err);
-            // Fallback
-            patientMap.set(pid, "Unknown Patient");
           }
-        })
-      );
+        } catch (err) {
+          console.error("Failed to batch fetch patients:", err);
+          // Fallback or just leave unknown
+        }
+      }
 
       // Map today's appointments to QuickAppointment format
       const quickAppointments: QuickAppointment[] = todaysAppointments

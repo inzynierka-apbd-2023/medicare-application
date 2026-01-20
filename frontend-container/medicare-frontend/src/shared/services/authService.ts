@@ -25,6 +25,13 @@ export interface RegisterRequest {
   role?: string;
   dateOfBirth?: string;
   planId?: string;
+  addressLine1?: string;
+  addressLine2?: string;
+  city?: string;
+  state?: string;
+  zipCode?: string;
+  country?: string;
+  avatarUrl?: string | null;
 }
 
 export interface ForgotPasswordRequest {
@@ -67,6 +74,13 @@ export const authService = {
         role: req.role ?? "Patient",
         dateOfBirth: req.dateOfBirth || null,
         planId: req.planId || null,
+        addressLine1: req.addressLine1,
+        addressLine2: req.addressLine2,
+        city: req.city,
+        state: req.state,
+        zipCode: req.zipCode,
+        country: req.country,
+        avatarUrl: req.avatarUrl,
       },
       undefined,
       {

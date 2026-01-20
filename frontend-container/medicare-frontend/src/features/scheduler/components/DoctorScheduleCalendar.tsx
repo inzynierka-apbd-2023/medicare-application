@@ -155,7 +155,7 @@ export const DoctorScheduleCalendar: React.FC<DoctorScheduleCalendarProps> = ({
           const isCurrentMonthDay = isCurrentMonth(day);
           const isTodayDay = isToday(day);
           const isSelectedDay = isSelected(day);
-          
+
           // Format date as local string to avoid timezone shifts
           const formatLocalDate = (d: Date) => {
             const pad = (n: number) => n.toString().padStart(2, "0");

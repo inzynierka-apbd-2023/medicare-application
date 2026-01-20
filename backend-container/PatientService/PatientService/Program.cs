@@ -68,8 +68,10 @@ builder.Services.AddHealthChecks().AddDbContextCheck<PatientDbContext>();
 
 builder.AddMedicareMassTransit<PatientDbContext>(x =>
 {
-    x.AddConsumer<PatientService.Messaging.Consumers.PatientDetailsConsumer>();
-    x.AddConsumer<PatientService.Messaging.Consumers.UserRegisteredConsumer>();
+    x.AddConsumer<PatientService.Features.Patients.Consumers.GetPatientsConsumer>();
+    x.AddConsumer<PatientService.Features.Patients.Consumers.GetPatientConsumer>();
+    x.AddConsumer<PatientService.Features.Patients.Consumers.UserRegisteredConsumer>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IGetUsers>();
 });
 builder.Services.AddScoped<PatientService.Features.Metrics.Services.IPatientMetricsService, PatientService.Features.Metrics.Services.PatientMetricsService>();
 

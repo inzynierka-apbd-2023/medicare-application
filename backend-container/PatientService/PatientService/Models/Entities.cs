@@ -67,7 +67,12 @@ public class PatientOverview
     public string? Phone { get; set; }
     public DateTime? DateOfBirth { get; set; }
     public string? Gender { get; set; }
-    public string? Address { get; set; }
+    public string? AddressLine1 { get; set; }
+    public string? AddressLine2 { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? ZipCode { get; set; }
+    public string? Country { get; set; }
     public string? CurrentStatus { get; set; }
     public string? EmergencyContactName { get; set; }
     public string? EmergencyContactPhone { get; set; }

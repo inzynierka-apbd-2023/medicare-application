@@ -13,6 +13,8 @@ public class NotificationsDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.HasDefaultSchema("notifications");
 
         modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "notifications"));
@@ -34,6 +36,5 @@ public class NotificationsDbContext : DbContext
         e.Property(x => x.Priority_Level).HasColumnType("nvarchar(20)");
         e.Property(x => x.Expires_At).HasColumnType("datetime");
 
-        base.OnModelCreating(modelBuilder);
     }
 }

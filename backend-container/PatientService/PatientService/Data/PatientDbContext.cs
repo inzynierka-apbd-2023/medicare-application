@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using PatientService.Models;
+using MassTransit;
 
 namespace PatientService.Data;
 
@@ -14,6 +15,11 @@ public class PatientDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "patient"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "patient"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "patient"));
+
         modelBuilder.Entity<Patient>(e =>
         {
             e.ToTable("Patient", schema: "patient");

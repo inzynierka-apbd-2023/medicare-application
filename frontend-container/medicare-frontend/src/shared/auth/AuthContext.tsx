@@ -178,7 +178,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     globalThis.addEventListener("auth:logout", handleAuthLogout);
-    return () => globalThis.removeEventListener("auth:logout", handleAuthLogout);
+    return () =>
+      globalThis.removeEventListener("auth:logout", handleAuthLogout);
   }, [handleAuthLogout]);
 
   const ctxValue = useMemo(

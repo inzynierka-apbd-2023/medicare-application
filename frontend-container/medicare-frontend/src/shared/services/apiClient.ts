@@ -85,7 +85,7 @@ apiClient.interceptors.response.use(
       const url = config.url || "";
       const isAuthEndpoint =
         /\/(auth\/login|auth\/register|auth\/refresh|auth\/logout)/.test(url);
-      
+
       if (isAuthEndpoint) {
         throw error;
       }
@@ -103,9 +103,9 @@ apiClient.interceptors.response.use(
           });
         });
       }
-      
+
       isRefreshing = true;
-      
+
       try {
         await apiClient.post("/auth/refresh", {});
         isRefreshing = false;

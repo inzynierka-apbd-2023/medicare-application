@@ -3,17 +3,20 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using UserService.Data;
+using PractitionerService.Data;
 
 #nullable disable
 
-namespace UserService.Migrations
+namespace PractitionerService.Migrations
 {
-    [DbContext(typeof(UserDbContext))]
-    partial class UserDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(PractitionerDbContext))]
+    [Migration("20260120190246_AddMassTransitOutboxSchemafix")]
+    partial class AddMassTransitOutboxSchemafix
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68,7 +71,7 @@ namespace UserService.Migrations
 
                     b.HasIndex("Delivered");
 
-                    b.ToTable("InboxState", "user");
+                    b.ToTable("InboxState", "practitioner");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
@@ -161,7 +164,7 @@ namespace UserService.Migrations
                         .IsUnique()
                         .HasFilter("[InboxMessageId] IS NOT NULL AND [InboxConsumerId] IS NOT NULL");
 
-                    b.ToTable("OutboxMessage", "user");
+                    b.ToTable("OutboxMessage", "practitioner");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxState", b =>
@@ -191,10 +194,10 @@ namespace UserService.Migrations
 
                     b.HasIndex("Created");
 
-                    b.ToTable("OutboxState", "user");
+                    b.ToTable("OutboxState", "practitioner");
                 });
 
-            modelBuilder.Entity("UserService.Models.PasswordResetToken", b =>
+            modelBuilder.Entity("PractitionerService.Models.Doctor", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
@@ -202,322 +205,315 @@ namespace UserService.Migrations
                         .HasColumnName("Id")
                         .HasDefaultValueSql("NEWID()");
 
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Created_At")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Expires_At");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("Token_Hash");
-
-                    b.Property<DateTime?>("UsedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Used_At");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("User_Id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("TokenHash")
-                        .IsUnique();
-
-                    b.HasIndex("UserId");
-
-                    b.ToTable("Password_Reset_Token", "user");
-                });
-
-            modelBuilder.Entity("UserService.Models.RefreshToken", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("Id");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Created_At")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("CreatedByIp")
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("Created_By_Ip");
-
-                    b.Property<DateTime>("ExpiresAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Expires_At")
-                        .HasDefaultValueSql("DATEADD(day,7,SYSUTCDATETIME())");
-
-                    b.Property<string>("ReplacedByTokenHash")
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)")
-                        .HasColumnName("Replaced_By_Hash");
-
-                    b.Property<DateTime?>("RevokedAt")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("Revoked_At");
-
-                    b.Property<string>("RevokedByIp")
-                        .HasMaxLength(45)
-                        .HasColumnType("nvarchar(45)")
-                        .HasColumnName("Revoked_By_Ip");
-
-                    b.Property<string>("TokenHash")
-                        .IsRequired()
-                        .HasMaxLength(128)
-                        .HasColumnType("nvarchar(128)")
-                        .HasColumnName("Token_Hash");
-
-                    b.Property<string>("UserAgent")
-                        .HasMaxLength(512)
-                        .HasColumnType("nvarchar(512)")
-                        .HasColumnName("User_Agent");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("User_Id");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId", "ExpiresAt");
-
-                    b.ToTable("Refresh_Token", "user");
-                });
-
-            modelBuilder.Entity("UserService.Models.Role", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("Id")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<string>("Description")
+                    b.Property<string>("Bio")
                         .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("Description");
-
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("Name");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Role", "user");
-                });
-
-            modelBuilder.Entity("UserService.Models.User", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("Id")
-                        .HasDefaultValueSql("NEWID()");
+                        .HasColumnType("nvarchar(500)");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasColumnName("Created_At")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
                     b.Property<bool>("IsActive")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("bit")
-                        .HasDefaultValue(true)
-                        .HasColumnName("Is_Active");
-
-                    b.Property<string>("PasswordHash")
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
-                        .HasColumnName("PasswordHash");
-
-                    b.Property<Guid?>("RoleId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("Role_Id");
-
-                    b.Property<Guid?>("ScheduleId")
-                        .HasColumnType("uniqueidentifier")
-                        .HasColumnName("Schedule_Id");
+                        .HasDefaultValue(true);
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasColumnName("Updated_At")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("Username")
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)")
-                        .HasColumnName("Username");
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
 
                     b.HasKey("Id");
 
-                    b.HasIndex("RoleId");
+                    b.HasIndex("UserId")
+                        .IsUnique();
 
-                    b.HasIndex("Username")
-                        .IsUnique()
-                        .HasFilter("[Username] IS NOT NULL");
-
-                    b.ToTable("User", "user");
+                    b.ToTable("Doctor", "practitioner");
                 });
 
-            modelBuilder.Entity("UserService.Models.UserProfile", b =>
+            modelBuilder.Entity("PractitionerService.Models.DoctorDirectory", b =>
                 {
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Email")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("FirstName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<bool>("IsActive")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("LastName")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Phone")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Services")
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<string>("Specializations")
+                        .HasColumnType("nvarchar(max)");
+
                     b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.ToTable((string)null);
+
+                    b.ToView("DoctorDirectory", "practitioner");
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.DoctorSchedule", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
-                        .HasColumnName("User_Id");
-
-                    b.Property<string>("AddressLine1")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("Address_Line1");
-
-                    b.Property<string>("AddressLine2")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)")
-                        .HasColumnName("Address_Line2");
-
-                    b.Property<string>("AvatarUrl")
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)")
-                        .HasColumnName("Avatar_Url");
-
-                    b.Property<string>("City")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("City");
-
-                    b.Property<string>("Country")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("Country");
+                        .HasDefaultValueSql("NEWID()");
 
                     b.Property<DateTime>("CreatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasColumnName("Created_At")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<DateTime?>("DateOfBirth")
-                        .HasColumnType("datetime2")
-                        .HasColumnName("DateOfBirth");
+                    b.Property<int>("DayOfWeek")
+                        .HasColumnType("int");
 
-                    b.Property<string>("Email")
-                        .IsRequired()
-                        .HasMaxLength(255)
-                        .HasColumnType("nvarchar(255)")
-                        .HasColumnName("Email");
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("FirstName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("FirstName");
+                    b.Property<TimeSpan>("EndTime")
+                        .HasColumnType("time");
 
-                    b.Property<string>("Gender")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("Gender");
-
-                    b.Property<string>("LastName")
-                        .IsRequired()
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("LastName");
-
-                    b.Property<string>("Phone")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("Phone");
-
-                    b.Property<string>("State")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)")
-                        .HasColumnName("State");
+                    b.Property<TimeSpan>("StartTime")
+                        .HasColumnType("time");
 
                     b.Property<DateTime>("UpdatedAt")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("datetime2")
-                        .HasColumnName("Updated_At")
                         .HasDefaultValueSql("SYSUTCDATETIME()");
 
-                    b.Property<string>("ZipCode")
-                        .HasMaxLength(20)
-                        .HasColumnType("nvarchar(20)")
-                        .HasColumnName("ZipCode");
+                    b.HasKey("Id");
 
-                    b.HasKey("UserId");
+                    b.HasIndex("DoctorId");
 
-                    b.HasIndex("Email")
+                    b.ToTable("Doctor_Schedule", "practitioner");
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.DoctorSpecialization", b =>
+                {
+                    b.Property<Guid>("DoctorId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("SpecializationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("DoctorId", "SpecializationId");
+
+                    b.HasIndex("SpecializationId");
+
+                    b.ToTable("Doctor_Specialization", "practitioner");
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.DoctorStatistics", b =>
+                {
+                    b.Property<Guid>("DoctorId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<int>("CompletedAppointments")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<int>("TotalAppointments")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalRatingCount")
+                        .HasColumnType("int");
+
+                    b.Property<int>("TotalRatingSum")
+                        .HasColumnType("int");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("DoctorId");
+
+                    b.ToTable("DoctorStatistics", "practitioner");
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.MedicalService", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(500)
+                        .HasColumnType("nvarchar(500)");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Service", "practitioner");
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.Rate", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<Guid?>("Appointment_Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<string>("Description")
+                        .HasMaxLength(1000)
+                        .HasColumnType("nvarchar(1000)");
+
+                    b.Property<Guid>("Doctor_User_Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<bool>("Is_Anonymous")
+                        .HasColumnType("bit");
+
+                    b.Property<Guid>("Patient_User_Id")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<byte?>("Rate_Value")
+                        .HasColumnType("tinyint");
+
+                    b.Property<DateTime>("Rated_At")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("Doctor_User_Id");
+
+                    b.ToTable("Rate", "practitioner");
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.Receptionist", b =>
+                {
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<DateTime>("CreatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<DateTime>("UpdatedAt")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("datetime2")
+                        .HasDefaultValueSql("SYSUTCDATETIME()");
+
+                    b.Property<Guid>("UserId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("UserId")
                         .IsUnique();
 
-                    b.ToTable("User_Profile", "user");
+                    b.ToTable("Receptionist", "practitioner");
                 });
 
-            modelBuilder.Entity("UserService.Models.PasswordResetToken", b =>
+            modelBuilder.Entity("PractitionerService.Models.Specialization", b =>
                 {
-                    b.HasOne("UserService.Models.User", "User")
+                    b.Property<Guid>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uniqueidentifier")
+                        .HasDefaultValueSql("NEWID()");
+
+                    b.Property<string>("Name")
+                        .IsRequired()
+                        .HasMaxLength(200)
+                        .HasColumnType("nvarchar(200)");
+
+                    b.HasKey("Id");
+
+                    b.ToTable("Specialization", "practitioner");
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.SpecializationService", b =>
+                {
+                    b.Property<Guid>("SpecializationId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.Property<Guid>("ServiceId")
+                        .HasColumnType("uniqueidentifier");
+
+                    b.HasKey("SpecializationId", "ServiceId");
+
+                    b.HasIndex("ServiceId");
+
+                    b.ToTable("Specialization_Service", "practitioner");
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.DoctorSchedule", b =>
+                {
+                    b.HasOne("PractitionerService.Models.Doctor", null)
+                        .WithMany("Schedules")
+                        .HasForeignKey("DoctorId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.DoctorSpecialization", b =>
+                {
+                    b.HasOne("PractitionerService.Models.Doctor", null)
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("DoctorId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("UserService.Models.RefreshToken", b =>
-                {
-                    b.HasOne("UserService.Models.User", "User")
+                    b.HasOne("PractitionerService.Models.Specialization", null)
                         .WithMany()
-                        .HasForeignKey("UserId")
+                        .HasForeignKey("SpecializationId")
+                        .OnDelete(DeleteBehavior.Cascade)
+                        .IsRequired();
+                });
+
+            modelBuilder.Entity("PractitionerService.Models.SpecializationService", b =>
+                {
+                    b.HasOne("PractitionerService.Models.MedicalService", null)
+                        .WithMany()
+                        .HasForeignKey("ServiceId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
-                    b.Navigation("User");
-                });
-
-            modelBuilder.Entity("UserService.Models.User", b =>
-                {
-                    b.HasOne("UserService.Models.Role", "Role")
-                        .WithMany("Users")
-                        .HasForeignKey("RoleId");
-
-                    b.Navigation("Role");
-                });
-
-            modelBuilder.Entity("UserService.Models.UserProfile", b =>
-                {
-                    b.HasOne("UserService.Models.User", "User")
-                        .WithOne("Profile")
-                        .HasForeignKey("UserService.Models.UserProfile", "UserId")
+                    b.HasOne("PractitionerService.Models.Specialization", null)
+                        .WithMany()
+                        .HasForeignKey("SpecializationId")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
-
-                    b.Navigation("User");
                 });
 
-            modelBuilder.Entity("UserService.Models.Role", b =>
+            modelBuilder.Entity("PractitionerService.Models.Doctor", b =>
                 {
-                    b.Navigation("Users");
-                });
-
-            modelBuilder.Entity("UserService.Models.User", b =>
-                {
-                    b.Navigation("Profile");
+                    b.Navigation("Schedules");
                 });
 #pragma warning restore 612, 618
         }

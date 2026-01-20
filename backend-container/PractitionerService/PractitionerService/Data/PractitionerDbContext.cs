@@ -1,6 +1,5 @@
 using Microsoft.EntityFrameworkCore;
 using PractitionerService.Models;
-
 using MassTransit;
 
 namespace PractitionerService.Data;
@@ -21,6 +20,8 @@ public class PractitionerDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
         modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "practitioner"));
         modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "practitioner"));
         modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "practitioner"));

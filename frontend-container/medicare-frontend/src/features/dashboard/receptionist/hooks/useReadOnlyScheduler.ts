@@ -153,24 +153,33 @@ export const useReadOnlyScheduler = (
         { firstName: string; lastName: string }
       >();
 
-      await Promise.all(
-        uniquePatientIds.map(async (pid) => {
-          try {
-            const res = await api.get(`/patient/patients/${pid}`);
-            if (res.data) {
-              fetchedPatientMap.set(pid, {
-                firstName: res.data.firstName || "Unknown",
-                lastName: res.data.lastName || "Patient",
-              });
-            }
-          } catch {
-            fetchedPatientMap.set(pid, {
-              firstName: "Patient",
-              lastName: pid.substring(0, 8),
-            });
+      if (uniquePatientIds.length > 0) {
+        try {
+          interface PatientBatchResponse {
+            patientId?: string;
+            id?: string;
+            firstName?: string;
+            lastName?: string;
           }
-        })
-      );
+          const res = await api.post<PatientBatchResponse[]>(
+            "/patient/Patients/batch",
+            uniquePatientIds
+          );
+          if (res.data) {
+            for (const p of res.data) {
+              const pid = p.patientId || p.id;
+              if (pid) {
+                fetchedPatientMap.set(pid, {
+                  firstName: p.firstName || "Unknown",
+                  lastName: p.lastName || "Patient",
+                });
+              }
+            }
+          }
+        } catch (error) {
+          console.error("Failed to batch fetch patients in scheduler:", error);
+        }
+      }
 
       // Convert to calendar events and build patient map
       const events: CalendarEvent[] = allAppointments.map((apt) => {

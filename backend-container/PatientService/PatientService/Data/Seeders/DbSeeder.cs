@@ -53,17 +53,22 @@ public static class DbSeeder
                 var viewSql = @"
                 CREATE OR ALTER VIEW patient.PatientOverview AS
                 SELECT p.Id AS PatientId,
-                       p.UserId,
-                       up.FirstName,
-                       up.LastName,
-                       up.Email,
-                       up.Phone,
-                       up.DateOfBirth,
-                       up.Gender,
-                       up.Address_Line1 AS Address,
-                       (SELECT TOP 1 s.Status FROM patient.Patient_Status s WHERE s.PatientId = p.Id ORDER BY s.EffectiveAt DESC) AS CurrentStatus,
-                       (SELECT TOP 1 ec.Name FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactName,
-                       (SELECT TOP 1 ec.Phone FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactPhone
+                    p.UserId,
+                    up.FirstName,
+                    up.LastName,
+                    up.Email,
+                    up.Phone,
+                    up.DateOfBirth,
+                    up.Gender,
+                    up.Address_Line1 AS AddressLine1,
+                    up.Address_Line2 AS AddressLine2,
+                    up.City,
+                    up.State,
+                    up.ZipCode,
+                    up.Country,                       
+                    (SELECT TOP 1 s.Status FROM patient.Patient_Status s WHERE s.PatientId = p.Id ORDER BY s.EffectiveAt DESC) AS CurrentStatus,
+                    (SELECT TOP 1 ec.Name FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactName,
+                    (SELECT TOP 1 ec.Phone FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactPhone
                 FROM patient.Patient p
                 LEFT JOIN [user].[User_Profile] up ON up.User_Id = p.UserId;";
 
@@ -93,7 +98,12 @@ public static class DbSeeder
                    CAST(NULL AS NVARCHAR(20)) AS Phone,
                    CAST(NULL AS DATETIME2) AS DateOfBirth,
                    CAST(NULL AS NVARCHAR(20)) AS Gender,
-                   CAST(NULL AS NVARCHAR(200)) AS Address,
+                   NULL AS AddressLine1,
+                   NULL AS AddressLine2,
+                   NULL AS City,
+                   NULL AS State,
+                   NULL AS ZipCode,
+                   NULL AS Country,
                    (SELECT TOP 1 s.Status FROM patient.Patient_Status s WHERE s.PatientId = p.Id ORDER BY s.EffectiveAt DESC) AS CurrentStatus,
                    (SELECT TOP 1 ec.Name FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactName,
                    (SELECT TOP 1 ec.Phone FROM patient.Emergency_Contact ec WHERE ec.PatientId = p.Id) AS EmergencyContactPhone

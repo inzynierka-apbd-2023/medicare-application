@@ -3,20 +3,24 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
-using PatientService.Data;
+using NotificationService.Data;
 
 #nullable disable
 
-namespace PatientService.Migrations
+namespace NotificationService.Migrations
 {
-    [DbContext(typeof(PatientDbContext))]
-    partial class PatientDbContextModelSnapshot : ModelSnapshot
+    [DbContext(typeof(NotificationsDbContext))]
+    [Migration("20260120185848_AddMassTransitOutboxSchema")]
+    partial class AddMassTransitOutboxSchema
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("notifications")
                 .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
@@ -68,7 +72,7 @@ namespace PatientService.Migrations
 
                     b.HasIndex("Delivered");
 
-                    b.ToTable("InboxState", "patient");
+                    b.ToTable("InboxState", "notifications");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
@@ -161,7 +165,7 @@ namespace PatientService.Migrations
                         .IsUnique()
                         .HasFilter("[InboxMessageId] IS NOT NULL AND [InboxConsumerId] IS NOT NULL");
 
-                    b.ToTable("OutboxMessage", "patient");
+                    b.ToTable("OutboxMessage", "notifications");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxState", b =>
@@ -191,177 +195,46 @@ namespace PatientService.Migrations
 
                     b.HasIndex("Created");
 
-                    b.ToTable("OutboxState", "patient");
+                    b.ToTable("OutboxState", "notifications");
                 });
 
-            modelBuilder.Entity("PatientService.Models.EmergencyContact", b =>
+            modelBuilder.Entity("NotificationService.Models.Notification", b =>
                 {
                     b.Property<Guid>("Id")
                         .ValueGeneratedOnAdd()
                         .HasColumnType("uniqueidentifier")
                         .HasDefaultValueSql("NEWID()");
 
-                    b.Property<string>("Name")
-                        .IsRequired()
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
+                    b.Property<string>("Action_Url")
+                        .HasColumnType("nvarchar(500)");
 
-                    b.Property<Guid>("PatientId")
+                    b.Property<DateTime>("Creation_Date")
+                        .HasColumnType("datetime");
+
+                    b.Property<string>("Description")
+                        .HasColumnType("nvarchar(255)");
+
+                    b.Property<DateTime?>("Expires_At")
+                        .HasColumnType("datetime");
+
+                    b.Property<bool?>("Is_Read")
+                        .HasColumnType("bit");
+
+                    b.Property<string>("Priority_Level")
+                        .HasColumnType("nvarchar(20)");
+
+                    b.Property<Guid>("Recipient_User_Id")
                         .HasColumnType("uniqueidentifier");
 
-                    b.Property<string>("Phone")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<string>("Source_Service")
+                        .HasColumnType("nvarchar(64)");
 
-                    b.Property<string>("Relation")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
+                    b.Property<byte>("Type")
+                        .HasColumnType("tinyint");
 
                     b.HasKey("Id");
 
-                    b.ToTable("Emergency_Contact", "patient");
-                });
-
-            modelBuilder.Entity("PatientService.Models.Insurance", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("PolicyNumber")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<string>("Provider")
-                        .HasMaxLength(200)
-                        .HasColumnType("nvarchar(200)");
-
-                    b.Property<DateTime?>("ValidFrom")
-                        .HasColumnType("datetime2");
-
-                    b.Property<DateTime?>("ValidTo")
-                        .HasColumnType("datetime2");
-
-                    b.HasKey("Id");
-
-                    b.ToTable("Insurance", "patient");
-                });
-
-            modelBuilder.Entity("PatientService.Models.Patient", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<string>("BloodType")
-                        .HasMaxLength(10)
-                        .HasColumnType("nvarchar(10)");
-
-                    b.Property<DateTime>("CreatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<Guid?>("PrimaryDoctorId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<DateTime>("UpdatedAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("UserId")
-                        .IsUnique();
-
-                    b.ToTable("Patient", "patient");
-                });
-
-            modelBuilder.Entity("PatientService.Models.PatientOverview", b =>
-                {
-                    b.Property<string>("Address")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("CurrentStatus")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<DateTime?>("DateOfBirth")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Email")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmergencyContactName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("EmergencyContactPhone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("FirstName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("Gender")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("LastName")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Phone")
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<Guid>("UserId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.ToTable((string)null);
-
-                    b.ToView("PatientOverview", "patient");
-                });
-
-            modelBuilder.Entity("PatientService.Models.PatientStatus", b =>
-                {
-                    b.Property<Guid>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("uniqueidentifier")
-                        .HasDefaultValueSql("NEWID()");
-
-                    b.Property<DateTime>("EffectiveAt")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("datetime2")
-                        .HasDefaultValueSql("SYSUTCDATETIME()");
-
-                    b.Property<string>("IdempotencyKey")
-                        .HasMaxLength(100)
-                        .HasColumnType("nvarchar(100)");
-
-                    b.Property<Guid>("PatientId")
-                        .HasColumnType("uniqueidentifier");
-
-                    b.Property<string>("Status")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IdempotencyKey")
-                        .IsUnique()
-                        .HasFilter("[IdempotencyKey] IS NOT NULL");
-
-                    b.HasIndex("PatientId", "EffectiveAt");
-
-                    b.ToTable("Patient_Status", "patient");
+                    b.ToTable("Notification", "notifications");
                 });
 #pragma warning restore 612, 618
         }

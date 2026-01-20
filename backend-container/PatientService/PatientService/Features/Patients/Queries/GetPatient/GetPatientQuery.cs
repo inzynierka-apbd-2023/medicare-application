@@ -46,7 +46,7 @@ public class GetPatientHandler : IRequestHandler<GetPatientQuery, PatientProfile
             fullName,
             overview?.Email ?? "",
             overview?.Phone ?? "",
-            overview?.Address ?? "",
+            overview != null ? string.Join(", ", new[] { overview.AddressLine1, overview.City, overview.Country }.Where(s => !string.IsNullOrWhiteSpace(s))) : "",
             overview?.DateOfBirth,
             overview?.Gender ?? "Unknown",
             patient.BloodType,
