@@ -83,10 +83,10 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
   };
 
   useEffect(() => {
-    if (!selectedAppointment) return;
+    const appointmentId = selectedAppointment?.id;
+    if (!appointmentId) return;
 
     let isActive = true;
-    const appointmentId = selectedAppointment.id;
 
     const checkExistingVisitNote = async () => {
       const existingNote = await getVisitNoteForAppointment(appointmentId);
@@ -119,7 +119,7 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     return () => {
       isActive = false;
     };
-  }, [getVisitNoteForAppointment, selectedAppointment]);
+  }, [getVisitNoteForAppointment, selectedAppointment?.id]);
 
   const handleCloseModal = () => {
     setIsModalOpen(false);

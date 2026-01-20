@@ -6,9 +6,12 @@
  * associated with appointments.
  */
 
+import { AxiosError } from "axios";
+
 import type { VisitNoteData } from "../../features/scheduler/components/VisitNoteModal";
 
-import { api, type ApiResponse,handleApiCall } from "./api";
+import { api, type ApiResponse, handleApiCall } from "./api";
+import { apiClient } from "./apiClient";
 
 export interface CreateDocumentRequest {
   patientId: string;
@@ -89,13 +92,13 @@ export const visitNoteApi = {
           hasVisitNote: true,
           visitNote: {
             documentId: visitNoteDoc.id,
-            symptoms: visitNoteDoc.visitDocument?.symptoms,
-            findings: visitNoteDoc.visitDocument?.findings,
-            diagnosis: visitNoteDoc.visitDocument?.diagnosis,
-            recommendations: visitNoteDoc.visitDocument?.recommendations,
-            vitalSignsJson: visitNoteDoc.visitDocument?.vitalSignsJson,
-            treatmentPlan: visitNoteDoc.visitDocument?.treatmentPlan,
-            followUpDate: visitNoteDoc.visitDocument?.followUpDate,
+            symptoms: visitNoteDoc.visitDocument?.symptoms ?? "",
+            findings: visitNoteDoc.visitDocument?.findings ?? "",
+            diagnosis: visitNoteDoc.visitDocument?.diagnosis ?? "",
+            recommendations: visitNoteDoc.visitDocument?.recommendations ?? "",
+            vitalSignsJson: visitNoteDoc.visitDocument?.vitalSignsJson ?? "",
+            treatmentPlan: visitNoteDoc.visitDocument?.treatmentPlan ?? "",
+            followUpDate: visitNoteDoc.visitDocument?.followUpDate ?? "",
           },
         };
       },
@@ -165,7 +168,7 @@ export const visitNoteApi = {
   ): Promise<ApiResponse<void>> => {
     return handleApiCall<void>(
       async () => {
-        await api.put(`/documents/${documentId}/visit-note`, {
+        const payload = {
           symptoms: visitNoteData.symptoms,
           findings: visitNoteData.findings,
           diagnosis: visitNoteData.diagnosis,
@@ -175,7 +178,18 @@ export const visitNoteApi = {
           followUpDate: visitNoteData.followUpDate
             ? new Date(visitNoteData.followUpDate).toISOString()
             : null,
-        } as VisitNoteRequest);
+        } as VisitNoteRequest;
+
+        try {
+          await apiClient.put(`/documents/${documentId}/visit-note`, payload);
+        } catch (error) {
+          const axiosError = error as AxiosError;
+          if (axiosError.response?.status === 405) {
+            await apiClient.post(`/documents/${documentId}/visit-note`, payload);
+            return;
+          }
+          throw error;
+        }
       },
       {
         showToastOnSuccess: true,
@@ -201,13 +215,13 @@ export const visitNoteApi = {
 
         return {
           documentId: doc.id,
-          symptoms: doc.visitDocument.symptoms,
-          findings: doc.visitDocument.findings,
-          diagnosis: doc.visitDocument.diagnosis,
-          recommendations: doc.visitDocument.recommendations,
-          vitalSignsJson: doc.visitDocument.vitalSignsJson,
-          treatmentPlan: doc.visitDocument.treatmentPlan,
-          followUpDate: doc.visitDocument.followUpDate,
+          symptoms: doc.visitDocument.symptoms ?? "",
+          findings: doc.visitDocument.findings ?? "",
+          diagnosis: doc.visitDocument.diagnosis ?? "",
+          recommendations: doc.visitDocument.recommendations ?? "",
+          vitalSignsJson: doc.visitDocument.vitalSignsJson ?? "",
+          treatmentPlan: doc.visitDocument.treatmentPlan ?? "",
+          followUpDate: doc.visitDocument.followUpDate ?? "",
         };
       },
       {
