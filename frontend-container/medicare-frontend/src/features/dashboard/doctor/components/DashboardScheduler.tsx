@@ -78,7 +78,10 @@ export const DashboardScheduler: React.FC<DashboardSchedulerProps> = ({
   };
 
   const getTimeStatus = (appointment: DoctorScheduleEvent) => {
-    const appointmentTime = new Date(`${appointment.date}T${appointment.time}`);
+    // Parse date and time as local time (not UTC)
+    const [year, month, day] = appointment.date.split("-").map(Number);
+    const [hours, minutes] = appointment.time.split(":").map(Number);
+    const appointmentTime = new Date(year, month - 1, day, hours, minutes);
     const endTime = new Date(
       appointmentTime.getTime() + appointment.duration * 60 * 1000
     );

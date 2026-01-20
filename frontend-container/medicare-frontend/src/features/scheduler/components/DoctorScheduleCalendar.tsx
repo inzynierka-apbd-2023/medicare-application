@@ -52,7 +52,9 @@ export const DoctorScheduleCalendar: React.FC<DoctorScheduleCalendarProps> = ({
   };
 
   const getEventsForDate = (date: Date) => {
-    const dateStr = date.toISOString().split("T")[0];
+    // Format as local date string to avoid timezone shifts
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const dateStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
     return events.filter((event) => event.start.startsWith(dateStr));
   };
 
@@ -71,7 +73,9 @@ export const DoctorScheduleCalendar: React.FC<DoctorScheduleCalendarProps> = ({
   };
 
   const isSelected = (date: Date) => {
-    return selectedDate === date.toISOString().split("T")[0];
+    const pad = (n: number) => n.toString().padStart(2, "0");
+    const dateStr = `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+    return selectedDate === dateStr;
   };
 
   return (
@@ -151,6 +155,12 @@ export const DoctorScheduleCalendar: React.FC<DoctorScheduleCalendarProps> = ({
           const isCurrentMonthDay = isCurrentMonth(day);
           const isTodayDay = isToday(day);
           const isSelectedDay = isSelected(day);
+          
+          // Format date as local string to avoid timezone shifts
+          const formatLocalDate = (d: Date) => {
+            const pad = (n: number) => n.toString().padStart(2, "0");
+            return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+          };
 
           return (
             <div
@@ -158,7 +168,7 @@ export const DoctorScheduleCalendar: React.FC<DoctorScheduleCalendarProps> = ({
               className={`min-h-[120px] p-2 border-r border-b last:border-r-0 cursor-pointer hover:bg-gray-50 transition-colors ${
                 !isCurrentMonthDay ? "bg-gray-50 text-gray-400" : ""
               } ${isSelectedDay ? "bg-blue-50" : ""}`}
-              onClick={() => onDateSelect?.(day.toISOString().split("T")[0])}
+              onClick={() => onDateSelect?.(formatLocalDate(day))}
             >
               <div className="flex items-center justify-between mb-2">
                 <span
