@@ -118,12 +118,77 @@ public class DocumentsController : ControllerBase
 
     [HttpPost("{id}/visit-note")]
     [Authorize]
-    public async Task<ActionResult> AttachVisitNote(Guid id, [FromBody] VisitDocument payload)
+    public async Task<ActionResult> AttachVisitNote(Guid id, [FromBody] VisitNoteRequest payload)
     {
         var doc = await _db.Documents.FindAsync(id);
         if (doc == null) return NotFound();
-        payload.DocumentId = id;
-        _db.VisitDocuments.Add(payload);
+
+        var existing = await _db.VisitDocuments.FirstOrDefaultAsync(v => v.DocumentId == id);
+        if (existing != null)
+        {
+            existing.Symptoms = payload.Symptoms;
+            existing.Findings = payload.Findings;
+            existing.Diagnosis = payload.Diagnosis;
+            existing.Recommendations = payload.Recommendations;
+            existing.VitalSignsJson = payload.VitalSignsJson;
+            existing.TreatmentPlan = payload.TreatmentPlan;
+            existing.FollowUpDate = payload.FollowUpDate;
+
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+        
+        var visitDoc = new VisitDocument
+        {
+            DocumentId = id,
+            Symptoms = payload.Symptoms,
+            Findings = payload.Findings,
+            Diagnosis = payload.Diagnosis,
+            Recommendations = payload.Recommendations,
+            VitalSignsJson = payload.VitalSignsJson,
+            TreatmentPlan = payload.TreatmentPlan,
+            FollowUpDate = payload.FollowUpDate
+        };
+        
+        _db.VisitDocuments.Add(visitDoc);
+        try
+        {
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+        catch (DbUpdateException)
+        {
+            var fallback = await _db.VisitDocuments.FirstOrDefaultAsync(v => v.DocumentId == id);
+            if (fallback == null) throw;
+
+            fallback.Symptoms = payload.Symptoms;
+            fallback.Findings = payload.Findings;
+            fallback.Diagnosis = payload.Diagnosis;
+            fallback.Recommendations = payload.Recommendations;
+            fallback.VitalSignsJson = payload.VitalSignsJson;
+            fallback.TreatmentPlan = payload.TreatmentPlan;
+            fallback.FollowUpDate = payload.FollowUpDate;
+
+            await _db.SaveChangesAsync();
+            return NoContent();
+        }
+    }
+
+    [HttpPut("{id}/visit-note")]
+    [Authorize]
+    public async Task<ActionResult> UpdateVisitNote(Guid id, [FromBody] VisitNoteRequest payload)
+    {
+        var existing = await _db.VisitDocuments.FirstOrDefaultAsync(v => v.DocumentId == id);
+        if (existing == null) return NotFound("Visit note not found for this document");
+        
+        existing.Symptoms = payload.Symptoms;
+        existing.Findings = payload.Findings;
+        existing.Diagnosis = payload.Diagnosis;
+        existing.Recommendations = payload.Recommendations;
+        existing.VitalSignsJson = payload.VitalSignsJson;
+        existing.TreatmentPlan = payload.TreatmentPlan;
+        existing.FollowUpDate = payload.FollowUpDate;
+        
         await _db.SaveChangesAsync();
         return NoContent();
     }
@@ -621,6 +686,16 @@ public record PrescriptionRequest(
 );
 
 public record AssignRequest(Guid AppointmentId);
+
+public record VisitNoteRequest(
+    string? Symptoms,
+    string? Findings,
+    string? Diagnosis,
+    string? Recommendations,
+    string? VitalSignsJson,
+    string? TreatmentPlan,
+    DateTime? FollowUpDate
+);
 
 public record BackfillNamesResult(int Processed, int Updated, int Skipped, int Remaining);
 public record SetNamesRequest(string? PatientId, string? DoctorId, string? PatientName, string? DoctorName);
