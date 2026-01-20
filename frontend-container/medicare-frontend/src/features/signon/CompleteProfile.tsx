@@ -96,8 +96,7 @@ const CompleteProfile: React.FC = () => {
         navigate("/registration-success");
       }
     } catch (err) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      setError((err as any)?.message || "Failed to save profile");
+      setError(err instanceof Error ? err.message : "Failed to save profile");
     }
   };
 

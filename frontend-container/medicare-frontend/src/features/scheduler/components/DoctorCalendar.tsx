@@ -125,18 +125,6 @@ export const DoctorCalendar: React.FC<DoctorCalendarProps> = ({
     );
   }, []);
 
-  // Expose calendar API for parent component
-  const getCalendarApi = useCallback(() => {
-    return calendarRef.current?.getApi();
-  }, []);
-
-  React.useEffect(() => {
-    if (calendarRef.current) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (calendarRef.current as any).getCalendarApi = getCalendarApi;
-    }
-  }, [getCalendarApi]);
-
   return (
     <div className={`relative ${isLoading ? "opacity-50" : ""}`}>
       <FullCalendar

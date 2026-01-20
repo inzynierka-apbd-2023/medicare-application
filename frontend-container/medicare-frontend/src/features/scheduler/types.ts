@@ -80,6 +80,8 @@ export interface Appointment {
   status: AppointmentStatus;
   createdAt: string;
   updatedAt: string;
+  room?: string;
+  roomId?: string;
 }
 
 // Calendar integration

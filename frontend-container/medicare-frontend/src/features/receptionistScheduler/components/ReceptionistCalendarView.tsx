@@ -1,5 +1,9 @@
 import React, { useCallback } from "react";
-import type { EventClickArg } from "@fullcalendar/core";
+import type {
+  EventClickArg,
+  EventContentArg,
+  EventHoveringArg,
+} from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -15,8 +19,7 @@ interface ReceptionistCalendarViewProps {
   isLoading?: boolean;
 }
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const formatEventContent = (eventInfo: any) => {
+const formatEventContent = (eventInfo: EventContentArg) => {
   const appointment = eventInfo.event.extendedProps
     .appointment as ReceptionistAppointment;
   const appointmentType = appointment.appointmentType;
@@ -140,8 +143,7 @@ export const ReceptionistCalendarView: React.FC<
               }}
               allDaySlot={false}
               nowIndicator={true}
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              eventMouseEnter={(info: any) => {
+              eventMouseEnter={(info: EventHoveringArg) => {
                 const appointment = info.event.extendedProps
                   .appointment as ReceptionistAppointment;
                 const patientName = info.event.extendedProps.patientName;
