@@ -63,6 +63,16 @@ public interface IAppointmentPayment
     string Status { get; }
 }
 
+public interface IDoctorRemovalRequested
+{
+    Guid DoctorId { get; }
+    Guid? DoctorUserId { get; }
+    string? FullName { get; }
+    string? Email { get; }
+    string? Phone { get; }
+    string? SnapshotJson { get; }
+}
+
 public interface IDoctorArchived
 {
     Guid DoctorId { get; }

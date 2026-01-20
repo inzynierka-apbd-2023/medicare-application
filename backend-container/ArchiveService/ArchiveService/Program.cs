@@ -1,6 +1,6 @@
 using ArchiveService.Data;
 using ArchiveService.Data.Seeders;
-using ArchiveService.Messaging;
+using ArchiveService.Messaging.Consumers;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 
@@ -41,9 +41,10 @@ builder.Services.AddCors(o =>
     });
 });
 
-builder.AddRabbitMQClient("rabbitmq");
-
-builder.Services.AddHostedService<DoctorArchiveConsumer>();
+builder.AddMedicareMassTransit<ArchiveDbContext>(x =>
+{
+    x.AddConsumer<DoctorRemovalRequestedConsumer>();
+});
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>

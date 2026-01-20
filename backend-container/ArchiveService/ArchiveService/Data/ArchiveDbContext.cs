@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using ArchiveService.Models;
+using MassTransit;
 
 namespace ArchiveService.Data;
 
@@ -10,8 +11,15 @@ public class ArchiveDbContext(DbContextOptions<ArchiveDbContext> options) : DbCo
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
+
         modelBuilder.Entity<ArchivedDoctor>(b =>
         {
+            b.ToTable("ArchivedDoctor", schema: "archive");
             b.HasKey(x => x.DoctorId);
             b.Property(x => x.FullName).HasMaxLength(256);
             b.Property(x => x.Email).HasMaxLength(256);
@@ -22,6 +30,7 @@ public class ArchiveDbContext(DbContextOptions<ArchiveDbContext> options) : DbCo
 
         modelBuilder.Entity<ArchivedDocument>(b =>
         {
+            b.ToTable("ArchivedDocument", schema: "archive");
             b.HasKey(x => x.DocumentId);
             b.Property(x => x.Type).HasMaxLength(64);
             b.Property(x => x.Title).HasMaxLength(512);
