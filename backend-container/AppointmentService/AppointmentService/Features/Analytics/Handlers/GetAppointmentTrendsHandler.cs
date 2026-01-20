@@ -10,10 +10,12 @@ namespace AppointmentService.Features.Analytics.Handlers;
 public class GetAppointmentTrendsHandler : IRequestHandler<GetAppointmentTrendsQuery, IEnumerable<TrendDataDto>>
 {
     private readonly AppointmentDbContext _context;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> _paymentClient;
 
-    public GetAppointmentTrendsHandler(AppointmentDbContext context)
+    public GetAppointmentTrendsHandler(AppointmentDbContext context, MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient)
     {
         _context = context;
+        _paymentClient = paymentClient;
     }
 
     public async Task<IEnumerable<TrendDataDto>> Handle(GetAppointmentTrendsQuery request, CancellationToken cancellationToken)
@@ -29,15 +31,19 @@ public class GetAppointmentTrendsHandler : IRequestHandler<GetAppointmentTrendsQ
 
         var appointments = await query.ToListAsync(cancellationToken);
         
-        // Fetch revenue data with fallback
         var appointmentIds = appointments.Select(a => a.Id).ToList();
-        var payments = new List<AppointmentPayment>();
+        var payments = new List<AppointmentPaymentDto>();
 
         if (appointmentIds.Any())
         {
-            payments = await _context.AppointmentPayments.AsNoTracking()
-                .Where(p => appointmentIds.Contains(p.AppointmentId))
-                .ToListAsync(cancellationToken);
+
+            var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            payments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
+            { 
+                AppointmentId = p.AppointmentId, 
+                AmountCents = (int)p.AmountCents, 
+                Status = p.Status 
+            }).ToList();
         }
 
         var trends = new List<TrendDataDto>();

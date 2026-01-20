@@ -54,6 +54,7 @@ builder.Services.AddScoped<IJwtService, JwtService>();
 builder.AddMedicareMassTransit<UserDbContext>(x =>
 {
     x.AddConsumer<UserService.Consumers.PatientGenericProfileConsumer>();
+    x.AddConsumer<UserService.Consumers.GetPatientsConsumer>();
 });
 
 

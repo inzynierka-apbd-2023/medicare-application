@@ -143,38 +143,6 @@ public static class MockDataSeeder
             }
         }
 
-        var paymentData = new[]
-        {
-            (MockIds.Appointment1, 30000L, MockIds.Patient1),
-            (Guid.Parse("55555555-5555-5555-5555-000000000003"), 30000L, MockIds.Patient1),
-            (Guid.Parse("55555555-5555-5555-5555-000000000005"), 30000L, MockIds.Patient1),
-        };
-
-        var existingPaymentIds = await db.AppointmentPayments.Select(p => p.AppointmentId).ToHashSetAsync();
-        foreach (var (appointmentId, amount, patientId) in paymentData)
-        {
-            if (!existingPaymentIds.Contains(appointmentId))
-            {
-                 Guid intentId = Guid.Empty;
-                 if (appointmentId == MockIds.Appointment1) intentId = Guid.Parse("99999999-9999-9999-9999-000000000001");
-                 else if (appointmentId == Guid.Parse("55555555-5555-5555-5555-000000000003")) intentId = Guid.Parse("99999999-9999-9999-9999-000000000003");
-                 else if (appointmentId == Guid.Parse("55555555-5555-5555-5555-000000000005")) intentId = Guid.Parse("99999999-9999-9999-9999-000000000005");
-
-                 db.AppointmentPayments.Add(new AppointmentPayment
-                 {
-                     Id = Guid.NewGuid(),
-                     AppointmentId = appointmentId,
-                     PatientId = patientId, 
-                     AmountCents = amount,
-                     Currency = "PLN",
-                     PaymentIntentId = intentId,
-                     CreatedAt = DateTime.UtcNow.AddDays(-1),
-                     ForDate = DateTime.UtcNow
-                 });
-                 created++;
-            }
-        }
-
         if (created > 0)
         {
             await db.SaveChangesAsync();

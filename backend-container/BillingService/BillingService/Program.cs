@@ -11,6 +11,7 @@ builder.AddRabbitMQClient("rabbitmq");
 builder.AddMedicareMassTransit<BillingDbContext>(x =>
 {
     x.AddConsumer<BillingService.Consumers.AppointmentCreatedConsumer>();
+    x.AddConsumer<BillingService.Consumers.GetAppointmentPaymentsConsumer>();
     x.AddConsumer<BillingService.Consumers.PaymentInitiatedConsumer>();
 });
 

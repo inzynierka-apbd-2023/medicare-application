@@ -3,7 +3,6 @@ using System.ComponentModel.DataAnnotations.Schema;
 
 namespace AppointmentService.Models;
 
-// These models represent the database schema structure for analytics
 [Table("User")]
 public class User
 {
@@ -54,7 +53,6 @@ public class Doctor
     [Key]
     public Guid Id { get; set; }
     
-    /// <summary>User account ID for this doctor (foreign key to user.User)</summary>
     public Guid UserId { get; set; }
     
     [MaxLength(100)]
@@ -66,7 +64,6 @@ public class Doctor
     public string? Biography { get; set; }
 }
 
-/// <summary>Read-only view that joins Doctor with UserProfile for name lookup</summary>
 public class DoctorDirectory
 {
     public Guid DoctorId { get; set; }
@@ -105,9 +102,6 @@ public class Specialization
     public string Name { get; set; } = default!;
 }
 
-/// <summary>
-/// Composite key: (DoctorId, SpecializationId) - matches PractitionerService schema
-/// </summary>
 [Table("Doctor_Specialization")]
 public class DoctorSpecialization
 {

@@ -8,7 +8,6 @@ using AppointmentService.Features.DoctorDashboard.Services;
 using AppointmentService.Data.Seeders;
 using System.Reflection;
 
-
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
@@ -51,6 +50,9 @@ builder.AddMedicareMassTransit<AppointmentDbContext>(x =>
     x.AddConsumer<AppointmentPaymentConsumer>();
     x.AddConsumer<DoctorArchivedConsumer>();
     x.AddRequestClient<Medicare.Messaging.Contracts.IGetPatient>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IGetPatients>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IGetDoctors>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments>();
 });
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));

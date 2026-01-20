@@ -86,3 +86,19 @@ public class TimeSlotAnalysisDto
     public IEnumerable<TimeSlotDataDto> TimeSlots { get; set; } = new List<TimeSlotDataDto>();
     public IEnumerable<DayDataDto> WeeklyData { get; set; } = new List<DayDataDto>();
 }
+
+public class DoctorProfileDto
+{
+    public Guid DoctorId { get; set; }
+    public Guid UserId { get; set; }
+    public string? FirstName { get; set; }
+    public string? LastName { get; set; }
+    public string SpecializationNames { get; set; } = string.Empty;
+}
+
+public class AppointmentPaymentDto
+{
+    public Guid AppointmentId { get; set; }
+    public long AmountCents { get; set; }
+    public string Status { get; set; } = string.Empty;
+}

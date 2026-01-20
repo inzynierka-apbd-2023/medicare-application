@@ -8,7 +8,13 @@ namespace AppointmentService.Features.Metrics.Services;
 public class AppointmentMetricsService : IAppointmentMetricsService
 {
     private readonly AppointmentDbContext _db;
-    public AppointmentMetricsService(AppointmentDbContext db) => _db = db;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> _paymentClient;
+
+    public AppointmentMetricsService(AppointmentDbContext db, MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient)
+    {
+        _db = db;
+        _paymentClient = paymentClient;
+    }
 
     public async Task<AppointmentMetricsResponse> GetMetricsAsync(DateTime start, DateTime end, CancellationToken ct)
     {
@@ -30,13 +36,21 @@ public class AppointmentMetricsService : IAppointmentMetricsService
         var avgDuration = total == 0 ? 0 : durations.Average();
 
         var apptIds = await query.Select(a => a.Id).ToListAsync(ct);
-        var payments = new List<AppointmentPayment>();
+        var payments = new List<AppointmentService.Features.Analytics.DTOs.AppointmentPaymentDto>();
         
         if (apptIds.Any())
         {
-            payments = await _db.AppointmentPayments.AsNoTracking()
-                .Where(p => apptIds.Contains(p.AppointmentId))
-                .ToListAsync(ct);
+            try
+            {
+                var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = apptIds }, ct);
+                payments = response.Message.Payments.Select(p => new AppointmentService.Features.Analytics.DTOs.AppointmentPaymentDto
+                {
+                    AppointmentId = p.AppointmentId,
+                    AmountCents = (long)p.AmountCents,
+                    Status = p.Status
+                }).ToList();
+            }
+            catch {}
         }
 
         var totalRevenue = payments.Sum(p => p.AmountCents) / 100m;

@@ -3,27 +3,25 @@ using Microsoft.EntityFrameworkCore;
 using AppointmentService.Data;
 using AppointmentService.Features.DoctorPatients.DTOs;
 using AppointmentService.Features.DoctorPatients.Queries;
+using MassTransit;
 
 namespace AppointmentService.Features.DoctorPatients.Handlers;
 
-/// <summary>
-/// Handler for getting all patients that have had appointments with a specific doctor.
-/// Queries appointments grouped by patient, enriched with user profile data.
-/// </summary>
 public class GetDoctorPatientsHandler : IRequestHandler<GetDoctorPatientsQuery, DoctorPatientsResponse>
 {
     private readonly AppointmentDbContext _context;
+    private readonly IRequestClient<Medicare.Messaging.Contracts.IGetPatients> _client;
 
-    public GetDoctorPatientsHandler(AppointmentDbContext context)
+    public GetDoctorPatientsHandler(AppointmentDbContext context, IRequestClient<Medicare.Messaging.Contracts.IGetPatients> client)
     {
         _context = context;
+        _client = client;
     }
 
     public async Task<DoctorPatientsResponse> Handle(
         GetDoctorPatientsQuery request,
         CancellationToken cancellationToken)
     {
-        // Get all appointments for this doctor grouped by patient
         var patientAppointments = await _context.Appointments
             .Where(a => a.DoctorId == request.DoctorId)
             .GroupBy(a => a.PatientId)
@@ -41,15 +39,13 @@ public class GetDoctorPatientsHandler : IRequestHandler<GetDoctorPatientsQuery, 
             return new DoctorPatientsResponse { Patients = new List<DoctorPatientDto>(), TotalCount = 0 };
         }
 
-        // Get patient IDs for profile lookup
         var patientIds = patientAppointments.Select(p => p.PatientId).ToList();
 
-        // Fetch user profiles from the user schema (read-only)
-        var userProfiles = await _context.UserProfiles
-            .Where(up => patientIds.Contains(up.User_Id))
-            .ToDictionaryAsync(up => up.User_Id, cancellationToken);
+        Dictionary<Guid, Medicare.Messaging.Contracts.IPatientProfile> userProfiles = new();
 
-        // Map to DTOs
+        var response = await _client.GetResponse<Medicare.Messaging.Contracts.IPatientProfiles>(new { PatientIds = patientIds }, cancellationToken);
+        userProfiles = response.Message.Profiles.ToDictionary(p => p.PatientId);
+
         var patients = patientAppointments.Select(pa =>
         {
             var profile = userProfiles.GetValueOrDefault(pa.PatientId);

@@ -4,22 +4,26 @@ using AppointmentService.Data;
 using AppointmentService.Features.Analytics.DTOs;
 using AppointmentService.Features.Analytics.Queries;
 using AppointmentService.Services;
+using AppointmentService.Models;
 
 namespace AppointmentService.Features.Analytics.Handlers;
 
 public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQuery, IEnumerable<DoctorPerformanceDto>>
 {
     private readonly AppointmentDbContext _context;
-    private readonly IDoctorProfileClient _doctorProfileClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> _doctorClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> _paymentClient;
     private readonly ILogger<GetDoctorPerformanceHandler> _logger;
 
     public GetDoctorPerformanceHandler(
         AppointmentDbContext context, 
-        IDoctorProfileClient doctorProfileClient,
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient,
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient,
         ILogger<GetDoctorPerformanceHandler> logger)
     {
         _context = context;
-        _doctorProfileClient = doctorProfileClient;
+        _doctorClient = doctorClient;
+        _paymentClient = paymentClient;
         _logger = logger;
     }
 
@@ -43,17 +47,25 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
             return Enumerable.Empty<DoctorPerformanceDto>();
         }
 
-        // Get unique doctor IDs
         var doctorIds = appointments.Select(a => a.DoctorId).Distinct().ToList();
         _logger.LogInformation("[Analytics] Getting profiles for {Count} doctors via RabbitMQ", doctorIds.Count);
 
-        // Fetch doctor profiles via RabbitMQ RPC
-        var profiles = await _doctorProfileClient.GetDoctorProfilesAsync(doctorIds, cancellationToken);
+        List<AppointmentService.Features.Analytics.DTOs.DoctorProfileDto> profiles = new();
+
+        var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = doctorIds }, cancellationToken);
+        profiles = resp.Message.Profiles.Select(p => new AppointmentService.Features.Analytics.DTOs.DoctorProfileDto
+        {
+            DoctorId = p.DoctorId,
+            UserId = p.UserId,
+            FirstName = p.FirstName,
+            LastName = p.LastName,
+            SpecializationNames = p.SpecializationNames
+        }).ToList();
+
         var profileMap = profiles.ToDictionary(
             p => p.DoctorId, 
             p => (Name: $"{p.FirstName} {p.LastName}".Trim(), Specialization: p.SpecializationNames));
         
-        // Also map by UserId in case DoctorId != UserId
         foreach (var p in profiles.Where(p => p.UserId != p.DoctorId))
         {
             profileMap[p.UserId] = (Name: $"{p.FirstName} {p.LastName}".Trim(), Specialization: p.SpecializationNames);
@@ -61,18 +73,22 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
 
         _logger.LogInformation("[Analytics] Received {Count} doctor profiles", profiles.Count);
 
-        // Fetch payments and ratings from local database
         var appointmentIds = appointments.Select(a => a.Id).ToList();
         
-        var payments = await _context.AppointmentPayments.AsNoTracking()
-            .Where(p => appointmentIds.Contains(p.AppointmentId))
-            .ToListAsync(cancellationToken);
+        var payments = new List<AppointmentPaymentDto>();
+
+        var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = appointmentIds }, cancellationToken);
+        payments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
+        { 
+            AppointmentId = p.AppointmentId, 
+            AmountCents = (int)p.AmountCents, 
+            Status = p.Status 
+        }).ToList();
 
         var rates = await _context.Rates.AsNoTracking()
             .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
             .ToListAsync(cancellationToken);
 
-        // Group by doctor and calculate performance
         var doctorGroups = appointments.GroupBy(a => a.DoctorId);
         var performanceList = new List<DoctorPerformanceDto>();
 

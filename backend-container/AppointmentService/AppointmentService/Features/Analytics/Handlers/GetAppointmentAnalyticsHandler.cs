@@ -12,16 +12,19 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
 {
     private readonly AppointmentDbContext _context;
     private readonly INotificationService _notificationService;
-    private readonly IDoctorProfileClient _doctorProfileClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> _doctorClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> _paymentClient;
 
     public GetAppointmentAnalyticsHandler(
         AppointmentDbContext context, 
         INotificationService notificationService,
-        IDoctorProfileClient doctorProfileClient)
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient,
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient)
     {
         _context = context;
         _notificationService = notificationService;
-        _doctorProfileClient = doctorProfileClient;
+        _doctorClient = doctorClient;
+        _paymentClient = paymentClient;
     }
 
     public async Task<AppointmentAnalyticsResponse> Handle(GetAppointmentAnalyticsQuery request, CancellationToken cancellationToken)
@@ -29,7 +32,6 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var endDate = request.EndDate ?? DateTime.UtcNow;
         var startDate = request.StartDate ?? endDate.AddDays(-30);
 
-        // Execute sequentially to avoid DbContext concurrency issues
         var metrics = await SafeExecuteListAsync(() => GetMetricsAsync(startDate, endDate, request.DoctorId, cancellationToken), "Metrics");
         var trends = await SafeExecuteListAsync(() => GetTrendsAsync(startDate, endDate, request.DoctorId, cancellationToken), "Trends");
         var doctorPerformance = await SafeExecuteListAsync(() => GetDoctorPerformanceAsync(startDate, endDate, request.DoctorId, cancellationToken), "DoctorPerformance");
@@ -80,16 +82,20 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
 
         var appointmentIds = appointments.Select(a => a.Id).ToList();
         
-        var payments = new List<AppointmentPayment>();
+        var payments = new List<AppointmentPaymentDto>();
         var rates = new List<Rate>();
-        var prevPayments = new List<AppointmentPayment>();
+        var prevPayments = new List<AppointmentPaymentDto>();
         var prevRates = new List<Rate>();
 
         if (appointmentIds.Any())
         {
-            payments = await _context.AppointmentPayments.AsNoTracking()
-                .Where(p => appointmentIds.Contains(p.AppointmentId)) 
-                .ToListAsync(cancellationToken);
+            var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            payments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
+            { 
+                AppointmentId = p.AppointmentId, 
+                AmountCents = (int)p.AmountCents, 
+                Status = p.Status
+            }).ToList();
 
             rates = await _context.Rates.AsNoTracking()
                 .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
@@ -99,9 +105,13 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var prevAppointmentIds = previousAppointments.Select(a => a.Id).ToList();
         if (prevAppointmentIds.Any())
         {
-            prevPayments = await _context.AppointmentPayments.AsNoTracking()
-                .Where(p => prevAppointmentIds.Contains(p.AppointmentId))
-                .ToListAsync(cancellationToken);
+            var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = prevAppointmentIds }, cancellationToken);
+            prevPayments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
+            { 
+                AppointmentId = p.AppointmentId, 
+                AmountCents = (int)p.AmountCents, 
+                Status = p.Status 
+            }).ToList();
 
             prevRates = await _context.Rates.AsNoTracking()
                 .Where(r => r.Appointment_Id.HasValue && prevAppointmentIds.Contains(r.Appointment_Id.Value))
@@ -155,19 +165,20 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var appointments = await query.ToListAsync(cancellationToken);
         
         var appointmentIds = appointments.Select(a => a.Id).ToList();
-        var payments = new List<AppointmentPayment>();
+        var payments = new List<AppointmentPaymentDto>();
         
-        try
+
+        if (appointmentIds.Any())
         {
-            if (appointmentIds.Any())
-            {
-                payments = await _context.AppointmentPayments.AsNoTracking()
-                    .Where(p => appointmentIds.Contains(p.AppointmentId))
-                    .ToListAsync(cancellationToken);
-            }
+            var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            payments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
+            { 
+                AppointmentId = p.AppointmentId, 
+                AmountCents = (int)p.AmountCents, 
+                Status = p.Status 
+            }).ToList();
         }
-        catch (Exception) { }
-            
+        
         var trends = new List<TrendDataDto>();
         
         for (var date = startDate.Date; date <= endDate.Date; date = date.AddDays(1))
@@ -206,18 +217,23 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         
         var appointmentIds = appointments.Select(a => a.Id).ToList();
         
-        var payments = new List<AppointmentPayment>();
+        var payments = new List<AppointmentPaymentDto>();
         var rates = new List<Rate>();
         
         var doctorIds = appointments.Select(a => a.DoctorId).Distinct().ToList();
         
-        // Use RabbitMQ
         List<DoctorProfileDto> doctorProfiles = new();
         if (doctorIds.Any())
         {
-            try {
-                doctorProfiles = await _doctorProfileClient.GetDoctorProfilesAsync(doctorIds, cancellationToken);
-            } catch (Exception) { }
+            var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = doctorIds }, cancellationToken);
+            doctorProfiles = resp.Message.Profiles.Select(p => new AppointmentService.Features.Analytics.DTOs.DoctorProfileDto
+            {
+                DoctorId = p.DoctorId,
+                UserId = p.UserId,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                SpecializationNames = p.SpecializationNames
+            }).ToList();
         }
 
         var profileMap = doctorProfiles.ToDictionary(
@@ -225,7 +241,6 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
             p => (Name: $"{p.FirstName} {p.LastName}".Trim(), Spec: p.SpecializationNames)
         );
 
-        // Also map by UserId if different
         foreach(var p in doctorProfiles.Where(p => p.UserId != p.DoctorId))
             profileMap[p.UserId] = ($"{p.FirstName} {p.LastName}".Trim(), p.SpecializationNames);
 
@@ -233,9 +248,13 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         {
             if (appointmentIds.Any())
             {
-                payments = await _context.AppointmentPayments.AsNoTracking()
-                    .Where(p => appointmentIds.Contains(p.AppointmentId))
-                    .ToListAsync(cancellationToken);
+                var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = appointmentIds }, cancellationToken);
+                payments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
+                { 
+                    AppointmentId = p.AppointmentId, 
+                    AmountCents = (int)p.AmountCents, 
+                    Status = p.Status 
+                }).ToList();
 
                 rates = await _context.Rates.AsNoTracking()
                     .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
@@ -298,13 +317,18 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var appointmentIds = appointments.Select(a => a.Id).ToList();
         var doctorIds = appointments.Select(a => a.DoctorId).Distinct().ToList();
 
-        // Use RabbitMQ to get specializations
         List<DoctorProfileDto> profiles = new();
         if (doctorIds.Any())
         {
-            try {
-                profiles = await _doctorProfileClient.GetDoctorProfilesAsync(doctorIds, cancellationToken);
-            } catch (Exception) { }
+            var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = doctorIds }, cancellationToken);
+            profiles = resp.Message.Profiles.Select(p => new AppointmentService.Features.Analytics.DTOs.DoctorProfileDto
+            {
+                DoctorId = p.DoctorId,
+                UserId = p.UserId,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                SpecializationNames = p.SpecializationNames
+            }).ToList();
         }
 
         var docSpecMap = new Dictionary<Guid, string>();
@@ -315,25 +339,24 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
              if (p.UserId != p.DoctorId) docSpecMap[p.UserId] = spec;
         }
 
-        var payments = new List<AppointmentPayment>();
+        var payments = new List<AppointmentPaymentDto>();
         var rates = new List<Rate>();
 
-        try
+        if (appointmentIds.Any())
         {
-            if (appointmentIds.Any())
-            {
-                payments = await _context.AppointmentPayments.AsNoTracking()
-                    .Where(p => appointmentIds.Contains(p.AppointmentId))
-                    .ToListAsync(cancellationToken);
+            var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            payments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
+            { 
+                AppointmentId = p.AppointmentId, 
+                AmountCents = (int)p.AmountCents, 
+                Status = p.Status 
+            }).ToList();
                 
-                rates = await _context.Rates.AsNoTracking()
-                    .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
-                    .ToListAsync(cancellationToken);
-            }
+            rates = await _context.Rates.AsNoTracking()
+                .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
+                .ToListAsync(cancellationToken);
         }
-        catch (Exception) { }
 
-        // Group by Specialization (from doctor)
         var groupedByType = appointments
             .GroupBy(a => 
             {

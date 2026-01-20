@@ -13,6 +13,8 @@ public class AppointmentDbContext : DbContext
     public DbSet<AppointmentSlot> AppointmentSlots => Set<AppointmentSlot>();
     public DbSet<Schedule> Schedules => Set<Schedule>();
     public DbSet<AppointmentCategory> AppointmentCategories => Set<AppointmentCategory>();
+    public DbSet<Rate> Rates => Set<Rate>();
+    public DbSet<Notification> Notifications => Set<Notification>();
 
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)

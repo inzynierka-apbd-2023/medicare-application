@@ -10,10 +10,12 @@ public class DoctorScheduleService : IDoctorScheduleService
 {
     private const string UnknownPatient = "Unknown Patient";
     private readonly AppointmentDbContext _context;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetPatients> _patientClient;
 
-    public DoctorScheduleService(AppointmentDbContext context)
+    public DoctorScheduleService(AppointmentDbContext context, MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetPatients> patientClient)
     {
         _context = context;
+        _patientClient = patientClient;
     }
 
     public async Task<DoctorScheduleResponse> GetDoctorScheduleAsync(
@@ -57,8 +59,23 @@ public class DoctorScheduleService : IDoctorScheduleService
         if (appointment == null)
             return null;
 
-        var profile = await _context.UserProfiles
-            .FirstOrDefaultAsync(p => p.User_Id == appointment.PatientId, cancellationToken);
+        AppointmentService.Models.UserProfile? profile = null;
+
+        var response = await _patientClient.GetResponse<Medicare.Messaging.Contracts.IPatientProfiles>(new { PatientIds = new[] { appointment.PatientId } }, cancellationToken);
+        var p = response.Message.Profiles.FirstOrDefault();
+        if (p != null)
+        {
+            profile = new AppointmentService.Models.UserProfile
+            {
+                User_Id = p.PatientId,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                Email = p.Email,
+                Phone = p.Phone,
+                DateOfBirth = p.DateOfBirth,
+                Gender = p.Gender
+            };
+        }
 
         return MapToScheduleEvent(appointment, profile);
     }
@@ -133,10 +150,26 @@ public class DoctorScheduleService : IDoctorScheduleService
         CancellationToken cancellationToken)
     {
         var patientIds = appointments.Select(a => a.PatientId).Distinct().ToList();
+        var profiles = new Dictionary<Guid, AppointmentService.Models.UserProfile>();
 
-        return await _context.UserProfiles
-            .Where(p => patientIds.Contains(p.User_Id))
-            .ToDictionaryAsync(p => p.User_Id, cancellationToken);
+        if (patientIds.Any())
+        {
+            var response = await _patientClient.GetResponse<Medicare.Messaging.Contracts.IPatientProfiles>(new { PatientIds = patientIds }, cancellationToken);
+            foreach (var p in response.Message.Profiles)
+            {
+                    profiles[p.PatientId] = new AppointmentService.Models.UserProfile
+                    {
+                        User_Id = p.PatientId,
+                        FirstName = p.FirstName,
+                        LastName = p.LastName,
+                        Email = p.Email,
+                        Phone = p.Phone,
+                        DateOfBirth = p.DateOfBirth,
+                        Gender = p.Gender
+                    };
+            }
+        }
+        return profiles;
     }
 
     private static void UpdateOverdueStatuses(List<Appointment> appointments)

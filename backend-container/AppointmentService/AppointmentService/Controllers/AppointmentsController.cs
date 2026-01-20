@@ -115,12 +115,12 @@ public class AppointmentsController : ControllerBase
         
         var patientDto = new PatientProfileDto
         {
-            Id = profile.Id,
+            Id = profile.PatientId,
             FirstName = profile.FirstName,
             LastName = profile.LastName,
             Email = profile.Email,
             Phone = profile.Phone,
-            DateOfBirth = profile.DateOfBirth,
+            DateOfBirth = profile.DateOfBirth ?? default,
             Gender = profile.Gender,
             AddressLine1 = profile.AddressLine1,
             AddressLine2 = profile.AddressLine2,
@@ -161,14 +161,14 @@ public class AppointmentsController : ControllerBase
         });
 
         var profiles = await Task.WhenAll(profileTasks);
-        var profileDict = profiles.Where(p => p != null).ToDictionary(p => p!.Id, p => new PatientProfileDto
+        var profileDict = profiles.Where(p => p != null).ToDictionary(p => p!.PatientId, p => new PatientProfileDto
         {
-            Id = p!.Id,
+            Id = p!.PatientId,
             FirstName = p.FirstName,
             LastName = p.LastName,
             Email = p.Email,
             Phone = p.Phone,
-            DateOfBirth = p.DateOfBirth,
+            DateOfBirth = p.DateOfBirth ?? default,
             Gender = p.Gender,
             AddressLine1 = p.AddressLine1,
             AddressLine2 = p.AddressLine2,

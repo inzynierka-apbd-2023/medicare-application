@@ -19,6 +19,7 @@ builder.AddMedicareMassTransit<PractitionerDbContext>(x =>
 {
     x.AddConsumer<PractitionerService.Consumers.AppointmentEventConsumer>();
     x.AddConsumer<PractitionerService.Consumers.DoctorProfileConsumer>();
+    x.AddConsumer<PractitionerService.Consumers.GetDoctorsConsumer>();
 });
 
 builder.Services.AddMediatR(typeof(Program).Assembly);

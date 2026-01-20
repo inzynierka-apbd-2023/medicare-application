@@ -10,12 +10,12 @@ namespace AppointmentService.Features.Analytics.Handlers;
 public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerformanceSummaryQuery, DoctorPerformanceSummaryDto>
 {
     private readonly AppointmentDbContext _context;
-    private readonly IDoctorProfileClient _doctorProfileClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> _doctorClient;
 
-    public GetDoctorPerformanceSummaryHandler(AppointmentDbContext context, IDoctorProfileClient doctorProfileClient)
+    public GetDoctorPerformanceSummaryHandler(AppointmentDbContext context, MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient)
     {
         _context = context;
-        _doctorProfileClient = doctorProfileClient;
+        _doctorClient = doctorClient;
     }
 
     public async Task<DoctorPerformanceSummaryDto> Handle(GetDoctorPerformanceSummaryQuery request, CancellationToken cancellationToken)
@@ -53,31 +53,25 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
 
             if (topDocGroup != null)
             {
-                 try 
-                 {
-                     var profiles = await _doctorProfileClient.GetDoctorProfilesAsync(new[] { topDocGroup.DoctorId }, cancellationToken);
-                     if (profiles.Any())
-                     {
-                         topRatedDoctor = $"{profiles.First().FirstName} {profiles.First().LastName}".Trim();
-                     }
-                     else
-                     {
-                         topRatedDoctor = $"Doctor {topDocGroup.DoctorId.ToString()[..8]}";
-                     }
-                 }
-                 catch (Exception)
-                 {
-                     topRatedDoctor = $"Doctor {topDocGroup.DoctorId.ToString()[..8]}";
-                 }
+                var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = new[] { topDocGroup.DoctorId } }, cancellationToken);
+                var profiles = resp.Message.Profiles;
+                if (profiles.Any())
+                {
+                    topRatedDoctor = $"{profiles.First().FirstName} {profiles.First().LastName}".Trim();
+                }
+                else
+                {
+                    topRatedDoctor = $"Doctor {topDocGroup.DoctorId.ToString()[..8]}";
+                }
             }
         }
         else if (doctorGroups.Any())
         {
-             // Fallback to most active doctor if no ratings
              var topDoc = doctorGroups.OrderByDescending(g => g.Count()).First();
              try
              {
-                 var profiles = await _doctorProfileClient.GetDoctorProfilesAsync(new[] { topDoc.Key }, cancellationToken);
+                 var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = new[] { topDoc.Key } }, cancellationToken);
+                 var profiles = resp.Message.Profiles;
                  if (profiles.Any())
                  {
                      topRatedDoctor = $"{profiles.First().FirstName} {profiles.First().LastName}".Trim();

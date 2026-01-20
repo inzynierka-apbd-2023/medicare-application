@@ -11,16 +11,19 @@ namespace AppointmentService.Features.Analytics.Handlers;
 public class GetSpecializationStatsHandler : IRequestHandler<GetSpecializationStatsQuery, IEnumerable<SpecializationStatsDto>>
 {
     private readonly AppointmentDbContext _context;
-    private readonly IDoctorProfileClient _doctorProfileClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> _doctorClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> _paymentClient;
     private readonly ILogger<GetSpecializationStatsHandler> _logger;
 
     public GetSpecializationStatsHandler(
         AppointmentDbContext context,
-        IDoctorProfileClient doctorProfileClient,
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient,
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient,
         ILogger<GetSpecializationStatsHandler> logger)
     {
         _context = context;
-        _doctorProfileClient = doctorProfileClient;
+        _doctorClient = doctorClient;
+        _paymentClient = paymentClient;
         _logger = logger;
     }
 
@@ -41,14 +44,24 @@ public class GetSpecializationStatsHandler : IRequestHandler<GetSpecializationSt
         var appointmentIds = appointments.Select(a => a.Id).ToList();
         var doctorIds = appointments.Select(a => a.DoctorId).Distinct().ToList();
 
-        // Fetch doctor profiles to get specializations
         _logger.LogInformation("[SpecializationStats] Fetching profiles for {Count} doctors", doctorIds.Count);
-        var profiles = await _doctorProfileClient.GetDoctorProfilesAsync(doctorIds, cancellationToken);
+        List<DoctorProfileDto> profiles = new();
+        if (doctorIds.Any())
+        {
+            var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = doctorIds }, cancellationToken);
+            profiles = resp.Message.Profiles.Select(p => new DoctorProfileDto
+            {
+                DoctorId = p.DoctorId,
+                UserId = p.UserId,
+                FirstName = p.FirstName,
+                LastName = p.LastName,
+                SpecializationNames = p.SpecializationNames
+            }).ToList();
+        }
         
         var doctorSpecializationMap = new Dictionary<Guid, string>();
         foreach (var p in profiles)
         {
-            // Use primary specialization or first one if comma separated
             var spec = p.SpecializationNames.Split(',', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim() ?? "General";
             doctorSpecializationMap[p.DoctorId] = spec;
             if (p.UserId != p.DoctorId)
@@ -57,23 +70,23 @@ public class GetSpecializationStatsHandler : IRequestHandler<GetSpecializationSt
             }
         }
 
-        var payments = new List<AppointmentPayment>();
+        var payments = new List<AppointmentPaymentDto>();
         var rates = new List<Rate>();
 
-        try
+        if (appointmentIds.Any())
         {
-            payments = await _context.AppointmentPayments.AsNoTracking()
-                .Where(p => appointmentIds.Contains(p.AppointmentId))
-                .ToListAsync(cancellationToken);
+            var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            payments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
+            { 
+                AppointmentId = p.AppointmentId, 
+                AmountCents = (int)p.AmountCents, 
+                Status = p.Status 
+            }).ToList();
+        }
 
-            rates = await _context.Rates.AsNoTracking()
-                .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
-                .ToListAsync(cancellationToken);
-        }
-        catch (Exception ex)
-        {
-             _logger.LogError(ex, "[AnalyticsWarning] SpecializationStats failed to fetch cross-context data");
-        }
+        rates = await _context.Rates.AsNoTracking()
+            .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
+            .ToListAsync(cancellationToken);
 
         // Group by Specialization (determined from Doctor)
         var groupedBySpec = appointments

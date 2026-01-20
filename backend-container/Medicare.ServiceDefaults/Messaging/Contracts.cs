@@ -46,6 +46,23 @@ public interface IBillingPaymentProcessed
     string? Error { get; }
 }
 
+public interface IGetAppointmentPayments
+{
+    List<Guid> AppointmentIds { get; }
+}
+
+public interface IAppointmentPayments
+{
+    List<IAppointmentPayment> Payments { get; }
+}
+
+public interface IAppointmentPayment
+{
+    Guid AppointmentId { get; }
+    long AmountCents { get; }
+    string Status { get; }
+}
+
 public interface IDoctorArchived
 {
     Guid DoctorId { get; }
@@ -73,14 +90,24 @@ public interface IGetPatient
     Guid PatientId { get; }
 }
 
+public interface IGetPatients
+{
+    List<Guid> PatientIds { get; }
+}
+
+public interface IPatientProfiles
+{
+    List<IPatientProfile> Profiles { get; }
+}
+
 public interface IPatientProfile
 {
-    Guid Id { get; }
+    Guid PatientId { get; }
     string FirstName { get; }
     string LastName { get; }
     string Email { get; }
     string? Phone { get; }
-    DateTime DateOfBirth { get; }
+    DateTime? DateOfBirth { get; }
     string? Gender { get; }
     string? AddressLine1 { get; }
     string? AddressLine2 { get; }
@@ -138,10 +165,19 @@ public interface IPdfGeneratedResponse
 }
 
 
-
 public interface IGetDoctor
 {
     Guid DoctorId { get; }
+}
+
+public interface IGetDoctors
+{
+    List<Guid> DoctorIds { get; }
+}
+
+public interface IDoctorProfiles
+{
+    List<IDoctorProfile> Profiles { get; }
 }
 
 public interface IDoctorProfile
