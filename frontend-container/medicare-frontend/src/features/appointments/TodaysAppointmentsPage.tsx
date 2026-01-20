@@ -47,7 +47,6 @@ const TodaysAppointmentsPage: React.FC = () => {
     const success = await markAsCompleted(appointmentId);
     if (success) {
       // Could add toast notification here
-      console.log("Appointment marked as completed");
     }
   };
 
@@ -55,7 +54,6 @@ const TodaysAppointmentsPage: React.FC = () => {
     const success = await markAsNoShow(appointmentId);
     if (success) {
       // Could add toast notification here
-      console.log("Appointment marked as no-show");
     }
   };
 

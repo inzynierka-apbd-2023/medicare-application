@@ -53,16 +53,10 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
       if (existingConv) {
         if (selectedConversationId !== existingConv.id) {
           selectConversation(existingConv.id);
-          console.log(
-            `[MessagesPage] Selected existing conversation with ${recipientId}`
-          );
         }
       } else {
         // Open new message modal with pre-selected recipient
         setIsNewMessageModalOpen(true);
-        console.log(
-          `[MessagesPage] Opening new message modal for ${recipientId}`
-        );
       }
 
       hasHandledRecipientRef.current = true;
@@ -116,18 +110,17 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
           if (userType === "receptionist") {
             // Fetch all doctors from PractitionerService
             try {
-              const doctorsRes = await import(
-                "@shared/services/apiClient"
-              ).then((m) =>
-                m.apiClient.get<
-                  Array<{
-                    doctorId: string;
-                    firstName: string;
-                    lastName: string;
-                    specializations?: string;
-                  }>
-                >("/practitioner/doctors", { params: { isActive: true } })
-              );
+              const doctorsRes =
+                await import("@shared/services/apiClient").then((m) =>
+                  m.apiClient.get<
+                    Array<{
+                      doctorId: string;
+                      firstName: string;
+                      lastName: string;
+                      specializations?: string;
+                    }>
+                  >("/practitioner/doctors", { params: { isActive: true } })
+                );
               if (doctorsRes.data) {
                 doctorsRes.data.forEach((d) => {
                   if (!recipients.find((r) => r.id === d.doctorId)) {
@@ -149,18 +142,17 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
 
             // Fetch all patients from PatientService
             try {
-              const patientsRes = await import(
-                "@shared/services/apiClient"
-              ).then((m) =>
-                m.apiClient.get<{
-                  items: Array<{
-                    patientId: string;
-                    firstName?: string;
-                    lastName?: string;
-                    email?: string;
-                  }>;
-                }>("/patient/patients", { params: { pageSize: 100 } })
-              );
+              const patientsRes =
+                await import("@shared/services/apiClient").then((m) =>
+                  m.apiClient.get<{
+                    items: Array<{
+                      patientId: string;
+                      firstName?: string;
+                      lastName?: string;
+                      email?: string;
+                    }>;
+                  }>("/patient/patients", { params: { pageSize: 100 } })
+                );
               if (patientsRes.data?.items) {
                 patientsRes.data.items.forEach((p) => {
                   if (!recipients.find((r) => r.id === p.patientId)) {
@@ -220,9 +212,6 @@ export const MessagesPage: React.FC<MessagesPageProps> = ({
         await sendMessage(existingConv.id, initialMessage);
         selectConversation(existingConv.id);
         setIsNewMessageModalOpen(false);
-        console.log(
-          `[MessagesPage] Reused existing conversation ${existingConv.id}`
-        );
       } else {
         // Create new conversation
         const conversationId = await createConversation(
