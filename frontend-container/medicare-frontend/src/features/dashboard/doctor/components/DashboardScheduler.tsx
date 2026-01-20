@@ -1,9 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Calendar, Clock, FileText, Phone, User } from "lucide-react";
 
 import { useAuth } from "../../../../shared/auth/AuthContext";
 import { Card } from "../../../../shared/components";
 import { DoctorScheduleModal } from "../../../scheduler/components/DoctorScheduleModal";
+import type { VisitNoteData } from "../../../scheduler/components/VisitNoteModal";
+import { VisitNoteModal } from "../../../scheduler/components/VisitNoteModal";
 import { useDoctorSchedule } from "../../../scheduler/hooks/useDoctorSchedule";
 import type { DoctorScheduleEvent } from "../../../scheduler/types/doctorScheduler";
 
@@ -20,6 +22,10 @@ export const DashboardScheduler: React.FC<DashboardSchedulerProps> = ({
   const [selectedAppointment, setSelectedAppointment] =
     useState<DoctorScheduleEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isVisitNoteModalOpen, setIsVisitNoteModalOpen] = useState(false);
+  const [visitNoteMode, setVisitNoteMode] = useState<"create" | "view">("create");
+  const [visitNoteData, setVisitNoteData] = useState<VisitNoteData | null>(null);
+  const [visitNoteLoading, setVisitNoteLoading] = useState(false);
 
   const {
     todaysAppointments,
@@ -28,6 +34,8 @@ export const DashboardScheduler: React.FC<DashboardSchedulerProps> = ({
     markAppointmentCompleted,
     markAppointmentNoShow,
     addAppointmentNotes,
+    getVisitNoteForAppointment,
+    createVisitNote,
   } = useDoctorSchedule({
     doctorId: actualDoctorId,
     autoRefresh: true,
@@ -42,6 +50,100 @@ export const DashboardScheduler: React.FC<DashboardSchedulerProps> = ({
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedAppointment(null);
+  };
+
+  useEffect(() => {
+    const appointmentId = selectedAppointment?.id;
+    if (!appointmentId) return;
+
+    let isActive = true;
+
+    const checkExistingVisitNote = async () => {
+      const existingNote = await getVisitNoteForAppointment(appointmentId);
+      if (!isActive) return;
+
+      if (existingNote) {
+        setVisitNoteMode("view");
+        setVisitNoteData(existingNote);
+        setSelectedAppointment((prev) =>
+          prev?.id === appointmentId
+            ? {
+                ...prev,
+                hasVisitNote: true,
+                ...(existingNote.documentId
+                  ? { visitNoteDocumentId: existingNote.documentId }
+                  : {}),
+              }
+            : prev
+        );
+      } else {
+        setVisitNoteMode("create");
+        setVisitNoteData(null);
+        setSelectedAppointment((prev) =>
+          prev?.id === appointmentId ? { ...prev, hasVisitNote: false } : prev
+        );
+      }
+    };
+
+    void checkExistingVisitNote();
+
+    return () => {
+      isActive = false;
+    };
+  }, [getVisitNoteForAppointment, selectedAppointment?.id]);
+
+  const handleOpenVisitNote = async (appointment: DoctorScheduleEvent) => {
+    setIsModalOpen(false);
+    setVisitNoteLoading(true);
+
+    const existingNote = await getVisitNoteForAppointment(appointment.id);
+
+    if (existingNote) {
+      setVisitNoteMode("view");
+      setVisitNoteData(existingNote);
+      setSelectedAppointment((prev) =>
+        prev ? { ...prev, hasVisitNote: true } : null
+      );
+    } else {
+      setVisitNoteMode("create");
+      setVisitNoteData(null);
+    }
+
+    setVisitNoteLoading(false);
+    setIsVisitNoteModalOpen(true);
+  };
+
+  const handleCloseVisitNoteModal = () => {
+    setIsVisitNoteModalOpen(false);
+    if (selectedAppointment) {
+      setIsModalOpen(true);
+    }
+  };
+
+  const handleSaveVisitNote = async (data: VisitNoteData): Promise<void> => {
+    if (!selectedAppointment) return;
+
+    if (visitNoteMode !== "create") return;
+
+    const result = await createVisitNote(selectedAppointment, data);
+    if (result.success) {
+      setSelectedAppointment((prev) =>
+        prev ? { ...prev, hasVisitNote: true } : null
+      );
+      setVisitNoteMode("view");
+      if (result.documentId) {
+        setVisitNoteData({
+          documentId: result.documentId,
+          symptoms: data.symptoms,
+          findings: data.findings,
+          diagnosis: data.diagnosis,
+          treatmentPlan: data.treatmentPlan,
+          recommendations: data.recommendations,
+          vitalSignsJson: data.vitalSignsJson,
+          followUpDate: data.followUpDate,
+        });
+      }
+    }
   };
 
   const handleMarkCompleted = async (
@@ -320,7 +422,30 @@ export const DashboardScheduler: React.FC<DashboardSchedulerProps> = ({
         onMarkCompleted={handleMarkCompleted}
         onMarkNoShow={handleMarkNoShow}
         onAddNotes={handleAddNotes}
+        onOpenVisitNote={handleOpenVisitNote}
       />
+
+      {visitNoteLoading ? (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white p-4 rounded-lg">Loading visit note...</div>
+        </div>
+      ) : (
+        <VisitNoteModal
+          isOpen={isVisitNoteModalOpen}
+          onClose={handleCloseVisitNoteModal}
+          onSave={handleSaveVisitNote}
+          appointmentId={selectedAppointment?.id || ""}
+          patientName={selectedAppointment?.patientName || "Patient"}
+          appointmentDate={
+            selectedAppointment
+              ? `${selectedAppointment.date}T${selectedAppointment.time}`
+              : new Date().toISOString()
+          }
+          isEditMode={false}
+          isReadOnly={visitNoteMode === "view"}
+          existingVisitNote={visitNoteData}
+        />
+      )}
     </>
   );
 };

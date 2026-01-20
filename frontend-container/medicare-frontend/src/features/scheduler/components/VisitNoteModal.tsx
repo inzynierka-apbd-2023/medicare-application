@@ -52,6 +52,7 @@ interface VisitNoteModalProps {
   readonly patientName: string;
   readonly appointmentDate: string;
   readonly isEditMode: boolean;
+  readonly isReadOnly?: boolean;
   readonly existingVisitNote?: VisitNoteData | null;
   readonly onSave: (data: VisitNoteData) => Promise<void>;
 }
@@ -65,6 +66,7 @@ interface VitalSignFieldProps {
   readonly placeholder: string;
   readonly unit?: string;
   readonly className?: string;
+  readonly readOnly?: boolean;
 }
 
 function VitalSignField({
@@ -75,6 +77,7 @@ function VitalSignField({
   placeholder,
   unit,
   className = '',
+  readOnly = false,
 }: Readonly<VitalSignFieldProps>) {
   return (
     <div className={`flex flex-col ${className}`}>
@@ -88,6 +91,7 @@ function VitalSignField({
           value={value}
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
+          readOnly={readOnly}
           className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
         />
         {unit && (
@@ -107,6 +111,7 @@ export function VisitNoteModal({
   patientName,
   appointmentDate,
   isEditMode,
+  isReadOnly = false,
   existingVisitNote,
   onSave,
 }: VisitNoteModalProps) {
@@ -261,6 +266,10 @@ export function VisitNoteModal({
 
   // Handle save
   const handleSave = async () => {
+    if (isReadOnly) {
+      onClose();
+      return;
+    }
     setIsSaving(true);
     try {
       const vitalSignsJson = JSON.stringify(vitalSigns);
@@ -283,11 +292,18 @@ export function VisitNoteModal({
     }
   };
 
+  let modalTitle = 'Generate Visit Note';
+  if (isReadOnly) {
+    modalTitle = 'View Visit Note';
+  } else if (isEditMode) {
+    modalTitle = 'Edit Visit Note';
+  }
+
   return (
     <Modal
       isOpen={isOpen}
       onClose={onClose}
-      title={isEditMode ? 'Edit Visit Note' : 'Generate Visit Note'}
+      title={modalTitle}
       size="lg"
     >
       <div className="space-y-4 overflow-y-auto px-2 pb-2" style={{ maxHeight: 'calc(80vh - 180px)' }}>
@@ -320,6 +336,7 @@ export function VisitNoteModal({
             value={symptoms}
             onChange={(e) => setSymptoms(e.target.value)}
             placeholder="Describe the patient's symptoms and chief complaint..."
+            readOnly={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             rows={3}
           />
@@ -345,6 +362,7 @@ export function VisitNoteModal({
                     value={vitalSigns.bloodPressureSystolic || ''}
                     onChange={(e) => updateVitalSign('bloodPressureSystolic', e.target.value)}
                     placeholder="120"
+                    readOnly={isReadOnly}
                     className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <span className="text-gray-400">/</span>
@@ -353,6 +371,7 @@ export function VisitNoteModal({
                     value={vitalSigns.bloodPressureDiastolic || ''}
                     onChange={(e) => updateVitalSign('bloodPressureDiastolic', e.target.value)}
                     placeholder="80"
+                    readOnly={isReadOnly}
                     className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   />
                   <span className="text-xs text-gray-400 whitespace-nowrap">mmHg</span>
@@ -366,6 +385,7 @@ export function VisitNoteModal({
                 onChange={(v) => updateVitalSign('heartRate', v)}
                 placeholder="72"
                 unit="bpm"
+                readOnly={isReadOnly}
               />
 
               <VitalSignField
@@ -375,6 +395,7 @@ export function VisitNoteModal({
                 onChange={(v) => updateVitalSign('temperature', v)}
                 placeholder="36.6"
                 unit="°C"
+                readOnly={isReadOnly}
               />
             </div>
 
@@ -387,6 +408,7 @@ export function VisitNoteModal({
                 onChange={(v) => updateVitalSign('spO2', v)}
                 placeholder="98"
                 unit="%"
+                readOnly={isReadOnly}
               />
 
               <VitalSignField
@@ -396,6 +418,7 @@ export function VisitNoteModal({
                 onChange={(v) => updateVitalSign('respiratoryRate', v)}
                 placeholder="16"
                 unit="/min"
+                readOnly={isReadOnly}
               />
 
               <VitalSignField
@@ -405,6 +428,7 @@ export function VisitNoteModal({
                 onChange={(v) => updateVitalSign('weight', v)}
                 placeholder="70"
                 unit="kg"
+                readOnly={isReadOnly}
               />
 
               <VitalSignField
@@ -414,6 +438,7 @@ export function VisitNoteModal({
                 onChange={(v) => updateVitalSign('height', v)}
                 placeholder="175"
                 unit="cm"
+                readOnly={isReadOnly}
               />
             </div>
           </div>
@@ -429,6 +454,7 @@ export function VisitNoteModal({
             value={findings}
             onChange={(e) => setFindings(e.target.value)}
             placeholder="Document your clinical findings from the examination..."
+            readOnly={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             rows={3}
           />
@@ -454,7 +480,8 @@ export function VisitNoteModal({
                   <button
                     type="button"
                     onClick={() => handleRemoveIcd10(code.code)}
-                    className="ml-1 text-blue-600 hover:text-blue-800"
+                    disabled={isReadOnly}
+                    className="ml-1 text-blue-600 hover:text-blue-800 disabled:opacity-50"
                   >
                     ×
                   </button>
@@ -472,6 +499,7 @@ export function VisitNoteModal({
               onChange={(e) => handleIcd10SearchChange(e.target.value)}
               onFocus={() => icd10Results.length > 0 && setShowIcd10Dropdown(true)}
               placeholder="Search ICD-10 codes (e.g., 'diabetes' or 'E11')..."
+              disabled={isReadOnly}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             />
             {isSearching && (
@@ -481,7 +509,7 @@ export function VisitNoteModal({
             )}
 
             {/* ICD-10 Search Results Dropdown */}
-            {showIcd10Dropdown && icd10Results.length > 0 && (
+            {!isReadOnly && showIcd10Dropdown && icd10Results.length > 0 && (
               <div className="absolute z-50 w-full mt-1 bg-white border border-gray-200 rounded-md shadow-lg max-h-60 overflow-y-auto">
                 {icd10Results.map((result) => (
                   <button
@@ -518,6 +546,7 @@ export function VisitNoteModal({
             value={treatmentPlan}
             onChange={(e) => setTreatmentPlan(e.target.value)}
             placeholder="Describe the treatment plan including medications, procedures..."
+            readOnly={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             rows={3}
           />
@@ -533,6 +562,7 @@ export function VisitNoteModal({
             value={recommendations}
             onChange={(e) => setRecommendations(e.target.value)}
             placeholder="Additional recommendations for the patient..."
+            readOnly={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
             rows={2}
           />
@@ -548,6 +578,7 @@ export function VisitNoteModal({
             type="date"
             value={followUpDate}
             onChange={(e) => setFollowUpDate(e.target.value)}
+            disabled={isReadOnly}
             className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -561,19 +592,21 @@ export function VisitNoteModal({
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           disabled={isSaving}
         >
-          Cancel
+          {isReadOnly ? 'Close' : 'Cancel'}
         </button>
-        <button
-          type="button"
-          onClick={handleSave}
-          disabled={isSaving}
-          className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
-        >
-          {(() => {
-            if (isSaving) return 'Saving...';
-            return isEditMode ? 'Update Visit Note' : 'Save Visit Note';
-          })()}
-        </button>
+        {!isReadOnly && (
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={isSaving}
+            className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
+          >
+            {(() => {
+              if (isSaving) return 'Saving...';
+              return isEditMode ? 'Update Visit Note' : 'Save Visit Note';
+            })()}
+          </button>
+        )}
       </div>
     </Modal>
   );

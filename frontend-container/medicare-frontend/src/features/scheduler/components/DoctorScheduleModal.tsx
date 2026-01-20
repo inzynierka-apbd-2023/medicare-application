@@ -347,7 +347,7 @@ export const DoctorScheduleModal: React.FC<DoctorScheduleModalProps> = ({
                 className="flex items-center w-full justify-center bg-amber-600 hover:bg-amber-700"
               >
                 <Edit className="w-4 h-4 mr-2" />
-                Edit Visit Note
+                View Visit Note
               </Button>
             ) : (
               <Button

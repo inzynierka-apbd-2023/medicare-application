@@ -34,7 +34,7 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
   
   // Visit note modal state
   const [isVisitNoteModalOpen, setIsVisitNoteModalOpen] = useState(false);
-  const [visitNoteMode, setVisitNoteMode] = useState<"create" | "edit">("create");
+  const [visitNoteMode, setVisitNoteMode] = useState<"create" | "view">("create");
   const [visitNoteData, setVisitNoteData] = useState<VisitNoteData | undefined>();
   const [visitNoteLoading, setVisitNoteLoading] = useState(false);
 
@@ -53,7 +53,6 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     addAppointmentNotes,
     getVisitNoteForAppointment,
     createVisitNote,
-    updateVisitNote,
   } = useDoctorSchedule({
     ...(doctorId ? { doctorId } : {}),
     autoRefresh: true,
@@ -161,7 +160,7 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     const existingNote = await getVisitNoteForAppointment(appointment.id);
     
     if (existingNote) {
-      setVisitNoteMode("edit");
+      setVisitNoteMode("view");
       setVisitNoteData(existingNote);
       // Update the selected appointment to reflect that it has a visit note
       setSelectedAppointment((prev) =>
@@ -192,10 +191,7 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     let success = false;
     let newDocumentId: string | undefined;
     
-    if (visitNoteMode === "edit" && visitNoteData?.documentId) {
-      success = await updateVisitNote(visitNoteData.documentId, data);
-      newDocumentId = visitNoteData.documentId;
-    } else {
+    if (visitNoteMode === "create") {
       const result = await createVisitNote(selectedAppointment, data);
       success = result.success;
       newDocumentId = result.documentId;
@@ -207,7 +203,7 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
         prev ? { ...prev, hasVisitNote: true } : null
       );
       // Update the mode and data so subsequent edits work correctly
-      setVisitNoteMode("edit");
+      setVisitNoteMode("view");
       // Store the documentId for future edits
       if (newDocumentId) {
         setVisitNoteData((prev) => ({
@@ -472,7 +468,8 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
                   ? `${selectedAppointment.date}T${selectedAppointment.time}`
                   : new Date().toISOString()
               }
-              isEditMode={visitNoteMode === "edit"}
+              isEditMode={false}
+              isReadOnly={visitNoteMode === "view"}
               existingVisitNote={visitNoteData}
             />
           )}
