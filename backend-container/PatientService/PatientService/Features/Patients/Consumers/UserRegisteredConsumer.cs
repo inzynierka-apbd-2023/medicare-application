@@ -4,7 +4,7 @@ using Microsoft.EntityFrameworkCore;
 using PatientService.Data;
 using PatientService.Models;
 
-namespace PatientService.Messaging.Consumers;
+namespace PatientService.Features.Patients.Consumers;
 
 public class UserRegisteredConsumer : IConsumer<IUserRegistered>
 {
@@ -19,23 +19,34 @@ public class UserRegisteredConsumer : IConsumer<IUserRegistered>
 
     public async Task Consume(ConsumeContext<IUserRegistered> context)
     {
-        var evt = context.Message;
-        _logger.LogInformation("Processing UserRegistered for {UserId}", evt.UserId);
+        var msg = context.Message;
+        var idempotencyKey = context.MessageId?.ToString() ?? $"{msg.UserId}:{msg.OccurredAtUtc:O}";
 
-        var patient = await _db.Patients.SingleOrDefaultAsync(p => p.UserId == evt.UserId, context.CancellationToken);
+        _logger.LogInformation("Processing UserRegistered for UserId: {UserId}", msg.UserId);
+
+        var patient = await _db.Patients.SingleOrDefaultAsync(p => p.UserId == msg.UserId, context.CancellationToken);
         if (patient == null)
         {
             patient = new Patient
             {
-                UserId = evt.UserId,
+                UserId = msg.UserId,
                 CreatedAt = DateTime.UtcNow,
                 UpdatedAt = DateTime.UtcNow
             };
             _db.Patients.Add(patient);
-            await _db.SaveChangesAsync(context.CancellationToken);
+            
+            try 
+            {
+                await _db.SaveChangesAsync(context.CancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Concurrency handling - reload
+                _db.ChangeTracker.Clear();
+                patient = await _db.Patients.SingleAsync(p => p.UserId == msg.UserId, context.CancellationToken);
+            }
         }
 
-        var idempotencyKey = context.MessageId?.ToString() ?? $"{evt.UserId}:{evt.OccurredAtUtc:O}";
         var statusExists = await _db.PatientStatuses.AnyAsync(s => s.IdempotencyKey == idempotencyKey, context.CancellationToken);
         if (!statusExists)
         {
@@ -46,7 +57,16 @@ public class UserRegisteredConsumer : IConsumer<IUserRegistered>
                 PatientId = patient.Id,
                 IdempotencyKey = idempotencyKey
             });
-            await _db.SaveChangesAsync(context.CancellationToken);
+
+            try
+            {
+                await _db.SaveChangesAsync(context.CancellationToken);
+            }
+            catch (DbUpdateException)
+            {
+                // Already processed
+                _logger.LogInformation("Duplicate PatientStatus prevented for UserId: {UserId}", msg.UserId);
+            }
         }
     }
 }

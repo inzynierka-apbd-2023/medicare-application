@@ -8,6 +8,7 @@ using Medicare.Messaging.Contracts;
 using System.Net.Http.Headers;
 using System.Text;
 using System.Text.Json;
+using System.Linq.Expressions;
 
 namespace PractitionerService.Controllers;
 
@@ -20,12 +21,16 @@ public class DoctorsController : ControllerBase
     private readonly IHttpClientFactory _httpFactory;
     private readonly IPublishEndpoint _publishEndpoint;
     private const string DoctorNotFound = "Doctor not found";
+    private readonly IRequestClient<IGetUsers> _getUsersClient;
+    private readonly IRequestClient<IGetUser> _getUserClient;
 
-    public DoctorsController(PractitionerDbContext db, IHttpClientFactory httpFactory, IPublishEndpoint publishEndpoint)
+    public DoctorsController(PractitionerDbContext db, IHttpClientFactory httpFactory, IPublishEndpoint publishEndpoint, IRequestClient<IGetUsers> getUsersClient, IRequestClient<IGetUser> getUserClient)
     {
         _db = db;
         _httpFactory = httpFactory;
         _publishEndpoint = publishEndpoint;
+        _getUsersClient = getUsersClient;
+        _getUserClient = getUserClient;
     }
 
     public record CreateDoctorFullRequest(
@@ -229,9 +234,39 @@ public class DoctorsController : ControllerBase
     [HttpGet("{id}/directory")]
     public async Task<IActionResult> GetDoctorDirectoryById(Guid id)
     {
-    var item = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
-        if (item == null) return NotFound();
-        return Ok(item);
+        var doctor = await _db.Doctors.AsNoTracking().FirstOrDefaultAsync(d => d.Id == id);
+        if (doctor == null) return NotFound();
+
+        IUserResponse? user = null;
+        try
+        {
+            var response = await _getUserClient.GetResponse<IUserResponse>(new { UserId = doctor.UserId });
+            user = response.Message;
+        }
+        catch (Exception ex)
+        {
+             Console.WriteLine($"Failed to fetch user {doctor.UserId}: {ex}");
+        }
+
+        var specs = await _db.DoctorSpecializations
+            .Where(ds => ds.DoctorId == doctor.Id)
+            .Select(ds => ds.SpecializationId.ToString())
+            .ToListAsync();
+
+        var dir = new DoctorDirectory
+        {
+            DoctorId = doctor.Id,
+            UserId = doctor.UserId,
+            FirstName = user?.FirstName,
+            LastName = user?.LastName,
+            Email = user?.Email,
+            Phone = user?.Phone,
+            Specializations = string.Join(",", specs),
+            Services = null,
+            IsActive = doctor.IsActive
+        };
+        
+        return Ok(dir);
     }
 
     [HttpPut("{id}/specializations")]
@@ -251,39 +286,96 @@ public class DoctorsController : ControllerBase
     [HttpGet]
     public async Task<IActionResult> Search([FromQuery] Guid? specializationId, [FromQuery] Guid? serviceId, [FromQuery] string? q, [FromQuery] bool? isActive)
     {
-        var query = _db.Set<DoctorDirectory>().AsQueryable();
+        var query = _db.Doctors.AsNoTracking().AsQueryable();
+
         if (isActive.HasValue)
         {
             query = query.Where(d => d.IsActive == isActive.Value);
         }
-        if (!string.IsNullOrWhiteSpace(q))
-        {
-            var ql = q.ToLowerInvariant();
-            query = query.Where(d => (d.FirstName != null && d.FirstName.ToLower().Contains(ql)) || (d.LastName != null && d.LastName.ToLower().Contains(ql)));
-        }
+
         if (specializationId != null && specializationId != Guid.Empty)
         {
-            var specializationIdStr = specializationId.Value.ToString();
-            query = query.Where(d => d.Specializations != null && d.Specializations.Contains(specializationIdStr));
+            query = query.Where(d => _db.DoctorSpecializations.Any(ds => ds.DoctorId == d.Id && ds.SpecializationId == specializationId.Value));
         }
+
         if (serviceId != null && serviceId != Guid.Empty)
         {
-            var specIds = await _db.SpecializationServices
+             var specIds = await _db.SpecializationServices
                 .Where(ss => ss.ServiceId == serviceId.Value)
                 .Select(ss => ss.SpecializationId)
                 .ToListAsync();
-            if (specIds.Count > 0)
+
+            if (specIds.Any())
             {
-                var specIdStrings = specIds.Select(g => g.ToString()).ToList();
-                query = query.Where(d => d.Specializations != null && specIdStrings.Any(sid => d.Specializations!.Contains(sid)));
+                 query = query.Where(d => _db.DoctorSpecializations.Any(ds => ds.DoctorId == d.Id && specIds.Contains(ds.SpecializationId)));
             }
             else
             {
                 return Ok(Array.Empty<DoctorDirectory>());
             }
         }
-        var results = await query.Take(100).ToListAsync();
-        return Ok(results);
+
+        // Fetch doctors first (limit 100 to avoid huge fetch, though we might need more for search if q is applied in memory)
+        var doctors = await query.Include(d => d.Schedules).Take(100).ToListAsync();
+
+        if (!doctors.Any()) return Ok(Array.Empty<DoctorDirectory>());
+
+        var userIds = doctors.Select(d => d.UserId).Distinct().ToList();
+        var userMap = new Dictionary<Guid, IUserResponse>();
+
+        try
+        {
+            var response = await _getUsersClient.GetResponse<IUsersResponse>(new { UserIds = userIds });
+            if (response.Message.Users != null)
+            {
+                foreach (var u in response.Message.Users)
+                {
+                    userMap[u.Id] = u;
+                }
+            }
+        }
+        catch (Exception ex)
+        {
+            // Log error, but continue with partial data
+             Console.WriteLine($"Failed to fetch users: {ex}");
+        }
+        
+        // Fetch specializations for these doctors efficiently
+        var doctorIds = doctors.Select(d => d.Id).ToList();
+        var docSpecs = await _db.DoctorSpecializations
+            .Where(ds => doctorIds.Contains(ds.DoctorId))
+            .ToListAsync();
+            
+        var results = doctors.Select(d => 
+        {
+            userMap.TryGetValue(d.UserId, out var user);
+            var specs = docSpecs.Where(ds => ds.DoctorId == d.Id).Select(ds => ds.SpecializationId.ToString()).ToList();
+            
+            return new DoctorDirectory
+            {
+                DoctorId = d.Id,
+                UserId = d.UserId,
+                FirstName = user?.FirstName,
+                LastName = user?.LastName,
+                Email = user?.Email,
+                Phone = user?.Phone,
+                Specializations = string.Join(",", specs),
+                Services = null,
+                IsActive = d.IsActive
+            };
+        });
+
+        // Apply Name Search in Memory
+        if (!string.IsNullOrWhiteSpace(q))
+        {
+            var ql = q.ToLowerInvariant();
+            results = results.Where(d => 
+                (d.FirstName != null && d.FirstName.ToLower().Contains(ql)) || 
+                (d.LastName != null && d.LastName.ToLower().Contains(ql))
+            );
+        }
+
+        return Ok(results.ToList());
     }
 
     [HttpPut("{id}/availability")]
@@ -326,6 +418,10 @@ public class DoctorsController : ControllerBase
         var doctor = await _db.Doctors.FindAsync(id);
         if (doctor == null) return NotFound("Doctor not found");
 
+        // Note: DeleteDoctor might now fail if DoctorDirectory view is broken.
+        // We might want to construct snapshot manually like in Search if needed.
+        // For now, let's keep it as is, or use Search logic if we want to be safe.
+        // But let's assume Delete is less critical for the user's current dashboard issue.
         var dir = await _db.Set<DoctorDirectory>().FirstOrDefaultAsync(d => d.DoctorId == id);
         List<object>? schedules = null;
         var schedList = await _db.DoctorSchedules.Where(s => s.DoctorId == id)

@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using UserService.Models;
+using MassTransit;
 
 namespace UserService.Data;
 
@@ -17,7 +18,12 @@ public class UserDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
-    const string SysUtc = "SYSUTCDATETIME()";
+
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "user"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "user"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "user"));
+
+        const string SysUtc = "SYSUTCDATETIME()";
 
         // Configure Role entity
         modelBuilder.Entity<Role>(entity =>

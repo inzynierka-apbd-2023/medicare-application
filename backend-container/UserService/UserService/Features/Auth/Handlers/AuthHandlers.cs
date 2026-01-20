@@ -56,7 +56,7 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, Register
             _logger.LogInformation("User created: {UserId}", user.Id);
 
 
-            await _publishEndpoint.Publish(new 
+            await _publishEndpoint.Publish<IUserRegistered>(new 
             { 
                 UserId = user.Id,
                 Username = user.Username,

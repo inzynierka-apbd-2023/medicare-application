@@ -18,6 +18,13 @@ public class PatientsController : ControllerBase
     private readonly IMediator _mediator;
     public PatientsController(IMediator mediator) => _mediator = mediator;
 
+    [HttpPost("batch")]
+    public async Task<IActionResult> GetBatch([FromBody] List<Guid> ids)
+    {
+        var result = await _mediator.Send(new PatientService.Features.Patients.Queries.GetPatientsBatch.GetPatientsBatchQuery(ids));
+        return Ok(result);
+    }
+
     // Register patient; PrimaryDoctorId is optional but recommended
     [HttpPost]
     public async Task<IActionResult> Register([FromBody] RegisterPatientRequest req)

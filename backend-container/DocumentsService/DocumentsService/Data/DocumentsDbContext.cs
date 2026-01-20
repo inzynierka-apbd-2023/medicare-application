@@ -27,8 +27,8 @@ public class DocumentsDbContext : DbContext
         modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "documents"));
         modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "documents"));
 
-    const string SysUtc = "SYSUTCDATETIME()";
-    const string SqlGuid = "NEWID()";
+        const string SysUtc = "SYSUTCDATETIME()";
+        const string SqlGuid = "NEWID()";
 
         modelBuilder.HasDefaultSchema("documents");
 

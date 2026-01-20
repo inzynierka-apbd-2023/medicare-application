@@ -3,6 +3,7 @@ using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using PatientService.Data;
 
@@ -11,9 +12,11 @@ using PatientService.Data;
 namespace PatientService.Migrations
 {
     [DbContext(typeof(PatientDbContext))]
-    partial class PatientDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260120184848_AddMassTransitOutbox")]
+    partial class AddMassTransitOutbox
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -68,7 +71,7 @@ namespace PatientService.Migrations
 
                     b.HasIndex("Delivered");
 
-                    b.ToTable("InboxState", "patient");
+                    b.ToTable("InboxState");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
@@ -161,7 +164,7 @@ namespace PatientService.Migrations
                         .IsUnique()
                         .HasFilter("[InboxMessageId] IS NOT NULL AND [InboxConsumerId] IS NOT NULL");
 
-                    b.ToTable("OutboxMessage", "patient");
+                    b.ToTable("OutboxMessage");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxState", b =>
@@ -191,7 +194,7 @@ namespace PatientService.Migrations
 
                     b.HasIndex("Created");
 
-                    b.ToTable("OutboxState", "patient");
+                    b.ToTable("OutboxState");
                 });
 
             modelBuilder.Entity("PatientService.Models.EmergencyContact", b =>
