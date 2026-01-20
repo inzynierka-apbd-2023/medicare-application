@@ -1,5 +1,4 @@
 using DocumentsService.Data;
-using DocumentsService.Contracts;
 using DocumentsService.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -15,25 +14,28 @@ namespace DocumentsService.Controllers;
 public class DocumentsController : ControllerBase
 {
     private readonly DocumentsDbContext _db;
-    private readonly IPublishEndpoint _publishEndpoint;
     private readonly IRequestClient<IGeneratePdfRequest> _pdfRequestClient;
     private readonly IRequestClient<IGetPatient> _patientRequestClient;
     private readonly IRequestClient<IGetDoctor> _doctorRequestClient;
+    private readonly IRequestClient<IGetAtc> _atcRequestClient;
+    private readonly IRequestClient<IGetLoinc> _loincRequestClient;
     private readonly ILogger<DocumentsController> _logger;
 
     public DocumentsController(
         DocumentsDbContext db, 
-        IPublishEndpoint publishEndpoint, 
         IRequestClient<IGeneratePdfRequest> pdfRequestClient,
         IRequestClient<IGetPatient> patientRequestClient,
         IRequestClient<IGetDoctor> doctorRequestClient,
+        IRequestClient<IGetAtc> atcRequestClient,
+        IRequestClient<IGetLoinc> loincRequestClient,
         ILogger<DocumentsController> logger) 
     { 
         _db = db; 
-        _publishEndpoint = publishEndpoint; 
         _pdfRequestClient = pdfRequestClient;
         _patientRequestClient = patientRequestClient;
         _doctorRequestClient = doctorRequestClient;
+        _atcRequestClient = atcRequestClient;
+        _loincRequestClient = loincRequestClient;
         _logger = logger; 
     }
 
@@ -407,22 +409,14 @@ public class DocumentsController : ControllerBase
 
         if (string.IsNullOrEmpty(beforePatient) || beforePatient == "Unknown")
         {
-             try 
-             {
-                var response = await _patientRequestClient.GetResponse<IPatientProfile>(new { PatientId = d.PatientId }, cancellationToken: HttpContext.RequestAborted);
-                d.PatientName = $"{response.Message.FirstName} {response.Message.LastName}";
-             }
-             catch (Exception) { /* ignore in backfill */ }
+            var response = await _patientRequestClient.GetResponse<IPatientProfile>(new { PatientId = d.PatientId }, cancellationToken: HttpContext.RequestAborted);
+            d.PatientName = $"{response.Message.FirstName} {response.Message.LastName}";
         }
 
         if (string.IsNullOrEmpty(beforeDoctor) || beforeDoctor == "Unknown")
         {
-             try 
-             {
-                var response = await _doctorRequestClient.GetResponse<IDoctorProfile>(new { DoctorId = d.DoctorId }, cancellationToken: HttpContext.RequestAborted);
-                d.DoctorName = $"{response.Message.FirstName} {response.Message.LastName}";
-             }
-             catch (Exception) { /* ignore in backfill */ }
+            var response = await _doctorRequestClient.GetResponse<IDoctorProfile>(new { DoctorId = d.DoctorId }, cancellationToken: HttpContext.RequestAborted);
+            d.DoctorName = $"{response.Message.FirstName} {response.Message.LastName}";
         }
 
         var changed = !string.Equals(beforePatient, d.PatientName, StringComparison.Ordinal) ||
@@ -518,71 +512,39 @@ public class DocumentsController : ControllerBase
         return baseObj;
     }
 
-    private sealed record AtcDto(string AtcCode, string? AtcName);
-    private sealed record AtcResult(string Code, string Name);
-
     private async Task<AtcResult?> LookupAtcAsync(string code)
     {
-        using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
-        var resp = await http.GetAsync("/api/catalog/atc?q=" + Uri.EscapeDataString(code));
-        if (!resp.IsSuccessStatusCode) return null;
-
-        var list = await resp.Content.ReadFromJsonAsync<List<AtcDto>>();
-        var hit = list?.FirstOrDefault(x => string.Equals(x.AtcCode, code, StringComparison.OrdinalIgnoreCase));
-        return hit == null ? null : new AtcResult(hit.AtcCode, hit.AtcName ?? hit.AtcCode);
+        var response = await _atcRequestClient.GetResponse<IAtcResponse>(new { Query = code }, cancellationToken: HttpContext.RequestAborted);
+        var hit = response.Message.Items.FirstOrDefault(x => string.Equals(x.AtcCode, code, StringComparison.OrdinalIgnoreCase));
+        return hit == null ? null : new AtcResult(hit.AtcCode, hit.AtcName);
     }
 
     private async Task<AtcResult?> SearchAtcAsync(string query)
     {
-        using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
-        var resp = await http.GetAsync("/api/catalog/atc?q=" + Uri.EscapeDataString(query));
-        if (!resp.IsSuccessStatusCode) return null;
-
-        var list = await resp.Content.ReadFromJsonAsync<List<AtcDto>>();
-        var hit = list?.FirstOrDefault();
-        return hit == null ? null : new AtcResult(hit.AtcCode, hit.AtcName ?? hit.AtcCode);
+        var response = await _atcRequestClient.GetResponse<IAtcResponse>(new { Query = query }, cancellationToken: HttpContext.RequestAborted);
+        var hit = response.Message.Items.FirstOrDefault();
+        return hit == null ? null : new AtcResult(hit.AtcCode, hit.AtcName);
     }
 
-    private static string CatalogBase(HttpContext ctx)
-        => ctx.RequestServices.GetService<IConfiguration>()?["CATALOG_SERVICE_BASE_URL"]
-           ?? "http://medical-catalog-service:8083";
-
-    private sealed record LoincDto(
-        string LoincNum,
-        string? LongCommonName,
-        string? Component,
-        string? Property,
-        string? TimeAspect,
-        string? System,
-        string? ScaleType,
-        string? MethodType,
-        string? ExampleUnits
-    );
-
-    private async Task<LoincDto?> LookupLoincAsync(string code)
+    private async Task<ILoincItem?> LookupLoincAsync(string code)
     {
-        using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
-        var resp = await http.GetAsync("/api/catalog/loinc?q=" + Uri.EscapeDataString(code));
-        if (!resp.IsSuccessStatusCode) return null;
-        var list = await resp.Content.ReadFromJsonAsync<List<LoincDto>>();
-        return list?.FirstOrDefault(x => string.Equals(x.LoincNum, code, StringComparison.OrdinalIgnoreCase));
+        var response = await _loincRequestClient.GetResponse<ILoincResponse>(new { Query = code }, cancellationToken: HttpContext.RequestAborted);
+        return response.Message.Items.FirstOrDefault(x => string.Equals(x.LoincNum, code, StringComparison.OrdinalIgnoreCase));
     }
 
-    private async Task<LoincDto?> SearchLoincAsync(string query)
+    private async Task<ILoincItem?> SearchLoincAsync(string query)
     {
-        using var http = new HttpClient { BaseAddress = new Uri(CatalogBase(HttpContext)) };
-        var resp = await http.GetAsync("/api/catalog/loinc?q=" + Uri.EscapeDataString(query));
-        if (!resp.IsSuccessStatusCode) return null;
-        var list = await resp.Content.ReadFromJsonAsync<List<LoincDto>>();
-        return list?.FirstOrDefault();
+        var response = await _loincRequestClient.GetResponse<ILoincResponse>(new { Query = query }, cancellationToken: HttpContext.RequestAborted);
+        return response.Message.Items.FirstOrDefault();
     }
 
-    private sealed record LoincResolution(LabTestType? Type, LoincDto? Loinc, string? Code, string? Error);
+    private sealed record AtcResult(string Code, string Name);
+    private sealed record LoincResolution(LabTestType? Type, ILoincItem? Loinc, string? Code, string? Error);
 
     private async Task<LoincResolution> ResolveLoincAsync(string? loincCode, string? parameterName)
     {
         string? code = string.IsNullOrWhiteSpace(loincCode) ? null : loincCode!.Trim();
-        LoincDto? loinc = null;
+        ILoincItem? loinc = null;
         if (!string.IsNullOrWhiteSpace(code))
         {
             loinc = await LookupLoincAsync(code!);
@@ -618,7 +580,7 @@ public class DocumentsController : ControllerBase
         return new LoincResolution(type, loinc, code, null);
     }
 
-    private static string? ValidateUnits(LoincDto? loinc, string? unit, string? param)
+    private static string? ValidateUnits(ILoincItem? loinc, string? unit, string? param)
     {
         if (loinc == null || string.IsNullOrWhiteSpace(loinc.ExampleUnits) || string.IsNullOrWhiteSpace(unit)) return null;
         return UnitsMatch(unit!, loinc.ExampleUnits!) ? null : $"Unit '{unit}' not compatible with LOINC {loinc.LoincNum} units '{loinc.ExampleUnits}' for parameter '{param}'.";

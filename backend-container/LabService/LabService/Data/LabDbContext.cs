@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using LabService.Models;
+using MassTransit;
 
 namespace LabService.Data;
 
@@ -14,6 +15,11 @@ public class LabDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
         modelBuilder.Entity<LabOrder>(e =>
         {
             e.ToTable("Lab_Order", schema: "lab");

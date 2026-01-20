@@ -68,20 +68,13 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
         else if (doctorGroups.Any())
         {
              var topDoc = doctorGroups.OrderByDescending(g => g.Count()).First();
-             try
+             var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = new[] { topDoc.Key } }, cancellationToken);
+             var profiles = resp.Message.Profiles;
+             if (profiles.Any())
              {
-                 var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = new[] { topDoc.Key } }, cancellationToken);
-                 var profiles = resp.Message.Profiles;
-                 if (profiles.Any())
-                 {
-                     topRatedDoctor = $"{profiles.First().FirstName} {profiles.First().LastName}".Trim();
-                 }
-                 else
-                 {
-                     topRatedDoctor = $"Doctor {topDoc.Key.ToString()[..8]}";
-                 }
+                 topRatedDoctor = $"{profiles.First().FirstName} {profiles.First().LastName}".Trim();
              }
-             catch
+             else
              {
                  topRatedDoctor = $"Doctor {topDoc.Key.ToString()[..8]}";
              }

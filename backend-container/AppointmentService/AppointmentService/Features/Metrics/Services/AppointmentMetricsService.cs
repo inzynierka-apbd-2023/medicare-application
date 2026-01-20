@@ -40,17 +40,13 @@ public class AppointmentMetricsService : IAppointmentMetricsService
         
         if (apptIds.Any())
         {
-            try
+            var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = apptIds }, ct);
+            payments = response.Message.Payments.Select(p => new AppointmentService.Features.Analytics.DTOs.AppointmentPaymentDto
             {
-                var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = apptIds }, ct);
-                payments = response.Message.Payments.Select(p => new AppointmentService.Features.Analytics.DTOs.AppointmentPaymentDto
-                {
-                    AppointmentId = p.AppointmentId,
-                    AmountCents = (long)p.AmountCents,
-                    Status = p.Status
-                }).ToList();
-            }
-            catch {}
+                AppointmentId = p.AppointmentId,
+                AmountCents = (long)p.AmountCents,
+                Status = p.Status
+            }).ToList();
         }
 
         var totalRevenue = payments.Sum(p => p.AmountCents) / 100m;

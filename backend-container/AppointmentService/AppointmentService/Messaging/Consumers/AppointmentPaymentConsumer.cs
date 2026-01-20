@@ -2,7 +2,7 @@ using AppointmentService.Data;
 using MassTransit;
 using Medicare.Messaging.Contracts;
 
-namespace AppointmentService.Services.Messaging.Consumers;
+namespace AppointmentService.Messaging.Consumers;
 
 public class AppointmentPaymentConsumer : IConsumer<IBillingPaymentProcessed>
 {

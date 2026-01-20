@@ -20,7 +20,12 @@ public class MedicalCatalogDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-    // Removed Medical_Condition, Lab_Test_Type
+        base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
+
 
         // Catalog schema tables
         modelBuilder.Entity<Icd10>(e =>
@@ -32,8 +37,6 @@ public class MedicalCatalogDbContext : DbContext
             e.Property(x => x.Status).HasMaxLength(50);
             e.HasIndex(x => x.Title);
         });
-
-    // SNOMED removed
 
         modelBuilder.Entity<LoincEntry>(e =>
         {
@@ -61,8 +64,6 @@ public class MedicalCatalogDbContext : DbContext
             e.HasIndex(x => x.ShortName);
             // Full-text indexes are managed outside EF.
         });
-
-    // CPT/HCPCS removed
 
         modelBuilder.Entity<CatalogRelease>(e =>
         {

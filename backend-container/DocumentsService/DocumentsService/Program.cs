@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using DocumentsService.Data;
@@ -23,6 +24,8 @@ builder.AddMedicareMassTransit<DocumentsDbContext>(x =>
     x.AddRequestClient<IGeneratePdfRequest>();
     x.AddRequestClient<IGetDoctor>();
     x.AddRequestClient<IGetPatient>();
+    x.AddRequestClient<IGetAtc>();
+    x.AddRequestClient<IGetLoinc>();
 });
 
 builder.Services.AddDbContext<DocumentsDbContext>((sp, options) =>

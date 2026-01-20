@@ -65,9 +65,12 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddHealthChecks().AddDbContextCheck<PatientDbContext>();
-builder.AddRabbitMQClient("rabbitmq");
-builder.Services.AddHostedService<PatientService.Infrastructure.Messaging.UserRegisteredConsumer>();
-builder.Services.AddHostedService<PatientService.Infrastructure.Messaging.PatientDetailsRequestConsumer>();
+
+builder.AddMedicareMassTransit<PatientDbContext>(x =>
+{
+    x.AddConsumer<PatientService.Messaging.Consumers.PatientDetailsConsumer>();
+    x.AddConsumer<PatientService.Messaging.Consumers.UserRegisteredConsumer>();
+});
 builder.Services.AddScoped<PatientService.Features.Metrics.Services.IPatientMetricsService, PatientService.Features.Metrics.Services.PatientMetricsService>();
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>

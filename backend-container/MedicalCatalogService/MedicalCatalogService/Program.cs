@@ -27,6 +27,12 @@ builder.Services.AddDbContext<MedicalCatalogDbContext>((sp, options) =>
 builder.Services.AddHealthChecks().AddDbContextCheck<MedicalCatalogDbContext>();
 builder.Services.AddControllers();
 
+builder.AddMedicareMassTransit<MedicalCatalogDbContext>(x =>
+{
+    x.AddConsumer<MedicalCatalogService.Messaging.Consumers.AtcConsumer>();
+    x.AddConsumer<MedicalCatalogService.Messaging.Consumers.LoincConsumer>();
+});
+
 builder.AddMedicareAuthentication();
 
 builder.Services.AddEndpointsApiExplorer();

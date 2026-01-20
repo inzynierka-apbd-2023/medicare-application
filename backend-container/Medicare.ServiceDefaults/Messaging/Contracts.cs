@@ -217,3 +217,42 @@ public interface IDoctorProfile
     string Email { get; }
     string SpecializationNames { get; }
 }
+
+public interface IGetAtc
+{
+    string Query { get; }
+}
+
+public interface IAtcResponse
+{
+    List<IAtcItem> Items { get; }
+}
+
+public interface IAtcItem
+{
+    string AtcCode { get; }
+    string AtcName { get; }
+}
+
+public interface IGetLoinc
+{
+    string Query { get; }
+}
+
+public interface ILoincResponse
+{
+    List<ILoincItem> Items { get; }
+}
+
+public interface ILoincItem
+{
+    string LoincNum { get; }
+    string LongCommonName { get; }
+    string Component { get; }
+    string Property { get; }
+    string TimeAspect { get; }
+    string System { get; }
+    string ScaleType { get; }
+    string MethodType { get; }
+    string ExampleUnits { get; }
+}

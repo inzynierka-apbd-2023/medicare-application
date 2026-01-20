@@ -32,24 +32,20 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var endDate = request.EndDate ?? DateTime.UtcNow;
         var startDate = request.StartDate ?? endDate.AddDays(-30);
 
-        var metrics = await SafeExecuteListAsync(() => GetMetricsAsync(startDate, endDate, request.DoctorId, cancellationToken), "Metrics");
-        var trends = await SafeExecuteListAsync(() => GetTrendsAsync(startDate, endDate, request.DoctorId, cancellationToken), "Trends");
-        var doctorPerformance = await SafeExecuteListAsync(() => GetDoctorPerformanceAsync(startDate, endDate, request.DoctorId, cancellationToken), "DoctorPerformance");
-        var specializationStats = await SafeExecuteListAsync(() => GetSpecializationStatsAsync(startDate, endDate, cancellationToken), "SpecializationStats");
-        var timeAnalysis = await SafeExecuteObjectAsync(() => GetTimeSlotAnalysisAsync(startDate, endDate, request.DoctorId, cancellationToken), "TimeAnalysis");
+        var metrics = await GetMetricsAsync(startDate, endDate, request.DoctorId, cancellationToken);
+        var trends = await GetTrendsAsync(startDate, endDate, request.DoctorId, cancellationToken);
+        var doctorPerformance = await GetDoctorPerformanceAsync(startDate, endDate, request.DoctorId, cancellationToken);
+        var specializationStats = await GetSpecializationStatsAsync(startDate, endDate, cancellationToken);
+        var timeAnalysis = await GetTimeSlotAnalysisAsync(startDate, endDate, request.DoctorId, cancellationToken);
 
-        try
+        await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
         {
-            await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
-            {
-                RecipientUserId = "system",
-                Description = "Appointment analytics dashboard accessed",
-                Type = 1,
-                SourceService = "AppointmentService",
-                Priority = "Low"
-            });
-        }
-        catch (Exception) { }
+            RecipientUserId = "system",
+            Description = "Appointment analytics dashboard accessed",
+            Type = 1,
+            SourceService = "AppointmentService",
+            Priority = "Low"
+        });
 
         return new AppointmentAnalyticsResponse
         {
@@ -244,24 +240,20 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         foreach(var p in doctorProfiles.Where(p => p.UserId != p.DoctorId))
             profileMap[p.UserId] = ($"{p.FirstName} {p.LastName}".Trim(), p.SpecializationNames);
 
-        try
+        if (appointmentIds.Any())
         {
-            if (appointmentIds.Any())
-            {
-                var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = appointmentIds }, cancellationToken);
-                payments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
-                { 
-                    AppointmentId = p.AppointmentId, 
-                    AmountCents = (int)p.AmountCents, 
-                    Status = p.Status 
-                }).ToList();
+            var response = await _paymentClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentPayments>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            payments = response.Message.Payments.Select(p => new AppointmentPaymentDto 
+            { 
+                AppointmentId = p.AppointmentId, 
+                AmountCents = (int)p.AmountCents, 
+                Status = p.Status 
+            }).ToList();
 
-                rates = await _context.Rates.AsNoTracking()
-                    .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
-                    .ToListAsync(cancellationToken);
-            }
+            rates = await _context.Rates.AsNoTracking()
+                .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
+                .ToListAsync(cancellationToken);
         }
-        catch (Exception) { }
 
         var doctorGroups = appointments.GroupBy(a => a.DoctorId);
         var performance = new List<DoctorPerformanceDto>();
@@ -447,27 +439,4 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         };
     }
 
-    private async Task<IEnumerable<T>> SafeExecuteListAsync<T>(Func<Task<IEnumerable<T>>> action, string componentName)
-    {
-        try
-        {
-            return await action();
-        }
-        catch (Exception)
-        {
-            return Enumerable.Empty<T>();
-        }
-    }
-
-    private async Task<T> SafeExecuteObjectAsync<T>(Func<Task<T>> action, string componentName) where T : new()
-    {
-        try
-        {
-            return await action();
-        }
-        catch (Exception)
-        {
-            return new T();
-        }
-    }
 }

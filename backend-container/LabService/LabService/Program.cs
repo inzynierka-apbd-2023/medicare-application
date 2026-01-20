@@ -16,6 +16,8 @@ builder.Services.AddControllers();
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssemblyContaining<Program>());
 
+builder.AddMedicareMassTransit<LabDbContext>();
+
 builder.Services.AddDbContext<LabDbContext>((sp, options) =>
 {
     options.ConfigureWarnings(w => w.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning));

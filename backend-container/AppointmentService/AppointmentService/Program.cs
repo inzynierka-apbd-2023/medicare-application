@@ -1,8 +1,8 @@
 using Microsoft.EntityFrameworkCore;
 using AppointmentService.Data;
 using AppointmentService.Services;
-using AppointmentService.Services.Messaging.Consumers;
-using AppointmentService.Services.Messaging.Notifiers;
+using AppointmentService.Messaging.Consumers;
+using AppointmentService.Messaging.Notifiers;
 using AppointmentService.Features.DoctorSchedule.Services;
 using AppointmentService.Features.DoctorDashboard.Services;
 using AppointmentService.Data.Seeders;

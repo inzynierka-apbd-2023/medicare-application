@@ -27,27 +27,19 @@ public class AdminController : ControllerBase
         await strategy.ExecuteAsync(async () =>
         {
             await using var tx = await _db.Database.BeginTransactionAsync();
-            try
-            {
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Prescription;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Referral;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Sick_Leave;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Visit_Document;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.[Document];");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Type;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Prescription;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Referral;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Sick_Leave;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Visit_Document;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.[Document];");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Type;");
 
-                await SeedAsync(_db);
+            await SeedAsync(_db);
 
-                await tx.CommitAsync();
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                throw;
-            }
+            await tx.CommitAsync();
         });
         return NoContent();
     }
@@ -62,23 +54,15 @@ public class AdminController : ControllerBase
         await strategy.ExecuteAsync(async () =>
         {
             await using var tx = await _db.Database.BeginTransactionAsync();
-            try
-            {
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Prescription;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Referral;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Sick_Leave;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Visit_Document;");
-                await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.[Document];");
-                await tx.CommitAsync();
-            }
-            catch
-            {
-                await tx.RollbackAsync();
-                throw;
-            }
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Documents_Assigned;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Test_Result;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Lab_Results;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Prescription;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Referral;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Sick_Leave;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.Visit_Document;");
+            await _db.Database.ExecuteSqlRawAsync("DELETE FROM documents.[Document];");
+            await tx.CommitAsync();
         });
         return NoContent();
     }

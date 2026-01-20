@@ -17,48 +17,26 @@ public class OverdueStatusUpdater : BackgroundService
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation("OverdueStatusUpdater started");
-        // small initial delay to let app warm up
-        await Task.Delay(TimeSpan.FromSeconds(5), stoppingToken);
-
         while (!stoppingToken.IsCancellationRequested)
         {
-            try
-            {
-                using var scope = _scopeFactory.CreateScope();
-                var db = scope.ServiceProvider.GetRequiredService<AppointmentDbContext>();
+            using var scope = _scopeFactory.CreateScope();
+            var db = scope.ServiceProvider.GetRequiredService<AppointmentDbContext>();
 
-                var now = DateTime.Now; // Treat as local wall clock to align with UI
+            var now = DateTime.Now;
 
-                // Bulk update: Scheduled/Confirmed that have ended -> Overdue
-                var updated = await db.Appointments
-                    .Where(a => (a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
-                    .ExecuteUpdateAsync(s => s
-                        .SetProperty(a => a.Status, a => "Overdue")
-                        .SetProperty(a => a.UpdatedAt, a => DateTime.UtcNow),
-                        cancellationToken: stoppingToken);
+            var updated = await db.Appointments
+                .Where(a => (a.Status == "Scheduled" || a.Status == "Confirmed") && a.ScheduledEndAt < now)
+                .ExecuteUpdateAsync(s => s
+                    .SetProperty(a => a.Status, a => "Overdue")
+                    .SetProperty(a => a.UpdatedAt, a => DateTime.UtcNow),
+                    cancellationToken: stoppingToken);
 
-                if (updated > 0)
-                {
-                    _logger.LogInformation("OverdueStatusUpdater: marked {Count} appointments as Overdue", updated);
-                }
-            }
-            catch (OperationCanceledException)
+            if (updated > 0)
             {
-                // normal on shutdown
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "OverdueStatusUpdater cycle failed");
+                _logger.LogInformation("OverdueStatusUpdater: marked {Count} appointments as Overdue", updated);
             }
 
-            try
-            {
-                await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
-            }
-            catch (OperationCanceledException)
-            {
-                // shutdown
-            }
+            await Task.Delay(TimeSpan.FromMinutes(1), stoppingToken);
         }
 
         _logger.LogInformation("OverdueStatusUpdater stopped");

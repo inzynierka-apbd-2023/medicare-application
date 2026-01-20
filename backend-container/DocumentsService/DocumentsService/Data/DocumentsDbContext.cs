@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using DocumentsService.Models;
+using MassTransit;
 
 namespace DocumentsService.Data;
 
@@ -21,6 +22,10 @@ public class DocumentsDbContext : DbContext
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
         base.OnModelCreating(modelBuilder);
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
 
     const string SysUtc = "SYSUTCDATETIME()";
     const string SqlGuid = "NEWID()";

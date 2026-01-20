@@ -3,7 +3,7 @@ using MassTransit;
 using Medicare.Messaging.Contracts;
 using Microsoft.EntityFrameworkCore;
 
-namespace AppointmentService.Services.Messaging.Consumers;
+namespace AppointmentService.Messaging.Consumers;
 
 public class DoctorArchivedConsumer : IConsumer<IDoctorArchived>
 {
