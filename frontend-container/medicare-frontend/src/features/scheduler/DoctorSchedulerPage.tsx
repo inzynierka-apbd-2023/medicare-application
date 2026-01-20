@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { Calendar, Clock, Filter, Users } from "lucide-react";
 
@@ -82,6 +82,45 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     setIsModalOpen(true);
   };
 
+  useEffect(() => {
+    if (!selectedAppointment) return;
+
+    let isActive = true;
+    const appointmentId = selectedAppointment.id;
+
+    const checkExistingVisitNote = async () => {
+      const existingNote = await getVisitNoteForAppointment(appointmentId);
+      if (!isActive) return;
+
+      if (existingNote) {
+        setSelectedAppointment((prev) =>
+          prev?.id === appointmentId
+            ? {
+                ...prev,
+                hasVisitNote: true,
+                visitNoteDocumentId:
+                  existingNote.documentId ?? prev.visitNoteDocumentId,
+              }
+            : prev
+        );
+        setVisitNoteData(existingNote);
+        setVisitNoteMode("edit");
+      } else {
+        setSelectedAppointment((prev) =>
+          prev?.id === appointmentId
+            ? { ...prev, hasVisitNote: false }
+            : prev
+        );
+      }
+    };
+
+    void checkExistingVisitNote();
+
+    return () => {
+      isActive = false;
+    };
+  }, [getVisitNoteForAppointment, selectedAppointment]);
+
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setSelectedAppointment(null);
@@ -124,6 +163,10 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     if (existingNote) {
       setVisitNoteMode("edit");
       setVisitNoteData(existingNote);
+      // Update the selected appointment to reflect that it has a visit note
+      setSelectedAppointment((prev) =>
+        prev ? { ...prev, hasVisitNote: true } : null
+      );
     } else {
       setVisitNoteMode("create");
       setVisitNoteData(undefined);
@@ -135,7 +178,8 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
 
   const handleCloseVisitNoteModal = () => {
     setIsVisitNoteModalOpen(false);
-    setVisitNoteData(undefined);
+    // Don't reset visitNoteData here - it may contain the documentId for future edits
+    // It will be refreshed when handleOpenVisitNote is called
     // Reopen the appointment details modal
     if (selectedAppointment) {
       setIsModalOpen(true);
@@ -146,11 +190,15 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     if (!selectedAppointment) return;
 
     let success = false;
+    let newDocumentId: string | undefined;
     
     if (visitNoteMode === "edit" && visitNoteData?.documentId) {
       success = await updateVisitNote(visitNoteData.documentId, data);
+      newDocumentId = visitNoteData.documentId;
     } else {
-      success = await createVisitNote(selectedAppointment, data);
+      const result = await createVisitNote(selectedAppointment, data);
+      success = result.success;
+      newDocumentId = result.documentId;
     }
 
     if (success) {
@@ -160,6 +208,20 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
       );
       // Update the mode and data so subsequent edits work correctly
       setVisitNoteMode("edit");
+      // Store the documentId for future edits
+      if (newDocumentId) {
+        setVisitNoteData((prev) => ({
+          ...prev,
+          documentId: newDocumentId,
+          symptoms: data.symptoms,
+          findings: data.findings,
+          diagnosis: data.diagnosis,
+          treatmentPlan: data.treatmentPlan,
+          recommendations: data.recommendations,
+          vitalSignsJson: data.vitalSignsJson,
+          followUpDate: data.followUpDate,
+        }));
+      }
     }
   };
 

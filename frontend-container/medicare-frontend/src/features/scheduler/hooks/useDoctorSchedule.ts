@@ -39,7 +39,7 @@ interface UseDoctorScheduleReturn {
   createVisitNote: (
     appointment: DoctorScheduleEvent,
     visitNoteData: VisitNoteData
-  ) => Promise<boolean>;
+  ) => Promise<{ success: boolean; documentId?: string }>;
   updateVisitNote: (
     documentId: string,
     visitNoteData: VisitNoteData
@@ -234,8 +234,8 @@ export const useDoctorSchedule = ({
     async (
       appointment: DoctorScheduleEvent,
       visitNoteData: VisitNoteData
-    ): Promise<boolean> => {
-      if (!doctorId) return false;
+    ): Promise<{ success: boolean; documentId?: string }> => {
+      if (!doctorId) return { success: false };
 
       try {
         const result = await visitNoteApi.createVisitNote(
@@ -245,14 +245,14 @@ export const useDoctorSchedule = ({
           visitNoteData
         );
 
-        if (result.success) {
+        if (result.success && result.data) {
           // Refresh schedule to update the hasVisitNote flag
           await refreshSchedule();
-          return true;
+          return { success: true, documentId: result.data.documentId };
         }
-        return false;
+        return { success: false };
       } catch {
-        return false;
+        return { success: false };
       }
     },
     [doctorId, refreshSchedule]
