@@ -20,6 +20,8 @@ public class DoctorScheduleEventDto
     public List<string> MedicalHistory { get; set; } = new();
     public List<string> Allergies { get; set; } = new();
     public List<string> CurrentMedications { get; set; } = new();
+    public bool HasVisitNote { get; set; }
+    public Guid? VisitNoteDocumentId { get; set; }
 }
 
 public class DoctorScheduleResponse

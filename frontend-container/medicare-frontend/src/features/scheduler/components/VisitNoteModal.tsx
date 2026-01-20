@@ -35,6 +35,7 @@ interface VitalSigns {
 
 // Visit Note data structure
 interface VisitNoteData {
+  documentId?: string;
   symptoms: string;
   findings: string;
   diagnosis: string;
