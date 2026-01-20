@@ -17,14 +17,18 @@ export const DashboardScheduler: React.FC<DashboardSchedulerProps> = ({
   doctorId,
 }) => {
   const { user } = useAuth();
-  const actualDoctorId = doctorId || user?.id || "mock-doctor-id";
+  const actualDoctorId = doctorId || user?.id || "";
 
   const [selectedAppointment, setSelectedAppointment] =
     useState<DoctorScheduleEvent | null>(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isVisitNoteModalOpen, setIsVisitNoteModalOpen] = useState(false);
-  const [visitNoteMode, setVisitNoteMode] = useState<"create" | "view">("create");
-  const [visitNoteData, setVisitNoteData] = useState<VisitNoteData | null>(null);
+  const [visitNoteMode, setVisitNoteMode] = useState<"create" | "view">(
+    "create"
+  );
+  const [visitNoteData, setVisitNoteData] = useState<VisitNoteData | null>(
+    null
+  );
   const [visitNoteLoading, setVisitNoteLoading] = useState(false);
 
   const {

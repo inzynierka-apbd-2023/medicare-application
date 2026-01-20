@@ -102,7 +102,7 @@ export const useMessages = (
           return;
         }
 
-        // Mock user names - in real app this would come from user context/profile
+        // User names - in real app this would come from user context/profile
         const senderName =
           userType === "patient" ? "Current Patient" : "Current Doctor";
         const receiverName = conversation.participantName;

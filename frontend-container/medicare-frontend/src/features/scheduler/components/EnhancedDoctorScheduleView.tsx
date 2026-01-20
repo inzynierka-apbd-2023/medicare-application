@@ -1,10 +1,3 @@
-/**
- * Enhanced DoctorScheduleView with Patient Record Integration
- *
- * This component integrates the doctor's schedule view with patient management,
- * allowing doctors to click on appointments to view patient records.
- */
-
 import React, { useCallback, useRef, useState } from "react";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";

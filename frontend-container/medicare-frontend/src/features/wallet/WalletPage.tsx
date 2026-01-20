@@ -5,7 +5,7 @@ import Header from "../../layout/Header";
 import { ErrorDisplay, Loading } from "../../shared/components";
 import { useWallet } from "../../shared/hooks/useWallet";
 
-import { MockPaymentModal } from "./components/MockPaymentModal";
+import { PaymentModal } from "./components/PaymentModal";
 import { Wallet } from "./components/Wallet";
 
 export const WalletPage: React.FC = () => {
@@ -26,8 +26,6 @@ export const WalletPage: React.FC = () => {
   const handleConfirmPayment = async (method: "BLIK" | "Card") => {
     if (!payingAppointmentId) return;
 
-    // Close first or handle loading state?
-    // VisitCard shows "Processing..." if payingAppointmentId matches.
     setIsPaymentModalOpen(false);
 
     try {
@@ -94,7 +92,7 @@ export const WalletPage: React.FC = () => {
         />
       </main>
 
-      <MockPaymentModal
+      <PaymentModal
         isOpen={isPaymentModalOpen}
         onClose={handleCloseModal}
         onConfirm={handleConfirmPayment}

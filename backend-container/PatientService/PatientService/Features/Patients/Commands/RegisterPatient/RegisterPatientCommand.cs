@@ -13,9 +13,8 @@ public class RegisterPatientHandler : IRequestHandler<RegisterPatientCommand, Pa
 
     public async Task<Patient?> Handle(RegisterPatientCommand request, CancellationToken cancellationToken)
     {
-        // Validation logic moved here
         var exists = await Microsoft.EntityFrameworkCore.EntityFrameworkQueryableExtensions.AnyAsync(_db.Patients, p => p.UserId == request.UserId, cancellationToken);
-        if (exists) return null; // Or throw exception, but returning null fits existing controller logic of check
+        if (exists) return null;
 
         var patient = new Patient
         {

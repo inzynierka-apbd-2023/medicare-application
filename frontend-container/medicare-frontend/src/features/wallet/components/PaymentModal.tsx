@@ -3,14 +3,14 @@ import { CreditCard, Smartphone, X } from "lucide-react";
 
 import { Button } from "../../../shared/components";
 
-interface MockPaymentModalProps {
+interface PaymentModalProps {
   isOpen: boolean;
   onClose: () => void;
   onConfirm: (method: "BLIK" | "Card") => void;
   amount: number;
 }
 
-export const MockPaymentModal: React.FC<MockPaymentModalProps> = ({
+export const PaymentModal: React.FC<PaymentModalProps> = ({
   isOpen,
   onClose,
   onConfirm,

@@ -18,9 +18,6 @@ public class DeletePatientHandler : IRequestHandler<DeletePatientCommand, bool>
         var patient = await _db.Patients.FirstOrDefaultAsync(p => p.Id == request.PatientId, cancellationToken);
         if (patient == null) return false;
 
-        // Soft delete logic: Set status to Inactive
-        // Check if status exists, insert new status
-        
         var currentStatus = await _db.PatientStatuses
             .Where(s => s.PatientId == request.PatientId)
             .OrderByDescending(s => s.EffectiveAt)
@@ -36,16 +33,6 @@ public class DeletePatientHandler : IRequestHandler<DeletePatientCommand, bool>
             });
             await _db.SaveChangesAsync(cancellationToken);
         }
-
-        // Alternatively, if we wanted HARD delete, we would remove from _db.Patients
-        // But functionality requirements usually imply soft delete for medical records unless specified "Removing from base" literally.
-        // functionality.md says "Usuwanie pacjentów z bazy" (Deleting patients from database). 
-        // Given I'm admin/reception, often this means hard delete or soft delete.
-        // Let's stick to Soft Delete (Inactive) as it's safer, BUT check if I should do strict delete.
-        // The implementation_plan mentioned "Delete endpoint". 
-        // Let's assume Soft Delete via Status is the preferred "business" delete. 
-        // Wait, current frontend mock does: `mockPatients[patientIndex].isActive = false;`. So yes, soft delete.
-
         return true;
     }
 }
