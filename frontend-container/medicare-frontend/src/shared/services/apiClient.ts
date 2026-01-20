@@ -40,18 +40,31 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
+// Track if we're currently refreshing to prevent multiple refresh calls
+let isRefreshing = false;
+let refreshSubscribers: ((success: boolean) => void)[] = [];
+
+const subscribeToRefresh = (callback: (success: boolean) => void) => {
+  refreshSubscribers.push(callback);
+};
+
+const onRefreshComplete = (success: boolean) => {
+  refreshSubscribers.forEach((callback) => callback(success));
+  refreshSubscribers = [];
+};
+
 apiClient.interceptors.response.use(
   (response: AxiosResponse) => response,
   async (error: AxiosError) => {
     const config = error.config as RetryableRequestConfig | undefined;
     if (!config) {
-      return Promise.reject(error);
+      throw error;
     }
 
     config.__retryCount = config.__retryCount || 0;
 
     if (config.__retryCount >= MAX_RETRIES) {
-      return Promise.reject(error);
+      throw error;
     }
 
     const isColdStartError =
@@ -71,12 +84,42 @@ apiClient.interceptors.response.use(
     if (error.response?.status === 401) {
       const url = config.url || "";
       const isAuthEndpoint =
-        /\/(auth\/login|auth\/register|auth\/refresh)/.test(url);
-      if (!isAuthEndpoint) {
-        window.dispatchEvent(new CustomEvent("auth:logout"));
+        /\/(auth\/login|auth\/register|auth\/refresh|auth\/logout)/.test(url);
+      
+      if (isAuthEndpoint) {
+        throw error;
+      }
+
+      // Try to refresh the token
+      if (isRefreshing) {
+        // Wait for the refresh to complete
+        return new Promise((resolve, reject) => {
+          subscribeToRefresh((success) => {
+            if (success) {
+              resolve(apiClient(config));
+            } else {
+              reject(error);
+            }
+          });
+        });
+      }
+      
+      isRefreshing = true;
+      
+      try {
+        await apiClient.post("/auth/refresh", {});
+        isRefreshing = false;
+        onRefreshComplete(true);
+        // Retry the original request
+        return apiClient(config);
+      } catch {
+        isRefreshing = false;
+        onRefreshComplete(false);
+        globalThis.dispatchEvent(new CustomEvent("auth:logout"));
+        throw error;
       }
     }
 
-    return Promise.reject(error);
+    throw error;
   }
 );

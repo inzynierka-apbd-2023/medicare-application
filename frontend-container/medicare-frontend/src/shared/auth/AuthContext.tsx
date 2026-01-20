@@ -52,8 +52,26 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useApiToastInit();
 
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true); // Start with loading=true for session restore
   const [error, setError] = useState<string | null>(null);
+
+  // Try to restore session on app load
+  useEffect(() => {
+    const restoreSession = async () => {
+      try {
+        // Try to refresh the token - this will work if we have a valid refresh token cookie
+        const authUser = await authService.refresh();
+        setUser(authUser);
+      } catch {
+        // No valid session, user needs to log in
+        setUser(null);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    restoreSession();
+  }, []);
 
   /* ... */
   const login = useCallback(
@@ -159,8 +177,8 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, [clearAuthSession, navigate, showError]);
 
   useEffect(() => {
-    window.addEventListener("auth:logout", handleAuthLogout);
-    return () => window.removeEventListener("auth:logout", handleAuthLogout);
+    globalThis.addEventListener("auth:logout", handleAuthLogout);
+    return () => globalThis.removeEventListener("auth:logout", handleAuthLogout);
   }, [handleAuthLogout]);
 
   const ctxValue = useMemo(
