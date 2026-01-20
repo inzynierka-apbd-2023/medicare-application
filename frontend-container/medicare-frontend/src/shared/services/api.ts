@@ -68,6 +68,7 @@ export interface HandleApiCallOptions {
   successMessage?: string;
   onSuccess?: StatusCodeHandler;
   onError?: StatusCodeHandler;
+  skipLoading?: boolean;
 }
 
 let globalToastHandler: {
@@ -89,14 +90,19 @@ export const handleApiCall = async <T>(
     successMessage,
     onSuccess,
     onError,
+    skipLoading = false,
   } = options;
 
-  loadingService.show();
+  if (!skipLoading) {
+    loadingService.show();
+  }
 
   try {
     const data = await apiCall();
 
-    loadingService.hide();
+    if (!skipLoading) {
+      loadingService.hide();
+    }
 
     if (showToastOnSuccess && successMessage && globalToastHandler) {
       globalToastHandler.showSuccess(successMessage);
@@ -110,7 +116,9 @@ export const handleApiCall = async <T>(
     const status = axiosError.response?.status || 0;
     const message = extractErrorMessage(axiosError);
 
-    loadingService.hide();
+    if (!skipLoading) {
+      loadingService.hide();
+    }
 
     if (showToastOnError && globalToastHandler) {
       globalToastHandler.showError(message);

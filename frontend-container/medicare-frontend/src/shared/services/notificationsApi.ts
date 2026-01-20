@@ -42,15 +42,19 @@ export const notificationsApi = {
     recipientUserId: string,
     unreadOnly = false
   ): Promise<DashboardNotification[]> => {
-    const data = await api.get<BackendNotificationDto[]>("/notifications", {
-      params: {
-        recipientUserId,
-        unreadOnly,
-        page: 1,
-        pageSize: 20,
-        _ts: Date.now(),
+    const data = await api.get<BackendNotificationDto[]>(
+      "/notifications",
+      {
+        params: {
+          recipientUserId,
+          unreadOnly,
+          page: 1,
+          pageSize: 20,
+          _ts: Date.now(),
+        },
       },
-    });
+      { skipLoading: true }
+    );
 
     return (data || []).map((n) => {
       let ts = n.creationDate;
