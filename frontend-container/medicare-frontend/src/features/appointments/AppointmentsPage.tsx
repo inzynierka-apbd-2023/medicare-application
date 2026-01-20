@@ -47,7 +47,6 @@ const AppointmentsPage: React.FC = () => {
     const success = await cancelAppointment(appointmentId);
     if (success) {
       // Show success message or toast notification
-      console.log("Appointment cancelled successfully");
     }
   };
 

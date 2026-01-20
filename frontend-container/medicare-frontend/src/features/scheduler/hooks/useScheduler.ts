@@ -91,7 +91,6 @@ export const useScheduler = ({
             ),
           ]);
 
-        // Fetch appointments based on context (patient vs receptionist)
         let appointments: Appointment[] = [];
         if (patientId) {
           appointments =
@@ -100,7 +99,6 @@ export const useScheduler = ({
           appointments = await SchedulerApiService.getAllAppointments();
         }
 
-        // Join doctor details onto appointments for downstream UIs (dashboard, lists)
         let joinedAppointments = appointments.map((apt) => {
           const doc = doctors.find(
             (d) => d.id === apt.doctorUserId || d.userId === apt.doctorUserId
@@ -111,7 +109,6 @@ export const useScheduler = ({
           };
         });
 
-        // Fetch any missing doctors directly by id and update the appointments
         const missing = joinedAppointments.filter(
           (a) => !a.doctor && a.doctorUserId
         );

@@ -10,14 +10,8 @@ export const DropdownMenu: React.FC = () => {
   const handleLogout: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
     e.preventDefault();
     try {
-      // Clear auth state and tokens
       logout();
-      // Best-effort cleanup of any cached session data
-      // Best-effort cleanup of any cached session data
-      // sessionStorage.clear();
-      // localStorage.removeItem("authToken");
     } finally {
-      // Navigate to login
       navigate("/login", { replace: true });
     }
   };

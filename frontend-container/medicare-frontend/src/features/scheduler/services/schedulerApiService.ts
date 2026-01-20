@@ -454,7 +454,6 @@ export class SchedulerApiService {
     patientId?: string;
   }): Promise<SchedulerStats> {
     try {
-      console.log("Fetching scheduler stats from API...");
       const response = await api.get("/appointment/appointments/stats", {
         params: filters,
       });

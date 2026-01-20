@@ -1,4 +1,5 @@
 import React, { useCallback, useState } from "react";
+import { EventContentArg } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -28,8 +29,7 @@ import {
 } from "./types";
 
 // Custom event formatting
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const formatEventContent = (eventInfo: any) => {
+const formatEventContent = (eventInfo: EventContentArg) => {
   const extendedProps = eventInfo.event.extendedProps;
   // Fallback if type is missing or simplified
   const appointmentType = extendedProps.appointmentType || "in-person";

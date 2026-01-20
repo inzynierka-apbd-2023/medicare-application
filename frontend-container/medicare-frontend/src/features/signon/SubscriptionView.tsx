@@ -57,7 +57,6 @@ const subscriptionPlans: SubscriptionPlan[] = [
 
 export default function SubscriptionView() {
   const handleSubscribe = (plan: SubscriptionPlan) => {
-    console.log("Subscribing to plan:", plan);
     // For now, just show success message
     alert(`Successfully subscribed to ${plan.name} plan!`);
   };

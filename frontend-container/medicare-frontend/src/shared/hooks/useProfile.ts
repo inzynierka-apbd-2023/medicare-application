@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { ProfileData } from "../../features/profile/types";
 import { useAuth } from "../auth/AuthContext";
@@ -24,7 +24,7 @@ export const useProfile = (userId?: string): UseProfileResult => {
 
   const effectiveUserId = userId || user?.id;
 
-  const fetchProfile = async () => {
+  const fetchProfile = useCallback(async () => {
     setIsLoading(true);
     setError(null);
 
@@ -37,7 +37,7 @@ export const useProfile = (userId?: string): UseProfileResult => {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [effectiveUserId]);
 
   const updateProfile = async (data: Partial<ProfileData>) => {
     setIsLoading(true);
@@ -68,9 +68,10 @@ export const useProfile = (userId?: string): UseProfileResult => {
   };
 
   useEffect(() => {
-    fetchProfile();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+    if (effectiveUserId) {
+      fetchProfile();
+    }
+  }, [fetchProfile, effectiveUserId]);
 
   return {
     profileData,

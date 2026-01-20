@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { Appointment } from "../../features/appointments/types";
 import { useAuth } from "../auth/AuthContext";
@@ -28,7 +28,7 @@ export const useWallet = (): UseWalletReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchWallet = async () => {
+  const fetchWallet = useCallback(async () => {
     if (!user?.id) {
       setLoading(false);
       setError("User not authenticated");
@@ -81,7 +81,7 @@ export const useWallet = (): UseWalletReturn => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   const payAppointment = async (
     appointmentId: string,
@@ -135,8 +135,7 @@ export const useWallet = (): UseWalletReturn => {
 
   useEffect(() => {
     fetchWallet();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [fetchWallet]);
 
   return {
     wallet,

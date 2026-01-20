@@ -63,9 +63,7 @@ export default function DoctorDashboard() {
 
         if (doctorProfile?.id) {
           const realDoctorId = doctorProfile.id;
-          console.log(
-            `[DoctorDashboard] user.id=${user.id}, realDoctorId=${realDoctorId}`
-          );
+
           setDoctorId(realDoctorId);
           // Load stats, notifications, and messages in parallel
           const [statsData, notifData, msgRes] = await Promise.all([

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 import type { Appointment } from "../../features/appointments/types";
 import { useAuth } from "../auth/AuthContext";
@@ -22,7 +22,7 @@ export const useAppointments = (): UseAppointmentsReturn => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAppointments = async () => {
+  const fetchAppointments = useCallback(async () => {
     try {
       setLoading(true);
       setError(null);
@@ -46,7 +46,7 @@ export const useAppointments = (): UseAppointmentsReturn => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [user?.id]);
 
   const updatePayment = async (
     id: string,
@@ -108,8 +108,7 @@ export const useAppointments = (): UseAppointmentsReturn => {
 
   useEffect(() => {
     fetchAppointments();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [user?.id]);
+  }, [fetchAppointments]);
 
   return {
     appointments,

@@ -43,9 +43,6 @@ const DoctorPerformanceCard: React.FC<DoctorPerformanceCardProps> = ({
   // Safely handle undefined or empty data
   const safeData = (data ?? []).filter((doc) => doc && doc.name);
 
-  console.log("DoctorPerformanceCard props data:", data);
-  console.log("DoctorPerformanceCard safeData:", safeData);
-
   // Return empty state if no data
   if (safeData.length === 0) {
     return (
@@ -253,8 +250,8 @@ const DoctorPerformanceCard: React.FC<DoctorPerformanceCardProps> = ({
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value: number) => [
-                    value.toLocaleString(),
+                  formatter={(value: number | undefined) => [
+                    (value || 0).toLocaleString(),
                     "Appointments",
                   ]}
                   contentStyle={{

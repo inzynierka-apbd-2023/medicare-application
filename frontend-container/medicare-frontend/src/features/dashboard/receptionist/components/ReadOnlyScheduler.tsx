@@ -1,5 +1,4 @@
 import React, { useCallback, useState } from "react";
-import type { EventClickArg } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
@@ -101,9 +100,8 @@ export const ReadOnlyScheduler: React.FC<ReadOnlySchedulerProps> = ({
     setShowDoctorDropdown(false);
   }, []);
 
-  const handleEventClick = useCallback((clickInfo: EventClickArg) => {
+  const handleEventClick = useCallback(() => {
     // Read-only mode - just show event details in console for now
-    console.log("Appointment clicked:", clickInfo.event.title);
   }, []);
 
   const filteredEvents = calendarEvents.filter((event: CalendarEvent) => {
