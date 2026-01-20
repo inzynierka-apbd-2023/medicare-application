@@ -1,8 +1,10 @@
 using Microsoft.EntityFrameworkCore;
 using PractitionerService.Data;
-using MediatR;
-using Microsoft.Extensions.Configuration;
 using PractitionerService.Services;
+using PractitionerService.Messaging.Consumers;
+using PractitionerService.Messaging.Notifiers;
+using System.Reflection;
+using MediatR;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -17,27 +19,20 @@ builder.Services.AddControllers();
 
 builder.AddMedicareMassTransit<PractitionerDbContext>(x =>
 {
-    x.AddConsumer<PractitionerService.Consumers.AppointmentEventConsumer>();
-    x.AddConsumer<PractitionerService.Consumers.DoctorProfileConsumer>();
-    x.AddConsumer<PractitionerService.Consumers.GetDoctorsConsumer>();
+    x.AddConsumer<AppointmentEventConsumer>();
+    x.AddConsumer<DoctorProfileConsumer>();
+    x.AddConsumer<GetDoctorsConsumer>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IGetUser>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IGetUsers>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.ICreateUser>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IUpdateUser>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IDeleteUser>();
 });
 
-builder.Services.AddMediatR(typeof(Program).Assembly);
+builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
-
-builder.Services.AddHttpClient<IStaffService, StaffService>(client =>
-{
-    var userServiceUrl = builder.Configuration["Services:UserService:BaseUrl"] ?? "http://user-service:8080";
-    client.BaseAddress = new Uri(userServiceUrl);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
-
-builder.Services.AddHttpClient("UserService", client =>
-{
-    var userServiceUrl = builder.Configuration["Services:UserService:BaseUrl"] ?? "http://user-service:8080";
-    client.BaseAddress = new Uri(userServiceUrl);
-    client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
+builder.Services.AddScoped<IStaffNotifier, StaffNotifier>();
+builder.Services.AddScoped<IStaffService, StaffService>();
 
 builder.Services.AddDbContext<PractitionerDbContext>((sp, options) =>
 {
@@ -49,8 +44,6 @@ builder.Services.AddDbContext<PractitionerDbContext>((sp, options) =>
         sql.MigrationsAssembly(typeof(PractitionerDbContext).Assembly.GetName().Name);
     });
 });
-
-
 
 builder.AddMedicareAuthentication();
 

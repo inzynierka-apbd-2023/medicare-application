@@ -3,7 +3,7 @@ using Medicare.Messaging.Contracts;
 using Microsoft.EntityFrameworkCore;
 using PractitionerService.Data;
 
-namespace PractitionerService.Consumers;
+namespace PractitionerService.Messaging.Consumers;
 
 public class DoctorProfileConsumer : IConsumer<IGetDoctor>
 {

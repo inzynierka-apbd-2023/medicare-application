@@ -34,6 +34,15 @@ public class CreateUserDto
     public string? PlanId { get; set; }
 
     public DateTime? DateOfBirth { get; set; }
+
+    public string? AvatarUrl { get; set; }
+
+    public string? AddressLine1 { get; set; }
+    public string? AddressLine2 { get; set; }
+    public string? City { get; set; }
+    public string? State { get; set; }
+    public string? ZipCode { get; set; }
+    public string? Country { get; set; }
 }
 
 public class UpdateUserDto

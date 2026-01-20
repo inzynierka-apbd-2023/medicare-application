@@ -88,6 +88,13 @@ public class UserServiceImpl : IUserService
             Email = createUserDto.Email,
             Phone = createUserDto.PhoneNumber,
             DateOfBirth = createUserDto.DateOfBirth,
+            AvatarUrl = createUserDto.AvatarUrl,
+            AddressLine1 = createUserDto.AddressLine1,
+            AddressLine2 = createUserDto.AddressLine2,
+            City = createUserDto.City,
+            State = createUserDto.State,
+            ZipCode = createUserDto.ZipCode,
+            Country = createUserDto.Country,
             CreatedAt = DateTime.UtcNow,
             UpdatedAt = DateTime.UtcNow
         };

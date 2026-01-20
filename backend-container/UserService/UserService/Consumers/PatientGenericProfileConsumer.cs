@@ -7,10 +7,10 @@ namespace UserService.Consumers;
 
 public class PatientGenericProfileConsumer : IConsumer<IGetPatient>
 {
-    private readonly UsersDbContext _db;
+    private readonly UserDbContext _db;
     private readonly ILogger<PatientGenericProfileConsumer> _logger;
 
-    public PatientGenericProfileConsumer(UsersDbContext db, ILogger<PatientGenericProfileConsumer> logger)
+    public PatientGenericProfileConsumer(UserDbContext db, ILogger<PatientGenericProfileConsumer> logger)
     {
         _db = db;
         _logger = logger;
@@ -21,28 +21,36 @@ public class PatientGenericProfileConsumer : IConsumer<IGetPatient>
         var patientId = context.Message.PatientId;
         _logger.LogInformation("Processing GetPatient request for {PatientId}", patientId);
 
-        var user = await _db.Users.FindAsync(new object[] { patientId }, context.CancellationToken);
+        var profile = await _db.UserProfiles.FindAsync(new object[] { patientId }, context.CancellationToken);
 
-        if (user == null)
+        if (profile == null)
         {
             throw new InvalidOperationException($"Patient {patientId} not found");
         }
 
         await context.RespondAsync<IPatientProfile>(new
         {
-            user.Id,
-            user.FirstName,
-            user.LastName,
-            user.Email,
-            user.Phone,
-            user.DateOfBirth,
-            user.Gender,
-            user.AddressLine1,
-            user.AddressLine2,
-            user.City,
-            user.State,
-            user.ZipCode,
-            user.Country
+            PatientId = profile.UserId,
+            FirstName = profile.FirstName,
+            LastName = profile.LastName,
+            Email = profile.Email,
+            Phone = profile.Phone,
+            DateOfBirth = profile.DateOfBirth,
+            Gender = profile.Gender,
+            AddressLine1 = profile.AddressLine1,
+            AddressLine2 = profile.AddressLine2,
+            City = profile.City,
+            State = profile.State,
+            ZipCode = profile.ZipCode,
+            Country = profile.Country,
+            BloodType = (string?)null,
+            Allergies = (string?)null,
+            Medications = (string?)null,
+            MedicalHistory = (string?)null,
+            InsuranceProvider = (string?)null,
+            InsurancePolicyNumber = (string?)null,
+            EmergencyContactName = (string?)null,
+            EmergencyContactPhone = (string?)null
         });
     }
 }

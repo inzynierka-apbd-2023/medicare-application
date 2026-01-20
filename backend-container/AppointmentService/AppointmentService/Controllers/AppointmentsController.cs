@@ -10,6 +10,7 @@ using AppointmentService.Features.Scheduler.DTOs;
 using AppointmentService.Features.Scheduler.Queries;
 using MediatR;
 using AppointmentService.Services;
+using AppointmentService.Messaging.Notifiers;
 
 namespace AppointmentService.Controllers;
 
@@ -20,14 +21,16 @@ public class AppointmentsController : ControllerBase
 {
 
     private readonly AppointmentDbContext _db;
-    private readonly IPublishEndpoint _publishEndpoint;
+    private readonly IAppointmentNotifier _appointmentNotifier;
+    private readonly IBillingNotifier _billingNotifier;
     private readonly IMediator _mediator;
     private readonly IRequestClient<IGetPatient> _patientRequestClient;
 
-    public AppointmentsController(AppointmentDbContext db, IPublishEndpoint publishEndpoint, IMediator mediator, IRequestClient<IGetPatient> patientRequestClient)
+    public AppointmentsController(AppointmentDbContext db, IAppointmentNotifier appointmentNotifier, IBillingNotifier billingNotifier, IMediator mediator, IRequestClient<IGetPatient> patientRequestClient)
     {
         _db = db;
-        _publishEndpoint = publishEndpoint;
+        _appointmentNotifier = appointmentNotifier;
+        _billingNotifier = billingNotifier;
         _mediator = mediator;
         _patientRequestClient = patientRequestClient;
     }
@@ -64,14 +67,7 @@ public class AppointmentsController : ControllerBase
 
         _db.Appointments.Add(appointment);
        
-        await _publishEndpoint.Publish<IAppointmentCreated>(new
-        {
-            AppointmentId = appointment.Id,
-            appointment.PatientId,
-            appointment.DoctorId,
-            appointment.ScheduledAt,
-            OccurredAt = DateTime.UtcNow
-        });
+        await _appointmentNotifier.NotifyAppointmentCreated(appointment);
 
         await _db.SaveChangesAsync();
 
@@ -202,14 +198,7 @@ public class AppointmentsController : ControllerBase
         appointment.Status = req.Status;
         appointment.UpdatedAt = DateTime.UtcNow;
         
-        await _publishEndpoint.Publish<IAppointmentUpdated>(new 
-        { 
-            AppointmentId = appointment.Id,
-            appointment.DoctorId,
-            appointment.Status,
-            appointment.UpdatedAt,
-            OccurredAt = DateTime.UtcNow
-        });
+        await _appointmentNotifier.NotifyAppointmentUpdated(appointment);
 
         await _db.SaveChangesAsync();
 
@@ -224,13 +213,7 @@ public class AppointmentsController : ControllerBase
 
         if (appointment.IsPaid) return Ok(new { Success = true, Message = "Already paid" });
 
-        await _publishEndpoint.Publish<IBillingPaymentInitiated>(new
-        {
-            AppointmentId = id,
-            req.PatientId,
-            req.PaymentMethod,
-            Timestamp = DateTime.UtcNow
-        });
+        await _billingNotifier.NotifyPaymentInitiated(id, req.PatientId, req.PaymentMethod);
         
         await _db.SaveChangesAsync();
 
@@ -280,15 +263,13 @@ public class AppointmentsController : ControllerBase
         var appointment = await _db.Appointments.FindAsync(id);
         if (appointment == null) return NotFound();
 
-        await _publishEndpoint.Publish<IAppointmentRated>(new
-        {
-            AppointmentId = appointment.Id,
+        await _appointmentNotifier.NotifyAppointmentRated(
+            appointment.Id,
             appointment.DoctorId,
             appointment.PatientId,
             req.Rating,
-            req.Description,
-            OccurredAt = DateTime.UtcNow
-        });
+            req.Description
+        );
 
         await _db.SaveChangesAsync();
 

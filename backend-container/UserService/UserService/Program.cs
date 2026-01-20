@@ -55,6 +55,10 @@ builder.AddMedicareMassTransit<UserDbContext>(x =>
 {
     x.AddConsumer<UserService.Consumers.PatientGenericProfileConsumer>();
     x.AddConsumer<UserService.Consumers.GetPatientsConsumer>();
+    x.AddConsumer<UserService.Consumers.GetUserConsumer>();
+    x.AddConsumer<UserService.Consumers.CreateUserConsumer>();
+    x.AddConsumer<UserService.Consumers.UpdateUserConsumer>();
+    x.AddConsumer<UserService.Consumers.DeleteUserConsumer>();
 });
 
 

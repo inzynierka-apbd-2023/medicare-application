@@ -2,7 +2,10 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi.Models;
 using MessagingService.Data;
 using MessagingService.Data.Seeders;
+using MessagingService.Messaging.Consumers;
 using MediatR;
+using MassTransit;
+using Medicare.Messaging.Contracts;
 
 var builder = WebApplication.CreateBuilder(args);
 builder.AddServiceDefaults();
@@ -65,9 +68,12 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 builder.Services.AddHealthChecks().AddDbContextCheck<MessagingDbContext>();
-builder.AddRabbitMQClient("rabbitmq");
-builder.Services.AddSingleton<MessagingService.Infrastructure.Messaging.IMessagePublisher, MessagingService.Infrastructure.Messaging.RabbitMqMessagePublisher>();
-builder.Services.AddHostedService<MessagingService.Messaging.AppointmentCreatedConsumer>();
+
+builder.AddMedicareMassTransit<MessagingDbContext>(x =>
+{
+    x.AddConsumer<AppointmentCreatedConsumer>();
+    x.AddRequestClient<IGetDoctor>();
+});
 
 builder.Services.Configure<ForwardedHeadersOptions>(options =>
 {

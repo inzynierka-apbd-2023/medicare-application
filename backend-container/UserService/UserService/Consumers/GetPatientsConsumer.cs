@@ -19,18 +19,24 @@ public class GetPatientsConsumer : IConsumer<IGetPatients>
         var ids = context.Message.PatientIds;
         var profiles = await _context.UserProfiles
             .AsNoTracking()
-            .Where(p => ids.Contains(p.User_Id))
+            .Where(p => ids.Contains(p.UserId))
             .ToListAsync();
 
         var response = profiles.Select(p => new PatientProfile 
         {
-            PatientId = p.User_Id,
-            FirstName = p.FirstName ?? "",
-            LastName = p.LastName ?? "",
-            Email = p.Email ?? "",
+            PatientId = p.UserId,
+            FirstName = p.FirstName,
+            LastName = p.LastName,
+            Email = p.Email,
             Phone = p.Phone,
             Gender = p.Gender,
-            DateOfBirth = p.DateOfBirth
+            DateOfBirth = p.DateOfBirth,
+            AddressLine1 = p.AddressLine1,
+            AddressLine2 = p.AddressLine2,
+            City = p.City,
+            State = p.State,
+            ZipCode = p.ZipCode,
+            Country = p.Country
         }).ToList<IPatientProfile>();
 
         await context.RespondAsync<IPatientProfiles>(new { Profiles = response });
@@ -39,9 +45,9 @@ public class GetPatientsConsumer : IConsumer<IGetPatients>
     public record PatientProfile : IPatientProfile
     {
         public Guid PatientId { get; init; }
-        public string FirstName { get; init; }
-        public string LastName { get; init; }
-        public string Email { get; init; }
+        public string FirstName { get; init; } = "";
+        public string LastName { get; init; } = "";
+        public string Email { get; init; } = "";
         public string? Phone { get; init; }
         public string? Gender { get; init; }
         public DateTime? DateOfBirth { get; init; }
@@ -50,6 +56,7 @@ public class GetPatientsConsumer : IConsumer<IGetPatients>
         public string? City { get; init; }
         public string? State { get; init; }
         public string? ZipCode { get; init; }
+        public string? Country { get; init; }
         public string? BloodType { get; init; }
         public string? Allergies { get; init; }
         public string? Medications { get; init; }

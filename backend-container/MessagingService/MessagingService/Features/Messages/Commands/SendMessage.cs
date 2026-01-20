@@ -2,6 +2,8 @@ using MediatR;
 using MessagingService.Data;
 using MessagingService.Models;
 using Microsoft.EntityFrameworkCore;
+using MassTransit;
+using Medicare.Messaging.Contracts;
 
 namespace MessagingService.Features.Messages.Commands;
 
@@ -19,12 +21,12 @@ public record SendMessageCommand(
 public class SendMessageHandler : IRequestHandler<SendMessageCommand, Message>
 {
     private readonly MessagingDbContext _db;
-    private readonly MessagingService.Infrastructure.Messaging.IMessagePublisher _publisher;
+    private readonly IPublishEndpoint _publishEndpoint;
 
-    public SendMessageHandler(MessagingDbContext db, MessagingService.Infrastructure.Messaging.IMessagePublisher publisher)
+    public SendMessageHandler(MessagingDbContext db, IPublishEndpoint publishEndpoint)
     {
         _db = db;
-        _publisher = publisher;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<Message> Handle(SendMessageCommand request, CancellationToken cancellationToken)
@@ -54,7 +56,16 @@ public class SendMessageHandler : IRequestHandler<SendMessageCommand, Message>
         _db.Messages.Add(msg);
         await _db.SaveChangesAsync(cancellationToken);
 
-        await _publisher.PublishMessageSentAsync(msg);
+        await _publishEndpoint.Publish<INotificationCreated>(new
+        {
+            RecipientUserId = msg.RecipientId,
+            Description = $"New message from {msg.SenderName ?? "System"}: {msg.Subject}",
+            Type = (byte)1, // Message notification
+            SourceService = "MessagingService",
+            ActionUrl = $"/messages/{msg.Id}",
+            PriorityLevel = "Normal",
+            ExpiresAt = (DateTime?)null
+        }, cancellationToken);
 
         return msg;
     }

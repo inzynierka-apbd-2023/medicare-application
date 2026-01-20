@@ -4,7 +4,7 @@ using PractitionerService.Data;
 using PractitionerService.Models;
 using Microsoft.EntityFrameworkCore;
 
-namespace PractitionerService.Consumers;
+namespace PractitionerService.Messaging.Consumers;
 
 public class AppointmentEventConsumer : 
     IConsumer<IAppointmentCreated>,

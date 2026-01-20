@@ -3,7 +3,7 @@ using Medicare.Messaging.Contracts;
 using PdfService.Services;
 using System.Text.Json;
 
-namespace PdfService.Consumers;
+namespace PdfService.Messaging.Consumers;
 
 public class PdfGenerationConsumer : IConsumer<IGeneratePdfRequest>
 {

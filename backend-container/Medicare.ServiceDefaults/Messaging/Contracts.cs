@@ -256,3 +256,95 @@ public interface ILoincItem
     string MethodType { get; }
     string ExampleUnits { get; }
 }
+
+public interface IGetUser
+{
+    Guid UserId { get; }
+}
+
+public interface IGetUsers
+{
+    List<Guid> UserIds { get; }
+}
+
+public interface IUserResponse
+{
+    Guid Id { get; }
+    string FirstName { get; }
+    string LastName { get; }
+    string Email { get; }
+    string? Phone { get; }
+    DateTime? DateOfBirth { get; }
+    string? Gender { get; }
+    string? AddressLine1 { get; }
+    string? AddressLine2 { get; }
+    string? City { get; }
+    string? State { get; }
+    string? ZipCode { get; }
+    string? Country { get; }
+    bool IsActive { get; }
+}
+
+public interface IUsersResponse
+{
+    List<IUserResponse> Users { get; }
+}
+
+public interface ICreateUser
+{
+    string FirstName { get; }
+    string LastName { get; }
+    string Email { get; }
+    string? Phone { get; }
+    DateTime? DateOfBirth { get; }
+    string? Gender { get; }
+    string? AddressLine1 { get; }
+    string? AddressLine2 { get; }
+    string? City { get; }
+    string? State { get; }
+    string? ZipCode { get; }
+    string? Country { get; }
+    string Role { get; }
+    string? Password { get; }
+}
+
+public interface IUpdateUser
+{
+    Guid UserId { get; }
+    string FirstName { get; }
+    string LastName { get; }
+    string Email { get; }
+    string? Phone { get; }
+    DateTime? DateOfBirth { get; }
+    string? Gender { get; }
+    string? AddressLine1 { get; }
+    string? AddressLine2 { get; }
+    string? City { get; }
+    string? State { get; }
+    string? ZipCode { get; }
+    string? Country { get; }
+}
+
+public interface IDeleteUser
+{
+    Guid UserId { get; }
+}
+
+public interface ICreatedUserResponse
+{
+    Guid Id { get; }
+    bool Success { get; }
+    string? ErrorMessage { get; }
+}
+
+public interface IUpdatedUserResponse
+{
+    bool Success { get; }
+    string? ErrorMessage { get; }
+}
+
+public interface IDeletedUserResponse
+{
+    bool Success { get; }
+    string? ErrorMessage { get; }
+}

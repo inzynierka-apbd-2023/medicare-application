@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MessagingService.Models;
+using MassTransit;
 
 namespace MessagingService.Data;
 
@@ -16,6 +17,13 @@ public class MessagingDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
+        base.OnModelCreating(modelBuilder);
+        modelBuilder.HasDefaultSchema("messaging");
+
+        modelBuilder.AddInboxStateEntity();
+        modelBuilder.AddOutboxMessageEntity();
+        modelBuilder.AddOutboxStateEntity();
+
         modelBuilder.Entity<Message>(e =>
         {
             e.ToTable("Message", schema: "messaging");

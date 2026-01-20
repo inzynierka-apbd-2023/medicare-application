@@ -5,24 +5,25 @@ using AppointmentService.Features.Analytics.DTOs;
 using AppointmentService.Features.Analytics.Queries;
 using AppointmentService.Models;
 using AppointmentService.Services;
+using AppointmentService.Messaging.Notifiers;
 
 namespace AppointmentService.Features.Analytics.Handlers;
 
 public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnalyticsQuery, AppointmentAnalyticsResponse>
 {
     private readonly AppointmentDbContext _context;
-    private readonly INotificationService _notificationService;
+    private readonly ISystemNotificationNotifier _notifier;
     private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> _doctorClient;
     private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> _paymentClient;
 
     public GetAppointmentAnalyticsHandler(
         AppointmentDbContext context, 
-        INotificationService notificationService,
+        ISystemNotificationNotifier notifier,
         MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient,
         MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient)
     {
         _context = context;
-        _notificationService = notificationService;
+        _notifier = notifier;
         _doctorClient = doctorClient;
         _paymentClient = paymentClient;
     }
@@ -38,14 +39,13 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var specializationStats = await GetSpecializationStatsAsync(startDate, endDate, cancellationToken);
         var timeAnalysis = await GetTimeSlotAnalysisAsync(startDate, endDate, request.DoctorId, cancellationToken);
 
-        await _notificationService.CreateNotificationAsync(new CreateNotificationRequest
-        {
-            RecipientUserId = "system",
-            Description = "Appointment analytics dashboard accessed",
-            Type = 1,
-            SourceService = "AppointmentService",
-            Priority = "Low"
-        });
+        await _notifier.NotifySystemEvent(
+            recipientId: "system",
+            description: "Appointment analytics dashboard accessed",
+            type: 1,
+            sourceService: "AppointmentService",
+            priority: "Low"
+        );
 
         return new AppointmentAnalyticsResponse
         {

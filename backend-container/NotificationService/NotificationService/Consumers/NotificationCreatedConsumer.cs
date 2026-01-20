@@ -3,7 +3,6 @@ using Medicare.Messaging.Contracts;
 using NotificationService.Data;
 using NotificationService.Models;
 using Microsoft.EntityFrameworkCore;
-using NotificationService.Models;
 
 namespace NotificationService.Consumers;
 

@@ -59,13 +59,13 @@ public class DoctorScheduleService : IDoctorScheduleService
         if (appointment == null)
             return null;
 
-        AppointmentService.Models.UserProfile? profile = null;
+        UserProfileDto? profile = null;
 
         var response = await _patientClient.GetResponse<Medicare.Messaging.Contracts.IPatientProfiles>(new { PatientIds = new[] { appointment.PatientId } }, cancellationToken);
         var p = response.Message.Profiles.FirstOrDefault();
         if (p != null)
         {
-            profile = new AppointmentService.Models.UserProfile
+            profile = new UserProfileDto
             {
                 User_Id = p.PatientId,
                 FirstName = p.FirstName,
@@ -145,19 +145,19 @@ public class DoctorScheduleService : IDoctorScheduleService
         return await query.OrderBy(a => a.ScheduledAt).ToListAsync(cancellationToken);
     }
 
-    private async Task<Dictionary<Guid, UserProfile>> FetchPatientProfilesAsync(
+    private async Task<Dictionary<Guid, UserProfileDto>> FetchPatientProfilesAsync(
         List<Appointment> appointments,
         CancellationToken cancellationToken)
     {
         var patientIds = appointments.Select(a => a.PatientId).Distinct().ToList();
-        var profiles = new Dictionary<Guid, AppointmentService.Models.UserProfile>();
+        var profiles = new Dictionary<Guid, UserProfileDto>();
 
         if (patientIds.Any())
         {
             var response = await _patientClient.GetResponse<Medicare.Messaging.Contracts.IPatientProfiles>(new { PatientIds = patientIds }, cancellationToken);
             foreach (var p in response.Message.Profiles)
             {
-                    profiles[p.PatientId] = new AppointmentService.Models.UserProfile
+                    profiles[p.PatientId] = new UserProfileDto
                     {
                         User_Id = p.PatientId,
                         FirstName = p.FirstName,
@@ -188,7 +188,7 @@ public class DoctorScheduleService : IDoctorScheduleService
     private static bool IsOverdue(Appointment appointment, DateTime now) =>
         (appointment.Status == "Scheduled" || appointment.Status == "Confirmed") && appointment.ScheduledEndAt < now;
 
-    private static DoctorScheduleEventDto MapToScheduleEvent(Appointment appointment, UserProfile? profile)
+    private static DoctorScheduleEventDto MapToScheduleEvent(Appointment appointment, UserProfileDto? profile)
     {
         var (patientName, patientAge, patientPhone, patientEmail) = ExtractPatientDetails(profile);
 
@@ -213,7 +213,7 @@ public class DoctorScheduleService : IDoctorScheduleService
         };
     }
 
-    private static (string Name, int Age, string Phone, string? Email) ExtractPatientDetails(UserProfile? profile)
+    private static (string Name, int Age, string Phone, string? Email) ExtractPatientDetails(UserProfileDto? profile)
     {
         if (profile == null)
             return (UnknownPatient, 0, "", null);
@@ -224,7 +224,7 @@ public class DoctorScheduleService : IDoctorScheduleService
         return (name, age, profile.Phone ?? "", profile.Email);
     }
 
-    private static string BuildPatientName(UserProfile profile)
+    private static string BuildPatientName(UserProfileDto profile)
     {
         var name = $"{profile.FirstName} {profile.LastName}".Trim();
         return string.IsNullOrEmpty(name) ? UnknownPatient : name;

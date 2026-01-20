@@ -1,5 +1,5 @@
 using MassTransit;
-using PdfService.Consumers;
+using PdfService.Messaging.Consumers;
 using PdfService.Services;
 
 var builder = WebApplication.CreateBuilder(args);

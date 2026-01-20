@@ -57,7 +57,9 @@ builder.AddMedicareMassTransit<AppointmentDbContext>(x =>
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));
 
-builder.Services.AddScoped<INotificationService, NotificationService>();
+builder.Services.AddScoped<IAppointmentNotifier, AppointmentNotifier>();
+builder.Services.AddScoped<IBillingNotifier, BillingNotifier>();
+builder.Services.AddScoped<ISystemNotificationNotifier, SystemNotificationNotifier>();
 builder.Services.AddScoped<AppointmentService.Features.Metrics.Services.IAppointmentMetricsService, AppointmentService.Features.Metrics.Services.AppointmentMetricsService>();
 builder.Services.AddScoped<IDoctorScheduleService, DoctorScheduleService>();
 builder.Services.AddScoped<IDoctorDashboardService, DoctorDashboardService>();

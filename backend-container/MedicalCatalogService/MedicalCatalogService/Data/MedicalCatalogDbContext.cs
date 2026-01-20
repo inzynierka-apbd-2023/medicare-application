@@ -1,5 +1,6 @@
 using Microsoft.EntityFrameworkCore;
 using MedicalCatalogService.Models;
+using MassTransit;
 
 namespace MedicalCatalogService.Data;
 

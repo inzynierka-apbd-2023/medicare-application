@@ -1,9 +1,10 @@
 using PractitionerService.Data;
 using PractitionerService.Models;
 using PractitionerService.Features.StaffManagement.DTOs;
+using PractitionerService.Messaging.Notifiers;
 using Microsoft.EntityFrameworkCore;
-using System.Net.Http;
-using System.Text.Json;
+using MassTransit;
+using Medicare.Messaging.Contracts;
 
 namespace PractitionerService.Services
 {
@@ -20,277 +21,229 @@ namespace PractitionerService.Services
     public class StaffService : IStaffService
     {
         private readonly PractitionerDbContext _context;
-        private readonly HttpClient _userServiceClient;
         private readonly ILogger<StaffService> _logger;
-        private readonly MassTransit.IPublishEndpoint _publishEndpoint;
+        private readonly IStaffNotifier _staffNotifier;
+        private readonly IRequestClient<IGetUser> _getUserClient;
+        private readonly IRequestClient<IGetUsers> _getUsersClient;
+        private readonly IRequestClient<ICreateUser> _createUserClient;
+        private readonly IRequestClient<IUpdateUser> _updateUserClient;
+        private readonly IRequestClient<IDeleteUser> _deleteUserClient;
 
         public StaffService(
-            PractitionerDbContext context, 
-            HttpClient userServiceClient,
+            PractitionerDbContext context,
             ILogger<StaffService> logger,
-            MassTransit.IPublishEndpoint publishEndpoint)
+            IStaffNotifier staffNotifier,
+            IRequestClient<IGetUser> getUserClient,
+            IRequestClient<IGetUsers> getUsersClient,
+            IRequestClient<ICreateUser> createUserClient,
+            IRequestClient<IUpdateUser> updateUserClient,
+            IRequestClient<IDeleteUser> deleteUserClient)
         {
             _context = context;
-            _userServiceClient = userServiceClient;
             _logger = logger;
-            _publishEndpoint = publishEndpoint;
+            _staffNotifier = staffNotifier;
+            _getUserClient = getUserClient;
+            _getUsersClient = getUsersClient;
+            _createUserClient = createUserClient;
+            _updateUserClient = updateUserClient;
+            _deleteUserClient = deleteUserClient;
         }
 
         public async Task<StaffMemberDto?> CreateStaffMemberAsync(CreateStaffRequest request, CancellationToken cancellationToken = default)
         {
             using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            
-            try
+
+            var createUserResponse = await _createUserClient.GetResponse<ICreatedUserResponse>(new
             {
-                // Step 1: Create user profile via UserService
-                var userProfileRequest = new
+                request.Profile.FirstName,
+                request.Profile.LastName,
+                request.Profile.Email,
+                request.Profile.Phone,
+                request.Profile.DateOfBirth,
+                request.Profile.Gender,
+                request.Profile.AddressLine1,
+                request.Profile.AddressLine2,
+                request.Profile.City,
+                request.Profile.State,
+                request.Profile.ZipCode,
+                request.Profile.Country,
+                request.Role,
+                Password = (string?)null
+            }, cancellationToken);
+
+            var userResult = createUserResponse.Message;
+            if (!userResult.Success || userResult.Id == Guid.Empty)
+            {
+                _logger.LogError("Failed to create user profile: {Error}", userResult.ErrorMessage);
+                throw new InvalidOperationException($"Failed to create user profile: {userResult.ErrorMessage}");
+            }
+
+            var userId = userResult.Id;
+            var now = DateTime.UtcNow;
+
+            if (request.Role.Equals("Doctor", StringComparison.OrdinalIgnoreCase))
+            {
+                var doctor = new Doctor
                 {
-                    firstName = request.Profile.FirstName,
-                    lastName = request.Profile.LastName,
-                    email = request.Profile.Email,
-                    phone = request.Profile.Phone,
-                    dateOfBirth = request.Profile.DateOfBirth,
-                    gender = request.Profile.Gender,
-                    addressLine1 = request.Profile.AddressLine1,
-                    addressLine2 = request.Profile.AddressLine2,
-                    city = request.Profile.City,
-                    state = request.Profile.State,
-                    zipCode = request.Profile.ZipCode,
-                    country = request.Profile.Country,
-                    role = request.Role
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    Bio = request.Biography,
+                    CreatedAt = now,
+                    UpdatedAt = now
                 };
 
-                var userResponse = await _userServiceClient.PostAsJsonAsync("/api/users", userProfileRequest, cancellationToken);
-                
-                if (!userResponse.IsSuccessStatusCode)
-                {
-                    var errorContent = await userResponse.Content.ReadAsStringAsync(cancellationToken);
-                    _logger.LogError("Failed to create user profile: {StatusCode} - {Content}", userResponse.StatusCode, errorContent);
-                    throw new InvalidOperationException($"Failed to create user profile: {userResponse.StatusCode}");
-                }
+                _context.Doctors.Add(doctor);
+                await _context.SaveChangesAsync(cancellationToken);
 
-                var userResponseContent = await userResponse.Content.ReadAsStringAsync(cancellationToken);
-                var userResult = JsonSerializer.Deserialize<dynamic>(userResponseContent);
-                var userIdString = userResult?.GetProperty("id").GetString();
-                Guid userIdResult = Guid.Empty;
-                if (string.IsNullOrEmpty(userIdString) || !Guid.TryParse(userIdString, out userIdResult))
+                if (request.Specializations?.Any() == true)
                 {
-                    throw new InvalidOperationException("Failed to get valid user ID from UserService response");
-                }
-                var userId = userIdResult;
-
-                // Step 2: Create staff member in PractitionerService
-                var now = DateTime.UtcNow;
-                
-                if (request.Role.Equals("Doctor", StringComparison.OrdinalIgnoreCase))
-                {
-                    var doctor = new Doctor
+                    foreach (var specializationId in request.Specializations)
                     {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        Bio = request.Biography,
-                        CreatedAt = now,
-                        UpdatedAt = now
-                    };
-
-                    _context.Doctors.Add(doctor);
-                    await _context.SaveChangesAsync(cancellationToken);
-
-                    // Add specializations if provided
-                    if (request.Specializations?.Any() == true)
-                    {
-                        foreach (var specializationId in request.Specializations)
+                        var doctorSpecialization = new DoctorSpecialization
                         {
-                            var doctorSpecialization = new DoctorSpecialization
-                            {
-                                DoctorId = doctor.Id,
-                                SpecializationId = specializationId
-                            };
-                            _context.DoctorSpecializations.Add(doctorSpecialization);
-                        }
-                        await _context.SaveChangesAsync(cancellationToken);
+                            DoctorId = doctor.Id,
+                            SpecializationId = specializationId
+                        };
+                        _context.DoctorSpecializations.Add(doctorSpecialization);
                     }
-                }
-                else if (request.Role.Equals("Receptionist", StringComparison.OrdinalIgnoreCase))
-                {
-                    var receptionist = new Receptionist
-                    {
-                        Id = Guid.NewGuid(),
-                        UserId = userId,
-                        CreatedAt = now,
-                        UpdatedAt = now
-                    };
-
-                    _context.Receptionists.Add(receptionist);
                     await _context.SaveChangesAsync(cancellationToken);
                 }
-
-                await transaction.CommitAsync(cancellationToken);
-
-                // Return the created staff member
-                return await GetStaffMemberByUserIdAsync(userId, cancellationToken);
             }
-            catch (Exception ex)
+            else if (request.Role.Equals("Receptionist", StringComparison.OrdinalIgnoreCase))
             {
-                await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Failed to create staff member");
-                throw;
+                var receptionist = new Receptionist
+                {
+                    Id = Guid.NewGuid(),
+                    UserId = userId,
+                    CreatedAt = now,
+                    UpdatedAt = now
+                };
+
+                _context.Receptionists.Add(receptionist);
+                await _context.SaveChangesAsync(cancellationToken);
             }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            return await GetStaffMemberByUserIdAsync(userId, cancellationToken);
         }
 
         public async Task<StaffMemberDto?> UpdateStaffMemberAsync(Guid id, UpdateStaffRequest request, CancellationToken cancellationToken = default)
         {
             using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            
-            try
+
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
+            var receptionist = await _context.Receptionists.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+            if (doctor == null && receptionist == null)
             {
-                // Find the staff member
-                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
-                var receptionist = await _context.Receptionists.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+                return null;
+            }
 
-                if (doctor == null && receptionist == null)
+            var userId = doctor?.UserId ?? receptionist?.UserId;
+            if (!userId.HasValue)
+            {
+                return null;
+            }
+
+            if (request.Profile != null)
+            {
+                var updateResponse = await _updateUserClient.GetResponse<IUpdatedUserResponse>(new
                 {
-                    return null;
+                    UserId = userId.Value,
+                    request.Profile.FirstName,
+                    request.Profile.LastName,
+                    request.Profile.Email,
+                    request.Profile.Phone,
+                    request.Profile.DateOfBirth,
+                    request.Profile.Gender,
+                    request.Profile.AddressLine1,
+                    request.Profile.AddressLine2,
+                    request.Profile.City,
+                    request.Profile.State,
+                    request.Profile.ZipCode,
+                    request.Profile.Country
+                }, cancellationToken);
+
+                if (!updateResponse.Message.Success)
+                {
+                    _logger.LogError("Failed to update user profile: {Error}", updateResponse.Message.ErrorMessage);
+                    throw new InvalidOperationException($"Failed to update user profile: {updateResponse.Message.ErrorMessage}");
                 }
+            }
 
-                var userId = doctor?.UserId ?? receptionist?.UserId;
-                if (!userId.HasValue)
+            var now = DateTime.UtcNow;
+
+            if (doctor != null)
+            {
+                if (!string.IsNullOrEmpty(request.Biography))
+                    doctor.Bio = request.Biography;
+
+                doctor.UpdatedAt = now;
+
+                if (request.Specializations != null)
                 {
-                    return null;
-                }
+                    var existingSpecializations = await _context.DoctorSpecializations
+                        .Where(ds => ds.DoctorId == doctor.Id)
+                        .ToListAsync(cancellationToken);
 
-                // Update user profile if provided
-                if (request.Profile != null)
-                {
-                    var userUpdateRequest = new
+                    _context.DoctorSpecializations.RemoveRange(existingSpecializations);
+
+                    foreach (var specializationId in request.Specializations)
                     {
-                        firstName = request.Profile.FirstName,
-                        lastName = request.Profile.LastName,
-                        email = request.Profile.Email,
-                        phone = request.Profile.Phone,
-                        dateOfBirth = request.Profile.DateOfBirth,
-                        gender = request.Profile.Gender,
-                        addressLine1 = request.Profile.AddressLine1,
-                        addressLine2 = request.Profile.AddressLine2,
-                        city = request.Profile.City,
-                        state = request.Profile.State,
-                        zipCode = request.Profile.ZipCode,
-                        country = request.Profile.Country
-                    };
-
-                    var userResponse = await _userServiceClient.PutAsJsonAsync($"/api/users/{userId}", userUpdateRequest, cancellationToken);
-                    
-                    if (!userResponse.IsSuccessStatusCode)
-                    {
-                        var errorContent = await userResponse.Content.ReadAsStringAsync(cancellationToken);
-                        _logger.LogError("Failed to update user profile: {StatusCode} - {Content}", userResponse.StatusCode, errorContent);
-                        throw new InvalidOperationException($"Failed to update user profile: {userResponse.StatusCode}");
-                    }
-                }
-
-                // Update practitioner-specific data
-                var now = DateTime.UtcNow;
-
-                if (doctor != null)
-                {
-                    if (!string.IsNullOrEmpty(request.Biography))
-                        doctor.Bio = request.Biography;
-                    
-                    doctor.UpdatedAt = now;
-
-                    // Update specializations if provided
-                    if (request.Specializations != null)
-                    {
-                        // Remove existing specializations
-                        var existingSpecializations = await _context.DoctorSpecializations
-                            .Where(ds => ds.DoctorId == doctor.Id)
-                            .ToListAsync(cancellationToken);
-                        
-                        _context.DoctorSpecializations.RemoveRange(existingSpecializations);
-
-                        // Add new specializations
-                        foreach (var specializationId in request.Specializations)
+                        var doctorSpecialization = new DoctorSpecialization
                         {
-                            var doctorSpecialization = new DoctorSpecialization
-                            {
-                                DoctorId = doctor.Id,
-                                SpecializationId = specializationId
-                            };
-                            _context.DoctorSpecializations.Add(doctorSpecialization);
-                        }
+                            DoctorId = doctor.Id,
+                            SpecializationId = specializationId
+                        };
+                        _context.DoctorSpecializations.Add(doctorSpecialization);
                     }
                 }
-                else if (receptionist != null)
-                {
-                    receptionist.UpdatedAt = now;
-                }
-
-                await _context.SaveChangesAsync(cancellationToken);
-                await transaction.CommitAsync(cancellationToken);
-
-                return await GetStaffMemberByUserIdAsync(userId.Value, cancellationToken);
             }
-            catch (Exception ex)
+            else if (receptionist != null)
             {
-                await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Failed to update staff member with ID {StaffId}", id);
-                throw;
+                receptionist.UpdatedAt = now;
             }
+
+            await _context.SaveChangesAsync(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+
+            return await GetStaffMemberByUserIdAsync(userId.Value, cancellationToken);
         }
 
         public async Task<bool> DeleteStaffMemberAsync(Guid id, CancellationToken cancellationToken = default)
         {
             using var transaction = await _context.Database.BeginTransactionAsync(cancellationToken);
-            try
+
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
+            var receptionist = await _context.Receptionists.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
+
+            if (doctor == null && receptionist == null)
             {
-                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.Id == id, cancellationToken);
-                var receptionist = await _context.Receptionists.FirstOrDefaultAsync(r => r.Id == id, cancellationToken);
-
-                if (doctor == null && receptionist == null)
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    return false;
-                }
-
-                var userId = doctor?.UserId ?? receptionist?.UserId;
-
-                // Soft delete via UserService
-                var response = await _userServiceClient.DeleteAsync($"/api/users/{userId}", cancellationToken);
-                
-                if (!response.IsSuccessStatusCode)
-                {
-                    await transaction.RollbackAsync(cancellationToken);
-                    _logger.LogError("Failed to delete user profile: {StatusCode}", response.StatusCode);
-                    return false;
-                }
-
-                if (doctor != null)
-                {
-                    // Publish DoctorArchived event
-                    await _publishEndpoint.Publish<Medicare.Messaging.Contracts.IDoctorArchived>(new
-                    {
-                        DoctorId = doctor.Id,
-                        DoctorUserId = doctor.UserId
-                    }, cancellationToken);
-                }
-
-                // If we were hard deleting practitioner record locally, we would do it here.
-                // Assuming UserService soft-delete is enough due to strict boundaries, but we should probably mark local entity as inactive too?
-                // For now, only publishing the event as requested.
-                // Actually, let's mark as inactive to be safe if that exists, or just commit.
-                // doctor.IsActive = false; // Entity doesn't seem to have IsActive property in DTO but DB has it.
-                // Let's assume the event is the critical part for AppointmentService.
-                
-                await transaction.CommitAsync(cancellationToken);
-
-                return true;
-            }
-            catch (Exception ex)
-            {
-                await transaction.RollbackAsync(cancellationToken);
-                _logger.LogError(ex, "Failed to delete staff member with ID {StaffId}", id);
                 return false;
             }
+
+            var userId = doctor?.UserId ?? receptionist?.UserId;
+
+            var deleteResponse = await _deleteUserClient.GetResponse<IDeletedUserResponse>(new
+            {
+                UserId = userId!.Value
+            }, cancellationToken);
+
+            if (!deleteResponse.Message.Success)
+            {
+                _logger.LogError("Failed to delete user profile: {Error}", deleteResponse.Message.ErrorMessage);
+                return false;
+            }
+
+            if (doctor != null)
+            {
+                await _staffNotifier.NotifyDoctorArchived(doctor.Id, doctor.UserId, cancellationToken);
+            }
+
+            await transaction.CommitAsync(cancellationToken);
+
+            return true;
         }
 
 
@@ -312,44 +265,49 @@ namespace PractitionerService.Services
         {
             var staffMembers = new List<StaffMemberDto>();
 
-            // Get doctors if role filter allows
-            if (string.IsNullOrEmpty(searchRequest.Role) || searchRequest.Role.Equals("Doctor", StringComparison.OrdinalIgnoreCase))
+            var doctors = string.IsNullOrEmpty(searchRequest.Role) || searchRequest.Role.Equals("Doctor", StringComparison.OrdinalIgnoreCase)
+                ? await _context.Doctors.ToListAsync(cancellationToken)
+                : new List<Doctor>();
+
+            var receptionists = string.IsNullOrEmpty(searchRequest.Role) || searchRequest.Role.Equals("Receptionist", StringComparison.OrdinalIgnoreCase)
+                ? await _context.Receptionists.ToListAsync(cancellationToken)
+                : new List<Receptionist>();
+
+            var allUserIds = doctors.Select(d => d.UserId)
+                .Concat(receptionists.Select(r => r.UserId))
+                .Where(id => id != Guid.Empty)
+                .Distinct()
+                .ToList();
+
+            if (allUserIds.Count == 0)
             {
-                var doctorsQuery = _context.Doctors.AsQueryable();
-                
-                var doctors = await doctorsQuery.ToListAsync(cancellationToken);
-                
-                foreach (var doctor in doctors)
+                return staffMembers;
+            }
+
+            var usersResponse = await _getUsersClient.GetResponse<IUsersResponse>(new { UserIds = allUserIds }, cancellationToken);
+            var userProfiles = usersResponse.Message.Users?.ToDictionary(u => u.Id) ?? new Dictionary<Guid, IUserResponse>();
+
+            foreach (var doctor in doctors)
+            {
+                if (userProfiles.TryGetValue(doctor.UserId, out var profile))
                 {
-                    if (doctor.UserId != Guid.Empty)
-                    {
-                        var staffMember = await GetStaffMemberByUserIdAsync(doctor.UserId, cancellationToken);
-                        if (staffMember != null)
-                        {
-                            staffMembers.Add(staffMember);
-                        }
-                    }
+                    var specializations = await _context.DoctorSpecializations
+                        .Where(ds => ds.DoctorId == doctor.Id)
+                        .Join(_context.Specializations, ds => ds.SpecializationId, s => s.Id, (ds, s) => s)
+                        .ToListAsync(cancellationToken);
+
+                    staffMembers.Add(MapToStaffMemberDto(doctor, null, profile, specializations));
                 }
             }
 
-            // Get receptionists if role filter allows
-            if (string.IsNullOrEmpty(searchRequest.Role) || searchRequest.Role.Equals("Receptionist", StringComparison.OrdinalIgnoreCase))
+            foreach (var receptionist in receptionists)
             {
-                var receptionistsQuery = _context.Receptionists.AsQueryable();
-                
-                var receptionists = await receptionistsQuery.ToListAsync(cancellationToken);
-                
-                foreach (var receptionist in receptionists)
+                if (userProfiles.TryGetValue(receptionist.UserId, out var profile))
                 {
-                    var staffMember = await GetStaffMemberByUserIdAsync(receptionist.UserId, cancellationToken);
-                    if (staffMember != null)
-                    {
-                        staffMembers.Add(staffMember);
-                    }
+                    staffMembers.Add(MapToStaffMemberDto(null, receptionist, profile, null));
                 }
             }
 
-            // Apply search filter
             if (!string.IsNullOrEmpty(searchRequest.SearchQuery))
             {
                 staffMembers = staffMembers.Where(s =>
@@ -359,13 +317,11 @@ namespace PractitionerService.Services
                 ).ToList();
             }
 
-            // Apply active filter
             if (searchRequest.IsActive.HasValue)
             {
                 staffMembers = staffMembers.Where(s => s.IsActive == searchRequest.IsActive.Value).ToList();
             }
 
-            // Apply pagination
             var skip = (searchRequest.Page - 1) * searchRequest.PageSize;
             return staffMembers.Skip(skip).Take(searchRequest.PageSize).ToList();
         }
@@ -376,7 +332,7 @@ namespace PractitionerService.Services
             {
                 Role = role,
                 Page = 1,
-                PageSize = 1000 // Get all for role-based queries
+                PageSize = 1000
             };
 
             return await GetAllStaffMembersAsync(searchRequest, cancellationToken);
@@ -384,77 +340,60 @@ namespace PractitionerService.Services
 
         private async Task<StaffMemberDto?> GetStaffMemberByUserIdAsync(Guid userId, CancellationToken cancellationToken = default)
         {
-            try
+            var userResponse = await _getUserClient.GetResponse<IUserResponse>(new { UserId = userId }, cancellationToken);
+            var profile = userResponse.Message;
+
+            if (profile == null || profile.Id == Guid.Empty)
             {
-                // Get user profile from UserService
-                var userResponse = await _userServiceClient.GetAsync($"/api/users/{userId}", cancellationToken);
-                
-                if (!userResponse.IsSuccessStatusCode)
-                {
-                    _logger.LogWarning("Failed to get user profile for userId {UserId}: {StatusCode}", userId, userResponse.StatusCode);
-                    return null;
-                }
-
-                var userContent = await userResponse.Content.ReadAsStringAsync(cancellationToken);
-                var userProfile = JsonSerializer.Deserialize<dynamic>(userContent);
-
-                // Get practitioner-specific data
-                var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
-                var receptionist = await _context.Receptionists.FirstOrDefaultAsync(r => r.UserId == userId, cancellationToken);
-
-                if (doctor == null && receptionist == null)
-                {
-                    return null;
-                }
-
-                // Get specializations for doctors
-                List<SpecializationDto> specializations = new();
-                if (doctor != null)
-                {
-                    var doctorSpecializations = await _context.DoctorSpecializations
-                        .Where(ds => ds.DoctorId == doctor.Id)
-                        .Join(_context.Specializations, ds => ds.SpecializationId, s => s.Id, (ds, s) => s)
-                        .ToListAsync(cancellationToken);
-
-                    specializations = doctorSpecializations.Select(s => new SpecializationDto
-                    {
-                        Id = s.Id,
-                        Name = s.Name,
-                        IsPrimary = true // You might want to add this logic
-                    }).ToList();
-                }
-
-                var staffMember = new StaffMemberDto
-                {
-                    Id = doctor?.Id ?? receptionist!.Id,
-                    Role = doctor != null ? "Doctor" : "Receptionist",
-                    Profile = new ProfileDto
-                    {
-                        FirstName = userProfile?.GetProperty("firstName").GetString() ?? "",
-                        LastName = userProfile?.GetProperty("lastName").GetString() ?? "",
-                        Email = userProfile?.GetProperty("email").GetString() ?? "",
-                        Phone = userProfile?.GetProperty("phone").GetString(),
-                        DateOfBirth = userProfile?.GetProperty("dateOfBirth").GetDateTime() ?? DateTime.MinValue,
-                        Gender = userProfile?.GetProperty("gender").GetString() ?? "",
-                        AddressLine1 = userProfile?.GetProperty("addressLine1").GetString() ?? "",
-                        AddressLine2 = userProfile?.GetProperty("addressLine2").GetString(),
-                        City = userProfile?.GetProperty("city").GetString() ?? "",
-                        State = userProfile?.GetProperty("state").GetString() ?? "",
-                        ZipCode = userProfile?.GetProperty("zipCode").GetString() ?? "",
-                        Country = userProfile?.GetProperty("country").GetString() ?? ""
-                    },
-                    IsActive = userProfile?.GetProperty("isActive").GetBoolean() ?? true,
-                    CreatedAt = doctor?.CreatedAt ?? receptionist!.CreatedAt,
-                    UpdatedAt = doctor?.UpdatedAt ?? receptionist!.UpdatedAt
-                };
-
-                return staffMember;
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Failed to get staff member by userId {UserId}", userId);
+                _logger.LogWarning("Failed to get user profile for userId {UserId}", userId);
                 return null;
             }
+
+            var doctor = await _context.Doctors.FirstOrDefaultAsync(d => d.UserId == userId, cancellationToken);
+            var receptionist = await _context.Receptionists.FirstOrDefaultAsync(r => r.UserId == userId, cancellationToken);
+
+            if (doctor == null && receptionist == null)
+            {
+                return null;
+            }
+
+            List<Specialization>? specializations = null;
+            if (doctor != null)
+            {
+                specializations = await _context.DoctorSpecializations
+                    .Where(ds => ds.DoctorId == doctor.Id)
+                    .Join(_context.Specializations, ds => ds.SpecializationId, s => s.Id, (ds, s) => s)
+                    .ToListAsync(cancellationToken);
+            }
+
+            return MapToStaffMemberDto(doctor, receptionist, profile, specializations);
+        }
+
+        private static StaffMemberDto MapToStaffMemberDto(Doctor? doctor, Receptionist? receptionist, IUserResponse profile, List<Specialization>? specializations)
+        {
+            return new StaffMemberDto
+            {
+                Id = doctor?.Id ?? receptionist!.Id,
+                Role = doctor != null ? "Doctor" : "Receptionist",
+                Profile = new ProfileDto
+                {
+                    FirstName = profile.FirstName ?? "",
+                    LastName = profile.LastName ?? "",
+                    Email = profile.Email ?? "",
+                    Phone = profile.Phone,
+                    DateOfBirth = profile.DateOfBirth ?? DateTime.MinValue,
+                    Gender = profile.Gender ?? "",
+                    AddressLine1 = profile.AddressLine1 ?? "",
+                    AddressLine2 = profile.AddressLine2,
+                    City = profile.City ?? "",
+                    State = profile.State ?? "",
+                    ZipCode = profile.ZipCode ?? "",
+                    Country = profile.Country ?? ""
+                },
+                IsActive = profile.IsActive,
+                CreatedAt = doctor?.CreatedAt ?? receptionist!.CreatedAt,
+                UpdatedAt = doctor?.UpdatedAt ?? receptionist!.UpdatedAt
+            };
         }
     }
 }
