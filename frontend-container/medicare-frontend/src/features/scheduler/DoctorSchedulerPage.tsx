@@ -114,6 +114,8 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
 
   // Visit note handlers
   const handleOpenVisitNote = async (appointment: DoctorScheduleEvent) => {
+    // Hide the appointment details modal when opening visit note
+    setIsModalOpen(false);
     setVisitNoteLoading(true);
     
     // Check if there's an existing visit note for this appointment
@@ -134,12 +136,17 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
   const handleCloseVisitNoteModal = () => {
     setIsVisitNoteModalOpen(false);
     setVisitNoteData(undefined);
+    // Reopen the appointment details modal
+    if (selectedAppointment) {
+      setIsModalOpen(true);
+    }
   };
 
   const handleSaveVisitNote = async (data: VisitNoteData): Promise<void> => {
     if (!selectedAppointment) return;
 
     let success = false;
+    
     if (visitNoteMode === "edit" && visitNoteData?.documentId) {
       success = await updateVisitNote(visitNoteData.documentId, data);
     } else {
@@ -151,6 +158,8 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
       setSelectedAppointment((prev) =>
         prev ? { ...prev, hasVisitNote: true } : null
       );
+      // Update the mode and data so subsequent edits work correctly
+      setVisitNoteMode("edit");
     }
   };
 

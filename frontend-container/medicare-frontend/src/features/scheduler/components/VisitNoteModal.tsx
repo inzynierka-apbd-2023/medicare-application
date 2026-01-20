@@ -288,8 +288,9 @@ export function VisitNoteModal({
       isOpen={isOpen}
       onClose={onClose}
       title={isEditMode ? 'Edit Visit Note' : 'Generate Visit Note'}
+      size="lg"
     >
-      <div className="space-y-4 max-h-[70vh] overflow-y-auto px-1">
+      <div className="space-y-4 overflow-y-auto px-2 pb-2" style={{ maxHeight: 'calc(80vh - 180px)' }}>
         {/* Patient Info Header */}
         <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
           <div className="flex items-center gap-2 text-blue-700">
