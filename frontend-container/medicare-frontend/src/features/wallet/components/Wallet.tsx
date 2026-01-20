@@ -1,7 +1,6 @@
 import React from "react";
-
-import { Loading } from "../../../shared/components";
-import type { WalletProps } from "../types";
+import type { WalletProps } from "@features/wallet/types";
+import { Loading } from "@shared/components";
 
 import { SubscriptionInfo } from "./SubscriptionInfo";
 import { AppointmentsList } from "./VisitsList";

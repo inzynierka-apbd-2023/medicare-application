@@ -1,14 +1,13 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
-import { Menu, User, X } from "lucide-react";
-
-import { DropdownMenu } from "../features/profile/components";
-import { useAuth } from "../shared/auth/AuthContext";
+import { DropdownMenu } from "@features/profile/components";
+import { useAuth } from "@shared/auth/AuthContext";
 import {
   getDefaultDashboard,
   getNavigationForRole,
-} from "../shared/constants/routes";
-import { notificationsApi } from "../shared/services/notificationsApi";
+} from "@shared/constants/routes";
+import { notificationsApi } from "@shared/services/notificationsApi";
+import { Menu, User, X } from "lucide-react";
 
 export default function Header() {
   const { user } = useAuth();

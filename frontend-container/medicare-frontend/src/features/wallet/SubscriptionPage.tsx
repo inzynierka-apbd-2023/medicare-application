@@ -1,13 +1,9 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import Header from "../../layout/Header";
-import { useAuth } from "../../shared/auth/AuthContext";
-import { ErrorDisplay, Loading } from "../../shared/components";
-import {
-  type PatientPlanResponse,
-  plansApi,
-} from "../../shared/services/plansApi";
+import Header from "@layout/Header";
+import { useAuth } from "@shared/auth/AuthContext";
+import { ErrorDisplay, Loading } from "@shared/components";
+import { type PatientPlanResponse, plansApi } from "@shared/services/plansApi";
 
 import { BuySubscriptionModal } from "./components/BuySubscriptionModal";
 import { SubscriptionView } from "./components/SubscriptionView";

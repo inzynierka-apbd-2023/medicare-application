@@ -1,6 +1,8 @@
 import React from "react";
-
-import { Prescription, PrescriptionListProps } from "../types";
+import {
+  Prescription,
+  PrescriptionListProps,
+} from "@features/prescriptions/types";
 
 import { PrescriptionCard } from "./PrescriptionCard";
 

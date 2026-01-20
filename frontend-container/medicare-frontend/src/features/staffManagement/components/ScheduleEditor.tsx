@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from "react";
+import type {
+  ScheduleEntry,
+  StaffMember,
+} from "@features/staffManagement/types";
+import { Button, Input, Modal } from "@shared/components";
+import { staffApi } from "@shared/services/staffApi";
 import { Save } from "lucide-react";
-
-import { Button, Input, Modal } from "../../../shared/components";
-import { staffApi } from "../../../shared/services/staffApi";
-import type { ScheduleEntry, StaffMember } from "../types";
 
 interface ScheduleEditorProps {
   doctor: StaffMember | null;

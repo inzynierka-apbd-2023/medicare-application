@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import Header from "../../layout/Header";
-import { useAuth } from "../../shared/auth/AuthContext";
-import { ErrorDisplay, LoadingOverlay } from "../../shared/components";
-import { useProfile } from "../../shared/hooks/useProfile";
+import Header from "@layout/Header";
+import { useAuth } from "@shared/auth/AuthContext";
+import { ErrorDisplay, LoadingOverlay } from "@shared/components";
+import { useProfile } from "@shared/hooks/useProfile";
 
 import { Profile } from "./Profile";
 import type { ProfilePageProps } from "./types";

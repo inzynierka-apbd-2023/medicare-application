@@ -1,8 +1,7 @@
 import React from "react";
+import type { ReceptionistDashboardStats } from "@features/dashboard/receptionist/types";
+import { DashboardCard } from "@features/dashboard/shared/components";
 import { Calendar, Stethoscope, Users } from "lucide-react";
-
-import { DashboardCard } from "../../shared/components";
-import type { ReceptionistDashboardStats } from "../types";
 
 interface StatsCardsProps {
   stats: ReceptionistDashboardStats;

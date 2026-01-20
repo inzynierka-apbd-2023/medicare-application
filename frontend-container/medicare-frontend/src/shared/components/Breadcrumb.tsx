@@ -1,9 +1,8 @@
 import React from "react";
 import { Link, useLocation } from "react-router-dom";
+import { useAuth } from "@shared/auth/AuthContext";
+import { generateBreadcrumbs } from "@shared/utils/routeUtils";
 import { ChevronRight, Home } from "lucide-react";
-
-import { useAuth } from "../auth/AuthContext";
-import { generateBreadcrumbs } from "../utils/routeUtils";
 
 interface BreadcrumbProps {
   className?: string;

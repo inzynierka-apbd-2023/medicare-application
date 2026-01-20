@@ -1,6 +1,5 @@
 import React, { useMemo } from "react";
-
-import type { PatientListProps } from "../types";
+import type { PatientListProps } from "@features/userTypes/types";
 
 import { PatientFilters, PatientTable } from "./index";
 

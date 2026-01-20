@@ -1,7 +1,6 @@
 import React, { useState } from "react";
-
-import { Button, Card, Input } from "../../../shared/components";
-import type { ProfileData, ProfileFormProps } from "../types";
+import type { ProfileData, ProfileFormProps } from "@features/profile/types";
+import { Button, Card, Input } from "@shared/components";
 
 export const ProfileForm: React.FC<ProfileFormProps> = ({
   profileData,

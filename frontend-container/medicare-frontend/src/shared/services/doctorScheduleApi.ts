@@ -1,5 +1,5 @@
-import type { DoctorScheduleEvent } from "../../features/scheduler/types/doctorScheduler";
-import { toastMessages } from "../toast/toastMessages";
+import type { DoctorScheduleEvent } from "@features/scheduler/types/doctorScheduler";
+import { toastMessages } from "@shared/toast/toastMessages";
 
 import { api } from "./api";
 

@@ -1,8 +1,7 @@
 import React from "react";
+import type { QuickAppointment } from "@features/dashboard/receptionist/types";
+import { Badge, Card } from "@shared/components";
 import { Clock, MapPin, Phone, Video } from "lucide-react";
-
-import { Badge, Card } from "../../../../shared/components";
-import type { QuickAppointment } from "../types";
 
 interface TodayAppointmentsProps {
   appointments: QuickAppointment[];

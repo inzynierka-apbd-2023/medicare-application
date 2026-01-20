@@ -1,6 +1,8 @@
 import React from "react";
-
-import { LabResultsReviewListProps, LabResultWithReview } from "../types";
+import {
+  LabResultsReviewListProps,
+  LabResultWithReview,
+} from "@features/labResultsReview/types";
 
 import { LabResultReviewCard } from "./LabResultReviewCard";
 

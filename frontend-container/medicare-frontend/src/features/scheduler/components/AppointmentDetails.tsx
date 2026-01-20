@@ -5,10 +5,9 @@
 
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import type { Appointment } from "@features/scheduler/types";
+import { Button } from "@shared/components";
 import { Calendar, MapPin, Phone, User, Video } from "lucide-react";
-
-import { Button } from "../../../shared/components";
-import type { Appointment } from "../types";
 
 interface AppointmentDetailsProps {
   appointment: Appointment | null;

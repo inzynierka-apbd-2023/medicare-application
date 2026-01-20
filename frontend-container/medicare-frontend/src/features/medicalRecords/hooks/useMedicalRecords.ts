@@ -1,13 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { useAuth } from "../../../shared/auth/AuthContext";
-import {
-  BackendPatientHistory,
-  medicalRecordsApi,
-} from "../../../shared/services/medicalRecordsApi";
-import type { BackendPatientProfile } from "../../../shared/services/patientsApi";
-import { patientsApi } from "../../../shared/services/patientsApi";
-import { staffApi } from "../../../shared/services/staffApi";
 import type {
   EmergencyContact,
   InsuranceInfo,
@@ -16,7 +7,15 @@ import type {
   Medication,
   PatientMedicalRecord,
   VitalSigns,
-} from "../types";
+} from "@features/medicalRecords/types";
+import { useAuth } from "@shared/auth/AuthContext";
+import {
+  BackendPatientHistory,
+  medicalRecordsApi,
+} from "@shared/services/medicalRecordsApi";
+import type { BackendPatientProfile } from "@shared/services/patientsApi";
+import { patientsApi } from "@shared/services/patientsApi";
+import { staffApi } from "@shared/services/staffApi";
 
 interface UseMedicalRecordsResult {
   records: PatientMedicalRecord[];

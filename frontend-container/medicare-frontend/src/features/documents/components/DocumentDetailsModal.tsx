@@ -1,17 +1,11 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
-import {
-  Button,
-  DefinitionList,
-  InfoCard,
-  Modal,
-} from "../../../shared/components";
 import type {
   Document,
   DocumentDetailsModalProps,
   DocumentType,
-} from "../types";
+} from "@features/documents/types";
+import { Button, DefinitionList, InfoCard, Modal } from "@shared/components";
 
 // Component for prescription details
 const PrescriptionDetails: React.FC<{ document: Document }> = ({

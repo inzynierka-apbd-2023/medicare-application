@@ -1,5 +1,9 @@
 import React, { useCallback } from "react";
 import type {
+  CalendarEvent,
+  ReceptionistAppointment,
+} from "@features/receptionistScheduler/types";
+import type {
   EventClickArg,
   EventContentArg,
   EventHoveringArg,
@@ -7,10 +11,8 @@ import type {
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import { Card } from "@shared/components";
 import { Calendar, Clock, MapPin, Phone, User, Video } from "lucide-react";
-
-import { Card } from "../../../shared/components";
-import type { CalendarEvent, ReceptionistAppointment } from "../types";
 
 interface ReceptionistCalendarViewProps {
   events: CalendarEvent[];

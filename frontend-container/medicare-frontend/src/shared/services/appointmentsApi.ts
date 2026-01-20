@@ -1,6 +1,6 @@
-import type { Appointment } from "../../features/appointments/types";
-import type { Service } from "../../features/scheduler/types";
-import { toastMessages } from "../toast/toastMessages";
+import type { Appointment } from "@features/appointments/types";
+import type { Service } from "@features/scheduler/types";
+import { toastMessages } from "@shared/toast/toastMessages";
 
 import { api, type ApiResponse, handleApiCall } from "./api";
 

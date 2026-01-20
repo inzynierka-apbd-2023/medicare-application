@@ -1,4 +1,9 @@
 import React from "react";
+import type {
+  DocumentCardProps,
+  DocumentType,
+} from "@features/documents/types";
+import { Badge, Card } from "@shared/components";
 import {
   FilePlus2,
   FileSignature,
@@ -6,9 +11,6 @@ import {
   Stethoscope,
   TestTube,
 } from "lucide-react";
-
-import { Badge, Card } from "../../../shared/components";
-import type { DocumentCardProps, DocumentType } from "../types";
 
 const docTypeInfo: Record<
   DocumentType,

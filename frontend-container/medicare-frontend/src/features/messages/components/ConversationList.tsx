@@ -1,8 +1,10 @@
 import React from "react";
+import type {
+  Conversation,
+  ConversationListProps,
+} from "@features/messages/types";
 import { Badge, Card, EmptyState } from "@shared/components";
 import { Users } from "lucide-react";
-
-import type { Conversation, ConversationListProps } from "../types";
 
 export const ConversationList: React.FC<ConversationListProps> = ({
   conversations,

@@ -1,4 +1,6 @@
 import React, { useEffect, useState } from "react";
+import type { DoctorScheduleModalProps } from "@features/scheduler/types/doctorScheduler";
+import { Badge, Button, Modal } from "@shared/components";
 import {
   AlertTriangle,
   Calendar,
@@ -14,9 +16,6 @@ import {
   User,
   XCircle,
 } from "lucide-react";
-
-import { Badge, Button, Modal } from "../../../shared/components";
-import type { DoctorScheduleModalProps } from "../types/doctorScheduler";
 
 export const DoctorScheduleModal: React.FC<DoctorScheduleModalProps> = ({
   isOpen,

@@ -1,8 +1,7 @@
 import React from "react";
+import { LabTestResult } from "@features/documents/types";
+import { LabResultReviewCardProps } from "@features/labResultsReview/types";
 import { AlertTriangle, CheckCircle, Clock, Eye } from "lucide-react";
-
-import { LabTestResult } from "../../documents/types";
-import { LabResultReviewCardProps } from "../types";
 
 export const LabResultReviewCard: React.FC<LabResultReviewCardProps> = ({
   labResult,

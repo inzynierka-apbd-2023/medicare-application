@@ -1,6 +1,5 @@
 import React from "react";
-
-import { PrescriptionCardProps } from "../types";
+import { PrescriptionCardProps } from "@features/prescriptions/types";
 
 export const PrescriptionCard: React.FC<PrescriptionCardProps> = ({
   prescription,

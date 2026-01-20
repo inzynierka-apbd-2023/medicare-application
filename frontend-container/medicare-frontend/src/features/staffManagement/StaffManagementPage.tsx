@@ -1,7 +1,6 @@
 import React from "react";
-
-import Header from "../../layout/Header";
-import { ErrorDisplay, Loading } from "../../shared/components";
+import Header from "@layout/Header";
+import { ErrorDisplay, Loading } from "@shared/components";
 
 import { useStaffManagement } from "./hooks/useStaffManagement";
 import { StaffManagement } from "./StaffManagement";

@@ -1,6 +1,5 @@
 import React from "react";
-
-import { LabResultFiltersProps } from "../types";
+import { LabResultFiltersProps } from "@features/labResultsReview/types";
 
 export const LabResultFilters: React.FC<LabResultFiltersProps> = ({
   filters,

@@ -1,7 +1,6 @@
 import React from "react";
+import { Card } from "@shared/components";
 import { Activity, Calendar, Clock, TrendingUp, Users } from "lucide-react";
-
-import { Card } from "../../../../shared/components";
 
 interface BusinessData {
   metrics: {

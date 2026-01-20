@@ -1,16 +1,11 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { DocumentCard } from "@features/documents/components/DocumentCard";
+import { Document } from "@features/documents/types";
+import Header from "@layout/Header";
+import { EmptyState, LoadingOverlay, SearchInput } from "@shared/components";
+import { useDocuments } from "@shared/hooks/useDocuments";
 import { TestTube } from "lucide-react";
-
-import Header from "../../layout/Header";
-import {
-  EmptyState,
-  LoadingOverlay,
-  SearchInput,
-} from "../../shared/components";
-import { useDocuments } from "../../shared/hooks/useDocuments";
-import { DocumentCard } from "../documents/components/DocumentCard";
-import { Document } from "../documents/types";
 
 export const LabResultsPage: React.FC = () => {
   const navigate = useNavigate();

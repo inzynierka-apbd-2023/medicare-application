@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Calendar, Edit, Eye, Search } from "lucide-react";
-
-import Header from "../../../layout/Header";
-import type { TableColumn } from "../../../shared/components";
+import { usePatientRegistry } from "@features/patientRegistry/hooks/usePatientRegistry";
+import type { PatientRegistryInfo } from "@features/patientRegistry/types";
+import Header from "@layout/Header";
+import type { TableColumn } from "@shared/components";
 import {
   Badge,
   Button,
@@ -12,10 +12,9 @@ import {
   LoadingOverlay,
   SearchInput,
   Table,
-} from "../../../shared/components";
-import { useDebounce } from "../../../shared/hooks";
-import { usePatientRegistry } from "../hooks/usePatientRegistry";
-import type { PatientRegistryInfo } from "../types";
+} from "@shared/components";
+import { useDebounce } from "@shared/hooks";
+import { Calendar, Edit, Eye, Search } from "lucide-react";
 
 import { PatientDetailsModal } from "./PatientDetailsModal";
 

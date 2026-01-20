@@ -1,4 +1,3 @@
-import { apiClient as api } from "../../../shared/services/apiClient";
 import type {
   Appointment,
   AppointmentStatus,
@@ -12,8 +11,9 @@ import type {
   Specialization,
   TimeSlot,
   UpdateAppointmentRequest,
-} from "../types";
-import { getStatusColors } from "../utils/statusColors";
+} from "@features/scheduler/types";
+import { getStatusColors } from "@features/scheduler/utils/statusColors";
+import { apiClient as api } from "@shared/services/apiClient";
 
 // Backend appointment interface
 interface BackendAppointment {

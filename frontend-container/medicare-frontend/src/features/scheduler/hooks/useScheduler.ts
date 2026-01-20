@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-
-import SchedulerApiService from "../services/schedulerApiService";
+import SchedulerApiService from "@features/scheduler/services/schedulerApiService";
 import type {
   Appointment,
   CalendarEvent,
@@ -10,8 +9,8 @@ import type {
   SchedulerState,
   Service,
   UpdateAppointmentRequest,
-} from "../types";
-import { getStatusColors } from "../utils/statusColors";
+} from "@features/scheduler/types";
+import { getStatusColors } from "@features/scheduler/utils/statusColors";
 
 interface UseSchedulerProps {
   patientId?: string | undefined; // Optional for receptionist view

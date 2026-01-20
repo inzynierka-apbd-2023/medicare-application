@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useAuth } from "@shared/auth/AuthContext";
+import { authService } from "@shared/services/authService";
 import { ArrowLeft, CheckCircle, Mail } from "lucide-react";
-
-import { useAuth } from "../../shared/auth/AuthContext";
-import { authService } from "../../shared/services/authService";
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState("");

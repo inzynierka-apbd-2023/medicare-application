@@ -1,8 +1,7 @@
 import React from "react";
+import type { ProfileDisplayProps } from "@features/profile/types";
+import { Button, Card } from "@shared/components";
 import { Calendar, CreditCard, Mail, MapPin, Phone, User } from "lucide-react";
-
-import { Button, Card } from "../../../shared/components";
-import type { ProfileDisplayProps } from "../types";
 
 import { SubscriptionCard } from "./SubscriptionCard";
 

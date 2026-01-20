@@ -1,13 +1,12 @@
 import React, { ChangeEvent } from "react";
-import { Filter, X } from "lucide-react";
-
-import { Button } from "../../../shared/components";
 import type {
   Doctor,
   SchedulerFilters,
   Service,
   Specialization,
-} from "../types";
+} from "@features/scheduler/types";
+import { Button } from "@shared/components";
+import { Filter, X } from "lucide-react";
 
 interface SchedulerFiltersProps {
   filters: SchedulerFilters;

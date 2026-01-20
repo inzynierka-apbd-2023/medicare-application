@@ -4,8 +4,8 @@ import {
   Prescription,
   PrescriptionFilter,
   PrescriptionFormData,
-} from "../../features/prescriptions/types";
-import { toastMessages } from "../toast/toastMessages";
+} from "@features/prescriptions/types";
+import { toastMessages } from "@shared/toast/toastMessages";
 
 import { api } from "./api";
 import { staffApi } from "./staffApi";

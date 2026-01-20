@@ -24,7 +24,7 @@ export {
 } from "./components";
 
 // Services - re-export from shared services
-export { documentsApi } from "../../shared/services/documentsApi";
+export { documentsApi } from "@shared/services/documentsApi";
 
 // Hooks - re-export from shared hooks
-export { useDocuments } from "../../shared/hooks/useDocuments";
+export { useDocuments } from "@shared/hooks/useDocuments";

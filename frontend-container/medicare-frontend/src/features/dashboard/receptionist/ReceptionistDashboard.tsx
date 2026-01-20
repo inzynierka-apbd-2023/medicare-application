@@ -1,14 +1,9 @@
 import React, { useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@features/dashboard/shared/components";
+import Header from "@layout/Header";
+import { Button, ErrorDisplay, LoadingOverlay } from "@shared/components";
 import { Calendar, Plus, RefreshCw } from "lucide-react";
-
-import Header from "../../../layout/Header";
-import {
-  Button,
-  ErrorDisplay,
-  LoadingOverlay,
-} from "../../../shared/components";
-import { DashboardLayout } from "../shared/components";
 
 import { ReadOnlyScheduler } from "./components/ReadOnlyScheduler";
 import { useReceptionistDashboard } from "./hooks/useReceptionistDashboard";

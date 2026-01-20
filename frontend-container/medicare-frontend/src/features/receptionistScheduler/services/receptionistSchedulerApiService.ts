@@ -1,9 +1,4 @@
-import { PatientRegistryApiService } from "../../patientRegistry/services/patientRegistryApi";
-import { SchedulerApiService } from "../../scheduler/services/schedulerApiService";
-import type {
-  Appointment as SchedulerAppointment,
-  CreateAppointmentRequest as SchedulerCreateAppointmentRequest,
-} from "../../scheduler/types";
+import { PatientRegistryApiService } from "@features/patientRegistry/services/patientRegistryApi";
 import type {
   AppointmentFilters,
   AppointmentStatus,
@@ -14,7 +9,12 @@ import type {
   Specialization,
   TimeSlot,
   UpdateAppointmentRequest,
-} from "../types";
+} from "@features/receptionistScheduler/types";
+import { SchedulerApiService } from "@features/scheduler/services/schedulerApiService";
+import type {
+  Appointment as SchedulerAppointment,
+  CreateAppointmentRequest as SchedulerCreateAppointmentRequest,
+} from "@features/scheduler/types";
 
 export class ReceptionistSchedulerApiService {
   // Mapper: SchedulerAppointment -> ReceptionistAppointment

@@ -1,7 +1,6 @@
 import React from "react";
-
-import { SearchInput } from "../../../shared/components";
-import type { PatientFiltersProps, SortKey } from "../types";
+import type { PatientFiltersProps, SortKey } from "@features/userTypes/types";
+import { SearchInput } from "@shared/components";
 
 const sortOptions: { value: SortKey; label: string }[] = [
   { value: "name", label: "Sort: Name" },

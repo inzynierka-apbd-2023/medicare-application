@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
-
-import type { Appointment, Document } from "../../features/documents/types";
-import { useAuth } from "../auth/AuthContext";
-import { documentsApi } from "../services/documentsApi";
-import { toastMessages, useToast } from "../toast";
+import type { Appointment, Document } from "@features/documents/types";
+import { useAuth } from "@shared/auth/AuthContext";
+import { documentsApi } from "@shared/services/documentsApi";
+import { toastMessages, useToast } from "@shared/toast";
 
 interface UseDocumentsParams {
   appointmentId?: string;

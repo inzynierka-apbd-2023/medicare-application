@@ -1,8 +1,7 @@
 import React, { useState } from "react";
+import { LabTestResult } from "@features/documents/types";
+import { LabResultReviewFormProps } from "@features/labResultsReview/types";
 import { X } from "lucide-react";
-
-import { LabTestResult } from "../../documents/types";
-import { LabResultReviewFormProps } from "../types";
 
 export const LabResultReviewForm: React.FC<LabResultReviewFormProps> = ({
   labResult,

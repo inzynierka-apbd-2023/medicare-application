@@ -1,9 +1,12 @@
 import React, { useCallback, useState } from "react";
+import { useDoctors, usePatients } from "@features/receptionistScheduler/hooks";
+import type {
+  AppointmentFilters,
+  Doctor,
+  Patient,
+} from "@features/receptionistScheduler/types";
+import { Button, Input, SearchInput } from "@shared/components";
 import { Filter, User, X } from "lucide-react";
-
-import { Button, Input, SearchInput } from "../../../shared/components";
-import { useDoctors, usePatients } from "../hooks";
-import type { AppointmentFilters, Doctor, Patient } from "../types";
 
 interface SchedulerFiltersProps {
   filters: AppointmentFilters;

@@ -1,7 +1,6 @@
 import React, { useEffect } from "react";
+import type { MessageBubbleProps } from "@features/messages/types";
 import { Check, CheckCheck, Clock } from "lucide-react";
-
-import type { MessageBubbleProps } from "../types";
 
 export const MessageBubble: React.FC<MessageBubbleProps> = ({
   message,

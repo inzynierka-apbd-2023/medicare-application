@@ -1,8 +1,7 @@
 import React, { useEffect, useRef } from "react";
+import type { MessageListProps } from "@features/messages/types";
 import { EmptyState, Loading } from "@shared/components";
 import { MessageCircle } from "lucide-react";
-
-import type { MessageListProps } from "../types";
 
 import { MessageBubble } from "./MessageBubble";
 

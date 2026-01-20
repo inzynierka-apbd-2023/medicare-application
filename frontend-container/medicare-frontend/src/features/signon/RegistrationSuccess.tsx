@@ -1,7 +1,6 @@
 import { Link } from "react-router-dom";
+import { useAuth } from "@shared/auth/AuthContext";
 import { CheckCircle } from "lucide-react";
-
-import { useAuth } from "../../shared/auth/AuthContext";
 
 export default function RegistrationSuccess() {
   const { user } = useAuth();

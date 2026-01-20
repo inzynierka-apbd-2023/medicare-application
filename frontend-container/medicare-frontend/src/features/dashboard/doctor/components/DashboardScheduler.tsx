@@ -1,13 +1,12 @@
 import React, { useEffect, useState } from "react";
+import { DoctorScheduleModal } from "@features/scheduler/components/DoctorScheduleModal";
+import type { VisitNoteData } from "@features/scheduler/components/VisitNoteModal";
+import { VisitNoteModal } from "@features/scheduler/components/VisitNoteModal";
+import { useDoctorSchedule } from "@features/scheduler/hooks/useDoctorSchedule";
+import type { DoctorScheduleEvent } from "@features/scheduler/types/doctorScheduler";
+import { useAuth } from "@shared/auth/AuthContext";
+import { Card } from "@shared/components";
 import { Calendar, Clock, FileText, Phone, User } from "lucide-react";
-
-import { useAuth } from "../../../../shared/auth/AuthContext";
-import { Card } from "../../../../shared/components";
-import { DoctorScheduleModal } from "../../../scheduler/components/DoctorScheduleModal";
-import type { VisitNoteData } from "../../../scheduler/components/VisitNoteModal";
-import { VisitNoteModal } from "../../../scheduler/components/VisitNoteModal";
-import { useDoctorSchedule } from "../../../scheduler/hooks/useDoctorSchedule";
-import type { DoctorScheduleEvent } from "../../../scheduler/types/doctorScheduler";
 
 interface DashboardSchedulerProps {
   doctorId?: string;

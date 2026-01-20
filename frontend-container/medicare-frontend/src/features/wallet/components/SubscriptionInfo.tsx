@@ -1,9 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import type { Subscription } from "@features/wallet/types";
+import { Button } from "@shared/components";
 import { ArrowUpRight, CheckCircle, CreditCard, XCircle } from "lucide-react";
-
-import { Button } from "../../../shared/components";
-import type { Subscription } from "../types";
 
 interface SubscriptionInfoProps {
   subscription: Subscription;

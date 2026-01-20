@@ -1,8 +1,7 @@
 import React from "react";
+import type { DocumentListProps } from "@features/documents/types";
 import { EmptyState } from "@shared/components";
 import { FileText } from "lucide-react";
-
-import type { DocumentListProps } from "../types";
 
 import { DocumentCard } from "./DocumentCard";
 

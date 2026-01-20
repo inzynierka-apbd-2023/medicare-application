@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { Button, Card } from "@shared/components";
 import { Calendar, Clock, TrendingUp } from "lucide-react";
 import {
   Bar,
@@ -12,8 +13,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
-import { Button, Card } from "../../../shared/components";
 
 interface TimeSlotData {
   hour: number;

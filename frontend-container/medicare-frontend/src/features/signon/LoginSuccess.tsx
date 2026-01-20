@@ -1,9 +1,8 @@
 import { useCallback, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@shared/auth/AuthContext";
+import { getDefaultDashboard } from "@shared/constants/routes";
 import { CheckCircle } from "lucide-react";
-
-import { useAuth } from "../../shared/auth/AuthContext";
-import { getDefaultDashboard } from "../../shared/constants/routes";
 
 export default function LoginSuccess() {
   const navigate = useNavigate();

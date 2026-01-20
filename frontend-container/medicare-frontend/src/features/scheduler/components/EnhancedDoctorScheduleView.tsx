@@ -1,13 +1,12 @@
 import React, { useCallback, useRef, useState } from "react";
+import PatientManagementView from "@features/patients/components/PatientManagementView";
+import type { DoctorCalendarEvent } from "@features/scheduler/types";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import Header from "@layout/Header";
+import { Button, Card, LoadingOverlay } from "@shared/components";
 import { Calendar, Clock, FileText, User, X } from "lucide-react";
-
-import Header from "../../../layout/Header";
-import { Button, Card, LoadingOverlay } from "../../../shared/components";
-import PatientManagementView from "../../patients/components/PatientManagementView";
-import type { DoctorCalendarEvent } from "../types";
 
 // Modal Component for Patient Details
 interface PatientDetailModalProps {

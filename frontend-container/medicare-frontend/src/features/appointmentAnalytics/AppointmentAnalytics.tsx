@@ -1,5 +1,5 @@
-import Header from "../../layout/Header";
-import { ErrorDisplay, LoadingOverlay } from "../../shared/components";
+import Header from "@layout/Header";
+import { ErrorDisplay, LoadingOverlay } from "@shared/components";
 
 import {
   AppointmentMetricsCard,

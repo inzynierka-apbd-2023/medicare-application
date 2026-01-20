@@ -1,4 +1,4 @@
-import type { Appointment } from "../appointments/types";
+import type { Appointment } from "@features/appointments/types";
 
 export type PaymentStatus = "paid" | "not_paid";
 

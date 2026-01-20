@@ -1,10 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { Clock, MapPin, Phone, Search, User, Video, X } from "lucide-react";
-
-import { Button, Card } from "../../../shared/components";
-import { PatientRegistryApiService } from "../../patientRegistry/services/patientRegistryApi";
-import type { PatientRegistryInfo } from "../../patientRegistry/types";
-import SchedulerApiService from "../services/schedulerApiService";
+import { PatientRegistryApiService } from "@features/patientRegistry/services/patientRegistryApi";
+import type { PatientRegistryInfo } from "@features/patientRegistry/types";
+import SchedulerApiService from "@features/scheduler/services/schedulerApiService";
 import type {
   AppointmentModalProps,
   CreateAppointmentRequest,
@@ -13,7 +10,9 @@ import type {
   Specialization,
   TimeSlot,
   UpdateAppointmentRequest,
-} from "../types";
+} from "@features/scheduler/types";
+import { Button, Card } from "@shared/components";
+import { Clock, MapPin, Phone, Search, User, Video, X } from "lucide-react";
 
 // Helper for input
 const formatDateForInput = (dateString: string): string => {

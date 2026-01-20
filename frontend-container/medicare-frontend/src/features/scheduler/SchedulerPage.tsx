@@ -3,6 +3,8 @@ import { EventContentArg } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import Header from "@layout/Header";
+import { Button, Card, LoadingOverlay } from "@shared/components";
 import {
   Calendar,
   Clock,
@@ -14,9 +16,6 @@ import {
   Users,
   Video,
 } from "lucide-react";
-
-import Header from "../../layout/Header";
-import { Button, Card, LoadingOverlay } from "../../shared/components";
 
 import AppointmentModal from "./components/AppointmentModal";
 import SchedulerFiltersComponent from "./components/SchedulerFilters";
@@ -58,7 +57,7 @@ const formatEventContent = (eventInfo: EventContentArg) => {
   );
 };
 
-import { useAuth } from "../../shared/auth/AuthContext";
+import { useAuth } from "@shared/auth/AuthContext";
 
 // ... (keep formatEventContent as is)
 

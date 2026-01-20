@@ -1,7 +1,6 @@
 import { useEffect } from "react";
-
-import { setGlobalToastHandler } from "../services/api";
-import { useToast } from "../toast";
+import { setGlobalToastHandler } from "@shared/services/api";
+import { useToast } from "@shared/toast";
 
 export const useApiToastInit = () => {
   const { showSuccess, showError } = useToast();

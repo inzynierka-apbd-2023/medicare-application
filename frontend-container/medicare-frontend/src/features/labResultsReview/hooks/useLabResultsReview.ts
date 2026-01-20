@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { labResultsReviewApi } from "../../../shared/services/labResultsReviewApi";
-import { LabTestResult } from "../../documents/types";
+import { LabTestResult } from "@features/documents/types";
 import {
   LabResultFilter,
   LabResultReviewFormData,
   LabResultWithReview,
-} from "../types";
+} from "@features/labResultsReview/types";
+import { labResultsReviewApi } from "@shared/services/labResultsReviewApi";
 
 export const useLabResultsReview = () => {
   const [labResults, setLabResults] = useState<LabResultWithReview[]>([]);

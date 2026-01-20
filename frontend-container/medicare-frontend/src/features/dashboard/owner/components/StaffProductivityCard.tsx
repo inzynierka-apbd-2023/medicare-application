@@ -1,7 +1,6 @@
 import React from "react";
+import { Card } from "@shared/components";
 import { Star, UserCheck, Users } from "lucide-react";
-
-import { Card } from "../../../../shared/components";
 
 interface StaffData {
   totalStaff: number;

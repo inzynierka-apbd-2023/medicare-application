@@ -1,8 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { apiClient as api } from "../../../../shared/services/apiClient";
-import { staffApi } from "../../../../shared/services/staffApi";
-import type { CalendarEvent, Doctor, Patient } from "../types";
+import type {
+  CalendarEvent,
+  Doctor,
+  Patient,
+} from "@features/dashboard/receptionist/types";
+import { apiClient as api } from "@shared/services/apiClient";
+import { staffApi } from "@shared/services/staffApi";
 
 interface UseReadOnlySchedulerOptions {
   patientFilter?: string | undefined;

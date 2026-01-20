@@ -1,15 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@features/dashboard/shared/components";
+import Header from "@layout/Header";
+import { Card, EmptyState, ErrorDisplay, Loading } from "@shared/components";
 import { Calendar, Clock, FileText, User } from "lucide-react";
-
-import Header from "../../layout/Header";
-import {
-  Card,
-  EmptyState,
-  ErrorDisplay,
-  Loading,
-} from "../../shared/components";
-import { DashboardLayout } from "../dashboard/shared/components";
 
 import {
   TodayAppointmentCard,

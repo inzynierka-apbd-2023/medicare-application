@@ -1,14 +1,13 @@
 import React from "react";
-import { Edit3, User } from "lucide-react";
-
+import type { StaffDetailsModalProps } from "@features/staffManagement/types";
 import {
   Badge,
   Button,
   DefinitionList,
   InfoCard,
   Modal,
-} from "../../../shared/components";
-import type { StaffDetailsModalProps } from "../types";
+} from "@shared/components";
+import { Edit3, User } from "lucide-react";
 
 export const StaffDetailsModal: React.FC<StaffDetailsModalProps> = ({
   staff,

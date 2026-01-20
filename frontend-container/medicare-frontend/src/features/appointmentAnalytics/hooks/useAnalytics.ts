@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-
 import {
   analyticsApi,
   type AnalyticsFilters,
@@ -9,7 +8,7 @@ import {
   type SpecializationStats,
   type TimeSlotData,
   type TrendData,
-} from "../../../shared/services/analyticsApi";
+} from "@shared/services/analyticsApi";
 
 interface UseAnalyticsReturn {
   // Data

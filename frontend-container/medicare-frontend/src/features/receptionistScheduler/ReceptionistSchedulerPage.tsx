@@ -1,14 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import Header from "@layout/Header";
+import { Button, Card, ErrorDisplay, LoadingOverlay } from "@shared/components";
 import { Calendar, Clock, Plus, Users } from "lucide-react";
-
-import Header from "../../layout/Header";
-import {
-  Button,
-  Card,
-  ErrorDisplay,
-  LoadingOverlay,
-} from "../../shared/components";
 
 import { AppointmentModal } from "./components/AppointmentModal";
 import { ReceptionistCalendarView } from "./components/ReceptionistCalendarView";

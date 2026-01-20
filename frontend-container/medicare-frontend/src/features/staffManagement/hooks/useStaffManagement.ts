@@ -1,6 +1,4 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { staffApi } from "../../../shared/services/staffApi";
 import type {
   CreateStaffRequest,
   Specialization,
@@ -8,7 +6,8 @@ import type {
   StaffRole,
   StaffStatusFilter,
   UpdateStaffRequest,
-} from "../types";
+} from "@features/staffManagement/types";
+import { staffApi } from "@shared/services/staffApi";
 
 interface UseStaffManagementReturn {
   staff: StaffMember[];

@@ -1,7 +1,9 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
-
-import type { PatientAction, PatientTableProps } from "../types";
+import type {
+  PatientAction,
+  PatientTableProps,
+} from "@features/userTypes/types";
 
 import { PatientActionButton } from "./PatientActionButton";
 

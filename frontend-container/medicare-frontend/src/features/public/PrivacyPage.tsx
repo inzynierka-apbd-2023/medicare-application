@@ -1,8 +1,7 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Card } from "@shared/components";
 import { ArrowLeft, Lock } from "lucide-react";
-
-import { Card } from "../../shared/components";
 
 export const PrivacyPage: React.FC = () => {
   return (

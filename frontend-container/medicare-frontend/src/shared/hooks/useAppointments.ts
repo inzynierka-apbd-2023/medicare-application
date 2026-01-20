@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-
-import type { Appointment } from "../../features/appointments/types";
-import { useAuth } from "../auth/AuthContext";
-import { appointmentsApi } from "../services/appointmentsApi";
+import type { Appointment } from "@features/appointments/types";
+import { useAuth } from "@shared/auth/AuthContext";
+import { appointmentsApi } from "@shared/services/appointmentsApi";
 
 interface UseAppointmentsReturn {
   appointments: Appointment[];

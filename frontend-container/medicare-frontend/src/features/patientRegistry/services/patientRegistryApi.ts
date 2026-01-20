@@ -1,4 +1,3 @@
-import { apiClient } from "../../../shared/services/apiClient";
 import type {
   ApiResponse,
   CreatePatientRequest,
@@ -6,7 +5,8 @@ import type {
   PatientRegistryData,
   PatientRegistryFilters,
   PatientRegistryInfo,
-} from "../types";
+} from "@features/patientRegistry/types";
+import { apiClient } from "@shared/services/apiClient";
 
 // --- Types tailored for Backend Responses ---
 

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-
-import type { Conversation, Message } from "../../features/messages/types";
-import { messagesApi } from "../services/messagesApi";
+import type { Conversation, Message } from "@features/messages/types";
+import { messagesApi } from "@shared/services/messagesApi";
 
 interface UseMessagesResult {
   conversations: Conversation[];

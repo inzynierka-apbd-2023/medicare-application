@@ -1,5 +1,13 @@
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { DashboardLayout } from "@features/dashboard/shared/components";
+import Header from "@layout/Header";
+import { Button, Card, ErrorDisplay, LoadingOverlay } from "@shared/components";
+import { useLoadingService } from "@shared/hooks/useLoadingService";
+import { appointmentMetricsApi } from "@shared/services/appointmentMetricsApi";
+import { doctorPerformanceApi } from "@shared/services/doctorPerformanceApi";
+import { patientMetricsApi } from "@shared/services/patientMetricsApi";
+import { revenueMetricsApi } from "@shared/services/revenueMetricsApi";
 import {
   Activity,
   BarChart3,
@@ -12,20 +20,6 @@ import {
   UserCheck,
   Users,
 } from "lucide-react";
-
-import Header from "../../../layout/Header";
-import {
-  Button,
-  Card,
-  ErrorDisplay,
-  LoadingOverlay,
-} from "../../../shared/components";
-import { useLoadingService } from "../../../shared/hooks/useLoadingService";
-import { appointmentMetricsApi } from "../../../shared/services/appointmentMetricsApi";
-import { doctorPerformanceApi } from "../../../shared/services/doctorPerformanceApi";
-import { patientMetricsApi } from "../../../shared/services/patientMetricsApi";
-import { revenueMetricsApi } from "../../../shared/services/revenueMetricsApi";
-import { DashboardLayout } from "../shared/components";
 
 // Database-aligned types based on your actual schema
 interface RevenueMetrics {

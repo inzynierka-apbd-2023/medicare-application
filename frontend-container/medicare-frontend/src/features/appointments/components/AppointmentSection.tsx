@@ -1,6 +1,5 @@
 import React from "react";
-
-import type { AppointmentSectionProps } from "../types";
+import type { AppointmentSectionProps } from "@features/appointments/types";
 
 import { AppointmentCard } from "./AppointmentCard";
 

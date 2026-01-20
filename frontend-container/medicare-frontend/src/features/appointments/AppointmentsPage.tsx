@@ -1,10 +1,9 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import Header from "../../layout/Header";
-import { ErrorDisplay, Loading } from "../../shared/components";
-import { useAppointments } from "../../shared/hooks/useAppointments";
-import { appointmentsApi } from "../../shared/services/appointmentsApi";
+import Header from "@layout/Header";
+import { ErrorDisplay, Loading } from "@shared/components";
+import { useAppointments } from "@shared/hooks/useAppointments";
+import { appointmentsApi } from "@shared/services/appointmentsApi";
 
 import { Appointments } from "./Appointments";
 import { AppointmentsDetailsModal, DoctorRatingModal } from "./components";

@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-
-import type { Appointment } from "../../features/appointments/types";
-import { useAuth } from "../auth/AuthContext";
-import { appointmentsApi } from "../services/appointmentsApi";
-import { type PatientPlanResponse, plansApi } from "../services/plansApi";
+import type { Appointment } from "@features/appointments/types";
+import { useAuth } from "@shared/auth/AuthContext";
+import { appointmentsApi } from "@shared/services/appointmentsApi";
+import { type PatientPlanResponse, plansApi } from "@shared/services/plansApi";
 import {
   type Subscription,
   walletApi,
   type WalletData,
-} from "../services/walletApi";
+} from "@shared/services/walletApi";
 
 interface UseWalletReturn {
   wallet: WalletData | null;

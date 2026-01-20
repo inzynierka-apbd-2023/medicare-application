@@ -1,8 +1,7 @@
 import React, { useState } from "react";
+import Header from "@layout/Header";
+import { Card } from "@shared/components";
 import { BarChart3, Clock, TrendingUp, Users } from "lucide-react";
-
-import Header from "../../layout/Header";
-import { Card } from "../../shared/components";
 
 // Import our new analytics components
 import AppointmentMetricsCard from "./components/AppointmentMetricsCard";

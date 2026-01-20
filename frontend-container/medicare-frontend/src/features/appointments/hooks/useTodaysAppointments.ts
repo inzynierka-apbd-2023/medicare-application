@@ -1,9 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { useAuth } from "../../../shared/auth/AuthContext";
-import doctorScheduleApi from "../../../shared/services/doctorScheduleApi";
-import type { DoctorScheduleEvent } from "../../scheduler/types/doctorScheduler";
-import type { TodayAppointment } from "../types";
+import type { TodayAppointment } from "@features/appointments/types";
+import type { DoctorScheduleEvent } from "@features/scheduler/types/doctorScheduler";
+import { useAuth } from "@shared/auth/AuthContext";
+import doctorScheduleApi from "@shared/services/doctorScheduleApi";
 
 interface UseTodaysAppointmentsReturn {
   appointments: TodayAppointment[];

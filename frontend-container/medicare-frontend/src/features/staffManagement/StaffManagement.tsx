@@ -1,6 +1,5 @@
 import React, { useState } from "react";
-
-import { toastMessages, useToast } from "../../shared/toast";
+import { toastMessages, useToast } from "@shared/toast";
 
 import {
   StaffDetailsModal,

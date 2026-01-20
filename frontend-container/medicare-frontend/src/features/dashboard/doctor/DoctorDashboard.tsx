@@ -1,21 +1,20 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { MessageCircle } from "lucide-react";
-
-import Header from "../../../layout/Header";
-import { useAuth } from "../../../shared/auth/AuthContext";
-import { Card, Modal } from "../../../shared/components";
-import doctorDashboardApi, {
-  DoctorQuickStat,
-} from "../../../shared/services/doctorDashboardApi";
-import { messagesApi } from "../../../shared/services/messagesApi";
-import { notificationsApi } from "../../../shared/services/notificationsApi";
 import {
   DashboardCard,
   DashboardLayout,
   type Notification,
   NotificationsList,
-} from "../shared/components";
+} from "@features/dashboard/shared/components";
+import Header from "@layout/Header";
+import { useAuth } from "@shared/auth/AuthContext";
+import { Card, Modal } from "@shared/components";
+import doctorDashboardApi, {
+  DoctorQuickStat,
+} from "@shared/services/doctorDashboardApi";
+import { messagesApi } from "@shared/services/messagesApi";
+import { notificationsApi } from "@shared/services/notificationsApi";
+import { MessageCircle } from "lucide-react";
 
 import { DashboardScheduler } from "./components";
 

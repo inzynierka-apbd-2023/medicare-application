@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-
-import type { Patient } from "../../features/userTypes/types";
-import { patientsApi } from "../services/patientsApi";
+import type { Patient } from "@features/userTypes/types";
+import { patientsApi } from "@shared/services/patientsApi";
 
 interface UsePatientsResult {
   patients: Patient[];

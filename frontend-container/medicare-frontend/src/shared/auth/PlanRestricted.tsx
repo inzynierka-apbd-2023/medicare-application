@@ -1,8 +1,7 @@
 import React from "react";
 import { Navigate } from "react-router-dom";
-
-import { LoadingOverlay } from "../components";
-import { useSubscription } from "../hooks/useSubscription";
+import { LoadingOverlay } from "@shared/components";
+import { useSubscription } from "@shared/hooks/useSubscription";
 
 type Feature = "hasMessaging" | "hasPrescriptions" | "hasDocuments";
 

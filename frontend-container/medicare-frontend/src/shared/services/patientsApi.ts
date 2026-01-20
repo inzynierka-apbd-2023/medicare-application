@@ -1,4 +1,4 @@
-import type { Patient } from "../../features/userTypes/types";
+import type { Patient } from "@features/userTypes/types";
 
 import { api } from "./api";
 

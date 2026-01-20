@@ -1,5 +1,15 @@
 import React, { useEffect, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
+import Header from "@layout/Header";
+import {
+  Badge,
+  Button,
+  Card,
+  EmptyState,
+  ErrorDisplay,
+  LoadingOverlay,
+  SearchInput,
+} from "@shared/components";
 import {
   Calendar,
   FileText,
@@ -10,17 +20,6 @@ import {
   Shield,
   User,
 } from "lucide-react";
-
-import Header from "../../layout/Header";
-import {
-  Badge,
-  Button,
-  Card,
-  EmptyState,
-  ErrorDisplay,
-  LoadingOverlay,
-  SearchInput,
-} from "../../shared/components";
 
 import { MedicalRecordDetailModal } from "./components/MedicalRecordDetailModal";
 import { PatientSearchResults } from "./components/PatientSearchResults";

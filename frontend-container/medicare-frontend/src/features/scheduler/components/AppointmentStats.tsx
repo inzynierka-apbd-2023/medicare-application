@@ -4,8 +4,7 @@
  */
 
 import React from "react";
-
-import { Card } from "../../../shared/components";
+import { Card } from "@shared/components";
 
 interface AppointmentStatsProps {
   stats: {

@@ -1,4 +1,5 @@
 import React from "react";
+import { Card } from "@shared/components";
 import {
   Calendar,
   Clock,
@@ -7,8 +8,6 @@ import {
   TrendingUp,
   Users,
 } from "lucide-react";
-
-import { Card } from "../../../shared/components";
 
 interface AppointmentMetric {
   id: string;

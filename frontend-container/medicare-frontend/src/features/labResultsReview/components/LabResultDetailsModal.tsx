@@ -1,8 +1,7 @@
 import React from "react";
+import { LabTestResult } from "@features/documents/types";
+import { LabResultWithReview } from "@features/labResultsReview/types";
 import { AlertTriangle, CheckCircle, Clock, Eye, X } from "lucide-react";
-
-import { LabTestResult } from "../../documents/types";
-import { LabResultWithReview } from "../types";
 
 interface LabResultDetailsModalProps {
   labResult: LabResultWithReview;

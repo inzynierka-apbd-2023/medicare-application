@@ -1,12 +1,15 @@
 import React, { useCallback, useState } from "react";
+import { useReadOnlyScheduler } from "@features/dashboard/receptionist/hooks/useReadOnlyScheduler";
+import type {
+  CalendarEvent,
+  Doctor,
+  Patient,
+} from "@features/dashboard/receptionist/types";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import { Card, Input, LoadingOverlay } from "@shared/components";
 import { Calendar, Stethoscope, User } from "lucide-react";
-
-import { Card, Input, LoadingOverlay } from "../../../../shared/components";
-import { useReadOnlyScheduler } from "../hooks/useReadOnlyScheduler";
-import type { CalendarEvent, Doctor, Patient } from "../types";
 
 interface ReadOnlySchedulerProps {
   className?: string;

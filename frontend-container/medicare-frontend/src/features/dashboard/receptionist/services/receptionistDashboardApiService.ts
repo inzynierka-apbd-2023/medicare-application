@@ -1,11 +1,11 @@
-import { apiClient as api } from "../../../../shared/services/apiClient";
-import { staffApi } from "../../../../shared/services/staffApi";
 import type {
   DoctorAvailability,
   QuickAppointment,
   ReceptionistDashboardData,
   ReceptionistDashboardStats,
-} from "../types";
+} from "@features/dashboard/receptionist/types";
+import { apiClient as api } from "@shared/services/apiClient";
+import { staffApi } from "@shared/services/staffApi";
 
 // Backend appointment interface (from AppointmentService)
 interface BackendAppointment {

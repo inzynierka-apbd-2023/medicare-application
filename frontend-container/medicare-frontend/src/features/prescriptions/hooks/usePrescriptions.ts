@@ -1,14 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { useAuth } from "../../../shared/auth/AuthContext";
-import { patientsApi } from "../../../shared/services/patientsApi";
-import { prescriptionsApi } from "../../../shared/services/prescriptionsApi";
 import {
   Patient,
   Prescription,
   PrescriptionFilter,
   PrescriptionFormData,
-} from "../types";
+} from "@features/prescriptions/types";
+import { useAuth } from "@shared/auth/AuthContext";
+import { patientsApi } from "@shared/services/patientsApi";
+import { prescriptionsApi } from "@shared/services/prescriptionsApi";
 
 export const usePrescriptions = () => {
   const { user } = useAuth();

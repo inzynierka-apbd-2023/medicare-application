@@ -8,15 +8,14 @@ import {
   useState,
 } from "react";
 import { useNavigate } from "react-router-dom";
-
-import { useApiToastInit } from "../hooks/useApiToastInit";
+import { useApiToastInit } from "@shared/hooks/useApiToastInit";
 import {
   authService,
   AuthUser,
   RegisterRequest,
-} from "../services/authService";
-import { usersApi } from "../services/usersApi";
-import { toastMessages, useToast } from "../toast";
+} from "@shared/services/authService";
+import { usersApi } from "@shared/services/usersApi";
+import { toastMessages, useToast } from "@shared/toast";
 
 interface AuthState {
   user: AuthUser | null;

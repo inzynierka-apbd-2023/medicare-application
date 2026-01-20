@@ -1,7 +1,6 @@
 import React, { useState } from "react";
+import { Button } from "@shared/components";
 import { CreditCard, Smartphone, X } from "lucide-react";
-
-import { Button } from "../../../shared/components";
 
 interface PaymentModalProps {
   isOpen: boolean;

@@ -1,6 +1,5 @@
 import { ReactNode } from "react";
-
-import { Card } from "../../../../../shared/components";
+import { Card } from "@shared/components";
 
 interface ScheduleCardProps {
   title: string;

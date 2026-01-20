@@ -1,7 +1,6 @@
 import React from "react";
-
-import { EmptyState } from "../../../shared/components";
-import type { StaffListProps } from "../types";
+import type { StaffListProps } from "@features/staffManagement/types";
+import { EmptyState } from "@shared/components";
 
 import { StaffCard } from "./StaffCard";
 

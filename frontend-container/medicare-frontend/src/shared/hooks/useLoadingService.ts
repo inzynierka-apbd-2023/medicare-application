@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { loadingService } from "../services/loadingService";
+import { loadingService } from "@shared/services/loadingService";
 
 export function useLoadingService() {
   const [isLoading, setIsLoading] = useState(loadingService.getIsLoading());

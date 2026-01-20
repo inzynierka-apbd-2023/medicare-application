@@ -1,8 +1,7 @@
 import React, { useState } from "react";
+import type { MessageInputProps } from "@features/messages/types";
 import { Button } from "@shared/components";
 import { Send } from "lucide-react";
-
-import type { MessageInputProps } from "../types";
 
 export const MessageInput: React.FC<MessageInputProps> = ({
   onSendMessage,

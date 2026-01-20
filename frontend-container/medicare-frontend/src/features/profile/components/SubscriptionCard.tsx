@@ -1,9 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import { Button, Card } from "@shared/components";
+import { useSubscription } from "@shared/hooks/useSubscription";
 import { ArrowUpRight, Check, CreditCard, X } from "lucide-react";
-
-import { Button, Card } from "../../../shared/components";
-import { useSubscription } from "../../../shared/hooks/useSubscription";
 
 export const SubscriptionCard: React.FC = () => {
   const { plan, isLoading, error, features } = useSubscription();

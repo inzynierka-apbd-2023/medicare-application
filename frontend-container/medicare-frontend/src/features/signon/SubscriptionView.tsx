@@ -1,8 +1,7 @@
 import { Link } from "react-router-dom";
+import Header from "@layout/Header";
 import { Button } from "@shared/components";
 import { ArrowLeft, Check, CreditCard, Shield } from "lucide-react";
-
-import Header from "../../layout/Header";
 
 interface SubscriptionPlan {
   id: string;

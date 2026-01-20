@@ -1,4 +1,5 @@
 import React from "react";
+import { Card } from "@shared/components";
 import { Star, UserCheck } from "lucide-react";
 import {
   Bar,
@@ -13,8 +14,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
-import { Card } from "../../../shared/components";
 
 interface DoctorPerformance {
   id: string;

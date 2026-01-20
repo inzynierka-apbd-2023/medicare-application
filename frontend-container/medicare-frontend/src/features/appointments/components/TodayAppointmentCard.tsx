@@ -1,4 +1,6 @@
 import React from "react";
+import type { TodayAppointmentCardProps } from "@features/appointments/types";
+import { Badge, Button, Card } from "@shared/components";
 import {
   AlertTriangle,
   Calendar,
@@ -10,9 +12,6 @@ import {
   User,
   XCircle,
 } from "lucide-react";
-
-import { Badge, Button, Card } from "../../../shared/components";
-import type { TodayAppointmentCardProps } from "../types";
 
 export const TodayAppointmentCard: React.FC<TodayAppointmentCardProps> = ({
   appointment,

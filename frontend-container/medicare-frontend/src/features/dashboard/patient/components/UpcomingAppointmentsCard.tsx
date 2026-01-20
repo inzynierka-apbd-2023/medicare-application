@@ -1,6 +1,5 @@
+import { Button, Card } from "@shared/components";
 import { Calendar, Clock, MapPin, Phone, User } from "lucide-react";
-
-import { Button, Card } from "../../../../shared/components";
 
 interface Appointment {
   id: string;

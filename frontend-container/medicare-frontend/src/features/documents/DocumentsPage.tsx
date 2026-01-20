@@ -1,9 +1,8 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
-
-import Header from "../../layout/Header";
-import { ErrorDisplay, LoadingOverlay } from "../../shared/components";
-import { useDocuments } from "../../shared/hooks/useDocuments";
+import Header from "@layout/Header";
+import { ErrorDisplay, LoadingOverlay } from "@shared/components";
+import { useDocuments } from "@shared/hooks/useDocuments";
 
 import { Documents } from "./Documents";
 import type { Document, DocumentsPageProps, DocumentType } from "./types";

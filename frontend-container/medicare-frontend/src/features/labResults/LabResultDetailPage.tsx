@@ -1,11 +1,10 @@
 import React from "react";
 import { useNavigate, useParams } from "react-router-dom";
+import { LabResultsView } from "@features/documents/components/LabResultsView";
+import Header from "@layout/Header";
+import { Badge, Button, LoadingOverlay } from "@shared/components";
+import { useDocuments } from "@shared/hooks/useDocuments";
 import { ArrowLeft, Calendar, Download, MapPin } from "lucide-react";
-
-import Header from "../../layout/Header";
-import { Badge, Button, LoadingOverlay } from "../../shared/components";
-import { useDocuments } from "../../shared/hooks/useDocuments";
-import { LabResultsView } from "../documents/components/LabResultsView";
 
 export const LabResultDetailPage: React.FC = () => {
   const { documentId } = useParams<{ documentId: string }>();

@@ -4,6 +4,8 @@
  */
 
 import React, { useCallback, useRef } from "react";
+import type { Appointment } from "@features/scheduler/types";
+import { getStatusColors } from "@features/scheduler/utils/statusColors";
 import type {
   DateSelectArg,
   DatesSetArg,
@@ -14,9 +16,6 @@ import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
 import { MapPin, Phone, User, Video } from "lucide-react";
-
-import type { Appointment } from "../types";
-import { getStatusColors } from "../utils/statusColors";
 
 export interface DoctorCalendarEvent {
   id: string;

@@ -1,9 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@shared/auth/AuthContext";
+import { getDefaultDashboard } from "@shared/constants/routes";
 import { Eye, EyeOff } from "lucide-react";
-
-import { useAuth } from "../../shared/auth/AuthContext";
-import { getDefaultDashboard } from "../../shared/constants/routes";
 
 const Login: React.FC = () => {
   const [username, setUsername] = useState<string>("");

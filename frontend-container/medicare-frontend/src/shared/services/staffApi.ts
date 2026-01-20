@@ -1,4 +1,4 @@
-import { toastMessages } from "../toast/toastMessages";
+import { toastMessages } from "@shared/toast/toastMessages";
 
 import { api } from "./api";
 import { usersApi } from "./usersApi";

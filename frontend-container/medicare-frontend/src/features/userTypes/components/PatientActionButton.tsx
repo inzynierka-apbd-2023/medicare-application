@@ -1,4 +1,9 @@
 import React from "react";
+import type {
+  PatientAction,
+  PatientActionButtonProps,
+  PatientActionConfig,
+} from "@features/userTypes/types";
 import {
   Calendar,
   ClipboardList,
@@ -6,12 +11,6 @@ import {
   MessageCircle,
   PlusCircle,
 } from "lucide-react";
-
-import type {
-  PatientAction,
-  PatientActionButtonProps,
-  PatientActionConfig,
-} from "../types";
 
 const actionConfigs: Record<PatientAction, PatientActionConfig> = {
   appointments: {

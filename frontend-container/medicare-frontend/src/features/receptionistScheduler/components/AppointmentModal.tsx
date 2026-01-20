@@ -1,5 +1,19 @@
 import React, { useCallback, useEffect, useState } from "react";
 import {
+  useDoctors,
+  usePatients,
+} from "@features/receptionistScheduler/hooks/index";
+import { ReceptionistSchedulerApiService } from "@features/receptionistScheduler/services/receptionistSchedulerApiService";
+import type {
+  AppointmentModalProps,
+  CreateAppointmentRequest,
+  Doctor,
+  Patient,
+  TimeSlot,
+  UpdateAppointmentRequest,
+} from "@features/receptionistScheduler/types";
+import { Button, Input, Modal, SearchInput } from "@shared/components";
+import {
   Calendar,
   Clock,
   MapPin,
@@ -10,18 +24,6 @@ import {
   User,
   Video,
 } from "lucide-react";
-
-import { Button, Input, Modal, SearchInput } from "../../../shared/components";
-import { useDoctors, usePatients } from "../hooks/index";
-import { ReceptionistSchedulerApiService } from "../services/receptionistSchedulerApiService";
-import type {
-  AppointmentModalProps,
-  CreateAppointmentRequest,
-  Doctor,
-  Patient,
-  TimeSlot,
-  UpdateAppointmentRequest,
-} from "../types";
 
 export const AppointmentModal: React.FC<AppointmentModalProps> = ({
   isOpen,
@@ -162,7 +164,9 @@ export const AppointmentModal: React.FC<AppointmentModalProps> = ({
 
   const handleDoctorSelect = useCallback(
     (doctorId: string) => {
-      const doctor = doctors.find((d: Doctor) => d.id === doctorId || d.userId === doctorId);
+      const doctor = doctors.find(
+        (d: Doctor) => d.id === doctorId || d.userId === doctorId
+      );
       setSelectedDoctor(doctor || null);
       // Use userId for backend API calls (appointment storage)
       const userIdToStore = doctor?.userId || doctorId;

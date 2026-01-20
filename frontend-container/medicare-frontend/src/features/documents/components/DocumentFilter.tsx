@@ -1,7 +1,9 @@
 import React from "react";
-
-import { SearchInput } from "../../../shared/components";
-import type { DocumentFilterProps, DocumentType } from "../types";
+import type {
+  DocumentFilterProps,
+  DocumentType,
+} from "@features/documents/types";
+import { SearchInput } from "@shared/components";
 
 const documentTypes: { value: DocumentType | "All"; label: string }[] = [
   { value: "All", label: "All Types" },

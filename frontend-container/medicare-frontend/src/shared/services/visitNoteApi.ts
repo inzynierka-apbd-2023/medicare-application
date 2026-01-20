@@ -6,9 +6,8 @@
  * associated with appointments.
  */
 
+import type { VisitNoteData } from "@features/scheduler/components/VisitNoteModal";
 import { AxiosError } from "axios";
-
-import type { VisitNoteData } from "../../features/scheduler/components/VisitNoteModal";
 
 import { api, type ApiResponse, handleApiCall } from "./api";
 import { apiClient } from "./apiClient";
@@ -185,7 +184,10 @@ export const visitNoteApi = {
         } catch (error) {
           const axiosError = error as AxiosError;
           if (axiosError.response?.status === 405) {
-            await apiClient.post(`/documents/${documentId}/visit-note`, payload);
+            await apiClient.post(
+              `/documents/${documentId}/visit-note`,
+              payload
+            );
             return;
           }
           throw error;

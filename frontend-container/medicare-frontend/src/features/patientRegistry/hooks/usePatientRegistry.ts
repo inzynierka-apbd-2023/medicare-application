@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { PatientRegistryApiService } from "../services/patientRegistryApi";
+import { PatientRegistryApiService } from "@features/patientRegistry/services/patientRegistryApi";
 import type {
   CreatePatientRequest,
   Doctor,
   PatientRegistryFilters,
   PatientRegistryInfo,
-} from "../types";
+} from "@features/patientRegistry/types";
 
 interface UsePatientRegistryOptions {
   page?: number;

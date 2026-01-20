@@ -1,4 +1,8 @@
-import { getDefaultDashboard, ROUTE_ACCESS, ROUTES } from "../constants/routes";
+import {
+  getDefaultDashboard,
+  ROUTE_ACCESS,
+  ROUTES,
+} from "@shared/constants/routes";
 
 /**
  * Utility functions for route management and validation

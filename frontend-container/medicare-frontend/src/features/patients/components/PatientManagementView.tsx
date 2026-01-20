@@ -11,6 +11,9 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
+import type { Patient } from "@features/scheduler/types";
+import Header from "@layout/Header";
+import { Button, Card, LoadingOverlay } from "@shared/components";
 import {
   Activity,
   AlertCircle,
@@ -29,10 +32,6 @@ import {
   Search,
   User,
 } from "lucide-react";
-
-import Header from "../../../layout/Header";
-import { Button, Card, LoadingOverlay } from "../../../shared/components";
-import type { Patient } from "../../scheduler/types";
 
 // Extended Patient interface for medical records
 interface ExtendedPatient extends Patient {

@@ -1,8 +1,7 @@
 import React, { useState } from "react";
+import type { BuySubscriptionModalProps, Plan } from "@features/wallet/types";
+import { Button, Card, Modal } from "@shared/components";
 import { ShieldCheck } from "lucide-react";
-
-import { Button, Card, Modal } from "../../../shared/components";
-import type { BuySubscriptionModalProps, Plan } from "../types";
 
 const DEFAULT_PLANS: Plan[] = [
   {

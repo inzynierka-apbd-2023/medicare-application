@@ -1,8 +1,7 @@
 import React from "react";
+import type { PatientMedicalRecord } from "@features/medicalRecords/types";
+import { Button, Card, EmptyState } from "@shared/components";
 import { Calendar, Hash, User } from "lucide-react";
-
-import { Button, Card, EmptyState } from "../../../shared/components";
-import type { PatientMedicalRecord } from "../types";
 
 interface PatientSearchResultsProps {
   records: PatientMedicalRecord[];

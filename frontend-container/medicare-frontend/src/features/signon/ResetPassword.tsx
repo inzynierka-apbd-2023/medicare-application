@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { authService } from "@shared/services/authService";
+import { toastMessages, useToast } from "@shared/toast";
 import { ArrowLeft, CheckCircle, Eye, EyeOff, Lock } from "lucide-react";
-
-import { authService } from "../../shared/services/authService";
-import { toastMessages, useToast } from "../../shared/toast";
 
 interface ApiError {
   response?: {

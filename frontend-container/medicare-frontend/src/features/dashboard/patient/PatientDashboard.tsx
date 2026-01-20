@@ -1,18 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import Header from "../../../layout/Header";
-import { useAuth } from "../../../shared/auth/AuthContext";
-import {
-  ErrorDisplay,
-  LoadingOverlay,
-  Modal,
-} from "../../../shared/components";
-import { useLoadingService } from "../../../shared/hooks/useLoadingService";
-import { useSubscription } from "../../../shared/hooks/useSubscription";
-import { patientDashboardApi } from "../../../shared/services/dashboardApi";
-import { notificationsApi } from "../../../shared/services/notificationsApi";
-import { useScheduler } from "../../scheduler/hooks/useScheduler";
 import {
   DashboardCard,
   DashboardLayout,
@@ -20,7 +7,15 @@ import {
   DocumentsList,
   type Notification,
   NotificationsList,
-} from "../shared/components";
+} from "@features/dashboard/shared/components";
+import { useScheduler } from "@features/scheduler/hooks/useScheduler";
+import Header from "@layout/Header";
+import { useAuth } from "@shared/auth/AuthContext";
+import { ErrorDisplay, LoadingOverlay, Modal } from "@shared/components";
+import { useLoadingService } from "@shared/hooks/useLoadingService";
+import { useSubscription } from "@shared/hooks/useSubscription";
+import { patientDashboardApi } from "@shared/services/dashboardApi";
+import { notificationsApi } from "@shared/services/notificationsApi";
 
 import {
   DashboardScheduleView,

@@ -3,8 +3,8 @@ import type {
   Document,
   DocumentType,
   LabTestResult,
-} from "../../features/documents/types";
-import { toastMessages } from "../toast/toastMessages";
+} from "@features/documents/types";
+import { toastMessages } from "@shared/toast/toastMessages";
 
 import { api, type ApiResponse, handleApiCall } from "./api";
 import { appointmentsApi } from "./appointmentsApi";

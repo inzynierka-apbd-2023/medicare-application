@@ -1,5 +1,5 @@
-import type { Appointment } from "../../features/appointments/types";
-import { toastMessages } from "../toast/toastMessages";
+import type { Appointment } from "@features/appointments/types";
+import { toastMessages } from "@shared/toast/toastMessages";
 
 import { api } from "./api";
 

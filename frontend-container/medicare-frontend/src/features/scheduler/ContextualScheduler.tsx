@@ -1,7 +1,6 @@
 import React from "react";
-
-import { DoctorSchedulerPage } from "../scheduler/DoctorSchedulerPage";
-import { SchedulerPage } from "../scheduler/SchedulerPage";
+import { DoctorSchedulerPage } from "@features/scheduler/DoctorSchedulerPage";
+import { SchedulerPage } from "@features/scheduler/SchedulerPage";
 
 interface ContextualSchedulerProps {
   userType?: "patient" | "doctor" | "owner";

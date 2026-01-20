@@ -1,4 +1,5 @@
 import React, { useCallback } from "react";
+import type { CalendarEvent } from "@features/scheduler/types";
 import type {
   DateSelectArg,
   DatesSetArg,
@@ -8,8 +9,6 @@ import type {
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
-
-import type { CalendarEvent } from "../types";
 
 interface CalendarViewProps {
   events: CalendarEvent[];

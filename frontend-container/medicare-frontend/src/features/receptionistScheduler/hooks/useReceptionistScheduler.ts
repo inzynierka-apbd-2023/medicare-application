@@ -1,13 +1,12 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { ReceptionistSchedulerApiService } from "../services/receptionistSchedulerApiService";
+import { ReceptionistSchedulerApiService } from "@features/receptionistScheduler/services/receptionistSchedulerApiService";
 import type {
   AppointmentFilters,
   CalendarEvent,
   CreateAppointmentRequest,
   ReceptionistAppointment,
   UpdateAppointmentRequest,
-} from "../types";
+} from "@features/receptionistScheduler/types";
 
 interface UseReceptionistSchedulerOptions {
   autoRefresh?: boolean;

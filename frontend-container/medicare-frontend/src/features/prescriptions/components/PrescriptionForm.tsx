@@ -1,8 +1,11 @@
 import React, { useEffect, useMemo, useState } from "react";
-
-import { useDebounce } from "../../../shared/hooks";
-import { api } from "../../../shared/services/api";
-import { Patient, PrescriptionFormData, PrescriptionFormProps } from "../types";
+import {
+  Patient,
+  PrescriptionFormData,
+  PrescriptionFormProps,
+} from "@features/prescriptions/types";
+import { useDebounce } from "@shared/hooks";
+import { api } from "@shared/services/api";
 
 interface AtcEntry {
   atcCode: string;
@@ -213,34 +216,35 @@ export const PrescriptionForm: React.FC<PrescriptionFormProps> = ({
                     required
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                   />
-                  {showAtcDropdown && (atcDisplayResults.length > 0 || isSearchingAtc) && (
-                    <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
-                      {isSearchingAtc && (
-                        <div className="px-3 py-2 text-sm text-gray-500">
-                          Searching ATC catalog...
-                        </div>
-                      )}
-                      {atcDisplayResults.map((entry) => (
-                        <button
-                          key={entry.atcCode}
-                          type="button"
-                          onMouseDown={(e) => e.preventDefault()}
-                          onClick={() => handleSelectAtc(entry)}
-                          className="w-full text-left px-3 py-2 hover:bg-blue-50"
-                        >
-                          <div className="text-sm font-medium text-gray-900">
-                            {entry.atcName}
+                  {showAtcDropdown &&
+                    (atcDisplayResults.length > 0 || isSearchingAtc) && (
+                      <div className="absolute z-20 mt-1 w-full rounded-md border border-gray-200 bg-white shadow-lg">
+                        {isSearchingAtc && (
+                          <div className="px-3 py-2 text-sm text-gray-500">
+                            Searching ATC catalog...
                           </div>
-                          <div className="text-xs text-gray-500">
-                            {entry.atcCode}
-                            {entry.ddd != null && entry.uom
-                              ? ` • DDD ${entry.ddd} ${entry.uom}`
-                              : ""}
-                          </div>
-                        </button>
-                      ))}
-                    </div>
-                  )}
+                        )}
+                        {atcDisplayResults.map((entry) => (
+                          <button
+                            key={entry.atcCode}
+                            type="button"
+                            onMouseDown={(e) => e.preventDefault()}
+                            onClick={() => handleSelectAtc(entry)}
+                            className="w-full text-left px-3 py-2 hover:bg-blue-50"
+                          >
+                            <div className="text-sm font-medium text-gray-900">
+                              {entry.atcName}
+                            </div>
+                            <div className="text-xs text-gray-500">
+                              {entry.atcCode}
+                              {entry.ddd != null && entry.uom
+                                ? ` • DDD ${entry.ddd} ${entry.uom}`
+                                : ""}
+                            </div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   {formData.medications[0].atcCode && (
                     <div className="mt-1 text-xs text-gray-500">
                       ATC: {formData.medications[0].atcCode}

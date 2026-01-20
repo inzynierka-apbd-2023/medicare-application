@@ -1,6 +1,5 @@
+import { toastMessages } from "@shared/toast/toastMessages";
 import { AxiosError, AxiosRequestConfig } from "axios";
-
-import { toastMessages } from "../toast/toastMessages";
 
 import { apiClient } from "./apiClient";
 import { loadingService } from "./loadingService";

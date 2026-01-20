@@ -1,7 +1,9 @@
 import React from "react";
-
-import { SearchInput } from "../../../shared/components";
-import type { StaffFilterProps, StaffRole } from "../types";
+import type {
+  StaffFilterProps,
+  StaffRole,
+} from "@features/staffManagement/types";
+import { SearchInput } from "@shared/components";
 
 export const StaffFilter: React.FC<StaffFilterProps> = ({
   searchTerm,

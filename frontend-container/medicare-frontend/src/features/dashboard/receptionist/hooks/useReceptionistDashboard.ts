@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { ReceptionistDashboardApiService } from "../services/receptionistDashboardApiService";
-import type { ReceptionistDashboardData } from "../types";
+import { ReceptionistDashboardApiService } from "@features/dashboard/receptionist/services/receptionistDashboardApiService";
+import type { ReceptionistDashboardData } from "@features/dashboard/receptionist/types";
 
 interface UseReceptionistDashboardOptions {
   autoRefresh?: boolean;

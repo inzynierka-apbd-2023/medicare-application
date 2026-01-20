@@ -1,7 +1,6 @@
 import React from "react";
+import { Card } from "@shared/components";
 import { Calendar, DollarSign, TrendingDown, TrendingUp } from "lucide-react";
-
-import { Card } from "../../../../shared/components";
 
 interface RevenueData {
   daily: number;

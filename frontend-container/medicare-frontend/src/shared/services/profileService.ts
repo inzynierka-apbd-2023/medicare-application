@@ -1,5 +1,5 @@
-import type { ProfileData } from "../../features/profile/types";
-import { toastMessages } from "../toast/toastMessages";
+import type { ProfileData } from "@features/profile/types";
+import { toastMessages } from "@shared/toast/toastMessages";
 
 import { api } from "./api";
 

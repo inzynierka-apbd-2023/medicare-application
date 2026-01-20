@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
+import { useAuth } from "@shared/auth/AuthContext";
+import { getDefaultDashboard } from "@shared/constants/routes";
+import { availabilityApi } from "@shared/services/availabilityApi";
 import { ArrowLeft, Eye, EyeOff } from "lucide-react";
-
-import { useAuth } from "../../shared/auth/AuthContext";
-import { getDefaultDashboard } from "../../shared/constants/routes";
-import { availabilityApi } from "../../shared/services/availabilityApi";
 
 interface RegisterFormData {
   firstName: string;

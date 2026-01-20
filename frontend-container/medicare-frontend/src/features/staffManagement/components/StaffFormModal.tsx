@@ -1,14 +1,13 @@
 import React, { useEffect, useState } from "react";
-import { Plus, Save } from "lucide-react";
-
-import { Button, Input, Modal } from "../../../shared/components";
 import type {
   CreateStaffRequest,
   StaffFormModalProps,
   StaffRole,
   UpdateStaffRequest,
   UserProfile,
-} from "../types";
+} from "@features/staffManagement/types";
+import { Button, Input, Modal } from "@shared/components";
+import { Plus, Save } from "lucide-react";
 
 export const StaffFormModal: React.FC<StaffFormModalProps> = ({
   isOpen,

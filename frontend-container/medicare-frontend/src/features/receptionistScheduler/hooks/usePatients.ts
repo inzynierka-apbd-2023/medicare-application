@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
-
-import { ReceptionistSchedulerApiService } from "../services/receptionistSchedulerApiService";
-import type { Patient } from "../types";
+import { ReceptionistSchedulerApiService } from "@features/receptionistScheduler/services/receptionistSchedulerApiService";
+import type { Patient } from "@features/receptionistScheduler/types";
 
 export const usePatients = () => {
   const [patients, setPatients] = useState<Patient[]>([]);

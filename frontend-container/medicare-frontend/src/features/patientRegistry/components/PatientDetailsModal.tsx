@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from "react";
-
-import { Button, Input, Modal } from "../../../shared/components";
-import type { Doctor, PatientRegistryInfo } from "../types";
+import type {
+  Doctor,
+  PatientRegistryInfo,
+} from "@features/patientRegistry/types";
+import { Button, Input, Modal } from "@shared/components";
 
 interface PatientDetailsModalProps {
   isOpen: boolean;

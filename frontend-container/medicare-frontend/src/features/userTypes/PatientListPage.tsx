@@ -1,9 +1,8 @@
 import React, { useState } from "react";
-
-import Header from "../../layout/Header";
-import { useAuth } from "../../shared/auth/AuthContext";
-import { ErrorDisplay, LoadingOverlay } from "../../shared/components";
-import { usePatients } from "../../shared/hooks/usePatients";
+import Header from "@layout/Header";
+import { useAuth } from "@shared/auth/AuthContext";
+import { ErrorDisplay, LoadingOverlay } from "@shared/components";
+import { usePatients } from "@shared/hooks/usePatients";
 
 import { PatientList } from "./components";
 import type { PatientListPageProps, SortKey } from "./types";

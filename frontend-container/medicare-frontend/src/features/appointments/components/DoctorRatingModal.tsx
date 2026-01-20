@@ -1,7 +1,6 @@
 import React, { useState } from "react";
+import type { Appointment } from "@features/appointments/types";
 import { Button, Modal } from "@shared/components";
-
-import type { Appointment } from "../types";
 
 import { StarRating } from "./StarRating";
 

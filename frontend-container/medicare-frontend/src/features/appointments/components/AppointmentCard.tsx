@@ -1,5 +1,7 @@
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import type { AppointmentCardProps } from "@features/appointments/types";
+import { Badge, Button, Card } from "@shared/components";
 import {
   Calendar,
   CheckCircle,
@@ -10,9 +12,6 @@ import {
   User,
   XCircle,
 } from "lucide-react";
-
-import { Badge, Button, Card } from "../../../shared/components";
-import type { AppointmentCardProps } from "../types";
 
 import { StarRating } from "./StarRating";
 

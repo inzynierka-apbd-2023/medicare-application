@@ -1,5 +1,5 @@
-import type { Conversation, Message } from "../../features/messages/types";
-import { toastMessages } from "../toast/toastMessages";
+import type { Conversation, Message } from "@features/messages/types";
+import { toastMessages } from "@shared/toast/toastMessages";
 
 import { api } from "./api";
 

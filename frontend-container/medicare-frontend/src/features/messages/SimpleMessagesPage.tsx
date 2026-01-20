@@ -1,9 +1,8 @@
 import React from "react";
 import { useSearchParams } from "react-router-dom";
+import { DashboardLayout } from "@features/dashboard/shared/components";
+import Header from "@layout/Header";
 import { useAuth } from "@shared/auth/AuthContext";
-
-import Header from "../../layout/Header";
-import { DashboardLayout } from "../dashboard/shared/components";
 
 import { MessagesPage } from "./MessagesPage";
 

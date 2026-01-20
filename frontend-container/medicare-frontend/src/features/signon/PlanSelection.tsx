@@ -1,10 +1,9 @@
 import { useEffect, useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@shared/auth/AuthContext";
 import { Button } from "@shared/components";
+import { plansApi } from "@shared/services/plansApi";
 import { AlertCircle, ArrowLeft, Check, ShieldCheck, Star } from "lucide-react";
-
-import { useAuth } from "../../shared/auth/AuthContext";
-import { plansApi } from "../../shared/services/plansApi";
 
 interface Plan {
   id: string;

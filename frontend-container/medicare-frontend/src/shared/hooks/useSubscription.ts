@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
-
-import { useAuth } from "../auth/AuthContext";
-import { PlanDto, plansApi } from "../services/plansApi";
+import { useAuth } from "@shared/auth/AuthContext";
+import { PlanDto, plansApi } from "@shared/services/plansApi";
 
 export interface SubscriptionState {
   plan: PlanDto | null;

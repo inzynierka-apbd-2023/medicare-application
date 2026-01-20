@@ -1,13 +1,12 @@
 import { useMemo } from "react";
+import type { Appointment } from "@features/scheduler/types";
+import { getStatusColors } from "@features/scheduler/utils/statusColors";
 import type { EventContentArg } from "@fullcalendar/core";
 import dayGridPlugin from "@fullcalendar/daygrid";
 import FullCalendar from "@fullcalendar/react";
 import timeGridPlugin from "@fullcalendar/timegrid";
+import { Card } from "@shared/components";
 import { Calendar as CalendarIcon, Clock } from "lucide-react";
-
-import { Card } from "../../../../shared/components";
-import type { Appointment } from "../../../scheduler/types";
-import { getStatusColors } from "../../../scheduler/utils/statusColors";
 
 import "./DashboardScheduleView.css";
 

@@ -10,12 +10,11 @@
  */
 
 import React, { useCallback, useEffect, useState } from "react";
+import { SchedulerApiService } from "@features/scheduler/services/schedulerApiService";
+import type { Appointment } from "@features/scheduler/types";
+import Header from "@layout/Header";
+import { Button, Card, LoadingOverlay } from "@shared/components";
 import { Calendar } from "lucide-react";
-
-import Header from "../../../layout/Header";
-import { Button, Card, LoadingOverlay } from "../../../shared/components";
-import { SchedulerApiService } from "../services/schedulerApiService";
-import type { Appointment } from "../types";
 
 import AppointmentDetails from "./AppointmentDetails";
 import AppointmentStats from "./AppointmentStats";

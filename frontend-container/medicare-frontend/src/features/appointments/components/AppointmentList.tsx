@@ -1,7 +1,6 @@
 import React from "react";
+import type { AppointmentListProps } from "@features/appointments/types";
 import { CalendarCheck } from "lucide-react";
-
-import type { AppointmentListProps } from "../types";
 
 import { AppointmentSection } from "./AppointmentSection";
 

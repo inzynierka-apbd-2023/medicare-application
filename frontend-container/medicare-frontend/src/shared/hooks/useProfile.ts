@@ -1,8 +1,7 @@
 import { useCallback, useEffect, useState } from "react";
-
-import type { ProfileData } from "../../features/profile/types";
-import { useAuth } from "../auth/AuthContext";
-import { profileService } from "../services/profileService";
+import type { ProfileData } from "@features/profile/types";
+import { useAuth } from "@shared/auth/AuthContext";
+import { profileService } from "@shared/services/profileService";
 
 interface UseProfileResult {
   profileData: ProfileData | null;

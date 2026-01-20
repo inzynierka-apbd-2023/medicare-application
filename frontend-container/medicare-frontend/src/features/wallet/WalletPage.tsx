@@ -1,9 +1,8 @@
 import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
-
-import Header from "../../layout/Header";
-import { ErrorDisplay, Loading } from "../../shared/components";
-import { useWallet } from "../../shared/hooks/useWallet";
+import Header from "@layout/Header";
+import { ErrorDisplay, Loading } from "@shared/components";
+import { useWallet } from "@shared/hooks/useWallet";
 
 import { PaymentModal } from "./components/PaymentModal";
 import { Wallet } from "./components/Wallet";

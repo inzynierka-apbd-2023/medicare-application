@@ -1,4 +1,6 @@
 import React from "react";
+import { Card } from "@shared/components";
+import { SpecializationStats } from "@shared/services/analyticsApi";
 import { Activity, TrendingUp, Users } from "lucide-react";
 import {
   Bar,
@@ -13,9 +15,6 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
-
-import { Card } from "../../../shared/components";
-import { SpecializationStats } from "../../../shared/services/analyticsApi";
 
 interface SpecializationStatsCardProps {
   data: SpecializationStats[];

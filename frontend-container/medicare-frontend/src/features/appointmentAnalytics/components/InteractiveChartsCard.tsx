@@ -1,11 +1,10 @@
 import { useState } from "react";
-import { Activity, TrendingUp, Users } from "lucide-react";
-
 import type {
   AppointmentsBySpecializationData,
   DoctorProductivityData,
   RevenueChartData,
-} from "../../../shared/services/dashboardApi";
+} from "@shared/services/dashboardApi";
+import { Activity, TrendingUp, Users } from "lucide-react";
 
 interface InteractiveChartsCardProps {
   revenueData: RevenueChartData[];

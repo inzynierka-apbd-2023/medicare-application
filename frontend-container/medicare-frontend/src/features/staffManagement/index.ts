@@ -35,4 +35,4 @@ export {
 export { useStaffManagement } from "./hooks/useStaffManagement";
 
 // Services - re-export from shared services
-export { staffApi } from "../../shared/services/staffApi";
+export { staffApi } from "@shared/services/staffApi";

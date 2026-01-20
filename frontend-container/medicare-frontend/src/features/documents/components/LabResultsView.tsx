@@ -1,8 +1,7 @@
 import React from "react";
+import type { Document, LabTestResult } from "@features/documents/types";
 import { Badge } from "@shared/components";
 import { AlertTriangle, CheckCircle, XCircle } from "lucide-react";
-
-import type { Document, LabTestResult } from "../types";
 
 interface LabResultsViewProps {
   document: Document;

@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import type {
+  CreatePatientRequest,
+  Doctor,
+} from "@features/patientRegistry/types";
+import { Button, Modal } from "@shared/components";
 import { Eye, EyeOff, X } from "lucide-react";
-
-import { Button, Modal } from "../../../shared/components";
-import type { CreatePatientRequest, Doctor } from "../types";
 
 interface SimplePatientRegistrationModalProps {
   isOpen: boolean;

@@ -1,8 +1,7 @@
 import React from "react";
+import type { DoctorAvailability } from "@features/dashboard/receptionist/types";
+import { Badge, Card } from "@shared/components";
 import { Clock, Stethoscope, User } from "lucide-react";
-
-import { Badge, Card } from "../../../../shared/components";
-import type { DoctorAvailability } from "../types";
 
 interface DoctorAvailabilityListProps {
   doctors: DoctorAvailability[];

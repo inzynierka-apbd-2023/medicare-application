@@ -1,5 +1,7 @@
-import React, { useCallback, useEffect, useState } from 'react';
-import axios from 'axios';
+import React, { useCallback, useEffect, useState } from "react";
+import { Modal } from "@shared/components/Modal/Modal";
+import { useDebounce } from "@shared/hooks/useDebounce";
+import axios from "axios";
 import {
   Activity,
   Droplets,
@@ -9,10 +11,7 @@ import {
   Scale,
   Thermometer,
   Wind,
-} from 'lucide-react';
-
-import { Modal } from '../../../shared/components/Modal/Modal';
-import { useDebounce } from '../../../shared/hooks/useDebounce';
+} from "lucide-react";
 
 // ICD-10 type
 interface Icd10Code {
@@ -76,7 +75,7 @@ function VitalSignField({
   onChange,
   placeholder,
   unit,
-  className = '',
+  className = "",
   readOnly = false,
 }: Readonly<VitalSignFieldProps>) {
   return (
@@ -116,27 +115,27 @@ export function VisitNoteModal({
   onSave,
 }: VisitNoteModalProps) {
   // Form state
-  const [symptoms, setSymptoms] = useState('');
-  const [findings, setFindings] = useState('');
-  const [diagnosis, setDiagnosis] = useState('');
-  const [treatmentPlan, setTreatmentPlan] = useState('');
-  const [recommendations, setRecommendations] = useState('');
-  const [followUpDate, setFollowUpDate] = useState('');
+  const [symptoms, setSymptoms] = useState("");
+  const [findings, setFindings] = useState("");
+  const [diagnosis, setDiagnosis] = useState("");
+  const [treatmentPlan, setTreatmentPlan] = useState("");
+  const [recommendations, setRecommendations] = useState("");
+  const [followUpDate, setFollowUpDate] = useState("");
 
   // Vital signs state
   const [vitalSigns, setVitalSigns] = useState<VitalSigns>({
-    bloodPressureSystolic: '',
-    bloodPressureDiastolic: '',
-    heartRate: '',
-    temperature: '',
-    spO2: '',
-    respiratoryRate: '',
-    weight: '',
-    height: '',
+    bloodPressureSystolic: "",
+    bloodPressureDiastolic: "",
+    heartRate: "",
+    temperature: "",
+    spO2: "",
+    respiratoryRate: "",
+    weight: "",
+    height: "",
   });
 
   // ICD-10 search state
-  const [icd10SearchTerm, setIcd10SearchTerm] = useState('');
+  const [icd10SearchTerm, setIcd10SearchTerm] = useState("");
   const [icd10Results, setIcd10Results] = useState<Icd10Code[]>([]);
   const [selectedIcd10Codes, setSelectedIcd10Codes] = useState<Icd10Code[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -155,53 +154,58 @@ export function VisitNoteModal({
   }, []);
 
   // Parse existing diagnosis to ICD-10 codes
-  const parseDiagnosisToIcd10 = useCallback((diagnosisText: string): Icd10Code[] => {
-    if (!diagnosisText) return [];
-    
-    // Parse format: "A01.0 - Typhoid fever, B02.9 - Zoster"
-    const codes: Icd10Code[] = [];
-    const parts = diagnosisText.split(',').map(p => p.trim());
-    
-    const regex = /^([A-Z]\d{2}(?:\.\d{1,2})?)\s*-\s*(.+)$/;
-    for (const part of parts) {
-      const match = regex.exec(part);
-      if (match) {
-        codes.push({ code: match[1], title: match[2] });
+  const parseDiagnosisToIcd10 = useCallback(
+    (diagnosisText: string): Icd10Code[] => {
+      if (!diagnosisText) return [];
+
+      // Parse format: "A01.0 - Typhoid fever, B02.9 - Zoster"
+      const codes: Icd10Code[] = [];
+      const parts = diagnosisText.split(",").map((p) => p.trim());
+
+      const regex = /^([A-Z]\d{2}(?:\.\d{1,2})?)\s*-\s*(.+)$/;
+      for (const part of parts) {
+        const match = regex.exec(part);
+        if (match) {
+          codes.push({ code: match[1], title: match[2] });
+        }
       }
-    }
-    
-    return codes;
-  }, []);
+
+      return codes;
+    },
+    []
+  );
 
   // Initialize form with existing data
   useEffect(() => {
     if (existingVisitNote) {
-      setSymptoms(existingVisitNote.symptoms || '');
-      setFindings(existingVisitNote.findings || '');
-      setDiagnosis(existingVisitNote.diagnosis || '');
-      setTreatmentPlan(existingVisitNote.treatmentPlan || '');
-      setRecommendations(existingVisitNote.recommendations || '');
-      setFollowUpDate(existingVisitNote.followUpDate?.split('T')[0] || '');
-      
+      setSymptoms(existingVisitNote.symptoms || "");
+      setFindings(existingVisitNote.findings || "");
+      setDiagnosis(existingVisitNote.diagnosis || "");
+      setTreatmentPlan(existingVisitNote.treatmentPlan || "");
+      setRecommendations(existingVisitNote.recommendations || "");
+      setFollowUpDate(existingVisitNote.followUpDate?.split("T")[0] || "");
+
       if (existingVisitNote.vitalSignsJson) {
         setVitalSigns(parseVitalSigns(existingVisitNote.vitalSignsJson));
       }
-      
+
       // Parse existing diagnosis to ICD-10 codes
-      const existingCodes = parseDiagnosisToIcd10(existingVisitNote.diagnosis || '');
+      const existingCodes = parseDiagnosisToIcd10(
+        existingVisitNote.diagnosis || ""
+      );
       setSelectedIcd10Codes(existingCodes);
     } else {
       // Reset form
-      setSymptoms('');
-      setFindings('');
-      setDiagnosis('');
-      setTreatmentPlan('');
-      setRecommendations('');
-      setFollowUpDate('');
+      setSymptoms("");
+      setFindings("");
+      setDiagnosis("");
+      setTreatmentPlan("");
+      setRecommendations("");
+      setFollowUpDate("");
       setVitalSigns({});
       setSelectedIcd10Codes([]);
     }
-    setIcd10SearchTerm('');
+    setIcd10SearchTerm("");
     setIcd10Results([]);
   }, [existingVisitNote, isOpen, parseVitalSigns, parseDiagnosisToIcd10]);
 
@@ -224,7 +228,7 @@ export function VisitNoteModal({
         setIcd10Results(response.data || []);
         setShowIcd10Dropdown(true);
       } catch (error) {
-        console.error('Error searching ICD-10 codes:', error);
+        console.error("Error searching ICD-10 codes:", error);
         setIcd10Results([]);
       } finally {
         setIsSearching(false);
@@ -241,27 +245,27 @@ export function VisitNoteModal({
 
   // Handle ICD-10 code selection
   const handleSelectIcd10 = (code: Icd10Code) => {
-    if (!selectedIcd10Codes.some(c => c.code === code.code)) {
+    if (!selectedIcd10Codes.some((c) => c.code === code.code)) {
       const newCodes = [...selectedIcd10Codes, code];
       setSelectedIcd10Codes(newCodes);
       // Update diagnosis text
-      setDiagnosis(newCodes.map(c => `${c.code} - ${c.title}`).join(', '));
+      setDiagnosis(newCodes.map((c) => `${c.code} - ${c.title}`).join(", "));
     }
-    setIcd10SearchTerm('');
+    setIcd10SearchTerm("");
     setIcd10Results([]);
     setShowIcd10Dropdown(false);
   };
 
   // Handle removing ICD-10 code
   const handleRemoveIcd10 = (codeToRemove: string) => {
-    const newCodes = selectedIcd10Codes.filter(c => c.code !== codeToRemove);
+    const newCodes = selectedIcd10Codes.filter((c) => c.code !== codeToRemove);
     setSelectedIcd10Codes(newCodes);
-    setDiagnosis(newCodes.map(c => `${c.code} - ${c.title}`).join(', '));
+    setDiagnosis(newCodes.map((c) => `${c.code} - ${c.title}`).join(", "));
   };
 
   // Update vital sign
   const updateVitalSign = (field: keyof VitalSigns, value: string) => {
-    setVitalSigns(prev => ({ ...prev, [field]: value }));
+    setVitalSigns((prev) => ({ ...prev, [field]: value }));
   };
 
   // Handle save
@@ -273,7 +277,7 @@ export function VisitNoteModal({
     setIsSaving(true);
     try {
       const vitalSignsJson = JSON.stringify(vitalSigns);
-      
+
       await onSave({
         symptoms,
         findings,
@@ -281,32 +285,30 @@ export function VisitNoteModal({
         treatmentPlan,
         recommendations,
         vitalSignsJson,
-        followUpDate: followUpDate || '',
+        followUpDate: followUpDate || "",
       });
-      
+
       onClose();
     } catch (error) {
-      console.error('Error saving visit note:', error);
+      console.error("Error saving visit note:", error);
     } finally {
       setIsSaving(false);
     }
   };
 
-  let modalTitle = 'Generate Visit Note';
+  let modalTitle = "Generate Visit Note";
   if (isReadOnly) {
-    modalTitle = 'View Visit Note';
+    modalTitle = "View Visit Note";
   } else if (isEditMode) {
-    modalTitle = 'Edit Visit Note';
+    modalTitle = "Edit Visit Note";
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title={modalTitle}
-      size="lg"
-    >
-      <div className="space-y-4 overflow-y-auto px-2 pb-2" style={{ maxHeight: 'calc(80vh - 180px)' }}>
+    <Modal isOpen={isOpen} onClose={onClose} title={modalTitle} size="lg">
+      <div
+        className="space-y-4 overflow-y-auto px-2 pb-2"
+        style={{ maxHeight: "calc(80vh - 180px)" }}
+      >
         {/* Patient Info Header */}
         <div className="bg-blue-50 p-3 rounded-lg border border-blue-100">
           <div className="flex items-center gap-2 text-blue-700">
@@ -314,13 +316,14 @@ export function VisitNoteModal({
             <span className="font-medium">{patientName}</span>
           </div>
           <div className="text-sm text-blue-600 mt-1">
-            Appointment: {new Date(appointmentDate).toLocaleDateString('en-US', {
-              weekday: 'long',
-              year: 'numeric',
-              month: 'long',
-              day: 'numeric',
-              hour: '2-digit',
-              minute: '2-digit',
+            Appointment:{" "}
+            {new Date(appointmentDate).toLocaleDateString("en-US", {
+              weekday: "long",
+              year: "numeric",
+              month: "long",
+              day: "numeric",
+              hour: "2-digit",
+              minute: "2-digit",
             })}
           </div>
           <div className="text-xs text-blue-500 mt-1">ID: {appointmentId}</div>
@@ -328,7 +331,10 @@ export function VisitNoteModal({
 
         {/* Symptoms */}
         <div>
-          <label htmlFor="symptoms" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="symptoms"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Symptoms / Chief Complaint
           </label>
           <textarea
@@ -345,7 +351,8 @@ export function VisitNoteModal({
         {/* Vital Signs - Second field, micro-fields layout */}
         <div>
           <span className="block text-sm font-medium text-gray-700 mb-2">
-            Vital Signs <span className="text-gray-400 text-xs">(optional)</span>
+            Vital Signs{" "}
+            <span className="text-gray-400 text-xs">(optional)</span>
           </span>
           <div className="bg-gray-50 p-3 rounded-lg border border-gray-200">
             {/* Row 1: Blood Pressure, Heart Rate, Temperature */}
@@ -359,8 +366,10 @@ export function VisitNoteModal({
                 <div className="flex items-center gap-1">
                   <input
                     type="text"
-                    value={vitalSigns.bloodPressureSystolic || ''}
-                    onChange={(e) => updateVitalSign('bloodPressureSystolic', e.target.value)}
+                    value={vitalSigns.bloodPressureSystolic || ""}
+                    onChange={(e) =>
+                      updateVitalSign("bloodPressureSystolic", e.target.value)
+                    }
                     placeholder="120"
                     readOnly={isReadOnly}
                     className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -368,21 +377,25 @@ export function VisitNoteModal({
                   <span className="text-gray-400">/</span>
                   <input
                     type="text"
-                    value={vitalSigns.bloodPressureDiastolic || ''}
-                    onChange={(e) => updateVitalSign('bloodPressureDiastolic', e.target.value)}
+                    value={vitalSigns.bloodPressureDiastolic || ""}
+                    onChange={(e) =>
+                      updateVitalSign("bloodPressureDiastolic", e.target.value)
+                    }
                     placeholder="80"
                     readOnly={isReadOnly}
                     className="w-full px-2 py-1.5 text-sm border border-gray-300 rounded focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   />
-                  <span className="text-xs text-gray-400 whitespace-nowrap">mmHg</span>
+                  <span className="text-xs text-gray-400 whitespace-nowrap">
+                    mmHg
+                  </span>
                 </div>
               </div>
 
               <VitalSignField
                 icon={<Heart className="w-3 h-3" />}
                 label="Heart Rate"
-                value={vitalSigns.heartRate || ''}
-                onChange={(v) => updateVitalSign('heartRate', v)}
+                value={vitalSigns.heartRate || ""}
+                onChange={(v) => updateVitalSign("heartRate", v)}
                 placeholder="72"
                 unit="bpm"
                 readOnly={isReadOnly}
@@ -391,8 +404,8 @@ export function VisitNoteModal({
               <VitalSignField
                 icon={<Thermometer className="w-3 h-3" />}
                 label="Temperature"
-                value={vitalSigns.temperature || ''}
-                onChange={(v) => updateVitalSign('temperature', v)}
+                value={vitalSigns.temperature || ""}
+                onChange={(v) => updateVitalSign("temperature", v)}
                 placeholder="36.6"
                 unit="°C"
                 readOnly={isReadOnly}
@@ -404,8 +417,8 @@ export function VisitNoteModal({
               <VitalSignField
                 icon={<Droplets className="w-3 h-3" />}
                 label="SpO2"
-                value={vitalSigns.spO2 || ''}
-                onChange={(v) => updateVitalSign('spO2', v)}
+                value={vitalSigns.spO2 || ""}
+                onChange={(v) => updateVitalSign("spO2", v)}
                 placeholder="98"
                 unit="%"
                 readOnly={isReadOnly}
@@ -414,8 +427,8 @@ export function VisitNoteModal({
               <VitalSignField
                 icon={<Wind className="w-3 h-3" />}
                 label="Resp. Rate"
-                value={vitalSigns.respiratoryRate || ''}
-                onChange={(v) => updateVitalSign('respiratoryRate', v)}
+                value={vitalSigns.respiratoryRate || ""}
+                onChange={(v) => updateVitalSign("respiratoryRate", v)}
                 placeholder="16"
                 unit="/min"
                 readOnly={isReadOnly}
@@ -424,8 +437,8 @@ export function VisitNoteModal({
               <VitalSignField
                 icon={<Scale className="w-3 h-3" />}
                 label="Weight"
-                value={vitalSigns.weight || ''}
-                onChange={(v) => updateVitalSign('weight', v)}
+                value={vitalSigns.weight || ""}
+                onChange={(v) => updateVitalSign("weight", v)}
                 placeholder="70"
                 unit="kg"
                 readOnly={isReadOnly}
@@ -434,8 +447,8 @@ export function VisitNoteModal({
               <VitalSignField
                 icon={<Ruler className="w-3 h-3" />}
                 label="Height"
-                value={vitalSigns.height || ''}
-                onChange={(v) => updateVitalSign('height', v)}
+                value={vitalSigns.height || ""}
+                onChange={(v) => updateVitalSign("height", v)}
                 placeholder="175"
                 unit="cm"
                 readOnly={isReadOnly}
@@ -446,7 +459,10 @@ export function VisitNoteModal({
 
         {/* Findings */}
         <div>
-          <label htmlFor="findings" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="findings"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Clinical Findings
           </label>
           <textarea
@@ -462,10 +478,13 @@ export function VisitNoteModal({
 
         {/* Diagnosis with ICD-10 Search */}
         <div>
-          <label htmlFor="icd10Search" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="icd10Search"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Diagnosis (ICD-10)
           </label>
-          
+
           {/* Selected ICD-10 codes */}
           {selectedIcd10Codes.length > 0 && (
             <div className="flex flex-wrap gap-2 mb-2">
@@ -497,7 +516,9 @@ export function VisitNoteModal({
               type="text"
               value={icd10SearchTerm}
               onChange={(e) => handleIcd10SearchChange(e.target.value)}
-              onFocus={() => icd10Results.length > 0 && setShowIcd10Dropdown(true)}
+              onFocus={() =>
+                icd10Results.length > 0 && setShowIcd10Dropdown(true)
+              }
               placeholder="Search ICD-10 codes (e.g., 'diabetes' or 'E11')..."
               disabled={isReadOnly}
               className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
@@ -521,7 +542,9 @@ export function VisitNoteModal({
                     <span className="font-mono text-sm font-medium text-blue-600 whitespace-nowrap">
                       {result.code}
                     </span>
-                    <span className="text-sm text-gray-700">{result.title}</span>
+                    <span className="text-sm text-gray-700">
+                      {result.title}
+                    </span>
                   </button>
                 ))}
               </div>
@@ -530,15 +553,19 @@ export function VisitNoteModal({
 
           {/* Hidden input to store full diagnosis text */}
           <input type="hidden" value={diagnosis} />
-          
+
           <p className="text-xs text-gray-500 mt-1">
-            Search and select ICD-10 diagnosis codes. Type at least 2 characters to search.
+            Search and select ICD-10 diagnosis codes. Type at least 2 characters
+            to search.
           </p>
         </div>
 
         {/* Treatment Plan */}
         <div>
-          <label htmlFor="treatmentPlan" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="treatmentPlan"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Treatment Plan
           </label>
           <textarea
@@ -554,7 +581,10 @@ export function VisitNoteModal({
 
         {/* Recommendations */}
         <div>
-          <label htmlFor="recommendations" className="block text-sm font-medium text-gray-700 mb-1">
+          <label
+            htmlFor="recommendations"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
             Recommendations
           </label>
           <textarea
@@ -570,8 +600,12 @@ export function VisitNoteModal({
 
         {/* Follow-up Date */}
         <div>
-          <label htmlFor="followUpDate" className="block text-sm font-medium text-gray-700 mb-1">
-            Follow-up Date <span className="text-gray-400 text-xs">(optional)</span>
+          <label
+            htmlFor="followUpDate"
+            className="block text-sm font-medium text-gray-700 mb-1"
+          >
+            Follow-up Date{" "}
+            <span className="text-gray-400 text-xs">(optional)</span>
           </label>
           <input
             id="followUpDate"
@@ -592,7 +626,7 @@ export function VisitNoteModal({
           className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
           disabled={isSaving}
         >
-          {isReadOnly ? 'Close' : 'Cancel'}
+          {isReadOnly ? "Close" : "Cancel"}
         </button>
         {!isReadOnly && (
           <button
@@ -602,8 +636,8 @@ export function VisitNoteModal({
             className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:opacity-50"
           >
             {(() => {
-              if (isSaving) return 'Saving...';
-              return isEditMode ? 'Update Visit Note' : 'Save Visit Note';
+              if (isSaving) return "Saving...";
+              return isEditMode ? "Update Visit Note" : "Save Visit Note";
             })()}
           </button>
         )}
@@ -612,4 +646,4 @@ export function VisitNoteModal({
   );
 }
 
-export type { Icd10Code,VisitNoteData, VitalSigns };
+export type { Icd10Code, VisitNoteData, VitalSigns };

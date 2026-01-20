@@ -1,6 +1,5 @@
 import React from "react";
-
-import type { WalletAppointment } from "../types";
+import type { WalletAppointment } from "@features/wallet/types";
 
 import { AppointmentCard } from "./VisitCard";
 

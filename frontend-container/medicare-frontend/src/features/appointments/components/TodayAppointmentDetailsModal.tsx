@@ -1,8 +1,7 @@
 import React from "react";
+import type { TodayAppointment } from "@features/appointments/types";
+import { Badge, Modal } from "@shared/components";
 import { Calendar, Clock, FileText, Phone, User } from "lucide-react";
-
-import { Badge, Modal } from "../../../shared/components";
-import type { TodayAppointment } from "../types";
 
 interface TodayAppointmentDetailsModalProps {
   isOpen: boolean;

@@ -1,4 +1,6 @@
 import React, { useState } from "react";
+import type { StaffCardProps } from "@features/staffManagement/types";
+import { Badge, Card } from "@shared/components";
 import {
   Calendar,
   KeyRound,
@@ -9,9 +11,6 @@ import {
   User,
   Users,
 } from "lucide-react";
-
-import { Badge, Card } from "../../../shared/components";
-import type { StaffCardProps } from "../types";
 
 import { ScheduleEditor } from "./ScheduleEditor";
 

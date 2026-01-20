@@ -1,9 +1,8 @@
 import React from "react";
 import { Link } from "react-router-dom";
+import type { SubscriptionViewProps } from "@features/wallet/types";
+import { Button } from "@shared/components";
 import { CheckCircle, HeartPulse, XCircle } from "lucide-react";
-
-import { Button } from "../../../shared/components";
-import type { SubscriptionViewProps } from "../types";
 
 export const SubscriptionView: React.FC<SubscriptionViewProps> = ({
   subscription,

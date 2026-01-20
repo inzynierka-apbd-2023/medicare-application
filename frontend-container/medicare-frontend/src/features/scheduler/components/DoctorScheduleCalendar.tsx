@@ -1,6 +1,5 @@
 import React from "react";
-
-import type { DoctorCalendarEvent } from "../types/doctorScheduler";
+import type { DoctorCalendarEvent } from "@features/scheduler/types/doctorScheduler";
 
 interface DoctorScheduleCalendarProps {
   events: DoctorCalendarEvent[];

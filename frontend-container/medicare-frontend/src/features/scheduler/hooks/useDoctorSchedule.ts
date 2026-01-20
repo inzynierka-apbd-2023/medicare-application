@@ -1,12 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
-
-import doctorScheduleApi from "../../../shared/services/doctorScheduleApi";
-import { visitNoteApi } from "../../../shared/services/visitNoteApi";
-import type { VisitNoteData } from "../components/VisitNoteModal";
+import type { VisitNoteData } from "@features/scheduler/components/VisitNoteModal";
 import type {
   DoctorCalendarEvent,
   DoctorScheduleEvent,
-} from "../types/doctorScheduler";
+} from "@features/scheduler/types/doctorScheduler";
+import doctorScheduleApi from "@shared/services/doctorScheduleApi";
+import { visitNoteApi } from "@shared/services/visitNoteApi";
 
 interface UseDoctorScheduleProps {
   doctorId?: string;
@@ -259,7 +258,10 @@ export const useDoctorSchedule = ({
   );
 
   const updateVisitNote = useCallback(
-    async (documentId: string, visitNoteData: VisitNoteData): Promise<boolean> => {
+    async (
+      documentId: string,
+      visitNoteData: VisitNoteData
+    ): Promise<boolean> => {
       try {
         const result = await visitNoteApi.updateVisitNote(
           documentId,

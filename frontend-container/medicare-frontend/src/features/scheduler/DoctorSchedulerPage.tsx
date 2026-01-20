@@ -1,10 +1,9 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import Header from "@layout/Header";
+import { useAuth } from "@shared/auth/AuthContext";
+import { Card, ErrorDisplay, LoadingOverlay } from "@shared/components";
 import { Calendar, Clock, Filter, Users } from "lucide-react";
-
-import Header from "../../layout/Header";
-import { useAuth } from "../../shared/auth/AuthContext";
-import { Card, ErrorDisplay, LoadingOverlay } from "../../shared/components";
 
 import { DoctorScheduleCalendar } from "./components/DoctorScheduleCalendar";
 import { DoctorScheduleModal } from "./components/DoctorScheduleModal";
@@ -31,11 +30,15 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedAppointment, setSelectedAppointment] =
     useState<DoctorScheduleEvent | null>(null);
-  
+
   // Visit note modal state
   const [isVisitNoteModalOpen, setIsVisitNoteModalOpen] = useState(false);
-  const [visitNoteMode, setVisitNoteMode] = useState<"create" | "view">("create");
-  const [visitNoteData, setVisitNoteData] = useState<VisitNoteData | undefined>();
+  const [visitNoteMode, setVisitNoteMode] = useState<"create" | "view">(
+    "create"
+  );
+  const [visitNoteData, setVisitNoteData] = useState<
+    VisitNoteData | undefined
+  >();
   const [visitNoteLoading, setVisitNoteLoading] = useState(false);
 
   const [searchParams] = useSearchParams();
@@ -106,9 +109,7 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
         setVisitNoteMode("edit");
       } else {
         setSelectedAppointment((prev) =>
-          prev?.id === appointmentId
-            ? { ...prev, hasVisitNote: false }
-            : prev
+          prev?.id === appointmentId ? { ...prev, hasVisitNote: false } : prev
         );
       }
     };
@@ -155,10 +156,10 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
     // Hide the appointment details modal when opening visit note
     setIsModalOpen(false);
     setVisitNoteLoading(true);
-    
+
     // Check if there's an existing visit note for this appointment
     const existingNote = await getVisitNoteForAppointment(appointment.id);
-    
+
     if (existingNote) {
       setVisitNoteMode("view");
       setVisitNoteData(existingNote);
@@ -170,7 +171,7 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
       setVisitNoteMode("create");
       setVisitNoteData(undefined);
     }
-    
+
     setVisitNoteLoading(false);
     setIsVisitNoteModalOpen(true);
   };
@@ -190,7 +191,7 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
 
     let success = false;
     let newDocumentId: string | undefined;
-    
+
     if (visitNoteMode === "create") {
       const result = await createVisitNote(selectedAppointment, data);
       success = result.success;
@@ -454,7 +455,9 @@ export const DoctorSchedulerPage: React.FC<DoctorSchedulerProps> = ({
           {/* Visit Note Modal */}
           {visitNoteLoading ? (
             <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-              <div className="bg-white p-4 rounded-lg">Loading visit note...</div>
+              <div className="bg-white p-4 rounded-lg">
+                Loading visit note...
+              </div>
             </div>
           ) : (
             <VisitNoteModal

@@ -1,7 +1,6 @@
 import React, { useState } from "react";
+import type { NewMessageModalProps, User } from "@features/messages/types";
 import { Button, Input, Modal } from "@shared/components";
-
-import type { NewMessageModalProps, User } from "../types";
 
 export const NewMessageModal: React.FC<NewMessageModalProps> = ({
   isOpen,

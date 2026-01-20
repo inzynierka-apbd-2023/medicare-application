@@ -1,10 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { useAuth } from "@shared/auth/AuthContext";
+import { getDefaultDashboard } from "@shared/constants/routes";
+import { RegisterRequest } from "@shared/services/authService";
 import { ArrowLeft } from "lucide-react";
-
-import { useAuth } from "../../shared/auth/AuthContext";
-import { getDefaultDashboard } from "../../shared/constants/routes";
-import { RegisterRequest } from "../../shared/services/authService";
 
 interface CompleteProfileForm {
   phone?: string;

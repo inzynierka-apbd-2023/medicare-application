@@ -1,8 +1,10 @@
 import React, { useState } from "react";
+import type {
+  ChangePasswordModalProps,
+  PasswordChangeData,
+} from "@features/profile/types";
+import { Button, Input, Modal } from "@shared/components";
 import { Eye, EyeOff } from "lucide-react";
-
-import { Button, Input, Modal } from "../../../shared/components";
-import type { ChangePasswordModalProps, PasswordChangeData } from "../types";
 
 export const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({
   isOpen,

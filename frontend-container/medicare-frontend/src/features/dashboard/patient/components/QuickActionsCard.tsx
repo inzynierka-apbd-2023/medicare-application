@@ -1,4 +1,5 @@
 import React from "react";
+import { Card } from "@shared/components";
 import {
   Calendar,
   CreditCard,
@@ -10,8 +11,6 @@ import {
   Settings,
   Stethoscope,
 } from "lucide-react";
-
-import { Card } from "../../../../shared/components";
 
 interface QuickAction {
   id: string;

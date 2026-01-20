@@ -1,8 +1,7 @@
 import React from "react";
+import type { MedicalRecordDetailModalProps } from "@features/medicalRecords/types";
+import { Badge, Button, Modal } from "@shared/components";
 import { Calendar, Heart, Phone, Pill, Shield, User } from "lucide-react";
-
-import { Badge, Button, Modal } from "../../../shared/components";
-import type { MedicalRecordDetailModalProps } from "../types";
 
 export const MedicalRecordDetailModal: React.FC<
   MedicalRecordDetailModalProps
