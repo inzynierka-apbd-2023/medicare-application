@@ -37,11 +37,12 @@ public static class MockIds
     public static readonly Guid Document6 = Guid.Parse("aaaa1111-1111-1111-1111-000000000006");
     public static readonly Guid Document7 = Guid.Parse("aaaa1111-1111-1111-1111-000000000007");
     public static readonly Guid Document8 = Guid.Parse("aaaa1111-1111-1111-1111-000000000008");
+    public static readonly Guid Document9 = Guid.Parse("aaaa1111-1111-1111-1111-000000000009"); // Prescription for Patient1 by Dr. Carter
 
     public static readonly Guid[] AllPatientIds = { Patient1, Patient2, Patient3, Patient4, Patient5, Patient6, Patient7 };
     public static readonly Guid[] AllDoctorIds = { Doctor1, Doctor2, Doctor3, Doctor4, Doctor5, Doctor6, Doctor7 };
     public static readonly Guid[] AllAppointmentIds = { Appointment1, Appointment2, Appointment3, Appointment4, Appointment5, Appointment6, Appointment7 };
-    public static readonly Guid[] AllDocumentIds = { Document1, Document2, Document3, Document4, Document5, Document6, Document7 };
+    public static readonly Guid[] AllDocumentIds = { Document1, Document2, Document3, Document4, Document5, Document6, Document7, Document8, Document9 };
 }
 
 public static class MockDataSeeder
@@ -66,7 +67,8 @@ public static class MockDataSeeder
             (MockIds.Document6, 5, 5, "VISIT_NOTE", "Follow-up visit after procedure"),
 
             (MockIds.Document7, 6, 6, "PRESCRIPTION", "Post-operative pain management prescription"),
-            (MockIds.Document8, 0, 0, "LAB_RESULTS", "Annual health checkup blood work")
+            (MockIds.Document8, 0, 0, "LAB_RESULTS", "Annual health checkup blood work"),
+            (MockIds.Document9, 0, 0, "PRESCRIPTION", "Cardiac medication prescription for hypertension management")
         };
 
         var existingDocumentIds = await db.Documents.Select(d => d.Id).ToHashSetAsync();
@@ -177,6 +179,26 @@ public static class MockDataSeeder
                 RefillsRemaining = 1,
                 AtcCode = "M01AE01",
                 AtcName = "Ibuprofen"
+            });
+            created++;
+        }
+
+        // Prescription for Patient1 (Alice Johnson) by Doctor1 (Dr. John Carter)
+        if (!existingPrescriptions.Contains(MockIds.Document9))
+        {
+            db.Prescriptions.Add(new Prescription
+            {
+                DocumentId = MockIds.Document9,
+                Medication = "Lisinopril",
+                Dosage = "10mg",
+                Frequency = "Once daily in the morning",
+                DurationDays = 30,
+                Instructions = "Take on an empty stomach. Monitor blood pressure regularly. Report any persistent cough or swelling.",
+                PharmacyName = "Medicare Pharmacy",
+                PharmacyPhone = "+1-555-7890",
+                RefillsRemaining = 5,
+                AtcCode = "C09AA03",
+                AtcName = "Lisinopril"
             });
             created++;
         }
@@ -314,7 +336,8 @@ public static class MockDataSeeder
             (MockIds.Document5, MockIds.Appointment5),
             (MockIds.Document6, MockIds.Appointment6),
             (MockIds.Document7, MockIds.Appointment7),
-            (MockIds.Document8, MockIds.Appointment1)
+            (MockIds.Document8, MockIds.Appointment1),
+            (MockIds.Document9, MockIds.Appointment1) // Prescription for Alice from Dr. Carter
         };
 
         foreach (var (docId, appointmentId) in assignments)

@@ -28,4 +28,9 @@
     <ProjectReference Include="..\..\Medicare.ServiceDefaults\Medicare.ServiceDefaults.csproj" />
   </ItemGroup>
 
+  <!-- Copy seed-data files to output directory for database seeding -->
+  <ItemGroup>
+    <None Include="..\seed-data\*.csv" CopyToOutputDirectory="PreserveNewest" LinkBase="seed-data" />
+  </ItemGroup>
+
 </Project>

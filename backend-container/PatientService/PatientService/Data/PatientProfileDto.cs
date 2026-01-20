@@ -12,6 +12,7 @@ public record PatientProfileDto(
     string Address,
     DateTime? DateOfBirth,
     string Gender,
+    string? BloodType,
     List<EmergencyContactDto> EmergencyContacts,
     List<InsuranceDto> Insurance
 );

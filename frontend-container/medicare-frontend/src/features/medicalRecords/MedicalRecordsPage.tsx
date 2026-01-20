@@ -178,9 +178,6 @@ export const MedicalRecordsPage: React.FC<MedicalRecordsPageProps> = ({
                       <h2 className="text-2xl font-bold text-gray-900">
                         {selectedRecord.name}
                       </h2>
-                      <p className="text-gray-600">
-                        MRN: {selectedRecord.medicalRecordNumber}
-                      </p>
                       <p className="text-sm text-gray-500">
                         DOB: {formatDate(selectedRecord.dateOfBirth)} •
                         {selectedRecord.gender} • Blood Type:{" "}

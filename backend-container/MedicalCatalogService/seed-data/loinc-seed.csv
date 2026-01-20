@@ -1,0 +1,126 @@
+LOINC_NUM,LONG_COMMON_NAME,SHORTNAME,COMPONENT,PROPERTY,TIME_ASPCT,SYSTEM,SCALE_TYP,METHOD_TYP,CLASS,STATUS
+718-7,Hemoglobin [Mass/volume] in Blood,Hemoglobin,Hemoglobin,MCnc,Pt,Bld,Qn,,HEM/BC,ACTIVE
+4544-3,Hematocrit [Volume Fraction] of Blood by Automated count,Hematocrit Auto,Hematocrit,VFr,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+789-8,Erythrocytes [#/volume] in Blood by Automated count,RBC Auto,Erythrocytes,NCnc,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+787-2,Erythrocyte mean corpuscular volume [Entitic volume] by Automated count,MCV Auto,Erythrocyte MCV,EntVol,Pt,RBC,Qn,Automated count,HEM/BC,ACTIVE
+785-6,Erythrocyte mean corpuscular hemoglobin [Entitic mass] by Automated count,MCH Auto,Erythrocyte MCH,EntMass,Pt,RBC,Qn,Automated count,HEM/BC,ACTIVE
+786-4,Erythrocyte mean corpuscular hemoglobin concentration [Mass/volume] by Automated count,MCHC Auto,Erythrocyte MCHC,MCnc,Pt,RBC,Qn,Automated count,HEM/BC,ACTIVE
+788-0,Erythrocyte distribution width [Ratio] by Automated count,RDW RBC Auto,Erythrocyte distribution width,Ratio,Pt,RBC,Qn,Automated count,HEM/BC,ACTIVE
+6690-2,Leukocytes [#/volume] in Blood by Automated count,WBC Auto,Leukocytes,NCnc,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+770-8,Neutrophils/100 leukocytes in Blood by Automated count,Neutrophils NFr Auto,Neutrophils/100 leukocytes,NFr,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+751-8,Neutrophils [#/volume] in Blood by Automated count,Neutrophils Auto,Neutrophils,NCnc,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+736-9,Lymphocytes/100 leukocytes in Blood by Automated count,Lymphocytes NFr Auto,Lymphocytes/100 leukocytes,NFr,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+731-0,Lymphocytes [#/volume] in Blood by Automated count,Lymphocytes Auto,Lymphocytes,NCnc,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+5905-5,Monocytes/100 leukocytes in Blood by Automated count,Monocytes NFr Auto,Monocytes/100 leukocytes,NFr,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+742-7,Monocytes [#/volume] in Blood by Automated count,Monocytes Auto,Monocytes,NCnc,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+713-8,Eosinophils/100 leukocytes in Blood by Automated count,Eosinophils NFr Auto,Eosinophils/100 leukocytes,NFr,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+711-2,Eosinophils [#/volume] in Blood by Automated count,Eosinophils Auto,Eosinophils,NCnc,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+706-2,Basophils/100 leukocytes in Blood by Automated count,Basophils NFr Auto,Basophils/100 leukocytes,NFr,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+704-7,Basophils [#/volume] in Blood by Automated count,Basophils Auto,Basophils,NCnc,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+777-3,Platelets [#/volume] in Blood by Automated count,Platelets Auto,Platelets,NCnc,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+32623-1,Platelet mean volume [Entitic volume] in Blood by Automated count,Platelet mean volume Auto,Platelet mean volume,EntVol,Pt,Bld,Qn,Automated count,HEM/BC,ACTIVE
+2160-0,Creatinine [Mass/volume] in Serum or Plasma,Creatinine SerPl,Creatinine,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+3094-0,Urea nitrogen [Mass/volume] in Serum or Plasma,BUN SerPl,Urea nitrogen,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2951-2,Sodium [Moles/volume] in Serum or Plasma,Sodium SerPl,Sodium,SCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2823-3,Potassium [Moles/volume] in Serum or Plasma,Potassium SerPl,Potassium,SCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2075-0,Chloride [Moles/volume] in Serum or Plasma,Chloride SerPl,Chloride,SCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+1963-8,Bicarbonate [Moles/volume] in Serum or Plasma,HCO3 SerPl,Bicarbonate,SCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+17861-6,Calcium [Mass/volume] in Serum or Plasma,Calcium SerPl,Calcium,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2777-1,Phosphate [Mass/volume] in Serum or Plasma,Phosphate SerPl,Phosphate,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+19123-9,Magnesium [Mass/volume] in Serum or Plasma,Magnesium SerPl,Magnesium,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2345-7,Glucose [Mass/volume] in Serum or Plasma,Glucose SerPl,Glucose,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+4548-4,Hemoglobin A1c/Hemoglobin.total in Blood,Hgb A1c MFr Bld,Hemoglobin A1c/Hemoglobin.total,MFr,Pt,Bld,Qn,,HEM/BC,ACTIVE
+1558-6,Fasting glucose [Mass/volume] in Serum or Plasma,Glucose Fasting SerPl,Glucose^fasting,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+1751-7,Albumin [Mass/volume] in Serum or Plasma,Albumin SerPl,Albumin,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2885-2,Protein [Mass/volume] in Serum or Plasma,Protein SerPl,Protein,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+1742-6,Alanine aminotransferase [Enzymatic activity/volume] in Serum or Plasma,ALT SerPl,Alanine aminotransferase,CCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+1920-8,Aspartate aminotransferase [Enzymatic activity/volume] in Serum or Plasma,AST SerPl,Aspartate aminotransferase,CCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+6768-6,Alkaline phosphatase [Enzymatic activity/volume] in Serum or Plasma,ALP SerPl,Alkaline phosphatase,CCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+1975-2,Bilirubin.total [Mass/volume] in Serum or Plasma,Bilirubin total SerPl,Bilirubin.total,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+1968-7,Bilirubin.direct [Mass/volume] in Serum or Plasma,Bilirubin direct SerPl,Bilirubin.direct,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2324-2,Gamma glutamyl transferase [Enzymatic activity/volume] in Serum or Plasma,GGT SerPl,Gamma glutamyl transferase,CCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+1798-8,Amylase [Enzymatic activity/volume] in Serum or Plasma,Amylase SerPl,Amylase,CCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+1986-9,C reactive protein [Mass/volume] in Serum or Plasma,CRP SerPl,C reactive protein,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+30341-2,Erythrocyte sedimentation rate,ESR Bld,Erythrocyte sedimentation rate,Vel,1H,Bld,Qn,,HEM/BC,ACTIVE
+2085-9,Cholesterol in HDL [Mass/volume] in Serum or Plasma,HDL SerPl,Cholesterol.in HDL,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+13457-7,Cholesterol in LDL [Mass/volume] in Serum or Plasma by calculation,LDL Calc SerPl,Cholesterol.in LDL,MCnc,Pt,Ser/Plas,Qn,Calculated,CHEM,ACTIVE
+2093-3,Cholesterol [Mass/volume] in Serum or Plasma,Cholesterol SerPl,Cholesterol,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2571-8,Triglyceride [Mass/volume] in Serum or Plasma,Triglyceride SerPl,Triglyceride,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+3016-3,Thyrotropin [Units/volume] in Serum or Plasma,TSH SerPl,Thyrotropin,ACnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+3026-2,Thyroxine (T4) [Mass/volume] in Serum or Plasma,T4 SerPl,Thyroxine,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+3053-6,Thyroxine (T4) free [Mass/volume] in Serum or Plasma,Free T4 SerPl,Thyroxine.free,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+3051-0,Triiodothyronine (T3) free [Mass/volume] in Serum or Plasma,Free T3 SerPl,Triiodothyronine.free,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+5770-3,Prothrombin time (PT),PT Bld,Coagulation tissue factor induced,Time,Pt,PPP,Qn,,COAG,ACTIVE
+5902-2,Prothrombin time (PT) in Platelet poor plasma by Coagulation assay,PT PPP,Coagulation tissue factor induced,Time,Pt,PPP,Qn,Coagulation,COAG,ACTIVE
+6301-6,INR in Platelet poor plasma by Coagulation assay,INR PPP,Coagulation tissue factor induced.INR,Rto,Pt,PPP,Qn,Coagulation,COAG,ACTIVE
+14979-9,Activated partial thromboplastin time (aPTT) in Platelet poor plasma by Coagulation assay,aPTT PPP,Activated partial thromboplastin time,Time,Pt,PPP,Qn,Coagulation,COAG,ACTIVE
+3173-2,Fibrinogen [Mass/volume] in Platelet poor plasma by Coagulation assay,Fibrinogen PPP,Fibrinogen,MCnc,Pt,PPP,Qn,Coagulation,COAG,ACTIVE
+48065-7,Fibrin D-dimer FEU [Mass/volume] in Platelet poor plasma,D-dimer FEU PPP,Fibrin D-dimer FEU,MCnc,Pt,PPP,Qn,,COAG,ACTIVE
+5811-5,Specific gravity of Urine by Test strip,Sp Gr Ur Strip,Specific gravity,Rden,Pt,Urine,Qn,Test strip,UA,ACTIVE
+5803-2,pH of Urine by Test strip,pH Ur Strip,pH,LsCnc,Pt,Urine,Qn,Test strip,UA,ACTIVE
+20505-4,Bilirubin.total [Presence] in Urine by Test strip,Bilirubin Ur Strip Ql,Bilirubin.total,PrThr,Pt,Urine,Ord,Test strip,UA,ACTIVE
+5797-6,Ketones [Presence] in Urine by Test strip,Ketones Ur Strip Ql,Ketones,PrThr,Pt,Urine,Ord,Test strip,UA,ACTIVE
+2349-9,Glucose [Presence] in Urine by Test strip,Glucose Ur Strip Ql,Glucose,PrThr,Pt,Urine,Ord,Test strip,UA,ACTIVE
+5804-0,Protein [Presence] in Urine by Test strip,Protein Ur Strip Ql,Protein,PrThr,Pt,Urine,Ord,Test strip,UA,ACTIVE
+20454-5,Protein [Mass/volume] in Urine by Test strip,Protein Ur Strip,Protein,MCnc,Pt,Urine,Qn,Test strip,UA,ACTIVE
+5770-3,Hemoglobin [Presence] in Urine by Test strip,Blood Ur Strip Ql,Hemoglobin,PrThr,Pt,Urine,Ord,Test strip,UA,ACTIVE
+5799-2,Leukocyte esterase [Presence] in Urine by Test strip,Leukocyte esterase Ur Strip Ql,Leukocyte esterase,PrThr,Pt,Urine,Ord,Test strip,UA,ACTIVE
+5802-4,Nitrite [Presence] in Urine by Test strip,Nitrite Ur Strip Ql,Nitrite,PrThr,Pt,Urine,Ord,Test strip,UA,ACTIVE
+5767-9,Appearance of Urine,Appearance Ur,Appearance,Type,Pt,Urine,Nom,,UA,ACTIVE
+5778-6,Color of Urine,Color Ur,Color,Type,Pt,Urine,Nom,,UA,ACTIVE
+11279-7,Urine sediment comments by Light microscopy,Urine sediment comments LM,Urine sediment,Prid,Pt,Urine sed,Nar,Microscopy.light,UA,ACTIVE
+2339-0,Glucose [Mass/volume] in Blood,Glucose Bld,Glucose,MCnc,Pt,Bld,Qn,,CHEM,ACTIVE
+33762-6,Natriuretic peptide.B prohormone N-Terminal [Mass/volume] in Serum or Plasma,NT-proBNP SerPl,Natriuretic peptide.B prohormone N-Terminal,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+10839-9,Troponin I.cardiac [Mass/volume] in Serum or Plasma,Troponin I SerPl,Troponin I.cardiac,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+6598-7,Troponin T.cardiac [Mass/volume] in Serum or Plasma,Troponin T SerPl,Troponin T.cardiac,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2157-6,Creatine kinase [Enzymatic activity/volume] in Serum or Plasma,CK SerPl,Creatine kinase,CCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+13969-1,Creatine kinase.MB [Mass/volume] in Serum or Plasma,CK-MB SerPl,Creatine kinase.MB,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2532-0,Lactate dehydrogenase [Enzymatic activity/volume] in Serum or Plasma,LDH SerPl,Lactate dehydrogenase,CCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+14682-9,Creatinine renal clearance predicted by Cockcroft-Gault formula,Creat Cl Prediction CG,Creatinine renal clearance,VRat,Pt,Ser/Plas+Urine,Qn,Cockcroft-Gault,CHEM,ACTIVE
+33914-3,Glomerular filtration rate/1.73 sq M.predicted,eGFR CKD-EPI,Glomerular filtration rate/1.73 sq M.predicted,ArVRat,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+50044-7,Glomerular filtration rate/1.73 sq M.predicted among females [Volume Rate/Area] in Serum Creatinine or Plasma by CKD-EPI,eGFR CKD-EPI Female,Glomerular filtration rate/1.73 sq M.predicted.female,ArVRat,Pt,Ser/Plas,Qn,CKD-EPI,CHEM,ACTIVE
+50045-4,Glomerular filtration rate/1.73 sq M.predicted among males [Volume Rate/Area] in Serum Creatinine or Plasma by CKD-EPI,eGFR CKD-EPI Male,Glomerular filtration rate/1.73 sq M.predicted.male,ArVRat,Pt,Ser/Plas,Qn,CKD-EPI,CHEM,ACTIVE
+2502-3,Iron [Mass/volume] in Serum or Plasma,Iron SerPl,Iron,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2498-4,Iron binding capacity [Mass/volume] in Serum or Plasma,TIBC SerPl,Iron binding capacity,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2500-7,Iron saturation [Mass Fraction] in Serum or Plasma,Iron Sat SerPl,Iron saturation,MFr,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2276-4,Ferritin [Mass/volume] in Serum or Plasma,Ferritin SerPl,Ferritin,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+30522-7,Vitamin B12 [Mass/volume] in Serum or Plasma,Vitamin B12 SerPl,Cobalamin,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2284-8,Folate [Mass/volume] in Serum or Plasma,Folate SerPl,Folate,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+25OH,Vitamin D 25-OH [Mass/volume] in Serum or Plasma,Vitamin D 25-OH SerPl,Calcidiol,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+1825-9,Blood group typing [Type] in Blood,Blood type Bld,Blood group,Type,Pt,Bld,Nom,,BLDBK,ACTIVE
+34474-7,Rh [Type] in Blood,Rh type Bld,Rh,Type,Pt,Bld,Nom,,BLDBK,ACTIVE
+882-1,ABO and Rh group [Type] in Blood,ABO+Rh Bld,ABO+Rh group,Type,Pt,Bld,Nom,,BLDBK,ACTIVE
+945-6,Antibody screen [Interpretation] in Serum or Plasma,Antibody screen Interp,Antibody screen,Imp,Pt,Ser/Plas,Nom,,BLDBK,ACTIVE
+5671-3,Lead [Mass/volume] in Blood,Lead Bld,Lead,MCnc,Pt,Bld,Qn,,TOX,ACTIVE
+5794-3,Ethanol [Mass/volume] in Blood,Ethanol Bld,Ethanol,MCnc,Pt,Bld,Qn,,TOX,ACTIVE
+3084-1,Urate [Mass/volume] in Serum or Plasma,Urate SerPl,Urate,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2458-8,IgA [Mass/volume] in Serum or Plasma,IgA SerPl,IgA,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2465-3,IgG [Mass/volume] in Serum or Plasma,IgG SerPl,IgG,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+2472-9,IgM [Mass/volume] in Serum or Plasma,IgM SerPl,IgM,MCnc,Pt,Ser/Plas,Qn,,CHEM,ACTIVE
+71426-1,Hepatitis C virus RNA [log units/volume] (viral load) in Serum or Plasma by NAA with probe detection,HCV RNA log SerPl NAA+probe,Hepatitis C virus RNA,LnCnc,Pt,Ser/Plas,Qn,NAA.probe,MICRO,ACTIVE
+5196-1,Hepatitis B virus surface Ag [Presence] in Serum,HBsAg SerPl Ql,Hepatitis B virus surface Ag,ACnc,Pt,Ser,Ord,,MICRO,ACTIVE
+5195-3,Hepatitis B virus surface Ab [Units/volume] in Serum,HBsAb SerPl,Hepatitis B virus surface Ab,ACnc,Pt,Ser,Qn,,MICRO,ACTIVE
+16128-1,Hepatitis C virus Ab [Presence] in Serum,HCV Ab SerPl Ql,Hepatitis C virus Ab,ACnc,Pt,Ser,Ord,,MICRO,ACTIVE
+7905-3,HIV 1 Ab [Presence] in Serum by Immunoblot,HIV 1 Ab SerPl Ql IB,HIV 1 Ab,ACnc,Pt,Ser,Ord,Immunoblot,MICRO,ACTIVE
+5221-7,HIV 1+2 Ab [Presence] in Serum,HIV 1+2 Ab SerPl Ql,HIV 1+2 Ab,ACnc,Pt,Ser,Ord,,MICRO,ACTIVE
+94500-6,SARS-CoV-2 (COVID-19) RNA [Presence] in Respiratory specimen by NAA with probe detection,SARS-CoV-2 RNA Resp NAA+probe Ql,SARS-CoV-2 RNA,ACnc,Pt,Resp,Ord,NAA.probe,MICRO,ACTIVE
+94558-4,SARS-CoV-2 (COVID-19) Ag [Presence] in Respiratory specimen by Rapid immunoassay,SARS-CoV-2 Ag Resp Rapid IA Ql,SARS-CoV-2 Ag,ACnc,Pt,Resp,Ord,IA.rapid,MICRO,ACTIVE
+94762-2,SARS-CoV-2 (COVID-19) Ab [Presence] in Serum or Plasma by Immunoassay,SARS-CoV-2 Ab SerPl IA Ql,SARS-CoV-2 Ab,ACnc,Pt,Ser/Plas,Ord,IA,MICRO,ACTIVE
+94563-4,SARS-CoV-2 (COVID-19) IgG Ab [Presence] in Serum or Plasma by Immunoassay,SARS-CoV-2 IgG SerPl IA Ql,SARS-CoV-2 IgG Ab,ACnc,Pt,Ser/Plas,Ord,IA,MICRO,ACTIVE
+600-7,Bacteria identified in Blood by Culture,Bacteria Bld Cult,Bacteria identified,Prid,Pt,Bld,Nom,Culture,MICRO,ACTIVE
+630-4,Bacteria identified in Urine by Culture,Bacteria Ur Cult,Bacteria identified,Prid,Pt,Urine,Nom,Culture,MICRO,ACTIVE
+6463-4,Bacteria identified in Unspecified specimen by Culture,Bacteria XXX Cult,Bacteria identified,Prid,Pt,XXX,Nom,Culture,MICRO,ACTIVE
+625-4,Bacteria identified in Stool by Culture,Bacteria Stool Cult,Bacteria identified,Prid,Pt,Stool,Nom,Culture,MICRO,ACTIVE
+43304-5,Chlamydia trachomatis rRNA [Presence] in Unspecified specimen by NAA with probe detection,CT rRNA XXX NAA+probe Ql,Chlamydia trachomatis rRNA,ACnc,Pt,XXX,Ord,NAA.probe,MICRO,ACTIVE
+43305-2,Neisseria gonorrhoeae rRNA [Presence] in Unspecified specimen by NAA with probe detection,GC rRNA XXX NAA+probe Ql,Neisseria gonorrhoeae rRNA,ACnc,Pt,XXX,Ord,NAA.probe,MICRO,ACTIVE
+21440-3,Human papilloma virus 16+18+31+33+35+39+45+51+52+56+58+59+66+68 DNA [Presence] in Cervix by NAA with probe detection,HPV hrDNA Cvx NAA+probe Ql,Human papilloma virus DNA,ACnc,Pt,Cvx,Ord,NAA.probe,MICRO,ACTIVE
+5292-8,Pap smear finding [Interpretation] in Cervix,Pap smear finding Cvx,Pap smear finding,Imp,Pt,Cvx,Nom,,CYTO,ACTIVE
+19762-4,General categories of microorganisms identified in Unspecified specimen by Culture,General categories XXX Cult,General categories,Prid,Pt,XXX,Nom,Culture,MICRO,ACTIVE
+24356-8,Urinalysis complete panel - Urine,Urinalysis complete panel,Urinalysis complete panel,-,Pt,Urine,-,-,UA,ACTIVE
+57021-8,CBC W Auto Differential panel - Blood,CBC W Auto Diff panel,CBC W Auto Differential panel,-,Pt,Bld,-,-,HEM/BC,ACTIVE
+24323-8,Comprehensive metabolic 2000 panel - Serum or Plasma,Comp metabolic 2000 panel,Comprehensive metabolic 2000 panel,-,Pt,Ser/Plas,-,-,CHEM,ACTIVE
+24362-6,Renal function 2000 panel - Serum or Plasma,Renal function 2000 panel,Renal function 2000 panel,-,Pt,Ser/Plas,-,-,CHEM,ACTIVE
+24325-3,Hepatic function 2000 panel - Serum or Plasma,Hepatic function 2000 panel,Hepatic function 2000 panel,-,Pt,Ser/Plas,-,-,CHEM,ACTIVE
+24331-1,Lipid panel with direct LDL - Serum or Plasma,Lipid panel,Lipid panel with direct LDL,-,Pt,Ser/Plas,-,-,CHEM,ACTIVE
+24348-5,Prostate specific Ag panel - Serum or Plasma,PSA panel SerPl,Prostate specific Ag panel,-,Pt,Ser/Plas,-,-,CHEM,ACTIVE
+24321-2,Basic metabolic 2000 panel - Serum or Plasma,Basic metabolic 2000 panel,Basic metabolic 2000 panel,-,Pt,Ser/Plas,-,-,CHEM,ACTIVE

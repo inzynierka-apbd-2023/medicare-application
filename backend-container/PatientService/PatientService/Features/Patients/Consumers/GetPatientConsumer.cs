@@ -27,6 +27,11 @@ public class GetPatientConsumer : IConsumer<IGetPatient>
             throw new InvalidOperationException($"Patient not found: {patientId}");
         }
 
+        // Also fetch Patient entity to get BloodType
+        var patient = await _db.Patients
+            .AsNoTracking()
+            .FirstOrDefaultAsync(p => p.Id == profile.PatientId, context.CancellationToken);
+
         await context.RespondAsync<IPatientProfile>(new
         {
             profile.PatientId,
@@ -42,7 +47,8 @@ public class GetPatientConsumer : IConsumer<IGetPatient>
             City = profile.City,
             State = profile.State,
             ZipCode = profile.ZipCode,
-            Country = profile.Country
+            Country = profile.Country,
+            BloodType = patient?.BloodType
         });
     }
 }

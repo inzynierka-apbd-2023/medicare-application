@@ -37,6 +37,7 @@ interface PatientProfileDto {
   address: string;
   dateOfBirth?: string;
   gender: string;
+  bloodType?: string;
   emergencyContacts: Array<{ name: string; relation?: string; phone?: string }>;
   insurance: Array<{
     provider?: string;
@@ -203,6 +204,7 @@ export class PatientRegistryApiService {
 
             medicalRecordNumber:
               "MRN-" + (p.patientId || patientId).substring(0, 4),
+            bloodType: p.bloodType,
             isActive: userData.isActive ?? true, // Default true
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),

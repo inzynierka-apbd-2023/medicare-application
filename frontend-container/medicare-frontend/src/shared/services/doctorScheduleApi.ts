@@ -16,7 +16,7 @@ interface NotesUpdateRequest {
   notes: string;
 }
 
-const SCHEDULE_BASE_URL = "/api/appointment/doctor-schedule";
+const SCHEDULE_BASE_URL = "/appointment/doctor-schedule";
 
 const doctorScheduleApi = {
   getDoctorSchedule: async (

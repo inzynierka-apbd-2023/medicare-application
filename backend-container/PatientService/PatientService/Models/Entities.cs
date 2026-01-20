@@ -9,6 +9,8 @@ public class Patient
     [Required]
     public Guid UserId { get; set; } // reference by ID to users.User
     public Guid? PrimaryDoctorId { get; set; } // reference by ID to practitioner.Doctor
+    [MaxLength(10)]
+    public string? BloodType { get; set; }
     public DateTime CreatedAt { get; set; }
     public DateTime UpdatedAt { get; set; }
 }

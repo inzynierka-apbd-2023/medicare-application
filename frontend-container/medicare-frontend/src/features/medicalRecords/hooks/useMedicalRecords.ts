@@ -148,6 +148,7 @@ export const useMedicalRecords = (
         name: profile.name,
         dateOfBirth: profile.dateOfBirth || "",
         gender: (profile.gender as PatientMedicalRecord["gender"]) || "Other",
+        bloodType: profile.bloodType,
         medicalRecordNumber: "MRN-" + profile.id.substring(0, 8).toUpperCase(),
         phone: profile.phone,
         email: profile.email,

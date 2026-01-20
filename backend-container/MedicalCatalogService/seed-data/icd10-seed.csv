@@ -1,0 +1,259 @@
+code,title,effective_from,status
+A00.0,Cholera due to Vibrio cholerae 01 biovar cholerae,2024-01-01,Active
+A00.1,Cholera due to Vibrio cholerae 01 biovar eltor,2024-01-01,Active
+A00.9,Cholera unspecified,2024-01-01,Active
+A01.0,Typhoid fever,2024-01-01,Active
+A02.0,Salmonella enteritis,2024-01-01,Active
+A09,Infectious gastroenteritis and colitis unspecified,2024-01-01,Active
+B00.9,Herpesviral infection unspecified,2024-01-01,Active
+B01.9,Varicella without complication,2024-01-01,Active
+B02.9,Zoster without complications,2024-01-01,Active
+B34.9,Viral infection unspecified,2024-01-01,Active
+C34.90,Malignant neoplasm of unspecified part of unspecified bronchus or lung,2024-01-01,Active
+C50.919,Malignant neoplasm of unspecified site of unspecified female breast,2024-01-01,Active
+C61,Malignant neoplasm of prostate,2024-01-01,Active
+C73,Malignant neoplasm of thyroid gland,2024-01-01,Active
+D50.9,Iron deficiency anemia unspecified,2024-01-01,Active
+D64.9,Anemia unspecified,2024-01-01,Active
+E03.9,Hypothyroidism unspecified,2024-01-01,Active
+E04.9,Nontoxic goiter unspecified,2024-01-01,Active
+E05.90,Thyrotoxicosis unspecified without thyrotoxic crisis or storm,2024-01-01,Active
+E10.9,Type 1 diabetes mellitus without complications,2024-01-01,Active
+E11.9,Type 2 diabetes mellitus without complications,2024-01-01,Active
+E11.65,Type 2 diabetes mellitus with hyperglycemia,2024-01-01,Active
+E11.21,Type 2 diabetes mellitus with diabetic nephropathy,2024-01-01,Active
+E11.40,Type 2 diabetes mellitus with diabetic neuropathy unspecified,2024-01-01,Active
+E11.319,Type 2 diabetes mellitus with unspecified diabetic retinopathy without macular edema,2024-01-01,Active
+E13.9,Other specified diabetes mellitus without complications,2024-01-01,Active
+E66.9,Obesity unspecified,2024-01-01,Active
+E66.01,Morbid (severe) obesity due to excess calories,2024-01-01,Active
+E78.0,Pure hypercholesterolemia,2024-01-01,Active
+E78.1,Pure hyperglyceridemia,2024-01-01,Active
+E78.2,Mixed hyperlipidemia,2024-01-01,Active
+E78.5,Hyperlipidemia unspecified,2024-01-01,Active
+E87.6,Hypokalemia,2024-01-01,Active
+F10.10,Alcohol abuse uncomplicated,2024-01-01,Active
+F10.20,Alcohol dependence uncomplicated,2024-01-01,Active
+F17.210,Nicotine dependence cigarettes uncomplicated,2024-01-01,Active
+F20.9,Schizophrenia unspecified,2024-01-01,Active
+F31.9,Bipolar disorder unspecified,2024-01-01,Active
+F32.0,Major depressive disorder single episode mild,2024-01-01,Active
+F32.1,Major depressive disorder single episode moderate,2024-01-01,Active
+F32.2,Major depressive disorder single episode severe without psychotic features,2024-01-01,Active
+F32.9,Major depressive disorder single episode unspecified,2024-01-01,Active
+F33.0,Major depressive disorder recurrent mild,2024-01-01,Active
+F33.1,Major depressive disorder recurrent moderate,2024-01-01,Active
+F33.2,Major depressive disorder recurrent severe without psychotic features,2024-01-01,Active
+F33.9,Major depressive disorder recurrent unspecified,2024-01-01,Active
+F41.0,Panic disorder episodic paroxysmal anxiety,2024-01-01,Active
+F41.1,Generalized anxiety disorder,2024-01-01,Active
+F41.9,Anxiety disorder unspecified,2024-01-01,Active
+F43.10,Post-traumatic stress disorder unspecified,2024-01-01,Active
+F90.9,Attention-deficit hyperactivity disorder unspecified type,2024-01-01,Active
+G20,Parkinson disease,2024-01-01,Active
+G30.9,Alzheimer disease unspecified,2024-01-01,Active
+G40.909,Epilepsy unspecified not intractable without status epilepticus,2024-01-01,Active
+G43.909,Migraine unspecified not intractable without status migrainosus,2024-01-01,Active
+G43.919,Migraine unspecified with aura not intractable without status migrainosus,2024-01-01,Active
+G47.00,Insomnia unspecified,2024-01-01,Active
+G47.33,Obstructive sleep apnea (adult) (pediatric),2024-01-01,Active
+G89.29,Other chronic pain,2024-01-01,Active
+H10.9,Unspecified conjunctivitis,2024-01-01,Active
+H26.9,Unspecified cataract,2024-01-01,Active
+H40.9,Unspecified glaucoma,2024-01-01,Active
+H52.4,Presbyopia,2024-01-01,Active
+H65.90,Unspecified nonsuppurative otitis media unspecified ear,2024-01-01,Active
+H66.90,Otitis media unspecified unspecified ear,2024-01-01,Active
+H91.90,Unspecified hearing loss unspecified ear,2024-01-01,Active
+I10,Essential (primary) hypertension,2024-01-01,Active
+I11.9,Hypertensive heart disease without heart failure,2024-01-01,Active
+I12.9,Hypertensive chronic kidney disease with stage 1 through stage 4 chronic kidney disease or unspecified chronic kidney disease,2024-01-01,Active
+I20.9,Angina pectoris unspecified,2024-01-01,Active
+I21.9,Acute myocardial infarction unspecified,2024-01-01,Active
+I25.10,Atherosclerotic heart disease of native coronary artery without angina pectoris,2024-01-01,Active
+I25.119,Atherosclerotic heart disease of native coronary artery with unspecified angina pectoris,2024-01-01,Active
+I48.0,Paroxysmal atrial fibrillation,2024-01-01,Active
+I48.2,Chronic atrial fibrillation,2024-01-01,Active
+I48.91,Unspecified atrial fibrillation,2024-01-01,Active
+I50.9,Heart failure unspecified,2024-01-01,Active
+I50.22,Chronic systolic (congestive) heart failure,2024-01-01,Active
+I50.32,Chronic diastolic (congestive) heart failure,2024-01-01,Active
+I63.9,Cerebral infarction unspecified,2024-01-01,Active
+I70.0,Atherosclerosis of aorta,2024-01-01,Active
+I73.9,Peripheral vascular disease unspecified,2024-01-01,Active
+I83.90,Asymptomatic varicose veins of unspecified lower extremity,2024-01-01,Active
+J00,Acute nasopharyngitis (common cold),2024-01-01,Active
+J01.90,Acute sinusitis unspecified,2024-01-01,Active
+J02.9,Acute pharyngitis unspecified,2024-01-01,Active
+J03.90,Acute tonsillitis unspecified,2024-01-01,Active
+J06.9,Acute upper respiratory infection unspecified,2024-01-01,Active
+J18.9,Pneumonia unspecified organism,2024-01-01,Active
+J20.9,Acute bronchitis unspecified,2024-01-01,Active
+J30.9,Allergic rhinitis unspecified,2024-01-01,Active
+J32.9,Chronic sinusitis unspecified,2024-01-01,Active
+J40,Bronchitis not specified as acute or chronic,2024-01-01,Active
+J42,Unspecified chronic bronchitis,2024-01-01,Active
+J44.9,Chronic obstructive pulmonary disease unspecified,2024-01-01,Active
+J44.1,Chronic obstructive pulmonary disease with acute exacerbation,2024-01-01,Active
+J45.20,Mild intermittent asthma uncomplicated,2024-01-01,Active
+J45.30,Mild persistent asthma uncomplicated,2024-01-01,Active
+J45.40,Moderate persistent asthma uncomplicated,2024-01-01,Active
+J45.50,Severe persistent asthma uncomplicated,2024-01-01,Active
+J45.909,Unspecified asthma uncomplicated,2024-01-01,Active
+K02.9,Dental caries unspecified,2024-01-01,Active
+K04.7,Periapical abscess without sinus,2024-01-01,Active
+K08.109,Complete loss of teeth unspecified cause unspecified class,2024-01-01,Active
+K21.0,Gastro-esophageal reflux disease with esophagitis,2024-01-01,Active
+K21.9,Gastro-esophageal reflux disease without esophagitis,2024-01-01,Active
+K25.9,Gastric ulcer unspecified as acute or chronic without hemorrhage or perforation,2024-01-01,Active
+K29.70,Gastritis unspecified without bleeding,2024-01-01,Active
+K30,Functional dyspepsia,2024-01-01,Active
+K35.80,Unspecified acute appendicitis,2024-01-01,Active
+K40.90,Unilateral inguinal hernia without obstruction or gangrene not specified as recurrent,2024-01-01,Active
+K44.9,Diaphragmatic hernia without obstruction or gangrene,2024-01-01,Active
+K50.90,Crohn disease unspecified without complications,2024-01-01,Active
+K51.90,Ulcerative colitis unspecified without complications,2024-01-01,Active
+K57.30,Diverticulosis of large intestine without perforation or abscess without bleeding,2024-01-01,Active
+K58.9,Irritable bowel syndrome without diarrhea,2024-01-01,Active
+K59.00,Constipation unspecified,2024-01-01,Active
+K70.30,Alcoholic cirrhosis of liver without ascites,2024-01-01,Active
+K74.60,Unspecified cirrhosis of liver,2024-01-01,Active
+K76.0,Fatty (change of) liver not elsewhere classified,2024-01-01,Active
+K80.20,Calculus of gallbladder without cholecystitis without obstruction,2024-01-01,Active
+K81.9,Cholecystitis unspecified,2024-01-01,Active
+K85.90,Acute pancreatitis without necrosis or infection unspecified,2024-01-01,Active
+L03.90,Cellulitis unspecified,2024-01-01,Active
+L20.9,Atopic dermatitis unspecified,2024-01-01,Active
+L21.9,Seborrheic dermatitis unspecified,2024-01-01,Active
+L23.9,Allergic contact dermatitis unspecified cause,2024-01-01,Active
+L30.9,Dermatitis unspecified,2024-01-01,Active
+L40.9,Psoriasis unspecified,2024-01-01,Active
+L50.9,Urticaria unspecified,2024-01-01,Active
+L60.0,Ingrowing nail,2024-01-01,Active
+L70.0,Acne vulgaris,2024-01-01,Active
+L72.0,Epidermal cyst,2024-01-01,Active
+L82.1,Other seborrheic keratosis,2024-01-01,Active
+M06.9,Rheumatoid arthritis unspecified,2024-01-01,Active
+M10.9,Gout unspecified,2024-01-01,Active
+M15.9,Polyosteoarthritis unspecified,2024-01-01,Active
+M17.9,Osteoarthritis of knee unspecified,2024-01-01,Active
+M19.90,Unspecified osteoarthritis unspecified site,2024-01-01,Active
+M25.50,Pain in unspecified joint,2024-01-01,Active
+M25.511,Pain in right shoulder,2024-01-01,Active
+M25.512,Pain in left shoulder,2024-01-01,Active
+M25.551,Pain in right hip,2024-01-01,Active
+M25.552,Pain in left hip,2024-01-01,Active
+M25.561,Pain in right knee,2024-01-01,Active
+M25.562,Pain in left knee,2024-01-01,Active
+M47.816,Spondylosis without myelopathy or radiculopathy lumbar region,2024-01-01,Active
+M47.817,Spondylosis without myelopathy or radiculopathy lumbosacral region,2024-01-01,Active
+M54.2,Cervicalgia,2024-01-01,Active
+M54.5,Low back pain,2024-01-01,Active
+M54.6,Pain in thoracic spine,2024-01-01,Active
+M54.9,Dorsalgia unspecified,2024-01-01,Active
+M62.830,Muscle spasm of back,2024-01-01,Active
+M79.3,Panniculitis unspecified,2024-01-01,Active
+M79.7,Fibromyalgia,2024-01-01,Active
+M81.0,Age-related osteoporosis without current pathological fracture,2024-01-01,Active
+N17.9,Acute kidney failure unspecified,2024-01-01,Active
+N18.1,Chronic kidney disease stage 1,2024-01-01,Active
+N18.2,Chronic kidney disease stage 2 (mild),2024-01-01,Active
+N18.3,Chronic kidney disease stage 3 (moderate),2024-01-01,Active
+N18.4,Chronic kidney disease stage 4 (severe),2024-01-01,Active
+N18.5,Chronic kidney disease stage 5,2024-01-01,Active
+N18.6,End stage renal disease,2024-01-01,Active
+N18.9,Chronic kidney disease unspecified,2024-01-01,Active
+N20.0,Calculus of kidney,2024-01-01,Active
+N30.00,Acute cystitis without hematuria,2024-01-01,Active
+N30.10,Interstitial cystitis (chronic) without hematuria,2024-01-01,Active
+N39.0,Urinary tract infection site not specified,2024-01-01,Active
+N40.0,Benign prostatic hyperplasia without lower urinary tract symptoms,2024-01-01,Active
+N40.1,Benign prostatic hyperplasia with lower urinary tract symptoms,2024-01-01,Active
+N52.9,Male erectile dysfunction unspecified,2024-01-01,Active
+N80.9,Endometriosis unspecified,2024-01-01,Active
+N92.0,Excessive and frequent menstruation with regular cycle,2024-01-01,Active
+N92.6,Irregular menstruation unspecified,2024-01-01,Active
+N94.6,Dysmenorrhea unspecified,2024-01-01,Active
+N95.1,Menopausal and female climacteric states,2024-01-01,Active
+O80,Encounter for full-term uncomplicated delivery,2024-01-01,Active
+R00.0,Tachycardia unspecified,2024-01-01,Active
+R00.1,Bradycardia unspecified,2024-01-01,Active
+R00.2,Palpitations,2024-01-01,Active
+R03.0,Elevated blood-pressure reading without diagnosis of hypertension,2024-01-01,Active
+R05.9,Cough unspecified,2024-01-01,Active
+R06.00,Dyspnea unspecified,2024-01-01,Active
+R06.02,Shortness of breath,2024-01-01,Active
+R07.9,Chest pain unspecified,2024-01-01,Active
+R10.9,Unspecified abdominal pain,2024-01-01,Active
+R10.10,Upper abdominal pain unspecified,2024-01-01,Active
+R10.30,Lower abdominal pain unspecified,2024-01-01,Active
+R11.0,Nausea,2024-01-01,Active
+R11.10,Vomiting unspecified,2024-01-01,Active
+R11.2,Nausea with vomiting unspecified,2024-01-01,Active
+R19.7,Diarrhea unspecified,2024-01-01,Active
+R21,Rash and other nonspecific skin eruption,2024-01-01,Active
+R42,Dizziness and giddiness,2024-01-01,Active
+R50.9,Fever unspecified,2024-01-01,Active
+R51.9,Headache unspecified,2024-01-01,Active
+R53.1,Weakness,2024-01-01,Active
+R53.83,Other fatigue,2024-01-01,Active
+R55,Syncope and collapse,2024-01-01,Active
+R56.9,Unspecified convulsions,2024-01-01,Active
+R63.4,Abnormal weight loss,2024-01-01,Active
+R73.03,Prediabetes,2024-01-01,Active
+R73.9,Hyperglycemia unspecified,2024-01-01,Active
+R79.89,Other specified abnormal findings of blood chemistry,2024-01-01,Active
+S01.01XA,Laceration without foreign body of scalp initial encounter,2024-01-01,Active
+S06.0X0A,Concussion without loss of consciousness initial encounter,2024-01-01,Active
+S13.4XXA,Sprain of ligaments of cervical spine initial encounter,2024-01-01,Active
+S22.9XXA,Fracture of bony thorax part unspecified initial encounter,2024-01-01,Active
+S32.9XXA,Fracture of unspecified parts of lumbosacral spine and pelvis initial encounter,2024-01-01,Active
+S42.001A,Fracture of unspecified part of right clavicle initial encounter for closed fracture,2024-01-01,Active
+S52.501A,Unspecified fracture of the lower end of right radius initial encounter for closed fracture,2024-01-01,Active
+S62.90XA,Unspecified fracture of unspecified wrist and hand initial encounter for closed fracture,2024-01-01,Active
+S72.001A,Fracture of unspecified part of neck of right femur initial encounter for closed fracture,2024-01-01,Active
+S82.001A,Unspecified fracture of right patella initial encounter for closed fracture,2024-01-01,Active
+S82.891A,Other fracture of right lower leg initial encounter for closed fracture,2024-01-01,Active
+S83.101A,Unspecified subluxation of right knee initial encounter,2024-01-01,Active
+S93.401A,Sprain of unspecified ligament of right ankle initial encounter,2024-01-01,Active
+T14.90XA,Injury unspecified initial encounter,2024-01-01,Active
+T78.40XA,Allergy unspecified initial encounter,2024-01-01,Active
+T88.7XXA,Unspecified adverse effect of drug or medicament initial encounter,2024-01-01,Active
+Z00.00,Encounter for general adult medical examination without abnormal findings,2024-01-01,Active
+Z00.01,Encounter for general adult medical examination with abnormal findings,2024-01-01,Active
+Z00.129,Encounter for routine child health examination without abnormal findings,2024-01-01,Active
+Z01.00,Encounter for examination of eyes and vision without abnormal findings,2024-01-01,Active
+Z01.10,Encounter for examination of ears and hearing without abnormal findings,2024-01-01,Active
+Z01.818,Encounter for other preprocedural examination,2024-01-01,Active
+Z12.11,Encounter for screening for malignant neoplasm of colon,2024-01-01,Active
+Z12.31,Encounter for screening mammogram for malignant neoplasm of breast,2024-01-01,Active
+Z12.4,Encounter for screening for malignant neoplasm of cervix,2024-01-01,Active
+Z12.5,Encounter for screening for malignant neoplasm of prostate,2024-01-01,Active
+Z13.1,Encounter for screening for diabetes mellitus,2024-01-01,Active
+Z13.220,Encounter for screening for lipoid disorders,2024-01-01,Active
+Z20.822,Contact with and (suspected) exposure to COVID-19,2024-01-01,Active
+Z23,Encounter for immunization,2024-01-01,Active
+Z71.3,Dietary counseling and surveillance,2024-01-01,Active
+Z71.82,Exercise counseling,2024-01-01,Active
+Z72.0,Tobacco use,2024-01-01,Active
+Z79.01,Long term (current) use of anticoagulants,2024-01-01,Active
+Z79.02,Long term (current) use of antithrombotics/antiplatelets,2024-01-01,Active
+Z79.4,Long term (current) use of insulin,2024-01-01,Active
+Z79.84,Long term (current) use of oral hypoglycemic drugs,2024-01-01,Active
+Z79.899,Other long term (current) drug therapy,2024-01-01,Active
+Z86.19,Personal history of other infectious and parasitic diseases,2024-01-01,Active
+Z86.73,Personal history of transient ischemic attack (TIA) and cerebral infarction without residual deficits,2024-01-01,Active
+Z87.11,Personal history of peptic ulcer disease,2024-01-01,Active
+Z87.39,Personal history of other diseases of musculoskeletal system and connective tissue,2024-01-01,Active
+Z87.891,Personal history of nicotine dependence,2024-01-01,Active
+Z88.0,Allergy status to penicillin,2024-01-01,Active
+Z88.1,Allergy status to other antibiotic agents,2024-01-01,Active
+Z88.6,Allergy status to analgesic agent,2024-01-01,Active
+Z88.8,Allergy status to other drugs medicaments and biological substances,2024-01-01,Active
+Z90.10,Acquired absence of breast and nipple unspecified,2024-01-01,Active
+Z95.1,Presence of aortocoronary bypass graft,2024-01-01,Active
+Z95.5,Presence of coronary angioplasty implant and graft,2024-01-01,Active
+Z96.641,Presence of right artificial hip joint,2024-01-01,Active
+Z96.642,Presence of left artificial hip joint,2024-01-01,Active
+Z96.651,Presence of right artificial knee joint,2024-01-01,Active
+Z96.652,Presence of left artificial knee joint,2024-01-01,Active

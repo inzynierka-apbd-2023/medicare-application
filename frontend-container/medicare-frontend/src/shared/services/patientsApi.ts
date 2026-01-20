@@ -53,6 +53,7 @@ export interface BackendPatientProfile {
   address: string;
   dateOfBirth?: string;
   gender: string;
+  bloodType?: string;
   emergencyContacts: Array<{
     name: string;
     relation?: string;

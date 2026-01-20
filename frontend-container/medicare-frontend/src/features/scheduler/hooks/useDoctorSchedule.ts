@@ -51,7 +51,11 @@ export const useDoctorSchedule = ({
   const [error, setError] = useState<string | null>(null);
 
   const calendarEvents: DoctorCalendarEvent[] = schedule.map((appointment) => {
-    const appointmentDate = new Date(`${appointment.date}T${appointment.time}`);
+    // Parse date and time as local time (not UTC)
+    // appointment.date is "YYYY-MM-DD", appointment.time is "HH:MM"
+    const [year, month, day] = appointment.date.split("-").map(Number);
+    const [hours, minutes] = appointment.time.split(":").map(Number);
+    const appointmentDate = new Date(year, month - 1, day, hours, minutes);
     const endDate = new Date(
       appointmentDate.getTime() + appointment.duration * 60 * 1000
     );
@@ -83,11 +87,17 @@ export const useDoctorSchedule = ({
     else if (timeStatus === "current") color = "#F59E0B";
     else if (timeStatus === "overdue") color = "#DC2626";
 
+    // Format as local date-time string (YYYY-MM-DDTHH:mm:ss) to avoid timezone shifts
+    const formatLocalDateTime = (d: Date) => {
+      const pad = (n: number) => n.toString().padStart(2, "0");
+      return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+    };
+
     return {
       id: appointment.id,
       title: `${appointment.patientName} - ${appointment.appointmentType}`,
-      start: appointmentDate.toISOString(),
-      end: endDate.toISOString(),
+      start: formatLocalDateTime(appointmentDate),
+      end: formatLocalDateTime(endDate),
       color,
       extendedProps: {
         appointment,
