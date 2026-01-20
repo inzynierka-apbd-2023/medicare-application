@@ -105,16 +105,6 @@ public class PspWebhookEvent
     public bool Processed { get; set; }
 }
 
-[Table("Outbox_Event", Schema = "billing")]
-public class OutboxEvent
-{
-    [Key] public Guid Id { get; set; } = Guid.NewGuid();
-    [MaxLength(200)] public string Type { get; set; } = default!;
-    public DateTime OccurredAt { get; set; } = DateTime.UtcNow;
-    public string PayloadJson { get; set; } = default!;
-    public DateTime? PublishedAt { get; set; }
-}
-
 // Projections (views or tables materialized by background job)
 [Table("vw_Patient_Billing_Summary", Schema = "billing")]
 public class PatientBillingSummary

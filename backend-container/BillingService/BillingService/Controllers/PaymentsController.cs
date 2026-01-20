@@ -1,6 +1,8 @@
 using BillingService.Data;
 using BillingService.Models;
 using BillingService.Infrastructure.Events;
+using MassTransit;
+using Medicare.Messaging.Contracts;
 using Medicare.ServiceDefaults.Webhooks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -14,7 +16,13 @@ namespace BillingService.Controllers;
 public class PaymentsController : ControllerBase
 {
     private readonly BillingDbContext _db;
-    public PaymentsController(BillingDbContext db) { _db = db; }
+    private readonly IPublishEndpoint _publishEndpoint;
+
+    public PaymentsController(BillingDbContext db, IPublishEndpoint publishEndpoint)
+    {
+        _db = db;
+        _publishEndpoint = publishEndpoint;
+    }
 
     [HttpPost("intents")]
     public async Task<ActionResult<PaymentIntent>> CreateIntent([FromBody] CreateIntentRequest req)
@@ -67,8 +75,9 @@ public class PaymentsController : ControllerBase
         if (req.Type == TransactionType.Failure)
             intent.Status = PaymentIntentStatus.Canceled;
 
+        await PublishOutboxEventAsync(req, intent);
         await _db.SaveChangesAsync();
-        await EnqueueOutboxAsync(req, intent);
+        
         return NoContent();
     }
 
@@ -91,12 +100,6 @@ public class PaymentsController : ControllerBase
         };
         _db.PaymentIntents.Add(intent);
         await _db.SaveChangesAsync();
-        await _db.OutboxEvents.AddAsync(new OutboxEvent
-        {
-            Type = BillingEvents.SubscriptionRenewalDue,
-            PayloadJson = System.Text.Json.JsonSerializer.Serialize(new { ContractId = contractId, AmountCents = amount })
-        });
-        await _db.SaveChangesAsync();
         return CreatedAtAction(nameof(GetIntent), new { id = intent.Id }, intent);
     }
 
@@ -116,22 +119,35 @@ public class PaymentsController : ControllerBase
         return Ok();
     }
 
-    private async Task EnqueueOutboxAsync(RecordTransactionRequest req, PaymentIntent intent)
+    private async Task PublishOutboxEventAsync(RecordTransactionRequest req, PaymentIntent intent)
     {
-        string type = req.Type switch
+        if (req.Type == TransactionType.Authorization || req.Type == TransactionType.Capture)
         {
-            TransactionType.Authorization or TransactionType.Capture => intent.Kind == PaymentIntentKind.Appointment ? BillingEvents.AppointmentPaid : BillingEvents.SubscriptionPaid,
-            TransactionType.Failure => BillingEvents.PaymentFailed,
-            _ => ""
-        };
-        if (!string.IsNullOrEmpty(type))
-        {
-            await _db.OutboxEvents.AddAsync(new OutboxEvent
+            if (intent.Kind == PaymentIntentKind.Appointment)
             {
-                Type = type,
-                PayloadJson = System.Text.Json.JsonSerializer.Serialize(new { IntentId = intent.Id, Kind = intent.Kind.ToString(), AmountCents = intent.AmountCents })
-            });
-            await _db.SaveChangesAsync();
+                await _publishEndpoint.Publish<IBillingPaymentProcessed>(new
+                {
+                    AppointmentId = intent.SubjectId,
+                    IsPaid = true,
+                    intent.AmountCents,
+                    PlanCode = (string?)null,
+                    Error = (string?)null
+                });
+            }
+            else if (intent.Kind == PaymentIntentKind.Subscription)
+            {
+                var contract = await _db.SubscriptionContracts.FindAsync(intent.SubjectId);
+                var planCode = contract?.PlanCode ?? "UNKNOWN";
+
+                await _publishEndpoint.Publish<ISubscriptionPaymentProcessed>(new
+                {
+                    SubscriptionId = intent.SubjectId,
+                    PatientId = intent.PatientId,
+                    IsPaid = true,
+                    intent.AmountCents,
+                    PlanCode = planCode
+                });
+            }
         }
     }
 }

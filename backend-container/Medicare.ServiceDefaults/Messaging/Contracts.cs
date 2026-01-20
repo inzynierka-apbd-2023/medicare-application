@@ -1,5 +1,14 @@
 namespace Medicare.Messaging.Contracts;
 
+public interface IUserRegistered
+{
+    Guid UserId { get; }
+    string Username { get; }
+    string Email { get; }
+    DateTime OccurredAtUtc { get; }
+    string? PlanId { get; }
+}
+
 public interface IAppointmentCreated
 {
     Guid AppointmentId { get; }
@@ -44,6 +53,15 @@ public interface IBillingPaymentProcessed
     long AmountCents { get; }
     string? PlanCode { get; }
     string? Error { get; }
+}
+
+public interface ISubscriptionPaymentProcessed
+{
+    Guid SubscriptionId { get; }
+    Guid PatientId { get; }
+    bool IsPaid { get; }
+    long AmountCents { get; }
+    string PlanCode { get; }
 }
 
 public interface IGetAppointmentPayments

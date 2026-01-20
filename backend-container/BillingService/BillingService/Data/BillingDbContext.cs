@@ -15,7 +15,6 @@ public class BillingDbContext : DbContext
     public DbSet<AppointmentPayment> AppointmentPayments => Set<AppointmentPayment>();
     public DbSet<SubscriptionPayment> SubscriptionPayments => Set<SubscriptionPayment>();
     public DbSet<PspWebhookEvent> PspWebhookEvents => Set<PspWebhookEvent>();
-    public DbSet<OutboxEvent> OutboxEvents => Set<OutboxEvent>();
     public DbSet<Plan> Plans => Set<Plan>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
@@ -67,12 +66,6 @@ public class BillingDbContext : DbContext
         {
             e.HasKey(p => new { p.Id, p.Provider });
             e.Property(p => p.ReceivedAt).HasDefaultValueSql(SysUtc);
-        });
-        modelBuilder.Entity<OutboxEvent>(e =>
-        {
-            e.Property(p => p.Id).HasDefaultValueSql(SqlGuid);
-            e.Property(p => p.OccurredAt).HasDefaultValueSql(SysUtc);
-            e.HasIndex(p => p.PublishedAt);
         });
         modelBuilder.Entity<Plan>(e =>
         {

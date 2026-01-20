@@ -17,7 +17,7 @@ public class GetAppointmentPaymentsConsumer : IConsumer<IGetAppointmentPayments>
     public async Task Consume(ConsumeContext<IGetAppointmentPayments> context)
     {
         var ids = context.Message.AppointmentIds;
-        var payments = await _context.Payments
+        var payments = await _context.AppointmentPayments
             .AsNoTracking()
             .Where(p => ids.Contains(p.AppointmentId))
             .ToListAsync();
@@ -25,8 +25,8 @@ public class GetAppointmentPaymentsConsumer : IConsumer<IGetAppointmentPayments>
         var response = payments.Select(p => new AppointmentPayment 
         {
             AppointmentId = p.AppointmentId,
-            AmountCents = (long)(p.Amount * 100), 
-            Status = p.Status
+            AmountCents = p.AmountCents, 
+            Status = p.AmountCents == 0 ? "Free" : (p.PaymentIntentId.HasValue ? "Paid" : "Pending")
         }).ToList<IAppointmentPayment>();
 
         await context.RespondAsync<IAppointmentPayments>(new { Payments = response });
@@ -36,6 +36,6 @@ public class GetAppointmentPaymentsConsumer : IConsumer<IGetAppointmentPayments>
     {
         public Guid AppointmentId { get; init; }
         public long AmountCents { get; init; }
-        public string Status { get; init; }
+        public required string Status { get; init; }
     }
 }

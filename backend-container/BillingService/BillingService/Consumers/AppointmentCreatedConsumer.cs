@@ -29,7 +29,7 @@ public class AppointmentCreatedConsumer : IConsumer<IAppointmentCreated>
 
         await _publishEndpoint.Publish<IBillingPaymentProcessed>(new
         {
-            result.AppointmentId,
+            msg.AppointmentId,
             IsPaid = (!result.IsFree && result.AmountCents == 0) || result.IsFree,
             result.AmountCents,
             PlanCode = result.PlanCode,

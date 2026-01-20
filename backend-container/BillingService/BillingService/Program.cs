@@ -3,16 +3,19 @@ using Microsoft.OpenApi.Models;
 using BillingService.Data;
 using BillingService.Data.Seeders;
 using BillingService.Services;
+using BillingService.Consumers;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.AddServiceDefaults();
-builder.AddRabbitMQClient("rabbitmq");
+
 builder.AddMedicareMassTransit<BillingDbContext>(x =>
 {
-    x.AddConsumer<BillingService.Consumers.AppointmentCreatedConsumer>();
-    x.AddConsumer<BillingService.Consumers.GetAppointmentPaymentsConsumer>();
-    x.AddConsumer<BillingService.Consumers.PaymentInitiatedConsumer>();
+    x.AddConsumer<AppointmentCreatedConsumer>();
+    x.AddConsumer<GetAppointmentPaymentsConsumer>();
+    x.AddConsumer<PaymentInitiatedConsumer>();
+    x.AddConsumer<UserRegisteredConsumer>();
+    x.AddConsumer<SubscriptionPaymentProcessedConsumer>();
 });
 
 var connectionString = builder.Configuration["AZURE_SQL_CONNECTIONSTRING"]
@@ -25,8 +28,6 @@ builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(Progr
 builder.Services.AddWebhookSignatureValidation();
 builder.Services.AddScoped<IRevenueMetricsService, RevenueMetricsService>();
 builder.Services.AddScoped<AppointmentBillingService>();
-builder.Services.AddHostedService<BillingService.Infrastructure.Messaging.BillingEventConsumer>();
-
 
 builder.Services.AddDbContext<BillingDbContext>((sp, options) =>
 {

@@ -25,7 +25,6 @@ public class AdminController : ControllerBase
             await using var tx = await _db.Database.BeginTransactionAsync();
             try
             {
-                await _db.Database.ExecuteSqlRawAsync(@"IF OBJECT_ID(N'billing.Outbox_Event') IS NOT NULL DELETE FROM billing.Outbox_Event;");
                 await _db.Database.ExecuteSqlRawAsync(@"IF OBJECT_ID(N'billing.Psp_Webhook_Event') IS NOT NULL DELETE FROM billing.Psp_Webhook_Event;");
                 await _db.Database.ExecuteSqlRawAsync(@"IF OBJECT_ID(N'billing.Subscription_Payment') IS NOT NULL DELETE FROM billing.Subscription_Payment;");
                 await _db.Database.ExecuteSqlRawAsync(@"IF OBJECT_ID(N'billing.Appointment_Payment') IS NOT NULL DELETE FROM billing.Appointment_Payment;");
@@ -56,7 +55,6 @@ public class AdminController : ControllerBase
             await using var tx = await _db.Database.BeginTransactionAsync();
             try
             {
-                await _db.Database.ExecuteSqlRawAsync(@"IF OBJECT_ID(N'billing.Outbox_Event') IS NOT NULL DELETE FROM billing.Outbox_Event;");
                 await _db.Database.ExecuteSqlRawAsync(@"IF OBJECT_ID(N'billing.Psp_Webhook_Event') IS NOT NULL DELETE FROM billing.Psp_Webhook_Event;");
                 await _db.Database.ExecuteSqlRawAsync(@"IF OBJECT_ID(N'billing.Subscription_Payment') IS NOT NULL DELETE FROM billing.Subscription_Payment;");
                 await _db.Database.ExecuteSqlRawAsync(@"IF OBJECT_ID(N'billing.Appointment_Payment') IS NOT NULL DELETE FROM billing.Appointment_Payment;");
@@ -192,10 +190,7 @@ public class AdminController : ControllerBase
                 });
 
                 // Outbox examples
-                _db.OutboxEvents.AddRange(
-                    new OutboxEvent { Type = Infrastructure.Events.BillingEvents.AppointmentPaid, PayloadJson = System.Text.Json.JsonSerializer.Serialize(new { IntentId = intentAppt.Id, AmountCents = 7500 }) },
-                    new OutboxEvent { Type = Infrastructure.Events.BillingEvents.SubscriptionPaid, PayloadJson = System.Text.Json.JsonSerializer.Serialize(new { IntentId = intentSub.Id, AmountCents = 1999 }) }
-                );
+                // (MassTransit outbox is handled automatically by the context)
 
                 await _db.SaveChangesAsync();
 
@@ -210,15 +205,6 @@ public class AdminController : ControllerBase
             }
         });
         return Ok(ids.First());
-    }
-
-    [HttpGet("outbox")] 
-    public async Task<ActionResult<IEnumerable<object>>> Outbox()
-    {
-        if (_env.IsProduction()) return Forbid();
-        var items = await _db.OutboxEvents.OrderByDescending(o => o.OccurredAt).Take(20)
-            .Select(o => new { o.Type, o.OccurredAt, o.PublishedAt, o.PayloadJson }).ToListAsync();
-        return items;
     }
 }
 
