@@ -15,7 +15,7 @@ public class DoctorProfileRequestHandler : BackgroundService
     private readonly IConnection _connection;
     private readonly IServiceProvider _serviceProvider;
     private readonly ILogger<DoctorProfileRequestHandler> _logger;
-    private IChannel? _channel;
+    private IModel? _channel;
 
     private const string ExchangeName = "practitioner.rpc";
     private const string RequestQueueName = "practitioner.doctor-profile.requests";
@@ -33,23 +33,21 @@ public class DoctorProfileRequestHandler : BackgroundService
         {
             try
             {
-                _channel = await _connection.CreateChannelAsync(cancellationToken: stoppingToken);
+                _channel = _connection.CreateModel();
                 
                 // Declare exchange and queue
-                await _channel.ExchangeDeclareAsync(ExchangeName, ExchangeType.Direct, durable: true, cancellationToken: stoppingToken);
-                await _channel.QueueDeclareAsync(RequestQueueName, durable: true, exclusive: false, autoDelete: false, cancellationToken: stoppingToken);
-                await _channel.QueueBindAsync(RequestQueueName, ExchangeName, "doctor.profile.request", cancellationToken: stoppingToken);
-                await _channel.BasicQosAsync(0, 10, false, stoppingToken);
+                _channel.ExchangeDeclare(ExchangeName, ExchangeType.Direct, durable: true);
+                _channel.QueueDeclare(RequestQueueName, durable: true, exclusive: false, autoDelete: false);
+                _channel.QueueBind(RequestQueueName, ExchangeName, "doctor.profile.request");
+                _channel.BasicQos(0, 10, false);
 
                 _logger.LogInformation("[DoctorProfileRequestHandler] Listening on queue {Queue}", RequestQueueName);
 
-                var consumer = new AsyncEventingBasicConsumer(_channel);
-                consumer.ReceivedAsync += async (_, ea) =>
+                var consumer = new EventingBasicConsumer(_channel);
+                consumer.Received += async (_, ea) =>
                 {
-                    var replyProps = new BasicProperties
-                    {
-                        CorrelationId = ea.BasicProperties?.CorrelationId
-                    };
+                    var replyProps = _channel.CreateBasicProperties();
+                    replyProps.CorrelationId = ea.BasicProperties.CorrelationId;
 
                     try
                     {
@@ -63,28 +61,27 @@ public class DoctorProfileRequestHandler : BackgroundService
                         var responseBytes = Encoding.UTF8.GetBytes(responseJson);
 
                         // Send reply
-                        if (!string.IsNullOrEmpty(ea.BasicProperties?.ReplyTo))
+                        if (!string.IsNullOrEmpty(ea.BasicProperties.ReplyTo))
                         {
-                            await _channel.BasicPublishAsync(
+                            _channel.BasicPublish(
                                 exchange: "",
                                 routingKey: ea.BasicProperties.ReplyTo,
                                 mandatory: false,
                                 basicProperties: replyProps,
-                                body: responseBytes,
-                                cancellationToken: stoppingToken);
+                                body: responseBytes);
                             _logger.LogInformation("[DoctorProfileRequestHandler] Sent reply with {Count} profiles", response.Profiles.Count);
                         }
 
-                        await _channel.BasicAckAsync(ea.DeliveryTag, false, stoppingToken);
+                        _channel.BasicAck(ea.DeliveryTag, false);
                     }
                     catch (Exception ex)
                     {
                         _logger.LogError(ex, "[DoctorProfileRequestHandler] Error processing request");
-                        await _channel.BasicNackAsync(ea.DeliveryTag, false, false, stoppingToken);
+                        _channel.BasicNack(ea.DeliveryTag, false, false);
                     }
                 };
 
-                await _channel.BasicConsumeAsync(RequestQueueName, autoAck: false, consumer: consumer, cancellationToken: stoppingToken);
+                _channel.BasicConsume(RequestQueueName, autoAck: false, consumer: consumer);
                 
                 // Keep running
                 await Task.Delay(Timeout.Infinite, stoppingToken);

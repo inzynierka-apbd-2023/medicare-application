@@ -21,6 +21,7 @@ builder.Services.AddDbContext<ArchiveDbContext>((sp, options) =>
     options.UseSqlServer(connectionString, sql =>
     {
         sql.EnableRetryOnFailure(5, TimeSpan.FromSeconds(10), null);
+        sql.CommandTimeout(300);
         sql.MigrationsHistoryTable("__EFMigrationsHistory", "archive");
         sql.MigrationsAssembly(typeof(ArchiveDbContext).Assembly.GetName().Name);
     });

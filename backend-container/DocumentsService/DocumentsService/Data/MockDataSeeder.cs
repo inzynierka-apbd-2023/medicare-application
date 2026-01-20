@@ -64,7 +64,7 @@ public static class MockDataSeeder
             (MockIds.Document4, 3, 3, "SICK_LEAVE", "Medical certificate for work absence"),
             (MockIds.Document5, 4, 4, "LAB_RESULTS", "Complete blood count and metabolic panel results"),
             (MockIds.Document6, 5, 5, "VISIT_NOTE", "Follow-up visit after procedure"),
-            (MockIds.Document6, 5, 5, "VISIT_NOTE", "Follow-up visit after procedure"),
+
             (MockIds.Document7, 6, 6, "PRESCRIPTION", "Post-operative pain management prescription"),
             (MockIds.Document8, 0, 0, "LAB_RESULTS", "Annual health checkup blood work")
         };
@@ -312,7 +312,6 @@ public static class MockDataSeeder
             (MockIds.Document3, MockIds.Appointment3),
             (MockIds.Document4, MockIds.Appointment4),
             (MockIds.Document5, MockIds.Appointment5),
-            (MockIds.Document6, MockIds.Appointment6),
             (MockIds.Document6, MockIds.Appointment6),
             (MockIds.Document7, MockIds.Appointment7),
             (MockIds.Document8, MockIds.Appointment1)

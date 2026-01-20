@@ -17,9 +17,9 @@ public class LabDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "lab"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "lab"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "lab"));
         modelBuilder.Entity<LabOrder>(e =>
         {
             e.ToTable("Lab_Order", schema: "lab");

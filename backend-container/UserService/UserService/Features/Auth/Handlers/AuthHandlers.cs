@@ -1,9 +1,10 @@
 using MediatR;
+using MassTransit;
+using Medicare.Messaging.Contracts;
 using Microsoft.EntityFrameworkCore;
 using UserService.Data;
 using UserService.DTOs;
 using UserService.Features.Auth.Commands;
-using UserService.Infrastructure.Messaging;
 using UserService.Models;
 using UserService.Services;
 using static UserService.Services.CryptoHelpers;
@@ -16,20 +17,20 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, Register
     private readonly IJwtService _jwtService;
     private readonly UserDbContext _db;
     private readonly ILogger<RegisterUserHandler> _logger;
-    private readonly RabbitMQ.Client.IConnection _rabbitConnection;
+    private readonly IPublishEndpoint _publishEndpoint;
 
     public RegisterUserHandler(
         IUserService userService,
         IJwtService jwtService,
         UserDbContext db,
         ILogger<RegisterUserHandler> logger,
-        RabbitMQ.Client.IConnection rabbitConnection)
+        IPublishEndpoint publishEndpoint)
     {
         _userService = userService;
         _jwtService = jwtService;
         _db = db;
         _logger = logger;
-        _rabbitConnection = rabbitConnection;
+        _publishEndpoint = publishEndpoint;
     }
 
     public async Task<RegisterUserResponse> Handle(RegisterUserCommand request, CancellationToken cancellationToken)
@@ -54,30 +55,15 @@ public class RegisterUserHandler : IRequestHandler<RegisterUserCommand, Register
             var user = await _userService.CreateUserAsync(createUserDto);
             _logger.LogInformation("User created: {UserId}", user.Id);
 
-            // Store outbox event
-            var evt = new UserRegistered(user.Id, user.Username, user.Email, DateTime.UtcNow, request.PlanId);
-            _db.OutboxEvents.Add(new OutboxEvent
-            {
-                Id = Guid.NewGuid(),
-                Type = "user.created",
-                PayloadJson = System.Text.Json.JsonSerializer.Serialize(evt)
-            });
-            await _db.SaveChangesAsync(cancellationToken);
 
-            // Send welcome email
-            try
-            {
-                await using var channel = await _rabbitConnection.CreateChannelAsync(cancellationToken: cancellationToken);
-                await channel.QueueDeclareAsync(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: cancellationToken);
-                var emailEvent = new { Type = "welcome", Email = user.Email, FirstName = user.FirstName };
-                var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(emailEvent));
-                var props = new RabbitMQ.Client.BasicProperties();
-                await channel.BasicPublishAsync(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: props, body: body, cancellationToken: cancellationToken);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogWarning(ex, "Failed to queue welcome email");
-            }
+            await _publishEndpoint.Publish(new 
+            { 
+                UserId = user.Id,
+                Username = user.Username,
+                Email = user.Email,
+                OccurredAtUtc = DateTime.UtcNow,
+                PlanId = request.PlanId
+            }, cancellationToken);
 
             // Generate tokens
             var (accessToken, accessExpires) = _jwtService.GenerateAccessToken(user);
@@ -264,13 +250,13 @@ public class LogoutHandler : IRequestHandler<LogoutCommand, LogoutResponse>
 public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, ForgotPasswordResponse>
 {
     private readonly UserDbContext _db;
-    private readonly RabbitMQ.Client.IConnection _rabbitConnection;
+    private readonly IPublishEndpoint _publishEndpoint;
     private readonly ILogger<ForgotPasswordHandler> _logger;
 
-    public ForgotPasswordHandler(UserDbContext db, RabbitMQ.Client.IConnection rabbitConnection, ILogger<ForgotPasswordHandler> logger)
+    public ForgotPasswordHandler(UserDbContext db, IPublishEndpoint publishEndpoint, ILogger<ForgotPasswordHandler> logger)
     {
         _db = db;
-        _rabbitConnection = rabbitConnection;
+        _publishEndpoint = publishEndpoint;
         _logger = logger;
     }
 
@@ -300,22 +286,17 @@ public class ForgotPasswordHandler : IRequestHandler<ForgotPasswordCommand, Forg
         // Send email
         try
         {
-            await using var channel = await _rabbitConnection.CreateChannelAsync(cancellationToken: cancellationToken);
-            await channel.QueueDeclareAsync(queue: "email.events", durable: true, exclusive: false, autoDelete: false, arguments: null, cancellationToken: cancellationToken);
-            var emailEvent = new
+            await _publishEndpoint.Publish(new
             {
                 Type = "password_reset",
                 Email = user.Profile!.Email,
                 FirstName = user.Profile.FirstName,
                 ResetToken = token
-            };
-            var body = System.Text.Encoding.UTF8.GetBytes(System.Text.Json.JsonSerializer.Serialize(emailEvent));
-            var props = new RabbitMQ.Client.BasicProperties();
-            await channel.BasicPublishAsync(exchange: "", routingKey: "email.events", mandatory: false, basicProperties: props, body: body, cancellationToken: cancellationToken);
+            }, cancellationToken);
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(ex, "Failed to queue password reset email");
+            _logger.LogWarning(ex, "Failed to publish password reset email event");
         }
 
         return new ForgotPasswordResponse { Success = true, Message = "If the email exists, a reset link has been sent." };

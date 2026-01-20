@@ -10,7 +10,7 @@ public class UserDbContext : DbContext
     public DbSet<Role> Roles { get; set; }
     public DbSet<User> Users { get; set; }
     public DbSet<UserProfile> UserProfiles { get; set; }
-    public DbSet<OutboxEvent> OutboxEvents { get; set; }
+
     public DbSet<RefreshToken> RefreshTokens { get; set; }
     public DbSet<PasswordResetToken> PasswordResetTokens { get; set; }
 
@@ -58,14 +58,7 @@ public class UserDbContext : DbContext
             
             entity.HasIndex(e => e.Email).IsUnique();
         });
-        modelBuilder.Entity<OutboxEvent>(entity =>
-        {
-            entity.ToTable("Outbox_Event", schema: "user");
-            entity.HasKey(e => e.Id);
-            entity.Property(e => e.Id).HasDefaultValueSql("NEWID()");
-            entity.Property(e => e.OccurredAt).HasDefaultValueSql(SysUtc);
-            entity.HasIndex(e => e.PublishedAt);
-        });
+
 
         modelBuilder.Entity<RefreshToken>(entity =>
         {

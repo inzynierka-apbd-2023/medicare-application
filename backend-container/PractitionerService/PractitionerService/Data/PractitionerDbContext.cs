@@ -21,9 +21,9 @@ public class PractitionerDbContext : DbContext
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "practitioner"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "practitioner"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "practitioner"));
 
         modelBuilder.Entity<Doctor>(e =>
         {

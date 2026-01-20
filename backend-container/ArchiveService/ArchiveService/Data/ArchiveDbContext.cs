@@ -13,9 +13,9 @@ public class ArchiveDbContext(DbContextOptions<ArchiveDbContext> options) : DbCo
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "archive"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "archive"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "archive"));
 
         modelBuilder.Entity<ArchivedDoctor>(b =>
         {

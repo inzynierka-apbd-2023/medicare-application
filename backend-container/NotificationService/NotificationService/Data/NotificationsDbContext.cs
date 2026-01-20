@@ -15,9 +15,9 @@ public class NotificationsDbContext : DbContext
     {
         modelBuilder.HasDefaultSchema("notifications");
 
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "notifications"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "notifications"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "notifications"));
 
 
         var e = modelBuilder.Entity<Notification>();

@@ -23,9 +23,9 @@ public class MedicalCatalogDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "catalog"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "catalog"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "catalog"));
 
 
         // Catalog schema tables

@@ -135,9 +135,11 @@ namespace ArchiveService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasAlternateKey("MessageId", "ConsumerId");
+
                     b.HasIndex("Delivered");
 
-                    b.ToTable("InboxState");
+                    b.ToTable("InboxState", "archive");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
@@ -230,7 +232,7 @@ namespace ArchiveService.Migrations
                         .IsUnique()
                         .HasFilter("[InboxMessageId] IS NOT NULL AND [InboxConsumerId] IS NOT NULL");
 
-                    b.ToTable("OutboxMessage");
+                    b.ToTable("OutboxMessage", "archive");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxState", b =>
@@ -260,19 +262,7 @@ namespace ArchiveService.Migrations
 
                     b.HasIndex("Created");
 
-                    b.ToTable("OutboxState");
-                });
-
-            modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
-                {
-                    b.HasOne("MassTransit.EntityFrameworkCoreIntegration.OutboxState", null)
-                        .WithMany()
-                        .HasForeignKey("OutboxId");
-
-                    b.HasOne("MassTransit.EntityFrameworkCoreIntegration.InboxState", null)
-                        .WithMany()
-                        .HasForeignKey("InboxMessageId", "InboxConsumerId")
-                        .HasPrincipalKey("MessageId", "ConsumerId");
+                    b.ToTable("OutboxState", "archive");
                 });
 #pragma warning restore 612, 618
         }

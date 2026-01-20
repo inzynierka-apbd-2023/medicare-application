@@ -22,9 +22,9 @@ public class BillingDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema("billing");
         
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "billing"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "billing"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "billing"));
 
         const string SqlGuid = "NEWID()";
         const string SysUtc = "SYSUTCDATETIME()";

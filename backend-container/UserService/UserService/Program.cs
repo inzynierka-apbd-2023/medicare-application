@@ -9,7 +9,6 @@ using Microsoft.OpenApi.Models;
 using System.Text;
 using UserService.Data;
 using UserService.Data.Seeders;
-using UserService.Infrastructure.Messaging;
 using UserService.Models;
 using UserService.Services;
 

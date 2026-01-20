@@ -20,9 +20,9 @@ public class MessagingDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema("messaging");
 
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "messaging"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "messaging"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "messaging"));
 
         modelBuilder.Entity<Message>(e =>
         {

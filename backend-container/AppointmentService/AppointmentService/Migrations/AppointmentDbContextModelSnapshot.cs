@@ -17,6 +17,7 @@ namespace AppointmentService.Migrations
         {
 #pragma warning disable 612, 618
             modelBuilder
+                .HasDefaultSchema("appointment")
                 .HasAnnotation("ProductVersion", "9.0.1")
                 .HasAnnotation("Relational:MaxIdentifierLength", 128);
 
@@ -225,7 +226,7 @@ namespace AppointmentService.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Notification");
+                    b.ToTable("Notification", "appointment");
                 });
 
             modelBuilder.Entity("AppointmentService.Models.Rate", b =>
@@ -258,7 +259,7 @@ namespace AppointmentService.Migrations
 
                     b.HasKey("Id");
 
-                    b.ToTable("Rate");
+                    b.ToTable("Rate", "appointment");
                 });
 
             modelBuilder.Entity("AppointmentService.Models.Schedule", b =>
@@ -344,9 +345,11 @@ namespace AppointmentService.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasAlternateKey("MessageId", "ConsumerId");
+
                     b.HasIndex("Delivered");
 
-                    b.ToTable("InboxState");
+                    b.ToTable("InboxState", "appointment");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
@@ -439,7 +442,7 @@ namespace AppointmentService.Migrations
                         .IsUnique()
                         .HasFilter("[InboxMessageId] IS NOT NULL AND [InboxConsumerId] IS NOT NULL");
 
-                    b.ToTable("OutboxMessage");
+                    b.ToTable("OutboxMessage", "appointment");
                 });
 
             modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxState", b =>
@@ -469,19 +472,7 @@ namespace AppointmentService.Migrations
 
                     b.HasIndex("Created");
 
-                    b.ToTable("OutboxState");
-                });
-
-            modelBuilder.Entity("MassTransit.EntityFrameworkCoreIntegration.OutboxMessage", b =>
-                {
-                    b.HasOne("MassTransit.EntityFrameworkCoreIntegration.OutboxState", null)
-                        .WithMany()
-                        .HasForeignKey("OutboxId");
-
-                    b.HasOne("MassTransit.EntityFrameworkCoreIntegration.InboxState", null)
-                        .WithMany()
-                        .HasForeignKey("InboxMessageId", "InboxConsumerId")
-                        .HasPrincipalKey("MessageId", "ConsumerId");
+                    b.ToTable("OutboxState", "appointment");
                 });
 #pragma warning restore 612, 618
         }

@@ -22,9 +22,9 @@ public class AppointmentDbContext : DbContext
         base.OnModelCreating(modelBuilder);
         modelBuilder.HasDefaultSchema("appointment");
 
-        modelBuilder.AddInboxStateEntity();
-        modelBuilder.AddOutboxMessageEntity();
-        modelBuilder.AddOutboxStateEntity();
+        modelBuilder.AddInboxStateEntity(x => x.ToTable("InboxState", "appointment"));
+        modelBuilder.AddOutboxMessageEntity(x => x.ToTable("OutboxMessage", "appointment"));
+        modelBuilder.AddOutboxStateEntity(x => x.ToTable("OutboxState", "appointment"));
 
         modelBuilder.Entity<Appointment>(e =>
         {

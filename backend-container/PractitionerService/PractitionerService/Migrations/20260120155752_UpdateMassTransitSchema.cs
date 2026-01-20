@@ -3,16 +3,17 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace AppointmentService.Migrations
+namespace PractitionerService.Migrations
 {
     /// <inheritdoc />
-    public partial class AddMassTransitOutbox : Migration
+    public partial class UpdateMassTransitSchema : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.CreateTable(
                 name: "InboxState",
+                schema: "practitioner",
                 columns: table => new
                 {
                     Id = table.Column<long>(type: "bigint", nullable: false)
@@ -35,23 +36,8 @@ namespace AppointmentService.Migrations
                 });
 
             migrationBuilder.CreateTable(
-                name: "OutboxState",
-                columns: table => new
-                {
-                    OutboxId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    LockId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
-                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true),
-                    Created = table.Column<DateTime>(type: "datetime2", nullable: false),
-                    Delivered = table.Column<DateTime>(type: "datetime2", nullable: true),
-                    LastSequenceNumber = table.Column<long>(type: "bigint", nullable: true)
-                },
-                constraints: table =>
-                {
-                    table.PrimaryKey("PK_OutboxState", x => x.OutboxId);
-                });
-
-            migrationBuilder.CreateTable(
                 name: "OutboxMessage",
+                schema: "practitioner",
                 columns: table => new
                 {
                     SequenceNumber = table.Column<long>(type: "bigint", nullable: false)
@@ -80,35 +66,46 @@ namespace AppointmentService.Migrations
                 constraints: table =>
                 {
                     table.PrimaryKey("PK_OutboxMessage", x => x.SequenceNumber);
-                    table.ForeignKey(
-                        name: "FK_OutboxMessage_InboxState_InboxMessageId_InboxConsumerId",
-                        columns: x => new { x.InboxMessageId, x.InboxConsumerId },
-                        principalTable: "InboxState",
-                        principalColumns: new[] { "MessageId", "ConsumerId" });
-                    table.ForeignKey(
-                        name: "FK_OutboxMessage_OutboxState_OutboxId",
-                        column: x => x.OutboxId,
-                        principalTable: "OutboxState",
-                        principalColumn: "OutboxId");
+                });
+
+            migrationBuilder.CreateTable(
+                name: "OutboxState",
+                schema: "practitioner",
+                columns: table => new
+                {
+                    OutboxId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    LockId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    RowVersion = table.Column<byte[]>(type: "rowversion", rowVersion: true, nullable: true),
+                    Created = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Delivered = table.Column<DateTime>(type: "datetime2", nullable: true),
+                    LastSequenceNumber = table.Column<long>(type: "bigint", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_OutboxState", x => x.OutboxId);
                 });
 
             migrationBuilder.CreateIndex(
                 name: "IX_InboxState_Delivered",
+                schema: "practitioner",
                 table: "InboxState",
                 column: "Delivered");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_EnqueueTime",
+                schema: "practitioner",
                 table: "OutboxMessage",
                 column: "EnqueueTime");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_ExpirationTime",
+                schema: "practitioner",
                 table: "OutboxMessage",
                 column: "ExpirationTime");
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_InboxMessageId_InboxConsumerId_SequenceNumber",
+                schema: "practitioner",
                 table: "OutboxMessage",
                 columns: new[] { "InboxMessageId", "InboxConsumerId", "SequenceNumber" },
                 unique: true,
@@ -116,6 +113,7 @@ namespace AppointmentService.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxMessage_OutboxId_SequenceNumber",
+                schema: "practitioner",
                 table: "OutboxMessage",
                 columns: new[] { "OutboxId", "SequenceNumber" },
                 unique: true,
@@ -123,6 +121,7 @@ namespace AppointmentService.Migrations
 
             migrationBuilder.CreateIndex(
                 name: "IX_OutboxState_Created",
+                schema: "practitioner",
                 table: "OutboxState",
                 column: "Created");
         }
@@ -131,13 +130,16 @@ namespace AppointmentService.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
-                name: "OutboxMessage");
+                name: "InboxState",
+                schema: "practitioner");
 
             migrationBuilder.DropTable(
-                name: "InboxState");
+                name: "OutboxMessage",
+                schema: "practitioner");
 
             migrationBuilder.DropTable(
-                name: "OutboxState");
+                name: "OutboxState",
+                schema: "practitioner");
         }
     }
 }
