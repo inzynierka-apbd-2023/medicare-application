@@ -21,6 +21,7 @@ public class PatientDbContext : DbContext
             e.Property(p => p.Id).HasDefaultValueSql("NEWID()");
             e.Property(p => p.UserId).IsRequired();
             e.Property(p => p.PrimaryDoctorId);
+            e.Property(p => p.BloodType).HasMaxLength(10);
             e.Property(p => p.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.Property(p => p.UpdatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
             e.HasIndex(p => p.UserId).IsUnique();

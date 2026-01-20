@@ -49,6 +49,7 @@ public class GetPatientHandler : IRequestHandler<GetPatientQuery, PatientProfile
             overview?.Address ?? "",
             overview?.DateOfBirth,
             overview?.Gender ?? "Unknown",
+            patient.BloodType,
             contacts,
             insurance
         );

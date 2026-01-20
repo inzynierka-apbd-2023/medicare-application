@@ -60,6 +60,9 @@ public static class MockDataSeeder
             ("Michael Wilson", "Son", "+1-555-1107")
         };
 
+        // Blood types for patients
+        var bloodTypes = new[] { "A+", "B+", "O+", "AB+", "A-", "O-", "B-" };
+
         // Insurance providers data
         var insuranceProviders = new[]
         {
@@ -86,6 +89,7 @@ public static class MockDataSeeder
                     Id = patientId,
                     UserId = userId,
                     PrimaryDoctorId = doctorId,
+                    BloodType = bloodTypes[i],
                     CreatedAt = DateTime.UtcNow.AddDays(-30 + i),
                     UpdatedAt = DateTime.UtcNow
                 });

@@ -143,6 +143,7 @@ public interface IPatientProfile
     string? State { get; }
     string? ZipCode { get; }
     string? Country { get; }
+    string? BloodType { get; }
 }
 
 public interface IDocumentCreated
