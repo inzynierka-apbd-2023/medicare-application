@@ -40,6 +40,7 @@ const mapBackendToFrontend = (bp: BackendPrescription): Prescription => {
       {
         id: `med-${bp.id}`,
         name: bp.medicationName,
+        atcCode: bp.atcCode,
         genericName: bp.medicationName,
         dosage: bp.dosage,
         frequency: bp.frequency,
@@ -72,7 +73,8 @@ class PrescriptionsApi {
     if (filters.searchTerm) params.append("search", filters.searchTerm);
 
     const queryString = params.toString();
-    const url = `/medical-records/prescriptions${queryString ? `?${queryString}` : ""}`;
+    const querySuffix = queryString ? `?${queryString}` : "";
+    const url = `/medical-records/prescriptions${querySuffix}`;
 
     const response = await api.get<BackendPrescription[]>(url);
     return response.map(mapBackendToFrontend);
@@ -103,10 +105,10 @@ class PrescriptionsApi {
         patientId: data.patientId,
         doctorId: "00000000-0000-0000-0000-000000000000",
         medicationName: medication.name,
-        atcCode: null,
+        atcCode: medication.atcCode || null,
         dosage: medication.dosage,
         frequency: medication.frequency,
-        durationDays: parseInt(medication.duration) || 30,
+        durationDays: Number.parseInt(medication.duration, 10) || 30,
         instructions: data.notes || medication.instructions,
         prescribedDate: new Date().toISOString(),
       };
@@ -146,7 +148,9 @@ class PrescriptionsApi {
       medicationName: firstMed?.name || "",
       dosage: firstMed?.dosage || "",
       frequency: firstMed?.frequency || "",
-      durationDays: firstMed?.duration ? parseInt(firstMed.duration) : 30,
+      durationDays: firstMed?.duration
+        ? Number.parseInt(firstMed.duration, 10)
+        : 30,
       instructions: data.notes || firstMed?.instructions,
       status: null,
     };
@@ -172,10 +176,10 @@ class PrescriptionsApi {
         patientId: data.patientId || "",
         doctorId: "00000000-0000-0000-0000-000000000000",
         medicationName: med.name,
-        atcCode: null,
+        atcCode: med.atcCode || null,
         dosage: med.dosage,
         frequency: med.frequency,
-        durationDays: parseInt(med.duration) || 30,
+        durationDays: Number.parseInt(med.duration, 10) || 30,
         instructions: data.notes || med.instructions,
         prescribedDate: new Date().toISOString(),
       };

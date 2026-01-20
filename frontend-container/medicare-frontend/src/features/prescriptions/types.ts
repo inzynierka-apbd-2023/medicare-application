@@ -18,6 +18,7 @@ export interface Prescription {
 export interface Medication {
   id: string;
   name: string;
+  atcCode?: string;
   genericName?: string;
   dosage: string;
   frequency: string;
