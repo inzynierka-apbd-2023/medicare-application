@@ -219,6 +219,23 @@ public interface IDoctorProfile
     string SpecializationNames { get; }
 }
 
+public interface IGetAppointmentRatings
+{
+    List<Guid> AppointmentIds { get; }
+}
+
+public interface IAppointmentRatings
+{
+    List<IAppointmentRating> Ratings { get; }
+}
+
+public interface IAppointmentRating
+{
+    Guid AppointmentId { get; }
+    byte RateValue { get; }
+    string? Description { get; }
+}
+
 public interface IGetAtc
 {
     string Query { get; }

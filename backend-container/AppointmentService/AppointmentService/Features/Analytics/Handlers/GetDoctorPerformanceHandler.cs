@@ -4,7 +4,6 @@ using AppointmentService.Data;
 using AppointmentService.Features.Analytics.DTOs;
 using AppointmentService.Features.Analytics.Queries;
 using AppointmentService.Services;
-using AppointmentService.Models;
 
 namespace AppointmentService.Features.Analytics.Handlers;
 
@@ -13,17 +12,20 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
     private readonly AppointmentDbContext _context;
     private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> _doctorClient;
     private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> _paymentClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentRatings> _ratingsClient;
     private readonly ILogger<GetDoctorPerformanceHandler> _logger;
 
     public GetDoctorPerformanceHandler(
         AppointmentDbContext context, 
         MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient,
         MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient,
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentRatings> ratingsClient,
         ILogger<GetDoctorPerformanceHandler> logger)
     {
         _context = context;
         _doctorClient = doctorClient;
         _paymentClient = paymentClient;
+        _ratingsClient = ratingsClient;
         _logger = logger;
     }
 
@@ -85,9 +87,13 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
             Status = p.Status 
         }).ToList();
 
-        var rates = await _context.Rates.AsNoTracking()
-            .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
-            .ToListAsync(cancellationToken);
+        // Get ratings via RabbitMQ from PractitionerService
+        var ratingsResponse = await _ratingsClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentRatings>(new { AppointmentIds = appointmentIds }, cancellationToken);
+        var ratings = ratingsResponse.Message.Ratings.Select(r => new RatingDto
+        {
+            AppointmentId = r.AppointmentId,
+            RateValue = r.RateValue
+        }).ToList();
 
         var doctorGroups = appointments.GroupBy(a => a.DoctorId);
         var performanceList = new List<DoctorPerformanceDto>();
@@ -115,11 +121,9 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
                 .Where(p => docApptIds.Contains(p.AppointmentId))
                 .Sum(p => p.AmountCents) / 100.0m;
 
-            // Ratings
-            var docRates = rates
-                .Where(r => r.Appointment_Id.HasValue && docApptIds.Contains(r.Appointment_Id.Value))
-                .ToList();
-            var avgRating = docRates.Any() ? docRates.Average(r => r.Rate_Value ?? 0) : 0;
+            // Ratings from RabbitMQ response
+            var docRatings = ratings.Where(r => docApptIds.Contains(r.AppointmentId)).ToList();
+            var avgRating = docRatings.Any() ? docRatings.Average(r => r.RateValue) : 0;
 
             // Get name and specialization from RabbitMQ response
             var (name, specialization) = profileMap.TryGetValue(doctorId, out var profile)
@@ -142,7 +146,7 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
                 CancelledAppointments = cancelledAppointments,
                 NoShowAppointments = noShowAppointments,
                 AverageRating = (double)avgRating,
-                TotalRatings = docRates.Count,
+                TotalRatings = docRatings.Count,
                 Revenue = docRevenue,
                 UtilizationRate = utilizationRate
             });
@@ -151,3 +155,4 @@ public class GetDoctorPerformanceHandler : IRequestHandler<GetDoctorPerformanceQ
         return performanceList.OrderByDescending(p => p.TotalAppointments);
     }
 }
+

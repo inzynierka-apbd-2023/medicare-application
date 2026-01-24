@@ -3,7 +3,6 @@ using Microsoft.EntityFrameworkCore;
 using AppointmentService.Data;
 using AppointmentService.Features.Analytics.DTOs;
 using AppointmentService.Features.Analytics.Queries;
-using AppointmentService.Models;
 using AppointmentService.Services;
 using AppointmentService.Messaging.Notifiers;
 
@@ -15,17 +14,20 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
     private readonly ISystemNotificationNotifier _notifier;
     private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> _doctorClient;
     private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> _paymentClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentRatings> _ratingsClient;
 
     public GetAppointmentAnalyticsHandler(
         AppointmentDbContext context, 
         ISystemNotificationNotifier notifier,
         MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient,
-        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient)
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient,
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentRatings> ratingsClient)
     {
         _context = context;
         _notifier = notifier;
         _doctorClient = doctorClient;
         _paymentClient = paymentClient;
+        _ratingsClient = ratingsClient;
     }
 
     public async Task<AppointmentAnalyticsResponse> Handle(GetAppointmentAnalyticsQuery request, CancellationToken cancellationToken)
@@ -79,9 +81,9 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var appointmentIds = appointments.Select(a => a.Id).ToList();
         
         var payments = new List<AppointmentPaymentDto>();
-        var rates = new List<Rate>();
+        var ratings = new List<RatingDto>();
         var prevPayments = new List<AppointmentPaymentDto>();
-        var prevRates = new List<Rate>();
+        var prevRatings = new List<RatingDto>();
 
         if (appointmentIds.Any())
         {
@@ -93,9 +95,12 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
                 Status = p.Status
             }).ToList();
 
-            rates = await _context.Rates.AsNoTracking()
-                .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
-                .ToListAsync(cancellationToken);
+            var ratingsResponse = await _ratingsClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentRatings>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            ratings = ratingsResponse.Message.Ratings.Select(r => new RatingDto
+            {
+                AppointmentId = r.AppointmentId,
+                RateValue = r.RateValue
+            }).ToList();
         }
             
         var prevAppointmentIds = previousAppointments.Select(a => a.Id).ToList();
@@ -109,9 +114,12 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
                 Status = p.Status 
             }).ToList();
 
-            prevRates = await _context.Rates.AsNoTracking()
-                .Where(r => r.Appointment_Id.HasValue && prevAppointmentIds.Contains(r.Appointment_Id.Value))
-                .ToListAsync(cancellationToken);
+            var prevRatingsResponse = await _ratingsClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentRatings>(new { AppointmentIds = prevAppointmentIds }, cancellationToken);
+            prevRatings = prevRatingsResponse.Message.Ratings.Select(r => new RatingDto
+            {
+                AppointmentId = r.AppointmentId,
+                RateValue = r.RateValue
+            }).ToList();
         }
 
         var totalAppointments = appointments.Count;
@@ -134,8 +142,8 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var prevRevenue = prevPayments.Sum(p => p.AmountCents) / 100.0m;
         var revenueChange = prevRevenue > 0 ? (double)((totalRevenue - prevRevenue) / prevRevenue) * 100 : 0;
 
-        var avgRating = rates.Any() ? rates.Average(r => r.Rate_Value ?? 0) : 0;
-        var prevAvgRating = prevRates.Any() ? prevRates.Average(r => r.Rate_Value ?? 0) : 0;
+        var avgRating = ratings.Any() ? ratings.Average(r => r.RateValue) : 0;
+        var prevAvgRating = prevRatings.Any() ? prevRatings.Average(r => r.RateValue) : 0;
         var finalRating = avgRating; 
         var ratingChange = prevAvgRating > 0 ? ((avgRating - prevAvgRating) / prevAvgRating) * 100 : 0;
 
@@ -214,7 +222,7 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         var appointmentIds = appointments.Select(a => a.Id).ToList();
         
         var payments = new List<AppointmentPaymentDto>();
-        var rates = new List<Rate>();
+        var ratings = new List<RatingDto>();
         
         var doctorIds = appointments.Select(a => a.DoctorId).Distinct().ToList();
         
@@ -250,9 +258,12 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
                 Status = p.Status 
             }).ToList();
 
-            rates = await _context.Rates.AsNoTracking()
-                .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
-                .ToListAsync(cancellationToken);
+            var ratingsResponse = await _ratingsClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentRatings>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            ratings = ratingsResponse.Message.Ratings.Select(r => new RatingDto
+            {
+                AppointmentId = r.AppointmentId,
+                RateValue = r.RateValue
+            }).ToList();
         }
 
         var doctorGroups = appointments.GroupBy(a => a.DoctorId);
@@ -271,13 +282,10 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
                 .Where(p => docApptIds.Contains(p.AppointmentId))
                 .Sum(p => p.AmountCents) / 100.0m;
 
-            var docRates = rates
-                .Where(r => r.Appointment_Id.HasValue && docApptIds.Contains(r.Appointment_Id.Value))
-                .ToList();
+            var docRatings = ratings.Where(r => docApptIds.Contains(r.AppointmentId)).ToList();
+            var avgRating = docRatings.Any() ? docRatings.Average(r => r.RateValue) : 0;
             
-            var avgRating = docRates.Any() ? docRates.Average(r => r.Rate_Value ?? 0) : 0;
-            
-            var (name, spec) = profileMap.TryGetValue(docId, out var p) ? p : ($"Doctor {docId.ToString()[..8]}", "General");
+            var (name, spec) = profileMap.TryGetValue(docId, out var pr) ? pr : ($"Doctor {docId.ToString()[..8]}", "General");
             if (string.IsNullOrWhiteSpace(name)) name = $"Doctor {docId.ToString()[..8]}";
             if (string.IsNullOrWhiteSpace(spec)) spec = "General";
 
@@ -291,7 +299,7 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
                 CancelledAppointments = docAppointments.Count(a => a.Status == "Cancelled"),
                 NoShowAppointments = docAppointments.Count(a => a.Status == "NoShow" || a.Status == "Overdue"),
                 AverageRating = (double)avgRating,
-                TotalRatings = docRates.Count,
+                TotalRatings = docRatings.Count,
                 Revenue = docRevenue,
                 UtilizationRate = totalWorkingMinutes > 0 ? (bookedMinutes / totalWorkingMinutes) * 100 : 0
             });
@@ -332,7 +340,7 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
         }
 
         var payments = new List<AppointmentPaymentDto>();
-        var rates = new List<Rate>();
+        var ratings = new List<RatingDto>();
 
         if (appointmentIds.Any())
         {
@@ -343,10 +351,13 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
                 AmountCents = (int)p.AmountCents, 
                 Status = p.Status 
             }).ToList();
-                
-            rates = await _context.Rates.AsNoTracking()
-                .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
-                .ToListAsync(cancellationToken);
+
+            var ratingsResponse = await _ratingsClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentRatings>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            ratings = ratingsResponse.Message.Ratings.Select(r => new RatingDto
+            {
+                AppointmentId = r.AppointmentId,
+                RateValue = r.RateValue
+            }).ToList();
         }
 
         var groupedByType = appointments
@@ -359,8 +370,8 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
             {
                  var groupApptIds = g.Select(a => a.Id).ToHashSet();
                  var groupRevenue = payments.Where(p => groupApptIds.Contains(p.AppointmentId)).Sum(p => p.AmountCents) / 100.0m;
-                 var groupRates = rates.Where(r => r.Appointment_Id.HasValue && groupApptIds.Contains(r.Appointment_Id.Value)).ToList();
-                 var groupAvgRating = groupRates.Any() ? groupRates.Average(r => r.Rate_Value ?? 0) : 0;
+                 var groupRatings = ratings.Where(r => groupApptIds.Contains(r.AppointmentId)).ToList();
+                 var groupAvgRating = groupRatings.Any() ? groupRatings.Average(r => r.RateValue) : 0;
                  
                  return new SpecializationStatsDto
                  {
@@ -406,7 +417,7 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
                 Saturday = hourAppointments.Count(a => a.ScheduledAt.DayOfWeek == DayOfWeek.Saturday),
                 Sunday = hourAppointments.Count(a => a.ScheduledAt.DayOfWeek == DayOfWeek.Sunday),
                 TotalAppointments = hourAppointments.Count,
-                AverageRevenue = 0, // Revenue calculation for time slots complex without joining payments, skipping for now
+                AverageRevenue = 0,
                 CompletionRate = hourAppointments.Count > 0 
                     ? (double)hourAppointments.Count(a => a.Status == "Completed") / hourAppointments.Count * 100 
                     : 0
@@ -438,5 +449,4 @@ public class GetAppointmentAnalyticsHandler : IRequestHandler<GetAppointmentAnal
             WeeklyData = weeklyData
         };
     }
-
 }

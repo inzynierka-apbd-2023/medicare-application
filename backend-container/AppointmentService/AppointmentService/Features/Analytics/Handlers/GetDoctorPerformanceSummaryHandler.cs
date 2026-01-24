@@ -11,11 +11,16 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
 {
     private readonly AppointmentDbContext _context;
     private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> _doctorClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentRatings> _ratingsClient;
 
-    public GetDoctorPerformanceSummaryHandler(AppointmentDbContext context, MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient)
+    public GetDoctorPerformanceSummaryHandler(
+        AppointmentDbContext context, 
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient,
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentRatings> ratingsClient)
     {
         _context = context;
         _doctorClient = doctorClient;
+        _ratingsClient = ratingsClient;
     }
 
     public async Task<DoctorPerformanceSummaryDto> Handle(GetDoctorPerformanceSummaryQuery request, CancellationToken cancellationToken)
@@ -27,9 +32,19 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
             .Where(a => a.ScheduledAt >= start && a.ScheduledAt <= end)
             .ToListAsync(cancellationToken);
 
-        var rates = await _context.Rates.AsNoTracking()
-            .Where(r => r.Rated_At >= start && r.Rated_At <= end)
-            .ToListAsync(cancellationToken);
+        var appointmentIds = appts.Select(a => a.Id).ToList();
+        
+        // Get ratings via RabbitMQ from PractitionerService
+        var ratings = new List<RatingDto>();
+        if (appointmentIds.Any())
+        {
+            var ratingsResponse = await _ratingsClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentRatings>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            ratings = ratingsResponse.Message.Ratings.Select(r => new RatingDto
+            {
+                AppointmentId = r.AppointmentId,
+                RateValue = r.RateValue
+            }).ToList();
+        }
 
         var doctorGroups = appts.GroupBy(a => a.DoctorId).ToList();
         var totalDoctors = doctorGroups.Count;
@@ -39,21 +54,23 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
         string topRatedDoctor = "N/A";
         double doctorAverageRating = 0;
 
-        if (rates.Any())
+        if (ratings.Any())
         {
-            doctorAverageRating = rates.Average(r => r.Rate_Value ?? 0);
+            doctorAverageRating = ratings.Average(r => r.RateValue);
 
-            // Find top rated doctor
-            var topDocGroup = rates
-                .GroupBy(r => r.Doctor_User_Id)
-                .Select(g => new { DoctorId = g.Key, AvgRating = g.Average(r => r.Rate_Value ?? 0), Count = g.Count() })
+            // Find top rated doctor by grouping ratings by appointment -> doctor
+            var apptToDoctorMap = appts.ToDictionary(a => a.Id, a => a.DoctorId);
+            var doctorRatings = ratings
+                .Where(r => apptToDoctorMap.ContainsKey(r.AppointmentId))
+                .GroupBy(r => apptToDoctorMap[r.AppointmentId])
+                .Select(g => new { DoctorId = g.Key, AvgRating = g.Average(r => r.RateValue), Count = g.Count() })
                 .OrderByDescending(x => x.AvgRating)
                 .ThenByDescending(x => x.Count)
                 .FirstOrDefault();
 
-            if (topDocGroup != null)
+            if (doctorRatings != null)
             {
-                var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = new[] { topDocGroup.DoctorId } }, cancellationToken);
+                var resp = await _doctorClient.GetResponse<Medicare.Messaging.Contracts.IDoctorProfiles>(new { DoctorIds = new[] { doctorRatings.DoctorId } }, cancellationToken);
                 var profiles = resp.Message.Profiles;
                 if (profiles.Any())
                 {
@@ -61,7 +78,7 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
                 }
                 else
                 {
-                    topRatedDoctor = $"Doctor {topDocGroup.DoctorId.ToString()[..8]}";
+                    topRatedDoctor = $"Doctor {doctorRatings.DoctorId.ToString()[..8]}";
                 }
             }
         }
@@ -91,3 +108,4 @@ public class GetDoctorPerformanceSummaryHandler : IRequestHandler<GetDoctorPerfo
         };
     }
 }
+

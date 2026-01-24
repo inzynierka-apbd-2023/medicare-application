@@ -102,3 +102,10 @@ public class AppointmentPaymentDto
     public long AmountCents { get; set; }
     public string Status { get; set; } = string.Empty;
 }
+
+public class RatingDto
+{
+    public Guid AppointmentId { get; set; }
+    public byte RateValue { get; set; }
+}
+

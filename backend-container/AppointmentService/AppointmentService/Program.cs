@@ -53,6 +53,7 @@ builder.AddMedicareMassTransit<AppointmentDbContext>(x =>
     x.AddRequestClient<Medicare.Messaging.Contracts.IGetPatients>();
     x.AddRequestClient<Medicare.Messaging.Contracts.IGetDoctors>();
     x.AddRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments>();
+    x.AddRequestClient<Medicare.Messaging.Contracts.IGetAppointmentRatings>();
 });
 
 builder.Services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(Assembly.GetExecutingAssembly()));

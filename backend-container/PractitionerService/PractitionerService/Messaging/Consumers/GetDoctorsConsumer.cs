@@ -2,6 +2,7 @@ using MassTransit;
 using Medicare.Messaging.Contracts;
 using Microsoft.EntityFrameworkCore;
 using PractitionerService.Data;
+using PractitionerService.Models;
 
 namespace PractitionerService.Messaging.Consumers;
 
@@ -18,27 +19,21 @@ public class GetDoctorsConsumer : IConsumer<IGetDoctors>
     {
         var ids = context.Message.DoctorIds;
         
-        var doctors = await _context.Doctors
+        // Use DoctorDirectory view which joins Doctor with User data
+        var doctorDirectories = await _context.Set<DoctorDirectory>()
             .AsNoTracking()
-            .Where(d => ids.Contains(d.Id))
+            .Where(d => ids.Contains(d.DoctorId) || ids.Contains(d.UserId))
             .ToListAsync();
 
-        var doctorIds = doctors.Select(d => d.Id).ToList();
-        
-        var specializationsByDoctor = await _context.DoctorSpecializations
-            .Where(ds => doctorIds.Contains(ds.DoctorId))
-            .Join(_context.Specializations, ds => ds.SpecializationId, s => s.Id, (ds, s) => new { ds.DoctorId, s.Name })
-            .GroupBy(x => x.DoctorId)
-            .ToDictionaryAsync(g => g.Key, g => string.Join(", ", g.Select(x => x.Name)));
-
-        var response = doctors.Select(d => new DoctorProfile
+        var response = doctorDirectories.Select(d => new DoctorProfile
         {
-            DoctorId = d.Id,
+            DoctorId = d.DoctorId,
             UserId = d.UserId,
-            FirstName = "",
-            LastName = "",
-            SpecializationNames = specializationsByDoctor.GetValueOrDefault(d.Id, "")
-        }).ToList<IDoctorProfile>();
+            FirstName = d.FirstName ?? "",
+            LastName = d.LastName ?? "",
+            Email = d.Email ?? "",
+            SpecializationNames = d.Specializations ?? ""
+        }).ToList<IDoctorProfile>(); 
 
         await context.RespondAsync<IDoctorProfiles>(new { Profiles = response });
     }

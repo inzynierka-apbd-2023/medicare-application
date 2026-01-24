@@ -22,6 +22,7 @@ builder.AddMedicareMassTransit<PractitionerDbContext>(x =>
     x.AddConsumer<AppointmentEventConsumer>();
     x.AddConsumer<DoctorProfileConsumer>();
     x.AddConsumer<GetDoctorsConsumer>();
+    x.AddConsumer<GetAppointmentRatingsConsumer>();
     x.AddRequestClient<Medicare.Messaging.Contracts.IGetUser>();
     x.AddRequestClient<Medicare.Messaging.Contracts.IGetUsers>();
     x.AddRequestClient<Medicare.Messaging.Contracts.ICreateUser>();

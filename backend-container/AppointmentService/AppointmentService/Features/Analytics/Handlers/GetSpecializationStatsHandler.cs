@@ -4,7 +4,6 @@ using AppointmentService.Data;
 using AppointmentService.Features.Analytics.DTOs;
 using AppointmentService.Features.Analytics.Queries;
 using AppointmentService.Services;
-using AppointmentService.Models;
 
 namespace AppointmentService.Features.Analytics.Handlers;
 
@@ -13,17 +12,20 @@ public class GetSpecializationStatsHandler : IRequestHandler<GetSpecializationSt
     private readonly AppointmentDbContext _context;
     private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> _doctorClient;
     private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> _paymentClient;
+    private readonly MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentRatings> _ratingsClient;
     private readonly ILogger<GetSpecializationStatsHandler> _logger;
 
     public GetSpecializationStatsHandler(
         AppointmentDbContext context,
         MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetDoctors> doctorClient,
         MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentPayments> paymentClient,
+        MassTransit.IRequestClient<Medicare.Messaging.Contracts.IGetAppointmentRatings> ratingsClient,
         ILogger<GetSpecializationStatsHandler> logger)
     {
         _context = context;
         _doctorClient = doctorClient;
         _paymentClient = paymentClient;
+        _ratingsClient = ratingsClient;
         _logger = logger;
     }
 
@@ -71,7 +73,7 @@ public class GetSpecializationStatsHandler : IRequestHandler<GetSpecializationSt
         }
 
         var payments = new List<AppointmentPaymentDto>();
-        var rates = new List<Rate>();
+        var ratings = new List<RatingDto>();
 
         if (appointmentIds.Any())
         {
@@ -82,11 +84,15 @@ public class GetSpecializationStatsHandler : IRequestHandler<GetSpecializationSt
                 AmountCents = (int)p.AmountCents, 
                 Status = p.Status 
             }).ToList();
-        }
 
-        rates = await _context.Rates.AsNoTracking()
-            .Where(r => r.Appointment_Id.HasValue && appointmentIds.Contains(r.Appointment_Id.Value))
-            .ToListAsync(cancellationToken);
+            // Get ratings via RabbitMQ from PractitionerService
+            var ratingsResponse = await _ratingsClient.GetResponse<Medicare.Messaging.Contracts.IAppointmentRatings>(new { AppointmentIds = appointmentIds }, cancellationToken);
+            ratings = ratingsResponse.Message.Ratings.Select(r => new RatingDto
+            {
+                AppointmentId = r.AppointmentId,
+                RateValue = r.RateValue
+            }).ToList();
+        }
 
         // Group by Specialization (determined from Doctor)
         var groupedBySpec = appointments
@@ -103,8 +109,8 @@ public class GetSpecializationStatsHandler : IRequestHandler<GetSpecializationSt
                     .Where(p => groupApptIds.Contains(p.AppointmentId))
                     .Sum(p => p.AmountCents) / 100.0m;
                     
-                 var groupRates = rates.Where(r => r.Appointment_Id.HasValue && groupApptIds.Contains(r.Appointment_Id.Value)).ToList();
-                 var groupAvgRating = groupRates.Any() ? groupRates.Average(r => r.Rate_Value ?? 0) : 0;
+                 var groupRatings = ratings.Where(r => groupApptIds.Contains(r.AppointmentId)).ToList();
+                 var groupAvgRating = groupRatings.Any() ? groupRatings.Average(r => r.RateValue) : 0;
                  
                  return new SpecializationStatsDto
                  {
@@ -124,3 +130,4 @@ public class GetSpecializationStatsHandler : IRequestHandler<GetSpecializationSt
         return groupedBySpec;
     }
 }
+
