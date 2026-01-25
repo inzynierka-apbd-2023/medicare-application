@@ -49,7 +49,7 @@ var userService = builder.AddProject<Projects.UserService>("userservice")
                          {
                              app.Template.Scale = new ContainerAppScale
                              {
-                                 MinReplicas = 0,
+                                 MinReplicas = 1,
                                  MaxReplicas = 1
                              };
                              app.Template.Containers[0].Value.Resources = new()
@@ -74,7 +74,7 @@ var practitionerService = builder.AddProject<Projects.PractitionerService>("prac
                                  {
                                      app.Template.Scale = new ContainerAppScale
                                      {
-                                         MinReplicas = 0,
+                                         MinReplicas = 1,
                                          MaxReplicas = 1
                                      };
                                      app.Template.Containers[0].Value.Resources = new()
@@ -100,7 +100,7 @@ var patientService = builder.AddProject<Projects.PatientService>("patientservice
                             {
                                 app.Template.Scale = new ContainerAppScale
                                 {
-                                    MinReplicas = 0,
+                                    MinReplicas = 1,
                                     MaxReplicas = 1
                                 };
                                 app.Template.Containers[0].Value.Resources = new()
@@ -126,7 +126,7 @@ var catalogService = builder.AddProject<Projects.MedicalCatalogService>("medical
                             {
                                 app.Template.Scale = new ContainerAppScale
                                 {
-                                    MinReplicas = 0,
+                                    MinReplicas = 1,
                                     MaxReplicas = 1
                                 };
                                 app.Template.Containers[0].Value.Resources = new()
@@ -152,7 +152,7 @@ var billingService = builder.AddProject<Projects.BillingService>("billingservice
                             {
                                 app.Template.Scale = new ContainerAppScale
                                 {
-                                    MinReplicas = 0,
+                                    MinReplicas = 1,
                                     MaxReplicas = 1
                                 };
                                 app.Template.Containers[0].Value.Resources = new()
@@ -178,7 +178,7 @@ var documentsService = builder.AddProject<Projects.DocumentsService>("documentss
                               {
                                   app.Template.Scale = new ContainerAppScale
                                   {
-                                      MinReplicas = 0,
+                                      MinReplicas = 1,
                                       MaxReplicas = 1
                                   };
                                   app.Template.Containers[0].Value.Resources = new()
@@ -204,7 +204,7 @@ var appointmentService = builder.AddProject<Projects.AppointmentService>("appoin
                                 {
                                     app.Template.Scale = new ContainerAppScale
                                     {
-                                        MinReplicas = 0,
+                                        MinReplicas = 1,
                                         MaxReplicas = 1
                                     };
                                     app.Template.Containers[0].Value.Resources = new()
@@ -228,7 +228,7 @@ var recordsService = builder.AddProject<Projects.MedicalRecordsService>("medical
                             {
                                 app.Template.Scale = new ContainerAppScale
                                 {
-                                    MinReplicas = 0,
+                                    MinReplicas = 1,
                                     MaxReplicas = 1
                                 };
                                 app.Template.Containers[0].Value.Resources = new()
@@ -254,7 +254,7 @@ var labService = builder.AddProject<Projects.LabService>("labservice")
                         {
                             app.Template.Scale = new ContainerAppScale
                             {
-                                MinReplicas = 0,
+                                MinReplicas = 1,
                                 MaxReplicas = 1
                             };
                             app.Template.Containers[0].Value.Resources = new()
@@ -278,7 +278,7 @@ var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice
                             {
                                 app.Template.Scale = new ContainerAppScale
                                 {
-                                    MinReplicas = 0,
+                                    MinReplicas = 1,
                                     MaxReplicas = 1
                                 };
                                 app.Template.Containers[0].Value.Resources = new()
@@ -311,7 +311,7 @@ var notificationService = builder.AddProject<Projects.NotificationService>("noti
                                  {
                                      app.Template.Scale = new ContainerAppScale
                                      {
-                                         MinReplicas = 0,
+                                         MinReplicas = 1,
                                          MaxReplicas = 1
                                      };
                                      app.Template.Containers[0].Value.Resources = new()
@@ -337,7 +337,7 @@ var messagingService = builder.AddProject<Projects.MessagingService>("messagings
                               {
                                   app.Template.Scale = new ContainerAppScale
                                   {
-                                      MinReplicas = 0,
+                                      MinReplicas = 1,
                                       MaxReplicas = 1
                                   };
                                   app.Template.Containers[0].Value.Resources = new()
@@ -359,7 +359,7 @@ var pdfService = builder.AddProject<Projects.PdfService>("pdfservice")
                         {
                             app.Template.Scale = new ContainerAppScale
                             {
-                                MinReplicas = 0,
+                                MinReplicas = 1,
                                 MaxReplicas = 1
                             };
                             app.Template.Containers[0].Value.Resources = new()
@@ -390,7 +390,7 @@ builder.AddDockerfile("frontend", "../../frontend-container/medicare-frontend")
        {
            app.Template.Scale = new ContainerAppScale
            {
-               MinReplicas = 0,
+               MinReplicas = 1,
                MaxReplicas = 1
            };
            app.Template.Containers[0].Value.Resources = new()

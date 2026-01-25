@@ -181,7 +181,7 @@ public static class Extensions
             // Configure Outbox with EF Core
             x.AddEntityFrameworkOutbox<TDbContext>(o =>
             {
-                o.QueryDelay = TimeSpan.FromSeconds(1);
+                o.QueryDelay = TimeSpan.FromSeconds(5);
                 o.UseSqlServer();
                 o.UseBusOutbox();
             });
