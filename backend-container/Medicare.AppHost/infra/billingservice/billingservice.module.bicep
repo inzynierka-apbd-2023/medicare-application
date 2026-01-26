@@ -6,9 +6,18 @@ param billingservice_containerport string
 param sql_outputs_sqlserverfqdn string
 
 @secure()
-param rabbitmq_password_value string
+param azurerabbitmqpassword_value string
 
-param jwt_secret_value string
+@secure()
+param azurejwtsecret_value string
+
+param azurecorsallowedorigins_value string
+
+@secure()
+param azurewebhookssecretmock_value string
+
+@secure()
+param azurewebhookssecretstripe_value string
 
 param outputs_azure_container_registry_managed_identity_id string
 
@@ -28,7 +37,19 @@ resource billingservice 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         {
           name: 'connectionstrings--rabbitmq'
-          value: 'amqp://${'medicare'}:${rabbitmq_password_value}@rabbitmq:5672'
+          value: 'amqp://${'guest'}:${azurerabbitmqpassword_value}@rabbitmq:5672'
+        }
+        {
+          name: 'jwt--secretkey'
+          value: azurejwtsecret_value
+        }
+        {
+          name: 'webhooks--secrets--mock'
+          value: azurewebhookssecretmock_value
+        }
+        {
+          name: 'webhooks--secrets--stripe'
+          value: azurewebhookssecretstripe_value
         }
       ]
       activeRevisionsMode: 'Single'
@@ -85,7 +106,7 @@ resource billingservice 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'Jwt__SecretKey'
-              value: jwt_secret_value
+              secretRef: 'jwt--secretkey'
             }
             {
               name: 'Jwt__Issuer'
@@ -94,6 +115,18 @@ resource billingservice 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'Jwt__Audience'
               value: 'MedicareApp'
+            }
+            {
+              name: 'Cors__AllowedOrigins__0'
+              value: azurecorsallowedorigins_value
+            }
+            {
+              name: 'Webhooks__Secrets__mock'
+              secretRef: 'webhooks--secrets--mock'
+            }
+            {
+              name: 'Webhooks__Secrets__stripe'
+              secretRef: 'webhooks--secrets--stripe'
             }
             {
               name: 'AZURE_CLIENT_ID'
@@ -107,61 +140,8 @@ resource billingservice 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 0
+        minReplicas: 1
         maxReplicas: 1
-        rules: [
-          {
-            name: 'rabbitmq-billing-user-created-scaler'
-            custom: {
-              type: 'rabbitmq'
-              metadata: {
-                queueName: 'billing.user_created'
-                mode: 'QueueLength'
-                value: '1'
-              }
-              auth: [
-                {
-                  secretRef: 'connectionstrings--rabbitmq'
-                  triggerParameter: 'host'
-                }
-              ]
-            }
-          }
-          {
-            name: 'rabbitmq-billing-payment-requests-scaler'
-            custom: {
-              type: 'rabbitmq'
-              metadata: {
-                queueName: 'billing.payment_requests'
-                mode: 'QueueLength'
-                value: '1'
-              }
-              auth: [
-                {
-                  secretRef: 'connectionstrings--rabbitmq'
-                  triggerParameter: 'host' 
-                }
-              ]
-            }
-          }
-          {
-            name: 'rabbitmq-billing-appointment-created-scaler'
-            custom: {
-              type: 'rabbitmq'
-              metadata: {
-                queueName: 'billing.appointment_created'
-                mode: 'QueueLength'
-                value: '1'
-              }
-              auth: [
-                {
-                  secretRef: 'connectionstrings--rabbitmq'
-                  triggerParameter: 'host'
-                }
-              ]
-            }
-          }
-        ]
       }
     }
   }

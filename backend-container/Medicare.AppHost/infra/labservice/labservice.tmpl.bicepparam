@@ -1,6 +1,8 @@
 using './labservice.module.bicep'
 
-param jwt_secret_value = '{{ .Env.AZURE_JWT_SECRET }}'
+param azurecorsallowedorigins_value = '{{ parameter "azurecorsallowedorigins" }}'
+param azurejwtsecret_value = '{{ securedParameter "azurejwtsecret" }}'
+param azurerabbitmqpassword_value = '{{ securedParameter "azurerabbitmqpassword" }}'
 param labservice_containerimage = '{{ .Image }}'
 param labservice_containerport = '{{ targetPortOrDefault 8080 }}'
 param outputs_azure_container_apps_environment_id = '{{ .Env.AZURE_CONTAINER_APPS_ENVIRONMENT_ID }}'

@@ -12,21 +12,23 @@ param location string
 @description('Id of the user or app to assign application roles')
 param principalId string = ''
 
-param frontend_base_url string
-param jwt_secret string
-@metadata({azd: {
-  type: 'generate'
-  config: {length:22,noSpecial:true}
-  }
-})
+param azurecorsallowedorigins string
+param azurefrontendbaseurl string
 @secure()
-param rabbitmq_password string
-param smtp_password string
-param smtp_username string
+param azurejwtsecret string
+@secure()
+param azurerabbitmqpassword string
+@secure()
+param azuresmtppassword string
+@secure()
+param azuresmtpusername string
+@secure()
+param azurewebhookssecretmock string
+@secure()
+param azurewebhookssecretstripe string
 
 var tags = {
   'azd-env-name': environmentName
-  'version': '1.0.1'
 }
 
 resource rg 'Microsoft.Resources/resourceGroups@2022-09-01' = {
@@ -64,7 +66,3 @@ output AZURE_CONTAINER_APPS_ENVIRONMENT_NAME string = resources.outputs.AZURE_CO
 output AZURE_CONTAINER_APPS_ENVIRONMENT_ID string = resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_ID
 output AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN string = resources.outputs.AZURE_CONTAINER_APPS_ENVIRONMENT_DEFAULT_DOMAIN
 output SQL_SQLSERVERFQDN string = sql.outputs.sqlServerFqdn
-output jwt_secret string = jwt_secret
-output smtp_password string = smtp_password
-output smtp_username string = smtp_username
-output frontend_base_url string = frontend_base_url

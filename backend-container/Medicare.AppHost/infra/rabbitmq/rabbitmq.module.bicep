@@ -2,7 +2,7 @@
 param location string = resourceGroup().location
 
 @secure()
-param rabbitmq_password_value string
+param azurerabbitmqpassword_value string
 
 param outputs_azure_container_registry_managed_identity_id string
 
@@ -18,18 +18,18 @@ resource rabbitmq 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         {
           name: 'rabbitmq-default-pass'
-          value: rabbitmq_password_value
+          value: azurerabbitmqpassword_value
         }
       ]
       activeRevisionsMode: 'Single'
       ingress: {
         external: false
-        targetPort: 15672
-        transport: 'http'
+        targetPort: 5672
+        transport: 'tcp'
         additionalPortMappings: [
           {
             external: false
-            targetPort: 5672
+            targetPort: 15672
           }
         ]
       }
@@ -43,7 +43,7 @@ resource rabbitmq 'Microsoft.App/containerApps@2024-03-01' = {
           env: [
             {
               name: 'RABBITMQ_DEFAULT_USER'
-              value: 'medicare'
+              value: 'guest'
             }
             {
               name: 'RABBITMQ_DEFAULT_PASS'

@@ -6,9 +6,12 @@ param patientservice_containerport string
 param sql_outputs_sqlserverfqdn string
 
 @secure()
-param rabbitmq_password_value string
+param azurerabbitmqpassword_value string
 
-param jwt_secret_value string
+@secure()
+param azurejwtsecret_value string
+
+param azurecorsallowedorigins_value string
 
 param outputs_azure_container_registry_managed_identity_id string
 
@@ -28,7 +31,11 @@ resource patientservice 'Microsoft.App/containerApps@2024-03-01' = {
       secrets: [
         {
           name: 'connectionstrings--rabbitmq'
-          value: 'amqp://${'medicare'}:${rabbitmq_password_value}@rabbitmq:5672'
+          value: 'amqp://${'guest'}:${azurerabbitmqpassword_value}@rabbitmq:5672'
+        }
+        {
+          name: 'jwt--secretkey'
+          value: azurejwtsecret_value
         }
       ]
       activeRevisionsMode: 'Single'
@@ -85,7 +92,7 @@ resource patientservice 'Microsoft.App/containerApps@2024-03-01' = {
             }
             {
               name: 'Jwt__SecretKey'
-              value: jwt_secret_value
+              secretRef: 'jwt--secretkey'
             }
             {
               name: 'Jwt__Issuer'
@@ -94,6 +101,10 @@ resource patientservice 'Microsoft.App/containerApps@2024-03-01' = {
             {
               name: 'Jwt__Audience'
               value: 'MedicareApp'
+            }
+            {
+              name: 'Cors__AllowedOrigins__0'
+              value: azurecorsallowedorigins_value
             }
             {
               name: 'AZURE_CLIENT_ID'
@@ -107,7 +118,7 @@ resource patientservice 'Microsoft.App/containerApps@2024-03-01' = {
         }
       ]
       scale: {
-        minReplicas: 0
+        minReplicas: 1
         maxReplicas: 1
       }
     }

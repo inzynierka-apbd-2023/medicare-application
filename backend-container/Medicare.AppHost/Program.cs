@@ -1,17 +1,23 @@
 using Azure.Provisioning.AppContainers;
+using System.Globalization;
 
 var builder = DistributedApplication.CreateBuilder(args);
+
+// Ensure that decimals are generated with dots, not commas (e.g. 0.25 for CPU)
+CultureInfo.DefaultThreadCurrentCulture = CultureInfo.InvariantCulture;
 
 // External resources
 // Uses local SQL Server container for development, Azure SQL Database for production
 var sql = builder.AddAzureSqlServer("sql")
                  .RunAsContainer();
 
-// Define separate databases for each service (11 services use SQL)
 // Define ONE shared database for all services (Schema isolation used)
 var sharedDb = sql.AddDatabase("MedicareDb");
 
-var rabbitmq = builder.AddRabbitMQ("rabbitmq")
+var rabbitmqPassword = builder.AddParameter("azurerabbitmqpassword", secret: true);
+var rabbitmq = builder.AddRabbitMQ("rabbitmq", password: rabbitmqPassword)
+                      .WithEnvironment("RABBITMQ_DEFAULT_USER", "guest")
+                      .WithEnvironment("RABBITMQ_DEFAULT_PASS", rabbitmqPassword)
                       .WithManagementPlugin()
                       .PublishAsAzureContainerApp((infra, app) =>
                       {
@@ -28,12 +34,17 @@ var rabbitmq = builder.AddRabbitMQ("rabbitmq")
                       });
 
 
-var jwtSecret = builder.AddParameter("jwt-secret");
+var jwtSecret = builder.AddParameter("azurejwtsecret", secret: true);
 
 // SMTP Configuration for email sending (password reset, welcome emails)
-var smtpUsername = builder.AddParameter("smtp-username");
-var smtpPassword = builder.AddParameter("smtp-password");
-var frontendBaseUrl = builder.AddParameter("frontend-base-url");
+var smtpUsername = builder.AddParameter("azuresmtpusername", secret: true);
+var smtpPassword = builder.AddParameter("azuresmtppassword", secret: true);
+var frontendBaseUrl = builder.AddParameter("azurefrontendbaseurl");
+
+// CORS and Webhook Configuration
+var corsAllowedOrigins = builder.AddParameter("azurecorsallowedorigins");
+var webhooksSecretMock = builder.AddParameter("azurewebhookssecretmock", secret: true);
+var webhooksSecretStripe = builder.AddParameter("azurewebhookssecretstripe", secret: true);
 
 // Services - ALL share the same 'sharedDb'
 var userService = builder.AddProject<Projects.UserService>("userservice")
@@ -45,6 +56,7 @@ var userService = builder.AddProject<Projects.UserService>("userservice")
                          .WithEnvironment("Jwt__SecretKey", jwtSecret)
                          .WithEnvironment("Jwt__Issuer", "UserService")
                          .WithEnvironment("Jwt__Audience", "MedicareApp")
+                         .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                          .PublishAsAzureContainerApp((infra, app) =>
                          {
                              app.Template.Scale = new ContainerAppScale
@@ -70,6 +82,7 @@ var practitionerService = builder.AddProject<Projects.PractitionerService>("prac
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                  .WithEnvironment("Jwt__Issuer", "UserService")
                                  .WithEnvironment("Jwt__Audience", "MedicareApp")
+                                 .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                                  .PublishAsAzureContainerApp((infra, app) =>
                                  {
                                      app.Template.Scale = new ContainerAppScale
@@ -96,6 +109,7 @@ var patientService = builder.AddProject<Projects.PatientService>("patientservice
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                             .PublishAsAzureContainerApp((infra, app) =>
                             {
                                 app.Template.Scale = new ContainerAppScale
@@ -122,6 +136,7 @@ var catalogService = builder.AddProject<Projects.MedicalCatalogService>("medical
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                             .PublishAsAzureContainerApp((infra, app) =>
                             {
                                 app.Template.Scale = new ContainerAppScale
@@ -148,6 +163,9 @@ var billingService = builder.AddProject<Projects.BillingService>("billingservice
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
+                            .WithEnvironment("Webhooks__Secrets__mock", webhooksSecretMock)
+                            .WithEnvironment("Webhooks__Secrets__stripe", webhooksSecretStripe)
                             .PublishAsAzureContainerApp((infra, app) =>
                             {
                                 app.Template.Scale = new ContainerAppScale
@@ -174,6 +192,7 @@ var documentsService = builder.AddProject<Projects.DocumentsService>("documentss
                               .WithEnvironment("Jwt__SecretKey", jwtSecret)
                               .WithEnvironment("Jwt__Issuer", "UserService")
                               .WithEnvironment("Jwt__Audience", "MedicareApp")
+                              .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                               .PublishAsAzureContainerApp((infra, app) =>
                               {
                                   app.Template.Scale = new ContainerAppScale
@@ -200,6 +219,7 @@ var appointmentService = builder.AddProject<Projects.AppointmentService>("appoin
                                 .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                 .WithEnvironment("Jwt__Issuer", "UserService")
                                 .WithEnvironment("Jwt__Audience", "MedicareApp")
+                                .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                                 .PublishAsAzureContainerApp((infra, app) =>
                                 {
                                     app.Template.Scale = new ContainerAppScale
@@ -224,6 +244,7 @@ var recordsService = builder.AddProject<Projects.MedicalRecordsService>("medical
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                             .PublishAsAzureContainerApp((infra, app) =>
                             {
                                 app.Template.Scale = new ContainerAppScale
@@ -250,6 +271,7 @@ var labService = builder.AddProject<Projects.LabService>("labservice")
                         .WithEnvironment("Jwt__SecretKey", jwtSecret)
                         .WithEnvironment("Jwt__Issuer", "UserService")
                         .WithEnvironment("Jwt__Audience", "MedicareApp")
+                        .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                         .PublishAsAzureContainerApp((infra, app) =>
                         {
                             app.Template.Scale = new ContainerAppScale
@@ -274,6 +296,7 @@ var archiveService = builder.AddProject<Projects.ArchiveService>("archiveservice
                             .WithEnvironment("Jwt__SecretKey", jwtSecret)
                             .WithEnvironment("Jwt__Issuer", "UserService")
                             .WithEnvironment("Jwt__Audience", "MedicareApp")
+                            .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                             .PublishAsAzureContainerApp((infra, app) =>
                             {
                                 app.Template.Scale = new ContainerAppScale
@@ -307,6 +330,7 @@ var notificationService = builder.AddProject<Projects.NotificationService>("noti
                                  .WithEnvironment("Jwt__SecretKey", jwtSecret)
                                  .WithEnvironment("Jwt__Issuer", "UserService")
                                  .WithEnvironment("Jwt__Audience", "MedicareApp")
+                                 .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                                  .PublishAsAzureContainerApp((infra, app) =>
                                  {
                                      app.Template.Scale = new ContainerAppScale
@@ -333,6 +357,7 @@ var messagingService = builder.AddProject<Projects.MessagingService>("messagings
                               .WithEnvironment("Jwt__SecretKey", jwtSecret)
                               .WithEnvironment("Jwt__Issuer", "UserService")
                               .WithEnvironment("Jwt__Audience", "MedicareApp")
+                              .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                               .PublishAsAzureContainerApp((infra, app) =>
                               {
                                   app.Template.Scale = new ContainerAppScale
@@ -355,6 +380,7 @@ var pdfService = builder.AddProject<Projects.PdfService>("pdfservice")
                         .WithEnvironment("Jwt__SecretKey", jwtSecret)
                         .WithEnvironment("Jwt__Issuer", "UserService")
                         .WithEnvironment("Jwt__Audience", "MedicareApp")
+                        .WithEnvironment("Cors__AllowedOrigins__0", corsAllowedOrigins)
                         .PublishAsAzureContainerApp((infra, app) =>
                         {
                             app.Template.Scale = new ContainerAppScale
@@ -386,6 +412,16 @@ builder.AddDockerfile("frontend", "../../frontend-container/medicare-frontend")
        .WithReference(notificationService)
        .WithReference(messagingService)
        .WaitFor(userService)
+       .WaitFor(practitionerService)
+       .WaitFor(patientService)
+       .WaitFor(catalogService)
+       .WaitFor(billingService)
+       .WaitFor(documentsService)
+       .WaitFor(appointmentService)
+       .WaitFor(recordsService)
+       .WaitFor(labService)
+       .WaitFor(notificationService)
+       .WaitFor(messagingService)
        .PublishAsAzureContainerApp((infra, app) =>
        {
            app.Template.Scale = new ContainerAppScale
@@ -400,7 +436,6 @@ builder.AddDockerfile("frontend", "../../frontend-container/medicare-frontend")
            };
        });
 
+var app = builder.Build();
 
-
-// Orchestration complete
-builder.Build().Run();
+app.Run();
