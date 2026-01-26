@@ -97,8 +97,8 @@ export const authService = {
     });
   },
 
-  async refresh(): Promise<AuthUser> {
-    return api.post<AuthUser>("/auth/refresh", {}, undefined, {
+  async refresh(): Promise<AuthUser | null> {
+    return api.post<AuthUser | null>("/auth/refresh", {}, undefined, {
       showToastOnError: false,
     });
   },

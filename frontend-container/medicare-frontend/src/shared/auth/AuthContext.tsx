@@ -51,18 +51,19 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useApiToastInit();
 
   const [user, setUser] = useState<AuthUser | null>(null);
-  const [loading, setLoading] = useState(true); // Start with loading=true for session restore
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Try to restore session on app load
   useEffect(() => {
     const restoreSession = async () => {
       try {
-        // Try to refresh the token - this will work if we have a valid refresh token cookie
         const authUser = await authService.refresh();
-        setUser(authUser);
+        if (authUser) {
+          setUser(authUser);
+        } else {
+          setUser(null);
+        }
       } catch {
-        // No valid session, user needs to log in
         setUser(null);
       } finally {
         setLoading(false);
@@ -164,12 +165,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const logout = useCallback(() => {
-    authService.logout(); // This handles API call and success toast
+    authService.logout();
     clearAuthSession();
   }, [clearAuthSession]);
 
   const handleAuthLogout = useCallback(() => {
-    // Only clear session, don't call API logout again
     clearAuthSession();
     showError(toastMessages.auth.sessionExpired);
     navigate("/login");
