@@ -3,7 +3,7 @@
 ## Accessing the Application
 
 The application is hosted and available at:
-**[https://frontend.happyforest-7b2f676b.westeurope.azurecontainerapps.io/](https://frontend.happyforest-7b2f676b.westeurope.azurecontainerapps.io/)**
+**[https://frontend.mangoground-5edc9890.westeurope.azurecontainerapps.io/](https://frontend.mangoground-5edc9890.westeurope.azurecontainerapps.io/)**
 
 ---
 
